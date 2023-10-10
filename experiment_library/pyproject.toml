@@ -28,7 +28,8 @@ classifiers = [
     "Topic :: Scientific/Engineering",
 ]
 dependencies = [
-    "laboneq~=2.16.0"
+    "laboneq~=2.16.0",
+    "ruamel.yaml>=0.17"
 ]
 
 [tool.isort]
@@ -41,6 +42,6 @@ zip-safe = false
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["analysis", "experiments"]
+include = ["experiment_library"]
 namespaces = false
 
