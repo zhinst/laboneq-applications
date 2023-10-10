@@ -1,0 +1,46 @@
+[build-system]
+requires = [ "setuptools>=65.0.0", "wheel",]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "experiment_library"
+description = "Library of LabOne Q experiments, analysis functions, and more."
+version = "0.1"
+license = {text = "Apache 2.0"}
+requires-python = ">=3.9"
+authors = [
+    { name = "Zurich Instruments Development Team", email = "info@zhinst.com" },
+]
+keywords = [
+    "quantum",
+    "sdk",
+    "zhinst",
+]
+classifiers = [
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: Apache Software License",
+    "Operating System :: Microsoft :: Windows",
+    "Operating System :: POSIX :: Linux",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Topic :: Scientific/Engineering",
+]
+dependencies = [
+    "laboneq~=2.16.0"
+]
+
+[tool.isort]
+profile = "black"
+src_paths = ["laboneq", "tests"]
+
+[tool.setuptools]
+zip-safe = false
+
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["analysis", "experiments"]
+namespaces = false
+
