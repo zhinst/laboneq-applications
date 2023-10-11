@@ -4,7 +4,77 @@ from laboneq.dsl.experiment.builtins import *
 import experiment_library.experiments.quantum_operations as quantum_operations
 
 
-@experiment(signals=["drive", "measure", "acquire"])
+@experiment(signals=["measure", "acquire"], uid="Full range CW resonator sweep")
+def resonator_spectroscopy_full_range(
+    qubit,
+    lo_frequencies,
+    inner_start,
+    inner_stop,
+    inner_count,
+    cw=True,
+    integration_time=10e-3,
+    num_averages=1,
+):
+    map_signal("measure", qubit.signals["measure"])
+    map_signal("acquire", qubit.signals["acquire"])
+
+    cal = experiment_calibration()
+    local_oscillator = Oscillator()
+    inner_oscillator = Oscillator(modulation_type=ModulationType.HARDWARE)
+    cal["measure"] = SignalCalibration(
+        oscillator=inner_oscillator,
+        local_oscillator=local_oscillator,
+        range=qubit.parameters.readout_range_out,
+    )
+    cal["acquire"] = SignalCalibration(
+        local_oscillator=local_oscillator,
+        oscillator=inner_oscillator,
+        range=qubit.parameters.readout_range_in,
+        port_delay=250e-9,
+    )
+
+    with for_each(lo_frequencies, axis_name="outer_sweep") as lo_freq:
+        local_oscillator.frequency = lo_freq
+
+        with acquire_loop_rt(
+            uid="shots",
+            count=num_averages,
+            acquisition_type=AcquisitionType.SPECTROSCOPY,
+        ):
+            with sweep_range(
+                start=inner_start,
+                stop=inner_stop,
+                count=inner_count,
+                axis_name="inner_sweep",
+            ) as inner_freq:
+                inner_oscillator.frequency = inner_freq
+
+                # readout pulse and data acquisition
+                with section(uid="resonator_spectroscopy"):
+                    if cw:
+                        acquire(
+                            signal="acquire",
+                            handle="resonator_spectroscopy",
+                            length=integration_time,
+                        )
+                    else:
+                        kernel_length = max(2e-6, integration_time)
+                        play(
+                            signal="measure",
+                            pulse=pulse_library.const(length=kernel_length),
+                        )
+                        acquire(
+                            signal="acquire",
+                            handle="resonator_spectroscopy",
+                            length=kernel_length,
+                        )
+                with section(
+                    uid="delay", length=1e-6, play_after="resonator_spectroscopy"
+                ):
+                    pass
+
+
+@experiment(signals=["drive", "measure", "acquire"], uid="Amplitude Rabi Experiment")
 def amplitude_rabi_single(
     qubit,
     amplitude_sweep,
