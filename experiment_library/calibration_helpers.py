@@ -6,11 +6,13 @@ from laboneq.simple import *
 
 ryaml = YAML()
 
+
 # saving and loading
 def load_qubit_parameters(filename="./qubit_parameters.yaml"):
     calib_file = open(filename).read()
     qubit_parameters = ryaml.load(calib_file)
     return qubit_parameters
+
 
 def update_qubit_parameters_and_calibration(
     qubit_parameters,
@@ -120,3 +122,14 @@ def create_transmon(qubit: str, base_parameters, device_setup):
         ),
     )
     return transmon
+
+
+def save_results(results_database, results_object, key_name: str, user_note: str):
+    results_database.store(
+        data=results_object,
+        key=f"{key_name}_{datetime.datetime.now()}",
+        metadata={
+            "creation_date": datetime.datetime.now(),
+            "user_note": f"{user_note}",
+        },
+    )

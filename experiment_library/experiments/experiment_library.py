@@ -26,7 +26,7 @@ def amplitude_rabi_single(
         # inner loop - real time sweep of Rabi amplitudes
         with sweep(uid="rabi_sweep", parameter=amplitude_sweep):
             # qubit drive
-            with section(uid=f"excitation", alignment=SectionAlignment.RIGHT):
+            with section(uid="excitation", alignment=SectionAlignment.RIGHT):
                 play(
                     signal="drive",
                     pulse=quantum_operations.drive_ge(qubit, amplitude=1),
@@ -35,8 +35,8 @@ def amplitude_rabi_single(
                 """
                     Unfortunately, we are not yet ready to do something like
                     add(quantum_operations.drive_ge(qubit)).
-                    We need to design a best way to come up with a way how to propagate parameters through,
-                    particularly if they are convoluted as in the amp rabi sweep.
+                    We need to design a best way to come up with a way how to propagate
+                    parameters through, if they are convoluted as in the amp rabi sweep.
                 """
 
             # measurement
@@ -60,17 +60,17 @@ def amplitude_rabi_single(
                     handle=f"{qubit.uid}_rabi_cal_trace",
                     acquire_signal="acquire",
                     integration_kernel=integration_kernel,
-                    reset_delay=1e-6,  # qubit.parameters.user_defined["reset_delay_length"],
+                    reset_delay=1e-6,
                 )
             with section(uid="cal_trace_exc", play_after="cal_trace_gnd_meas"):
                 play(signal="drive", pulse=quantum_operations.drive_ge(qubit))
 
             with section(uid="cal_trace_exc_meas", play_after="cal_trace_exc"):
                 measure(
-                    measure_signal=f"measure",
+                    measure_signal="measure",
                     measure_pulse=readout_pulse,
-                    handle=f"rabi_cal_trace",
-                    acquire_signal=f"acquire",
+                    handle="rabi_cal_trace",
+                    acquire_signal="acquire",
                     integration_kernel=integration_kernel,
                     reset_delay=qubit.parameters.user_defined["reset_delay_length"],
                 )

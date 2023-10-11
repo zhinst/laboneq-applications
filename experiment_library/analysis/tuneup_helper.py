@@ -5,25 +5,11 @@
 import numpy as np
 import scipy.optimize as opt
 import matplotlib.pyplot as plt
-import time
-import pathlib
 import scipy
-import json
 from laboneq.simple import *
-from ruamel.yaml import YAML
 
-import datetime
-from scipy.optimize import curve_fit, fmin
+from scipy.optimize import curve_fit
 
-def save_results(results_database, results_object, key_name: str, user_note: str):
-    results_database.store(
-        data=results_object,
-        key=f"{key_name}_{datetime.datetime.now()}",
-        metadata={
-            "creation_date": datetime.datetime.now(),
-            "user_note": f"{user_note}",
-        },
-    )
 
 # convenience
 def flatten(l):
@@ -241,9 +227,9 @@ def rotate_to_real_axis(complex_values):
     return res_values
 
 
-def analyze_qspec(res, handle, f0=1E9, a=0.01, gamma = 3E6, offset = 0.04,rotate=False, flip=False):
-    
-
+def analyze_qspec(
+    res, handle, f0=1e9, a=0.01, gamma=3e6, offset=0.04, rotate=False, flip=False
+):
     qspec_res = res.get_data(handle)
     qspec_freq = res.get_axis(handle)[0]
 
@@ -251,25 +237,20 @@ def analyze_qspec(res, handle, f0=1E9, a=0.01, gamma = 3E6, offset = 0.04,rotate
 
     flip_sign = -1 if flip else +1
 
-
-
     def lorentzian(f, f0, a, gamma, offset, flip_sign):
         penalization = abs(min(0, gamma)) * 1000
-        return (
-            offset + flip_sign * a / (1 + (f - f0) ** 2 / gamma**2) + penalization
-        )
-
+        return offset + flip_sign * a / (1 + (f - f0) ** 2 / gamma**2) + penalization
 
     (f_0, a, gamma, offset, flip_sign), _ = curve_fit(
         lorentzian, qspec_freq, y, (f0, a, gamma, offset, flip_sign)
     )
 
-    y_fit = lorentzian(qspec_freq, f_0,a ,gamma,offset, flip_sign)
+    y_fit = lorentzian(qspec_freq, f_0, a, gamma, offset, flip_sign)
 
     plt.figure()
     plt.plot(qspec_freq, y)
     plt.plot(qspec_freq, abs(qspec_res), ".")
-    plt.plot(qspec_freq,y_fit)
+    plt.plot(qspec_freq, y_fit)
     plt.show()
 
     return f_0
@@ -446,6 +427,7 @@ def evaluate_ramsey(res, handle, plot=True, rotate=False, flip=False, use_phase=
 #     print(f"T1 found to be {t1*1e6} us.")
 #     return t1
 
+
 def evaluate_T1(res, handle, plot=True, rotate=False):
     def T1_curve(x, offset, amplitude, t1):
         return amplitude * np.exp(-x / t1) + offset
@@ -468,19 +450,18 @@ def evaluate_T1(res, handle, plot=True, rotate=False):
 
     t1 = popt[2]
 
-
     # pi_amp = scipy.optimize.fmin(lambda x: -rabi_curve(x, *popt), x[np.argmax(y)], disp=False)[0]
 
     #  pi2_amp = scipy.optimize.fmin(lambda x: abs(rabi_curve(x, *popt)-popt[0]), pi_amp/2, disp=False )[0]
 
     if plot:
         plt.figure()
-        plt.plot(x*1e6, T1_curve(x, *popt))
-        plt.plot(x*1e6, y, ".")
+        plt.plot(x * 1e6, T1_curve(x, *popt))
+        plt.plot(x * 1e6, y, ".")
         plt.xlabel(f"delay (us)")
         plt.ylabel("Amplitude (a.u.)")
-        plt.axvline(x=t1*1e6, color='gray', linestyle='--', linewidth=2)
-        plt.text(x=2*t1*1e6,y= max(y)/2,s=f"T1= {t1*1e6:.3f}us.")
+        plt.axvline(x=t1 * 1e6, color="gray", linestyle="--", linewidth=2)
+        plt.text(x=2 * t1 * 1e6, y=max(y) / 2, s=f"T1= {t1*1e6:.3f}us.")
     #  plt.plot([pi_amp, pi_amp], [min(y), rabi_curve(pi_amp, *popt)])
     #  plt.plot([pi2_amp, pi2_amp], [min(y), rabi_curve(pi2_amp, *popt)])
 
@@ -543,76 +524,83 @@ def analyze_ACStark(qubit_parameters, results, handle, qubit, plot=True):
     return popt
 
 
-#plotting helpers
+# plotting helpers
 def plot_with_trace_rabi(res):
     handles = list(res.acquired_results.keys())
     res1 = np.asarray(res.get_data(handles[0]))
-    res_cal_trace= np.asarray(res.get_data(handles[1]))
+    res_cal_trace = np.asarray(res.get_data(handles[1]))
     axis1 = res.get_axis(handles[0])[0]
-    delta_x = axis1[-1]-axis1[-2]
-    axis2 = np.linspace(axis1[-1]+delta_x,axis1[-1] + 2*delta_x,2)
+    delta_x = axis1[-1] - axis1[-2]
+    axis2 = np.linspace(axis1[-1] + delta_x, axis1[-1] + 2 * delta_x, 2)
 
-    delta_vec = res_cal_trace[1] -res_cal_trace[0]
+    delta_vec = res_cal_trace[1] - res_cal_trace[0]
     angle = np.angle(delta_vec)
     rd = []
-    for r in [res1,res_cal_trace]:
+    for r in [res1, res_cal_trace]:
         r = r - res_cal_trace[0]
-        r = r * np.exp(-1j*angle)
-        r = r/ np.abs(delta_vec)
+        r = r * np.exp(-1j * angle)
+        r = r / np.abs(delta_vec)
         rd.append(r)
-        
+
     pi_amp = axis1[np.argmax(np.real(rd[0]))]
 
     plt.xlabel(handles[0])
     plt.ylabel("|e> population")
-    plt.plot(axis1,np.real(rd[0]),'o')
-    plt.plot(axis2[0],np.real(rd[1][0]),'o', color="gray")
-    plt.plot(axis2[0],np.real(rd[1][1]),'o', color="black")
-    plt.axhline(y=np.real(rd[1][0]), color='gray', linestyle='--', linewidth=2)
-    plt.axhline(y=np.real(rd[1][1]), color='gray', linestyle='--', linewidth=2)
-    plt.axvline(x=pi_amp, color='gray', linestyle='--', linewidth=2)
-    plt.text(x=pi_amp,y = max(np.real(rd[0]))/2, s= f"piamp:{pi_amp}")
+    plt.plot(axis1, np.real(rd[0]), "o")
+    plt.plot(axis2[0], np.real(rd[1][0]), "o", color="gray")
+    plt.plot(axis2[0], np.real(rd[1][1]), "o", color="black")
+    plt.axhline(y=np.real(rd[1][0]), color="gray", linestyle="--", linewidth=2)
+    plt.axhline(y=np.real(rd[1][1]), color="gray", linestyle="--", linewidth=2)
+    plt.axvline(x=pi_amp, color="gray", linestyle="--", linewidth=2)
+    plt.text(x=pi_amp, y=max(np.real(rd[0])) / 2, s=f"piamp:{pi_amp}")
     plt.plot()
+
 
 # havenot tested yet
 def plot_with_trace_ramsey(res):
     handles = list(res.acquired_results.keys())
     res1 = np.asarray(res.get_data(handles[0]))
-    res_cal_trace= np.asarray(res.get_data(handles[1]))
+    res_cal_trace = np.asarray(res.get_data(handles[1]))
     axis1 = res.get_axis(handles[0])[0]
-    delta_x = axis1[-1]-axis1[-2]
-    axis2 = np.linspace(axis1[-1]+delta_x,axis1[-1] + 2*delta_x,2)
+    delta_x = axis1[-1] - axis1[-2]
+    axis2 = np.linspace(axis1[-1] + delta_x, axis1[-1] + 2 * delta_x, 2)
 
-    delta_vec = res_cal_trace[1] -res_cal_trace[0]
+    delta_vec = res_cal_trace[1] - res_cal_trace[0]
     angle = np.angle(delta_vec)
     rd = []
-    for r in [res1,res_cal_trace]:
+    for r in [res1, res_cal_trace]:
         r = r - res_cal_trace[0]
-        r = r * np.exp(-1j*angle)
-        r = r/ np.abs(delta_vec)
+        r = r * np.exp(-1j * angle)
+        r = r / np.abs(delta_vec)
         rd.append(r)
-        
-    pi_amp = axis1[np.argmax(np.real(rd[0]))]
 
     plt.xlabel(handles[0])
     plt.ylabel("|e> population")
-    plt.plot(axis1,np.real(rd[0]),'o')
-    plt.plot(axis2[0],np.real(rd[1][0]),'o', color="gray")
-    plt.plot(axis2[0],np.real(rd[1][1]),'o', color="black")
-    plt.axhline(y=np.real(rd[1][0]), color='gray', linestyle='--', linewidth=2)
-    plt.axhline(y=np.real(rd[1][1]), color='gray', linestyle='--', linewidth=2)
+    plt.plot(axis1, np.real(rd[0]), "o")
+    plt.plot(axis2[0], np.real(rd[1][0]), "o", color="gray")
+    plt.plot(axis2[0], np.real(rd[1][1]), "o", color="black")
+    plt.axhline(y=np.real(rd[1][0]), color="gray", linestyle="--", linewidth=2)
+    plt.axhline(y=np.real(rd[1][1]), color="gray", linestyle="--", linewidth=2)
     # plt.axvline(x=pi_amp, color='gray', linestyle='--', linewidth=2)
     # plt.text(x=pi_amp,y = max(np.real(rd[0]))/2, s= f"piamp:{pi_amp}")
     plt.plot()
 
 
-def calculate_fidelity(res0_rot,res1_rot,threshold):
-    prepared_g_measured_g = np.count_nonzero(res0_rot.real < threshold)/len(res0_rot.real)
-    prepared_g_measured_e = np.count_nonzero(res0_rot.real > threshold)/len(res0_rot.real)
-    prepared_e_measured_g = np.count_nonzero(res1_rot.real < threshold)/len(res1_rot.real)
-    prepared_e_measured_e = np.count_nonzero(res1_rot.real > threshold)/len(res1_rot.real)
+def calculate_fidelity(res0_rot, res1_rot, threshold):
+    prepared_g_measured_g = np.count_nonzero(res0_rot.real < threshold) / len(
+        res0_rot.real
+    )
+    prepared_g_measured_e = np.count_nonzero(res0_rot.real > threshold) / len(
+        res0_rot.real
+    )
+    prepared_e_measured_g = np.count_nonzero(res1_rot.real < threshold) / len(
+        res1_rot.real
+    )
+    prepared_e_measured_e = np.count_nonzero(res1_rot.real > threshold) / len(
+        res1_rot.real
+    )
 
-    fidelity = (  1- prepared_g_measured_e - prepared_e_measured_g )
+    fidelity = 1 - prepared_g_measured_e - prepared_e_measured_g
     print(f"ee:{prepared_e_measured_e}")
     print(f"gg:{prepared_g_measured_g}")
     print(f"eg:{prepared_e_measured_g}")

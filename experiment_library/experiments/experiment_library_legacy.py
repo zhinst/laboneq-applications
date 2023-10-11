@@ -12,14 +12,16 @@ def flatten(l):
     # flatten a nested list to a single level
     return [item for sublist in l for item in sublist]
 
+
 # pulses
 def qubit_gaussian_pulse(qubit):
     return pulse_library.gaussian(
         uid=f"gaussian_pulse_drive_{qubit.uid}",
         length=qubit.parameters.user_defined["pulse_length"],
-        amplitude = 1.0,
+        amplitude=1.0,
         sigma=0.3,
     )
+
 
 def qubit_drive_pulse(qubit, amplitude=None):
     if amplitude is None:
@@ -32,6 +34,7 @@ def qubit_drive_pulse(qubit, amplitude=None):
         beta=0.0,
     )
 
+
 def create_amp_sweep(id, start_amp, stop_amp, num_points):
     return LinearSweepParameter(
         uid=f"amp_sweep_{id}",
@@ -40,12 +43,14 @@ def create_amp_sweep(id, start_amp, stop_amp, num_points):
         count=num_points,
     )
 
+
 def readout_gauss_square_pulse(qubit):
     return pulse_library.gaussian_square(
         uid=f"readout_pulse_{qubit.uid}",
         length=qubit.parameters.user_defined["readout_length"],
         amplitude=qubit.parameters.user_defined["readout_amplitude"],
     )
+
 
 def qubit_spectroscopy_pulse(qubit):
     return pulse_library.const(
@@ -55,19 +60,22 @@ def qubit_spectroscopy_pulse(qubit):
         # can_compress=True,
     )
 
+
 def qubit_gaussian_pulse(qubit):
     return pulse_library.gaussian(
         uid=f"gaussian_pulse_drive_{qubit.uid}",
         length=qubit.parameters.user_defined["pulse_length"],
-        amplitude = qubit.parameters.user_defined["amplitude_pi"],
+        amplitude=qubit.parameters.user_defined["amplitude_pi"],
     )
+
 
 def qubit_gaussian_halfpi_pulse(qubit):
     return pulse_library.gaussian(
         uid=f"gaussian_pulse_drive_{qubit.uid}",
         length=qubit.parameters.user_defined["pulse_length"],
-        amplitude = qubit.parameters.user_defined["amplitude_pi2"],
+        amplitude=qubit.parameters.user_defined["amplitude_pi2"],
     )
+
 
 def readout_pulse(qubit):
     return pulse_library.const(
@@ -83,6 +91,8 @@ def integration_kernel(qubit):
         length=qubit.parameters.user_defined["readout_length"],
         amplitude=1,
     )
+
+
 # define sweep parameter
 def create_freq_sweep(
     id, start_freq, stop_freq, num_points, axis_name="Frequency [Hz]"
@@ -94,6 +104,7 @@ def create_freq_sweep(
         count=num_points,
         axis_name=axis_name,
     )
+
 
 def resonator_spectroscopy_parallel_CW_full_range(
     qubits,
@@ -713,27 +724,27 @@ def amplitude_rabi_single(
     ):
         # inner loop - real time sweep of Rabi amplitudes
         with exp_rabi.sweep(uid="rabi_sweep", parameter=amplitude_sweep):
-                # qubit drive
-                with exp_rabi.section(
-                    uid=f"{qubit.uid}_excitation", alignment=SectionAlignment.RIGHT
-                ):
-                    exp_rabi.play(
-                        signal=f"drive_{qubit.uid}",
-                        pulse=drive_pulse(qubit),
-                        amplitude=amplitude_sweep,
-                    )
-                # measurement
-                with exp_rabi.section(
-                    uid=f"readout_{qubit.uid}", play_after=f"{qubit.uid}_excitation"
-                ):
-                    exp_rabi.measure(
-                        measure_signal=f"measure_{qubit.uid}",
-                        measure_pulse=readout_pulse(qubit),
-                        handle=f"{qubit.uid}_rabi",
-                        acquire_signal=f"acquire_{qubit.uid}",
-                        integration_kernel=integration_kernel(qubit),
-                        reset_delay=qubit.parameters.user_defined["reset_delay_length"],
-                    )
+            # qubit drive
+            with exp_rabi.section(
+                uid=f"{qubit.uid}_excitation", alignment=SectionAlignment.RIGHT
+            ):
+                exp_rabi.play(
+                    signal=f"drive_{qubit.uid}",
+                    pulse=drive_pulse(qubit),
+                    amplitude=amplitude_sweep,
+                )
+            # measurement
+            with exp_rabi.section(
+                uid=f"readout_{qubit.uid}", play_after=f"{qubit.uid}_excitation"
+            ):
+                exp_rabi.measure(
+                    measure_signal=f"measure_{qubit.uid}",
+                    measure_pulse=readout_pulse(qubit),
+                    handle=f"{qubit.uid}_rabi",
+                    acquire_signal=f"acquire_{qubit.uid}",
+                    integration_kernel=integration_kernel(qubit),
+                    reset_delay=qubit.parameters.user_defined["reset_delay_length"],
+                )
         if cal_trace:
             with exp_rabi.section(uid="cal_trace_gnd"):
                 exp_rabi.measure(
@@ -750,7 +761,7 @@ def amplitude_rabi_single(
                     pulse=drive_pulse(qubit),
                     amplitude=pi_amplitude,
                 )
-                
+
                 exp_rabi.measure(
                     measure_signal=f"measure_{qubit.uid}",
                     measure_pulse=readout_pulse(qubit),
@@ -759,9 +770,9 @@ def amplitude_rabi_single(
                     integration_kernel=integration_kernel(qubit),
                     reset_delay=qubit.parameters.user_defined["reset_delay_length"],
                 )
-            
 
     return exp_rabi
+
 
 # function that returns a ramsey experiment
 def ramsey_parallel(
@@ -829,8 +840,7 @@ def ramsey_parallel(
                         integration_kernel=integration_kernel(qubit),
                         reset_delay=qubit.parameters.user_defined["reset_delay_length"],
                     )
-                    
-                
+
                 if cal_trace:
                     with exp_ramsey.section(uid="cal_trace_gnd"):
                         exp_ramsey.measure(
@@ -839,7 +849,9 @@ def ramsey_parallel(
                             handle=f"{qubit.uid}_rabi_cal_trace",
                             acquire_signal=f"acquire_{qubit.uid}",
                             integration_kernel=integration_kernel(qubit),
-                            reset_delay=qubit.parameters.user_defined["reset_delay_length"],
+                            reset_delay=qubit.parameters.user_defined[
+                                "reset_delay_length"
+                            ],
                         )
                     with exp_ramsey.section(uid="cal_trace_exc"):
                         exp_ramsey.play(
@@ -847,14 +859,16 @@ def ramsey_parallel(
                             pulse=drive_pulse(qubit),
                             amplitude=pi_amplitude,
                         )
-                        
+
                         exp_ramsey.measure(
                             measure_signal=f"measure_{qubit.uid}",
                             measure_pulse=readout_pulse(qubit),
                             handle=f"{qubit.uid}_rabi_cal_trace",
                             acquire_signal=f"acquire_{qubit.uid}",
                             integration_kernel=integration_kernel(qubit),
-                            reset_delay=qubit.parameters.user_defined["reset_delay_length"],
+                            reset_delay=qubit.parameters.user_defined[
+                                "reset_delay_length"
+                            ],
                         )
 
     return exp_ramsey
@@ -1149,26 +1163,25 @@ def ecr_amplitude_sweep(
 def plot_with_trace(res):
     handles = list(res.acquired_results.keys())
     res1 = np.asarray(res.get_data(handles[0]))
-    res2= np.asarray(res.get_data(handles[1]))
+    res2 = np.asarray(res.get_data(handles[1]))
     axis1 = res.get_axis(handles[0])[0]
-    delta_x = axis1[-1]-axis1[-2]
-    axis2 = np.linspace(axis1[-1]+delta_x,axis1[-1] + 2*delta_x,2)
-    axis = np.concatenate((axis1,axis2)).flatten()
-    temp_res = np.concatenate((res1,res2)).flatten()
-    #plt.plot(axis,np.abs(temp_res),'-o')
-    
-    delta_vec = res2[0] -res2[1]
+    delta_x = axis1[-1] - axis1[-2]
+    axis2 = np.linspace(axis1[-1] + delta_x, axis1[-1] + 2 * delta_x, 2)
+    axis = np.concatenate((axis1, axis2)).flatten()
+    temp_res = np.concatenate((res1, res2)).flatten()
+    # plt.plot(axis,np.abs(temp_res),'-o')
+
+    delta_vec = res2[0] - res2[1]
     angle = np.angle(delta_vec)
     rd = []
-    for r in [res1,res2]:
+    for r in [res1, res2]:
         r = r - res2[0]
-        r = np.asarray(r) * np.exp(-1j*angle)
-        r = r/ np.abs(delta_vec)
+        r = np.asarray(r) * np.exp(-1j * angle)
+        r = r / np.abs(delta_vec)
         rd.append(r)
-        
-    temp_rd = np.concatenate((rd[0],rd[1])).flatten()
-    plt.plot(axis,np.abs(temp_rd),'-o')
 
+    temp_rd = np.concatenate((rd[0], rd[1])).flatten()
+    plt.plot(axis, np.abs(temp_rd), "-o")
 
 
 def resonator_spectroscopy_g_vs_e(
@@ -1207,13 +1220,13 @@ def resonator_spectroscopy_g_vs_e(
                 with exp_spec.section(uid=f"resonator_spectroscopy_{qubit.uid}_g"):
                     # resonator signal readout
                     exp_spec.measure(
-                            measure_signal=f"measure_{qubit.uid}",
-                            measure_pulse=readout_pulse(qubit),
-                            handle=f"resonator_spectroscopy_{qubit.uid}",
-                            acquire_signal=f"acquire_{qubit.uid}",
-                            integration_kernel=integration_kernel(qubit),
-                            reset_delay=1e-6,
-                        )
+                        measure_signal=f"measure_{qubit.uid}",
+                        measure_pulse=readout_pulse(qubit),
+                        handle=f"resonator_spectroscopy_{qubit.uid}",
+                        acquire_signal=f"acquire_{qubit.uid}",
+                        integration_kernel=integration_kernel(qubit),
+                        reset_delay=1e-6,
+                    )
                 with exp_spec.section(uid=f"delay_{qubit.uid}_g", length=1e-6):
                     exp_spec.reserve(signal=f"measure_{qubit.uid}")
                     exp_spec.reserve(signal=f"acquire_{qubit.uid}")
@@ -1222,17 +1235,19 @@ def resonator_spectroscopy_g_vs_e(
         else:
             with exp_spec.sweep(uid="resonator_frequency_e", parameter=frequency_sweep):
                 with exp_spec.section(uid="excitation"):
-                    exp_spec.play(signal=f"drive_{qubit.uid}", pulse = drive_pulse(qubit))
-                with exp_spec.section(uid=f"resonator_spectroscopy_{qubit.uid}_e",play_after="excitation"):
+                    exp_spec.play(signal=f"drive_{qubit.uid}", pulse=drive_pulse(qubit))
+                with exp_spec.section(
+                    uid=f"resonator_spectroscopy_{qubit.uid}_e", play_after="excitation"
+                ):
                     # resonator signal readout
                     exp_spec.measure(
-                            measure_signal=f"measure_{qubit.uid}",
-                            measure_pulse=readout_pulse(qubit),
-                            handle=f"resonator_spectroscopy_{qubit.uid}",
-                            acquire_signal=f"acquire_{qubit.uid}",
-                            integration_kernel=integration_kernel(qubit),
-                            reset_delay=qubit.parameters.user_defined["reset_delay_length"],
-                        )
+                        measure_signal=f"measure_{qubit.uid}",
+                        measure_pulse=readout_pulse(qubit),
+                        handle=f"resonator_spectroscopy_{qubit.uid}",
+                        acquire_signal=f"acquire_{qubit.uid}",
+                        integration_kernel=integration_kernel(qubit),
+                        reset_delay=qubit.parameters.user_defined["reset_delay_length"],
+                    )
                 with exp_spec.section(uid=f"delay_{qubit.uid}_e", length=1e-6):
                     exp_spec.reserve(signal=f"measure_{qubit.uid}")
                     exp_spec.reserve(signal=f"acquire_{qubit.uid}")
