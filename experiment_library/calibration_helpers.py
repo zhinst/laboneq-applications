@@ -9,7 +9,8 @@ ryaml = YAML()
 
 # saving and loading
 def load_qubit_parameters(filename="./qubit_parameters.yaml"):
-    calib_file = open(filename).read()
+    with open(filename) as f:
+        calib_file = f.read()
     qubit_parameters = ryaml.load(calib_file)
     return qubit_parameters
 

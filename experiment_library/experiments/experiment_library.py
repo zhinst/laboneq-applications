@@ -99,7 +99,7 @@ def amplitude_rabi_single(
             with section(uid="excitation", alignment=SectionAlignment.RIGHT):
                 play(
                     signal="drive",
-                    pulse=quantum_operations.drive_ge(qubit, amplitude=1),
+                    pulse=quantum_operations.drive_ge_pi(qubit, amplitude=1),
                     amplitude=amplitude_sweep,
                 )
                 """
@@ -144,3 +144,107 @@ def amplitude_rabi_single(
                     integration_kernel=integration_kernel,
                     reset_delay=qubit.parameters.user_defined["reset_delay_length"],
                 )
+
+
+def ramsey_parallel(
+    qubits,
+    delay_sweep,
+    num_averages=2**10,
+    detuning=0,
+    cal_trace=False,
+):
+    
+    signal_list = []
+    signal_types = ["drive", "measure", "acquire"]
+    def signal_name(signal, qubit):
+        return f"{signal}_{qubit.uid}"
+
+    for qubit in qubits:
+        for signal in signal_types:
+            signal_list.append(signal_name(signal, qubit))
+
+    @experiment(signals=signal_list, uid="ramsey_parallel")
+    def exp_ramsey():
+        # map all lines
+        for qubit in qubits:
+            for signal in signal_types:
+                map_signal(signal_name(signal, qubit), qubit.signals[signal])
+
+        # include detuning
+        freqs = [qubit.parameters.resonance_frequency_ge
+            + detuning
+            - qubit.parameters.drive_lo_frequency for qubit in qubits]
+
+        calibration = experiment_calibration()
+
+        for i, qubit in enumerate(qubits):
+            calibration[signal_name("drive", qubit)] = SignalCalibration(
+                oscillator=Oscillator(frequency=freqs[i], modulation_type=ModulationType.HARDWARE)
+            )
+
+        ## define Ramsey experiment pulse sequence
+        # outer loop - real-time, cyclic averaging
+        with acquire_loop_rt(
+            uid="ramsey_shots",
+            count=num_averages,
+            averaging_mode=AveragingMode.CYCLIC,
+            acquisition_type=AcquisitionType.INTEGRATION,
+        ):
+            for qubit in qubits:
+                # inner loop - real time sweep of Ramsey time delays
+                with sweep(
+                    uid=f"ramsey_sweep_{qubit.uid}",
+                    parameter=delay_sweep,
+                    alignment=SectionAlignment.RIGHT,
+                ):
+                    with section(
+                        uid=f"{qubit.uid}_excitation", alignment=SectionAlignment.RIGHT
+                    ):
+                        ramsey_drive_pulse = quantum_operations.drive_ge_pi2(qubit)
+                        play(signal=f"drive_{qubit.uid}", pulse=ramsey_drive_pulse)
+                        delay(signal=f"drive_{qubit.uid}", time=delay_sweep)
+                        play(signal=f"drive_{qubit.uid}", pulse=ramsey_drive_pulse)
+
+                    # readout pulse and data acquisition
+                    # measurement
+                    with section(
+                        uid=f"readout_{qubit.uid}", play_after=f"{qubit.uid}_excitation"
+                    ):
+                        measure(
+                            measure_signal=f"measure_{qubit.uid}",
+                            measure_pulse=quantum_operations.readout_pulse(qubit),
+                            handle=f"{qubit.uid}_ramsey",
+                            acquire_signal=f"acquire_{qubit.uid}",
+                            integration_kernel=quantum_operations.integration_kernel(qubit),
+                            reset_delay=qubit.parameters.user_defined["reset_delay_length"],
+                        )
+
+                if cal_trace:
+                    with section(uid=f"cal_trace_gnd_{qubit.uid}", play_after=f"ramsey_sweep_{qubit.uid}"):
+                        measure(
+                            measure_signal=f"measure_{qubit.uid}",
+                            measure_pulse=quantum_operations.readout_pulse(qubit),
+                            handle=f"{qubit.uid}_ramsey_cal_trace",
+                            acquire_signal=f"acquire_{qubit.uid}",
+                            integration_kernel=quantum_operations.integration_kernel(qubit),
+                            reset_delay=1e-6,  # qubit.parameters.user_defined["reset_delay_length"],
+                        )
+                    
+                    with section(
+                        uid=f"cal_trace_exc_{qubit.uid}", play_after=f"cal_trace_gnd_{qubit.uid}"
+                    ):
+                        play(signal=f"drive_{qubit.uid}", pulse=quantum_operations.drive_ge_pi(qubit))
+
+                    with section(
+                        uid=f"cal_trace_exc_meas_{qubit.uid}", play_after=f"cal_trace_exc_{qubit.uid}"
+                    ):
+                        measure(
+                            measure_signal=f"measure_{qubit.uid}",
+                            measure_pulse=quantum_operations.readout_pulse(qubit),
+                            handle=f"{qubit.uid}_ramsey_cal_trace",
+                            acquire_signal=f"acquire_{qubit.uid}",
+                            integration_kernel=quantum_operations.integration_kernel(qubit),
+                            reset_delay=qubit.parameters.user_defined["reset_delay_length"],
+                        )
+
+    return exp_ramsey()

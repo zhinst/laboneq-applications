@@ -1,10 +1,16 @@
 from laboneq.simple import *
 
 
-def drive_ge(qubit, amplitude=None):
+def drive_ge_pi(qubit, amplitude=None):
     return pulse_library.gaussian(
         length=qubit.parameters.user_defined["pulse_length"],
-        amplitude=amplitude if amplitude is not None else None,
+        amplitude=amplitude if amplitude is not None else qubit.parameters.user_defined["amplitude_pi"],
+    )
+
+def drive_ge_pi2(qubit, amplitude=None):
+    return pulse_library.gaussian(
+        length=qubit.parameters.user_defined["pulse_length"],
+        amplitude=amplitude if amplitude is not None else qubit.parameters.user_defined["amplitude_pi2"],
     )
 
 
