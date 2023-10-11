@@ -39,9 +39,13 @@ src_paths = ["laboneq", "tests"]
 [tool.setuptools]
 zip-safe = false
 
+[tool.black]
+line-length = 88
+target-version = ["py39"]
+include = "\\.pyi?$"
+
 
 [tool.setuptools.packages.find]
 where = ["."]
 include = ["experiment_library"]
 namespaces = false
-
