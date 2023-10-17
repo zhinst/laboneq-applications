@@ -1,0 +1,8 @@
+# For tests
+pytest
+
+# Formatting (must match version in CI)
+black[jupyter]==22.10
+pre-commit
+isort>=5.12.0
+ruff==0.0.264
