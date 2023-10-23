@@ -1,0 +1,21 @@
+repos:
+  - repo: local  # https://github.com/psf/black/issues/2493
+    hooks:
+    - id: black
+      name: black
+      entry: black --check
+      language: python
+      types_or: [python, pyi]
+      additional_dependencies: [black==22.08]
+
+  - repo: https://github.com/pycqa/isort
+    rev: 5.12.0
+    hooks:
+      - id: isort
+        name: isort (python)
+        entry: isort --check
+
+  - repo: https://github.com/charliermarsh/ruff-pre-commit
+    rev: 'v0.0.264'
+    hooks:
+      - id: ruff

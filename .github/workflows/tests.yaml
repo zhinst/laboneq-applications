@@ -1,0 +1,34 @@
+name: Tests
+
+on:
+  push:
+    branches: ["main"]
+    paths:
+      - 'automatic_tuneup/**'
+  pull_request:
+    branches: ["main"]
+    paths:
+      - 'automatic_tuneup/**'
+
+jobs:
+  tests:
+    name: "Unit and Integration tests"
+    runs-on: "ubuntu-latest"
+
+    steps:
+      - uses: "actions/checkout@v2"
+      - uses: "actions/setup-python@v4"
+        with:
+          python-version: "3.10"
+      - name: "Build"
+        run: |
+          pip install -r requirements-dev.txt
+          pip install . 
+      - name: "Run tests"
+        run: |
+          pytest .
+        
+
+        
+    
+        

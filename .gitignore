@@ -165,4 +165,11 @@ cython_debug/
 # Do not track database object
 # Do not track yaml data
 .db
-.yaml
+examples/*/*.yaml
+
+# tuneup results
+*/qubit_calib
+qubit_calib
+
+# vscode
+.vscode/

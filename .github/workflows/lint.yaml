@@ -1,0 +1,32 @@
+name: Formatting
+
+on:
+  push:
+    branches: ["main"]
+    paths:
+      - 'laboneq_library/automatic_tuneup/**'
+  pull_request:
+    branches: ["main"]
+    paths:
+      - 'laboneq_library/automatic_tuneup/**'
+
+jobs:
+  lint:
+    name: "Lint"
+    runs-on: "ubuntu-latest"
+
+    steps:
+      - uses: "actions/checkout@v2"
+      - uses: "actions/setup-python@v4"
+        with:
+          python-version: "3.10"
+      - name: "Lint"
+        run: |
+          pip install -r requirements-dev.txt
+          isort --check laboneq_library
+          black --check laboneq_library
+          ruff .
+      - name: "Notebook Lint"
+        run: |
+          nbqa --nbqa-diff black examples 
+          nbqa ruff --ignore=F403 examples
