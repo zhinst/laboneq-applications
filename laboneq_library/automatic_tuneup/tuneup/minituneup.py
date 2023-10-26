@@ -11,57 +11,64 @@ logger = initialize_logging()
 
 
 class TuneUp:
-    def __init__(self, uid: Optional[str], scans: Optional[List[Scan]]) -> None:
+    def __init__(self, uid: Optional[str], scans: Optional[List[Scan]] = None) -> None:
         """Initializes an instance of TuneUp with the given parameters.
 
         Args:
             uid (str, optional): unique identifier for the tuneup
-            scans (str, optional): list of scans to be included in the tuneup
+            scans (str, optional): list of scans to be included in the tuneup. Defaults to None.
         """
 
         self.uid = uid if uid is not None else uuid.uuid4()
         logger.info(f"Creating Tune up with uid: {self.uid}")
-        self.scans = {}
-        logger.debug("Adding scans to the tuneup")
-        for scan in scans:
-            self._add_scans(scan)
-        logger.debug(f"List of scans added: {self.scans}")
+
+        self.scans = scans
 
         # graph that contains only the scan_uid as nodes and their dependencies as edges
-        self.graph = nx.DiGraph()
+        self._graph = nx.DiGraph()
         self._generate_graph()
 
     def _add_scans(self, scan):
-        self.scans.update({scan.uid: scan})
+        self._scans.update({scan.uid: scan})
         for d in scan.dependencies:
             self._add_scans(d)
 
+    @property
+    def scans(self):
+        return self._scans
+
+    @scans.setter
+    def scans(self, scans: Optional[List[Scan]] = None):
+        self._scans = {}
+        if scans is None:
+            logger.debug("No scans provided. Initialize empty scan store")
+            return
+        logger.debug("Adding scans to the tuneup")
+        for scan in scans:
+            self._add_scans(scan)
+
     def _generate_graph(self):
         logger.debug("Generating graph")
-        for scan_uid, scan in self.scans.items():
-            self.graph.add_node(scan_uid)
+        for scan_uid, scan in self._scans.items():
+            self._graph.add_node(scan_uid)
             for dependency in scan.dependencies:
-                self.graph.add_edge(dependency.uid, scan_uid)
-
-    @property
-    def run_sequence(self):
-        return self._run_sequence
+                self._graph.add_edge(dependency.uid, scan_uid)
 
     def _check_up_to(self, scan, ignore_passed_scans=False):
         # neh, scan must implement eq method ?
         # check uid for now instead
         logger.debug(f"Checking up prerequisites for {scan.uid}")
-        if scan.uid not in self.scans.keys():
+        if scan.uid not in self._scans.keys():
             raise ValueError("Scan not in list")
         res = self.find_required_nodes(scan.uid)
         if ignore_passed_scans:
             self._run_sequence = [
-                self.scans.get(s)
+                self._scans.get(s)
                 for s in res
-                if self.scans.get(s).status != ScanStatus.PASSED
+                if self._scans.get(s).status != ScanStatus.PASSED
             ]
         else:
-            self._run_sequence = [self.scans.get(s) for s in res]
+            self._run_sequence = [self._scans.get(s) for s in res]
         self._run_sequence_ids = [s.uid for s in self._run_sequence]
         logger.debug(f"Sequence need to run: {self._run_sequence_ids}")
 
@@ -70,7 +77,7 @@ class TuneUp:
         May contain duplicated nodes
         """
         required_nodes = []
-        predecessors = sorted(list(self.graph.predecessors(node)))
+        predecessors = sorted(list(self._graph.predecessors(node)))
         required_nodes.extend(predecessors)
         for predecessor in predecessors:
             required_nodes.extend(self._find_required_nodes(predecessor))
@@ -212,13 +219,13 @@ class TuneUp:
         else:
             logger.info(f"Scan {scan.uid} failed. Rerun its dependencies")
             self.plot()
-            predecessors = list(self.graph.predecessors(scan.uid))
+            predecessors = list(self._graph.predecessors(scan.uid))
             if not predecessors:
                 logger.warning("Reaching the end with failed scan")
                 return False
             else:
                 for suid in predecessors:
-                    res = self.run_backtracking(self.scans.get(suid))
+                    res = self.run_backtracking(self._scans.get(suid))
                     # collected_child_run_results.append(res)
                     if not res:
                         logger.warning(
@@ -243,25 +250,25 @@ class TuneUp:
         """Plot status graph of the tuneup sequence"""
         plt.figure()
         node_colors = [
-            self._node_properties(self.scans.get(node)) for node in self.graph.nodes
+            self._node_properties(self._scans.get(node)) for node in self._graph.nodes
         ]
         nx.draw(
-            self.graph,
+            self._graph,
             with_labels=True,
             node_color=node_colors,
-            pos=nx.planar_layout(self.graph),
+            pos=nx.planar_layout(self._graph),
             font_weight="bold",
         )
         plt.show()
 
     def display_status(self, scan=None):
         if scan is not None:
-            if scan in self.scans.values():
+            if scan in self._scans.values():
                 print(f"{scan}: {scan.status}")
             else:
                 logger.warning(f"Scan {scan} not in scan store")
         else:
-            for suid, s in self.scans.items():
+            for suid, s in self._scans.items():
                 print(f"{suid}: {s.status}")
 
     def reset_status(self, scan=None):
@@ -271,11 +278,11 @@ class TuneUp:
             scan (Scan, optional): the scan to be reset. Defaults to None.
         """
         if scan is not None:
-            if scan in self.scans.values():
-                self.scans[scan].reset_status()
+            if scan in self._scans.values():
+                self._scans[scan].reset_status()
             else:
                 logger.warning(f"Scan {scan} not in scan store")
         else:
-            for suid, s in self.scans.items():
+            for suid, s in self._scans.items():
                 s.reset_status()
                 logger.debug(f"Reset status of {suid}")

@@ -218,7 +218,7 @@ class Scan:
         logger.debug(repr(self.experiment.get_calibration()))
         return signals
 
-    def _analyze(self, **kwargs):
+    def analyze(self, **kwargs):
         """
         Analyze result using the analyzer object
         """
@@ -227,20 +227,20 @@ class Scan:
             logger.warn("No analyzer has been set")
             return
         if len(self.analyzing_parameters) == 0:
-            analyzed_res = self.analyzer.analyze(self.result, **kwargs)
+            self.analyzed_result = self.analyzer.analyze(self.result, **kwargs)
         else:
             logger.info(f"Using parameters set in the init {self.analyzing_parameters}")
-            analyzed_res = self.analyzer.analyze(
+            self.analyzed_result = self.analyzer.analyze(
                 self.result, **self.analyzing_parameters
             )
         logger.info(f"Analyzed result: {self.analyzed_result}")
-        return analyzed_res
-
-    def analyze(self, **kwargs):
-        self.analyzed_result = self._analyze(**kwargs)
         return self.analyzed_result
 
-    def verify(self):
+    def verify(self) -> bool:
+        """
+        Verify the analyzed scan result using the analyzer object.
+        If the scan has not been analyzed, it will be analyzed first.
+        """
         logger.info("Verifying scan")
         if self.analyzed_result is None:
             self.analyzed_result = self.analyze()
@@ -258,7 +258,7 @@ class Scan:
         Update the qubit parameters
         Args:
             force_value: The value to update the parameter with. If given, the parameter will be updated with this value regardless of the scan status.
-            If None, the analyzed result will be used.
+            If None, the analyzed result will be used and the update only happens if the scan status is PASSED.
         """
         logger.info("Updating qubit parameters")
         update_value = (
