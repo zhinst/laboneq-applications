@@ -1,55 +1,116 @@
 import math
 import random
 from abc import ABC, abstractmethod
-from typing import Optional
+from collections import UserDict
+from dataclasses import dataclass
+from functools import wraps
+from typing import List, Optional
 
 import numpy as np
 from laboneq.simple import Results
 from matplotlib import pyplot as plt
+from numpy.typing import ArrayLike
 from scipy.optimize import curve_fit
 
 from .helper import rotate_to_real_axis
 
 
+@dataclass
+class AnalyzeDatum:
+    name: str
+    x: np.ndarray[(float,), 1]
+    y: np.ndarray[(float,), 1]
+
+
+class AnalyzeData(UserDict[str, AnalyzeDatum]):
+    def __setitem__(self, key, item):
+        if isinstance(item, AnalyzeDatum):
+            super().__setitem__(key, item)
+        else:
+            raise TypeError("Value must be AnalyzeDatum")
+
+
+def _create_hook(func, hook):
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        hook(*args, **kwargs)
+        return func(*args, **kwargs)
+
+    return wrapper
+
+
 class Analyzer(ABC):
     """Base class for all analyzers.
-        Analyzers are used to analyze the results of a measurement and return a value.
-        Analyzers can also be used to verify if a measurement is successful or not.
-        Analyzers can be used to plot the results of a measurement.
-    Args:
-        truth (float, optional): The expected value of the measurement. Defaults to 0.
-        tolerance (float, optional): The tolerance of the measurement. Defaults to 0.
+    Analyzers are used to analyze the results of a measurement and return a value.
+    Analyzers can also be used to verify if a measurement is successful or not.
+    Analyzers can be used to plot the results of a measurement.
     """
 
-    def __init__(self, truth: float = 0, tolerance: float = 0) -> None:
+    def __new__(cls, *args, **kwargs):
+        cls.analyze = _create_hook(cls.analyze, cls._preprocess_result)
+        return super().__new__(cls)
+
+    def __init__(
+        self,
+        truth: float = 0,
+        tolerance: float = 0,
+        handles: Optional[List[str]] = None,
+    ) -> None:
+        """Initialize the analyzer.
+        Args:
+            truth (float, optional): The expected value of the measurement. Defaults to 0.
+            tolerance (float, optional): The tolerance of the measurement. Defaults to 0.
+            handles (Optional[List[str]], optional): The handles of the results to analyze. Defaults to None. If None, the first handle is used.
+
+        """
         self.truth = truth
         self.tolerance = tolerance
+        self.handles = handles
+        self._result = AnalyzeData()
 
     @abstractmethod
-    def analyze(self, result: Results, **kwargs) -> float:
+    def analyze(self, result: Results) -> float:
         pass
 
     @abstractmethod
     def verify(self, result: float) -> bool:
         pass
 
+    def _preprocess_result(self, result: Results | AnalyzeData) -> AnalyzeData:
+        if isinstance(result, AnalyzeData):
+            self._result = result
+            return self._result
+        if self.handles is None:
+            handles = list(result.acquired_results.keys())[:1]
+        else:
+            handles = self.handles
+        for h in handles:
+            x = result.get_axis(h)
+            y = result.get_data(h)
+            temp = AnalyzeDatum(name=h, x=x, y=y)
+            self._result.update({h: temp})
+        return self._result
+
     def plot(self) -> None:
         raise NotImplementedError("Plotting of fitting values not implemented")
 
+    def get_data_y(self, handle) -> ArrayLike:
+        return self._result[handle].y
+
+    def get_data_x(self, handle) -> List[ArrayLike]:
+        return np.asarray(self._result[handle].x)
+
 
 class DefaultAnalyzer(Analyzer):
-    def analyze(self, result: Results, **kwargs) -> float:
+    def analyze(self, result: Results) -> float:
         return 1234
 
     def verify(self, result: float) -> bool:
         return True
 
 
-class RandomAnalyzer(DefaultAnalyzer):
-    def __init__(self, truth=None, tolerance=0) -> None:
-        super().__init__(truth=truth, tolerance=tolerance)
-
-    def analyze(self, result: Results, **kwargs):
+class RandomAnalyzer(Analyzer):
+    def analyze(self, result: Results):
         return 6.5e9
 
     def verify(self, result: float) -> bool:
@@ -57,77 +118,85 @@ class RandomAnalyzer(DefaultAnalyzer):
         return random.choice([True, False])
 
 
-class AlwaysFailedAnalyzer(DefaultAnalyzer):
-    def __init__(self, truth=None, tolerance=0) -> None:
-        super().__init__(truth=truth, tolerance=tolerance)
-
-    def analyze(self, result: Results, **kwargs):
+class AlwaysFailedAnalyzer(Analyzer):
+    def analyze(self, result: Results):
         return 10e9
 
     def verify(self, result: float) -> bool:
         return False
 
 
-class ResonatorSpectAnalyzerTranx(Analyzer):
+class Lorentzian(Analyzer):
     """Analyzer for resonator spectroscopy in transmission mode.
-        Fit a lorentzian to the data and return the resonance frequency.
-    Args:
-        truth (float, optional): The expected value of the measurement. Defaults to 0.
-        tolerance (float, optional): The tolerance of the measurement. Defaults to 0.
+    Fit a Lorentzian to the data and return the resonance frequency.
     """
+
+    def __init__(
+        self,
+        truth=None,
+        tolerance=0,
+        handles=None,
+        f0: float = 0.06,
+        a: float = 1e-3,
+        gamma: float = 1e6,
+        offset: float = 0,
+        frequency_offset: float = 0,
+        flip: bool = True,
+    ) -> None:
+        """Initialize the analyzer.
+        Args:
+            f0 (float, optional): Initial guess for the resonance frequency. Defaults to 0.0e6.
+            a (float, optional): Initial guess for the amplitude. Defaults to 1e-3.
+            gamma (float, optional): Initial guess for the line-width. Defaults to 1e6.
+            offset (float, optional): Initial guess for the offset. Defaults to 0.
+            flip: (bool, optional): Flip the sign of the amplitude. Defaults to False.
+            frequency_offset (float, optional): Offset the resonance frequency. Defaults to 0.
+
+        Note on the usage of frequency_offset.
+        When the Purcell filter does not resonate with the readout resonator, the transmission profile of the latter is just Lorentzian.
+        In that case, we could use this simple Lorentzian fit to extract the resonance frequency.
+        However, for better SNR of the readout, we park the readout at a frequency slightly different than the resonance.
+        """
+
+        super().__init__(truth=truth, tolerance=tolerance, handles=handles)
+        self.f0 = f0
+        self.a = a
+        self.gamma = gamma
+        self.offset = offset
+        self.frequency_offset = frequency_offset
+        self.flip = 1 if flip else -1
 
     def analyze(
         self,
         result: Results,
-        handle: Optional[str] = None,
-        f0: float = 0.0e6,
-        a: float = 1e-3,
-        gamma: float = 1e6,
-        offset: float = 0,
-        flip_sign: bool = False,
-        frequency_offset: float = 0,
     ) -> float:
         """Fit a lorentzian to the data and return the resonance frequency.
         Args:
             result (Results): The result of the measurement.
-            handle (str, optional): The handle of the result to analyze. Defaults to None.
-            f0 (float, optional): Initial guess for the resonance frequency. Defaults to 0.0e6.
-            a (float, optional): Initial guess for the amplitude. Defaults to 1e-3.
-            gamma (float, optional): Initial guess for the linewidth. Defaults to 1e6.
-            offset (float, optional): Initial guess for the offset. Defaults to 0.
-            flip_sign (bool, optional): Flip the sign of the amplitude. Defaults to False.
-            frequency_offset (float, optional): Offset the resonance frequency. Defaults to 0.
 
         Returns:
             float: The resonance frequency.
 
-        Note: frequency_offset: We don't park feedline drive at exactly the resonator resonance. Instead, a frequency_offset is introduced to have a better signal to noise.
         """
-        if handle is None:
-            handle = list(result.acquired_results.keys())[0]
 
-        freqs = result.acquired_results[handle].axis[0]
+        frequency = self.get_data_x(self.handles[0])[0]
+        amplitude = self.get_data_y(self.handles[0])
 
-        data = result.get_data(handle)
+        flip = self.flip
 
-        flip_sign = -1 if flip_sign else 1
-
-        def lorentzian(f, f0, a, gamma, offset, flip_sign):
+        def lorentzian(f, f0, a, gamma, offset):
             penalization = abs(min(0, gamma)) * 1000
             return (
-                offset + flip_sign * a / (1 + (f - f0) ** 2 / gamma**2) + penalization
+                offset + flip * a / (1 + (f - self.f0) ** 2 / gamma**2) + penalization
             )
 
-        # f_offset = np.linspace(sweep_start, sweep_stop, sweep_count)
-        amplitude = np.abs(data)
-
-        (f_0, a, gamma, offset, flip_sign), _ = curve_fit(
-            lorentzian, freqs, amplitude, (f0, a, gamma, offset, flip_sign)
+        (f_0, a, gamma, offset), _ = curve_fit(
+            lorentzian, frequency, amplitude, (self.f0, self.a, self.gamma, self.offset)
         )
-        return f_0 + frequency_offset
+        return f_0 + self.frequency_offset
 
     def verify(self, result: float) -> bool:
-        assert math.isclose(result, self.truth, abs_tol=self.tolerance)
+        return math.isclose(result, self.truth, abs_tol=self.tolerance)
 
 
 class QubitSpecAnalyzer(Analyzer):
@@ -144,82 +213,72 @@ class QubitSpecAnalyzer(Analyzer):
 
 
 class RabiAnalyzer(Analyzer):
-    def __init__(self, truth=None, tolerance=0) -> None:
-        super().__init__(truth=truth, tolerance=tolerance)
+    def __init__(
+        self,
+        truth=None,
+        tolerance=0,
+        handles=None,
+        amp_pi=0.5,
+        phase=0,
+        offset=0,
+        rotate=False,
+        real=False,
+    ) -> None:
+        super().__init__(truth=truth, tolerance=tolerance, handles=handles)
+        self.amp_pi = amp_pi
+        self.rotate = rotate
+        self.real = real
+        self.phase = phase
+        self.offset = offset
 
-    def analyze(self, result: Results, amp_pi=None):
-        def evaluate_rabi(
-            res,
-            amp_pi=None,
-            handle=None,
-            plot=True,
-            rotate=False,
-            flip=False,
-            real=False,
-        ):
-            """
-            Adapt from tuneup notebook example.
-            Need to rework
-            """
+    @classmethod
+    def rabi_curve(cls, x, offset, phase_shift, amplitude, period):
+        return amplitude * np.sin(np.pi / period * x + phase_shift) + offset
 
-            def rabi_curve(x, offset, phase_shift, amplitude, period):
-                return amplitude * np.sin(np.pi / period * x + phase_shift) + offset
+    def analyze(self, result: Results):
 
-            #  return amplitude*np.sin(2*np.pi/period*x+np.pi/2)+offset
+        x = self.get_data_x(self.handles[0])[0]
+        y = self.get_data_y(self.handles[0])
 
-            if handle is None:
-                handle = list(res.acquired_results.keys())[0]
+        if self.rotate:
+            y = np.real(rotate_to_real_axis(y))
+        elif self.real:
+            y = np.real(y)
+        else:
+            y = np.abs(y)
 
-            x = res.get_axis(handle)[0]
-            if rotate:
-                y = np.real(rotate_to_real_axis(res.get_data(handle)))
-            elif real:
-                y = np.real(res.get_data(handle))
-            else:
-                y = np.abs(res.get_data(handle))
+        amplitude_guess = max(y) - min(y)
+        if self.amp_pi is None:
+            period_guess = abs(x[np.argmax(y)] - x[np.argmin(y)])
+        else:
+            period_guess = self.amp_pi
+        p0 = [self.offset, self.phase, amplitude_guess, period_guess]
+        self.popt = curve_fit(self.__class__.rabi_curve, x, y, p0=p0)[0]
 
-            if flip:
-                y = -y
-
-            plt.scatter(x, y)
-            plt.show()
-
-            offset_guess = np.mean(y)
-            phase_shift_guess = np.pi / 2
-            amplitude_guess = (max(y) - min(y)) / 2
-            if amp_pi is None:
-                period_guess = abs(x[np.argmax(y)] - x[np.argmin(y)])
-            else:
-                period_guess = amp_pi
-            p0 = [offset_guess, phase_shift_guess, amplitude_guess, period_guess]
-            print(f"offset_guess: {offset_guess}")
-            print(f"phase_shift_guess: {phase_shift_guess}")
-            print(f"amplitude_guess: {amplitude_guess}")
-            print(f"period_guess: {period_guess}")
-            popt = curve_fit(rabi_curve, x, y, p0=p0)[0]
-
-            pi_amp = popt[3]
-            pi2_amp = popt[3] / 2
-
-            if plot:
-                plt.figure()
-                plt.plot(x, rabi_curve(x, *popt))
-                plt.plot(x, y, ".")
-                plt.plot([pi_amp, pi_amp], [min(y), rabi_curve(pi_amp, *popt)])
-                plt.plot([pi2_amp, pi2_amp], [min(y), rabi_curve(pi2_amp, *popt)])
-            print("fitted results")
-            print(f"offset_guess: {popt[0]}")
-            print(f"phase_shift_guess: {popt[1]}")
-            print(f"amplitude_guess: {popt[2]}")
-            print(f"period_guess: {popt[3]}")
-            print(f"Pi amp: {pi_amp}, pi/2 amp: {pi2_amp}")
-            return [pi_amp, pi2_amp]
-
-        pi_amp, pi2_amp = evaluate_rabi(result, amp_pi=amp_pi)
+        pi_amp = self.popt[3]
         return pi_amp
 
     def verify(self, result: float) -> bool:
-        return True
+        return math.isclose(result, self.truth, abs_tol=self.tolerance)
+
+    def plot(self):
+        x = self.get_data_x(self.handles[0])[0]
+        y = self.get_data_y(self.handles[0])
+        pi_amp = self.popt[3]
+        pi2_amp = pi_amp / 2
+
+        fig = plt.figure()
+        plt.scatter(x, y)
+        plt.plot(x, self.__class__.rabi_curve(x, *self.popt))
+        plt.plot(
+            [pi_amp, pi_amp], [min(y), self.__class__.rabi_curve(pi_amp, *self.popt)]
+        )
+        plt.plot(
+            [pi2_amp, pi2_amp], [min(y), self.__class__.rabi_curve(pi2_amp, *self.popt)]
+        )
+        plt.show()
+
+        return fig
 
 
 class RamseyAnalyzer(DefaultAnalyzer):

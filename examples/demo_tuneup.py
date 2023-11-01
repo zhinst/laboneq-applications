@@ -1,15 +1,16 @@
-import tuneup.analyzer as ta
 from laboneq import *
-from tuneup import TuneUp
-from tuneup.experiment import *
-from tuneup.helper import (
+
+import laboneq_library.automatic_tuneup.tuneup.analyzer as ta
+from laboneq_library.automatic_tuneup.tuneup import TuneUp
+from laboneq_library.automatic_tuneup.tuneup.experiment import *
+from laboneq_library.automatic_tuneup.tuneup.helper import (
     get_device_setup_qzilla_shfqc,
     get_device_setup_sherloq,
     save_qubits,
 )
-from tuneup.scan import *
+from laboneq_library.automatic_tuneup.tuneup.scan import *
 
-EMULATION = False
+EMULATION = True
 TEST_ON_SCOPE = True
 if TEST_ON_SCOPE:
     device_setup = get_device_setup_qzilla_shfqc()
@@ -58,7 +59,7 @@ q1 = Transmon.from_logical_signal_group(
 # setting up scans
 def generate_pulsed_resonator_scan():
     freq_sweep = LinearSweepParameter(start=35e6, stop=45e6, count=210)
-    spec_analyzer = ta.ResonatorSpectAnalyzerTranx()
+    spec_analyzer = ta.Lorentzian()
     exp_settings = {"integration_time": 10e-6, "num_averages": 2**10}
     readout_pulse = pulse_library.const(
         uid="readout_pulse", length=2e-6, amplitude=0.05
@@ -89,7 +90,7 @@ def generate_pulsed_resonator_scan():
 
 def generate_qubit_spectroscopy_scan():
     freq_sweep = LinearSweepParameter(start=16e6, stop=22e6, count=201)
-    spec_analyzer = ta.ResonatorSpectAnalyzerTranx()
+    spec_analyzer = ta.Lorentzian()
     exp_settings = {"num_averages": 2**11}
     readout_pulse = pulse_library.const(
         uid="readout_pulse", length=2e-6, amplitude=0.05

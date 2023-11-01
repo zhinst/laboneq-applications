@@ -39,7 +39,6 @@ class Scan:
         ext_call: Callable = None,
         analyzer: Analyzer = None,
         pulse_storage: Dict[str, Pulse] = None,
-        analyzing_parameters=None,
         dependencies: Union[List["Scan"], "Scan"] = None,
     ) -> None:
         """
@@ -60,10 +59,6 @@ class Scan:
 
         self.uid = uuid.uuid4() if uid is None else uid
         logger.info(f"Creating scan object {self.uid}")
-
-        self.analyzing_parameters = (
-            analyzing_parameters if analyzing_parameters is not None else {}
-        )
 
         self.result = None
         self.parameters = params
@@ -226,13 +221,8 @@ class Scan:
         if self.analyzer is None:
             logger.warn("No analyzer has been set")
             return
-        if len(self.analyzing_parameters) == 0:
-            self.analyzed_result = self.analyzer.analyze(self.result, **kwargs)
-        else:
-            logger.info(f"Using parameters set in the init {self.analyzing_parameters}")
-            self.analyzed_result = self.analyzer.analyze(
-                self.result, **self.analyzing_parameters
-            )
+
+        self.analyzed_result = self.analyzer.analyze(self.result)
         logger.info(f"Analyzed result: {self.analyzed_result}")
         return self.analyzed_result
 

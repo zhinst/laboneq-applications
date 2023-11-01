@@ -14,7 +14,7 @@ Test concrete scan objects.
 def amp_rabi_spec_scan(session, qubits, set_bias_dc):
     # test class for scan
     amp_sweep = LinearSweepParameter(start=0.01, stop=1, count=110)
-    spec_analyzer = ResonatorSpectAnalyzerTranx()
+    spec_analyzer = Lorentzian()
     exp_settings = {"integration_time": 10e-6, "num_averages": 2**5}
     q0 = qubits[0]
     q0.parameters.user_defined["pi_pulse_amplitude"] = 0.8

@@ -26,7 +26,7 @@ def scans(qubits, device_setup):
     my_session.connect(do_emulation=True)
 
     param = LinearSweepParameter(start=-300e6, stop=300e6, count=11)
-    ResonatorSpectAnalyzerTranx()
+    Lorentzian()
     QubitSpecAnalyzer()
 
     exp_settings = {"integration_time": 10e-6, "num_averages": 2**5}
@@ -166,6 +166,7 @@ def test_tuneup_run_up_to(tuneup_single_qubit):
             assert scan.status == ScanStatus.PENDING
         else:
             assert scan.status == ScanStatus.PASSED
+
 
 def test_tuneup_run(tuneup_single_qubit):
     tuneup = tuneup_single_qubit

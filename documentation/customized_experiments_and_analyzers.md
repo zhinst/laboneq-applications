@@ -169,15 +169,48 @@ In a similar way, we can write concrete analyzers for the tuneup by inheriting t
 
 Here, we will write an analyzer that determines the resonance frequency of a readout resonator.
 
-The constructor of the analyzer class is simple and requires only two parameters:
+The constructor of the analyzer class is simple and requires the following parameters:
 - `truth`: the ground truth of the analyzed result. It is used for comparison with the analyzed result.
 - `tolerance`: the tolerance for the comparison between the truth and the analyzed result.
+- `handles`: the handle of the result to analyze. If not provided, the first handle will be used.
 
 
 ```python
-def __init__(self, truth: float = 0, tolerance: float = 0) -> None:
+def __init__(self, truth: float = 0, tolerance: float = 0, handles= None) -> None:
     self.truth = truth
     self.tolerance = tolerance
+    self.handles = handles
+```
+You could also rely on the constructor of the base class by calling `super().__init__(truth, tolerance, handles)`
+
+```python
+def __init__(self, truth: float = 0, tolerance: float = 0, handles= None) -> None:
+    super().__init__(truth, tolerance, handles)
+```
+Frequently, fitting parameters are required for the analyzer. We could provide them in the constructor as well.
+Of course, the details of the fitting parameters depend on the concrete implementation of the analyzer.
+One example is the fit for a lorentzian function, which requires the initial guess for the resonance frequency, the amplitude, the line-width and the offset.
+
+```python
+    def __init__(
+        self,
+        truth=None,
+        tolerance=0,
+        handles=None,
+        f0: float = 0.06,
+        a: float = 1e-3,
+        gamma: float = 1e6,
+        offset: float = 0,
+        frequency_offset: float = 0,
+        flip: bool = True,
+    ) -> None:
+        super().__init__(truth=truth, tolerance=tolerance, handles=handles)
+        self.f0 = f0
+        self.a = a
+        self.gamma = gamma
+        self.offset = offset
+        self.frequency_offset = frequency_offset
+        self.flip = 1 if flip else -1
 ```
 
 The two abstract methods required for the analyzer class are: 
@@ -197,55 +230,45 @@ Concrete implementation for analyzing the resonance frequency of a readout reson
 
 ```python
 def analyze(
-    self,
-    result: Results,
-    handle: Optional[str] = None,
-    f0: float = 0.0e6,
-    a: float = 1e-3,
-    gamma: float = 1e6,
-    offset: float = 0,
-    flip_sign: bool = False,
-    frequency_offset: float = 0,
-) -> float:
-    """Fit a lorentzian to the data and return the resonance frequency.
-    Args:
-        result (Results): The result of the measurement.
-        handle (str, optional): The handle of the result to analyze. Defaults to None.
-        f0 (float, optional): Initial guess for the resonance frequency. Defaults to 0.0e6.
-        a (float, optional): Initial guess for the amplitude. Defaults to 1e-3.
-        gamma (float, optional): Initial guess for the line-width. Defaults to 1e6.
-        offset (float, optional): Initial guess for the offset. Defaults to 0.
-        flip_sign (bool, optional): Flip the sign of the amplitude. Defaults to False.
-        frequency_offset (float, optional): Offset the resonance frequency. Defaults to 0.
+        self,
+        result: Results,
+    ) -> float:
+        """Fit a lorentzian to the data and return the resonance frequency.
+        Args:
+            result (Results): The result of the measurement.
 
-    Returns:
-        float: The resonance frequency.
+        Returns:
+            float: The resonance frequency.
 
-    Note: frequency_offset: We don't park feedline drive at exactly the resonator resonance. Instead, a frequency_offset is introduced to have a better signal to noise.
-    """
-    if handle is None:
-        handle = list(result.acquired_results.keys())[0]
+        """
 
-    freqs = result.acquired_results[handle].axis[0]
+        frequency = self.get_data_x(self.handles[0])[0]
+        amplitude = self.get_data_y(self.handles[0])
 
-    data = result.get_data(handle)
+        flip = self.flip
 
-    flip_sign = -1 if flip_sign else 1
+        def lorentzian(f, f0, a, gamma, offset):
+            penalization = abs(min(0, gamma)) * 1000
+            return (
+                offset + flip * a / (1 + (f - self.f0) ** 2 / gamma**2) + penalization
+            )
 
-    def lorentzian(f, f0, a, gamma, offset, flip_sign):
-        penalization = abs(min(0, gamma)) * 1000
-        return (
-            offset + flip_sign * a / (1 + (f - f0) ** 2 / gamma**2) + penalization
+        (f_0, a, gamma, offset), _ = curve_fit(
+            lorentzian, frequency, amplitude, (self.f0, self.a, self.gamma, self.offset)
         )
-
-    # f_offset = np.linspace(sweep_start, sweep_stop, sweep_count)
-    amplitude = np.abs(data)
-
-    (f_0, a, gamma, offset, flip_sign), _ = curve_fit(
-        lorentzian, freqs, amplitude, (f0, a, gamma, offset, flip_sign)
-    )
-    return f_0 + frequency_offset
+        return f_0 + self.frequency_offset
 
 def verify(self, result: float) -> bool:
     assert math.isclose(result, self.truth, abs_tol=self.tolerance)
 ```
+
+It is advisable to use `get_data_x` and `get_data_y` to extract the data from the result object. Both methods are inherited from the base class `Analyzer` and they will return the data which belongs to the given handle.
+It is responsibility of the writers of analyzers to make sure the handle is valid and document it well in the docstring of the customized analyzer class.
+
+In the background, a hook `_preprocess_result` is automatically called to preprocess the result object to the nice format `AnalyzeData` for the analyzers.
+
+Having `AnalyzeData` helps to decouple the analyzers from the L1Q experiment result object, making `Analyzer` could be used outside of L1Q. It also provides a convenient way to access the data.
+
+
+
+

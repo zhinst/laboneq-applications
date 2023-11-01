@@ -1,4 +1,5 @@
 import pytest
+from laboneq.dsl.result import AcquiredResult, AcquiredResults
 from laboneq.simple import *  # noqa: F403
 
 from laboneq_library.automatic_tuneup.tuneup.analyzer import *  # noqa: F403
@@ -16,7 +17,7 @@ def resonator_spec_scans(session, qubits, set_bias_dc):
     freq_sweep = LinearSweepParameter(start=-300e6, stop=300e6, count=110)
     dc_sweep = LinearSweepParameter(start=-1, stop=1, count=20)
     session.register_user_function(set_bias_dc)
-    spec_analyzer = ResonatorSpectAnalyzerTranx()
+    spec_analyzer = Lorentzian(truth=1, tolerance=0.1, f0=0.1)
     exp_settings = {"integration_time": 10e-6, "num_averages": 2**5}
     q0 = qubits[0]
     scan_dc_sweep = Scan(
@@ -56,6 +57,32 @@ def test_resonator_spec_scans(resonator_spec_scans):
     scan.run(report=True, plot=False)
     assert scan.status == ScanStatus.FINISHED
 
+    # simulate result
+    x = np.linspace(-10, 10, 100)
+    f0 = 0
+    offset = 0.1
+    amplitude = 1
+    gamma = 0.1
+    flip = 1
+    y = offset + flip * amplitude * gamma**2 / (gamma * 2 + (x - f0) ** 2)
+
+    res1 = AcquiredResult(data=y, axis_name=["qspec"], axis=[x])
+    res2 = AcquiredResult(data=np.array([3, 4]), axis_name=["param1"], axis=[[0, 1]])
+    results = Results(acquired_results=AcquiredResults(qspec=res1, dummy=res2))
+    scan.result = results
+    analyzer = Lorentzian(
+        truth=f0,
+        handles=["qspec"],
+        tolerance=5 * gamma,
+        f0=f0,
+        a=amplitude,
+        gamma=gamma,
+        offset=offset,
+    )
+    scan.analyzer = analyzer
+    scan.analyze()
+    scan.verify()
+
     scan_dc_sweep.run(report=True, plot=False)
     assert scan_dc_sweep.status == ScanStatus.FINISHED
 
@@ -65,7 +92,7 @@ def pulsed_resonator_spec_scan(session, qubits, set_bias_dc):
     # test class for scan
     freq_sweep = LinearSweepParameter(start=-300e6, stop=300e6, count=110)
     session.register_user_function(set_bias_dc)
-    spec_analyzer = ResonatorSpectAnalyzerTranx()
+    spec_analyzer = Lorentzian()
     exp_settings = {"integration_time": 10e-6, "num_averages": 2**5}
     q0 = qubits[0]
     readout_pulse = pulse_library.const(uid="readout_pulse", length=2e-6, amplitude=0.9)
@@ -93,7 +120,7 @@ def test_pulsed_resonator_spec_scan(pulsed_resonator_spec_scan):
 @pytest.fixture(scope="function")
 def pulsed_qubit_spectroscopy(session, qubits):
     freq_sweep = LinearSweepParameter(start=-300e6, stop=300e6, count=110)
-    spec_analyzer = ResonatorSpectAnalyzerTranx()
+    spec_analyzer = Lorentzian()
     exp_settings = {"integration_time": 10e-6, "num_averages": 2**5}
     q0 = qubits[0]
     readout_pulse = pulse_library.const(uid="readout_pulse", length=2e-6, amplitude=1.0)
