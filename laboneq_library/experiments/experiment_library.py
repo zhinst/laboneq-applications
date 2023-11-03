@@ -412,14 +412,13 @@ class ExperimentTemplate():
         return self.results
 
     def add_acquire_rt_loop(self):
-        acquire_loop = AcquireLoopRt(
+        self.acquire_loop = AcquireLoopRt(
             uid="RT_Acquire_Loop",
             count=self.num_averages,
             averaging_mode=AveragingMode.CYCLIC,
-            repetition_mode=RepetitionMode.AUTO,
+            # repetition_mode=RepetitionMode.AUTO,
         )
-        self.experiment.add(acquire_loop)
-        return acquire_loop
+        self.experiment.add(self.acquire_loop)
 
     def create_measure_acquire_sections(self, uid, qubit, play_after=None,
                                         handle_suffix=''):
@@ -438,17 +437,7 @@ class ExperimentTemplate():
             )
         return measure_acquire_section
 
-        # with self.experiment.section(uid=uid, play_after=play_after):
-        #     self.experiment.measure(
-        #         measure_signal=f"measure_{qubit.uid}",
-        #         measure_pulse=qt_ops.readout_pulse(qubit),
-        #         handle=handle,
-        #         acquire_signal=f"acquire_{qubit.uid}",
-        #         integration_kernel=qt_ops.readout_pulse(qubit),
-        #         reset_delay=qubit.parameters.user_defined["reset_delay_length"],
-        #     )
-
-    def add_cal_states_sections(self, qubit):
+    def add_cal_states_sections(self, qubit, section_container=None):
         if self.cal_states is None:
             return
 
@@ -463,9 +452,6 @@ class ExperimentTemplate():
             )
             play_after_sections = [g_measure_section]
             cal_trace_sections += [g_measure_section]
-            # self.add_measure_sections(uid=f"{qubit.uid}_cal_trace_g_meas",
-            #                           qubit=qubit,
-            #                           handle_suffix='cal_trace_g')
         if 'e' in self.cal_states:
             # Excited state - prep pulse + msmt
             e_section = Section(uid=f"{qubit.uid}_cal_trace_e",
@@ -480,16 +466,6 @@ class ExperimentTemplate():
             play_after_sections = ([s for s in play_after_sections] +
                                    [e_section, e_measure_section])
             cal_trace_sections += [e_section, e_measure_section]
-            # with self.experiment.section(
-            #         uid=f"{qubit.uid}_cal_trace_e",
-            #         play_after=f"{qubit.uid}_cal_trace_g_meas"):
-            #     self.experiment.play(
-            #         signal=f"drive_{qubit.uid}",
-            #         pulse=qt_ops.quantum_gate(qubit, 'X180_ge'))
-            # self.add_measure_sections(uid=f"{qubit.uid}_cal_trace_e_meas",
-            #                           qubit=qubit,
-            #                           play_after=f"{qubit.uid}_cal_trace_e",
-            #                           handle_suffix='cal_trace_e')
         if 'f' in self.cal_states:
             # Excited state - prep pulse + msmt
             f_section = Section(uid=f"{qubit.uid}_cal_trace_f",
@@ -507,21 +483,11 @@ class ExperimentTemplate():
                     play_after=f"{qubit.uid}_cal_trace_f",
                     handle_suffix='cal_trace_f')
             cal_trace_sections += [f_section, measure_section]
-            # with self.experiment.section(
-            #         uid=f"{qubit.uid}_cal_trace_f",
-            #         play_after=f"{qubit.uid}_cal_trace_g_meas"):
-            #     self.experiment.play(
-            #         signal=f"drive_{qubit.uid}",
-            #         pulse=qt_ops.quantum_gate(qubit, 'X180_ge'))
-            #     self.experiment.play(
-            #         signal=f"drive_{qubit.uid}",
-            #         pulse=qt_ops.quantum_gate(qubit, 'X180_ef'))
-            # self.add_measure_sections(uid=f"{qubit.uid}_cal_trace_e_meas",
-            #                           qubit=qubit,
-            #                           play_after=f"{qubit.uid}_cal_trace_f",
-            #                           handle_suffix='cal_trace_e')
         for cal_tr_sec in cal_trace_sections:
-            self.experiment.add(cal_tr_sec)
+            if section_container is None:
+                self.acquire_loop.add(cal_tr_sec)
+            else:
+                section_container.add(cal_tr_sec)
 
 
 
@@ -555,93 +521,58 @@ class SingleQubitGateTuneup(ExperimentTemplate):
                              f'not recognised. Please used one of '
                              f'["ge", "ef", "fh"].')
 
-    # def add_preparation_pulses_to_section(self, section, qubit):
-    #     if self.transition_to_calib == 'ge':
-    #         return
-    #     elif self.transition_to_calib == 'ef':
-    #         section.play(
-    #             signal=f"drive_{qubit.uid}",
-    #             pulse=qt_ops.quantum_gate(qubit, 'X180_ge'))
-    #     elif self.transition_to_calib == 'fh':
-    #         section.play(
-    #             signal=f"drive_{qubit.uid}",
-    #             pulse=qt_ops.quantum_gate(qubit, 'X180_ge'))
-    #         section.play(
-    #             signal=f"drive_{qubit.uid}",
-    #             pulse=qt_ops.quantum_gate(qubit, 'X180_ef'))
-    #     else:
-    #         raise ValueError(f'Transitions name {self.transition_to_calib} '
-    #                          f'not recognised. Please used one of '
-    #                          f'["ge", "ef", "fh"].')
-
+    def add_preparation_pulses_to_section(self, section, qubit):
+        if self.transition_to_calib == 'ge':
+            return
+        elif self.transition_to_calib == 'ef':
+            section.play(
+                signal=self.signal_name('drive', qubit),
+                pulse=qt_ops.quantum_gate(qubit, 'X180_ge'))
+        elif self.transition_to_calib == 'fh':
+            section.play(
+                signal=self.signal_name('drive', qubit),
+                pulse=qt_ops.quantum_gate(qubit, 'X180_ge'))
+            section.play(
+                signal=self.signal_name('drive', qubit),
+                pulse=qt_ops.quantum_gate(qubit, 'X180_ef'))
+        else:
+            raise ValueError(f'Transitions name {self.transition_to_calib} '
+                             f'not recognised. Please used one of '
+                             f'["ge", "ef", "fh"].')
 
 
 class AmplitudeRabi(SingleQubitGateTuneup):
 
     fallback_experiment_name = 'Rabi'
     def define_experiment(self):
-        # # define Rabi experiment pulse sequence
-        # # outer loop - real-time, cyclic averaging
-        # acquire_loop_rt = self.add_acquire_rt_loop()
-        # for i, qubit in enumerate(self.qubits):
-        #     # create sweep
-        #     sweep = Sweep(uid=f"{qubit.uid}_{self.experiment_name}_sweep",
-        #                   parameters=[self.sweeps_dict[qubit.uid]])
-        #     # create pulses section
-        #     excitation_section = Section(
-        #         uid=f"{qubit.uid}_excitation", alignment=SectionAlignment.RIGHT)
-        #     # preparation pulses: ge if calibrating ef
-        #     self.add_preparation_pulses_to_section(excitation_section, qubit)
-        #     # pulse to calibrate
-        #     x180_pulse = qt_ops.quantum_gate(
-        #         qubit, f'X180_{self.transition_to_calib}')
-        #     excitation_section.play(signal=f"drive_{qubit.uid}",
-        #                             pulse=x180_pulse,
-        #                             amplitude=self.sweeps_dict[qubit.uid],)
-        #     # create readout + acquire sections
-        #     measure_sections = self.create_measure_acquire_sections(
-        #         uid=f"{qubit.uid}_readout", qubit=qubit,
-        #         play_after=f"{qubit.uid}_excitation")
-        #
-        #     # add sweep and sections to acquire loop rt
-        #     acquire_loop_rt.add(sweep)
-        #     sweep.add(excitation_section)
-        #     sweep.add(measure_sections)
-        #     self.add_cal_states_sections(qubit)
+        # define Rabi experiment pulse sequence
+        # outer loop - real-time, cyclic averaging
+        self.add_acquire_rt_loop()
+        for i, qubit in enumerate(self.qubits):
+            # create sweep
+            sweep = Sweep(uid=f"{qubit.uid}_{self.experiment_name}_sweep",
+                          parameters=[self.sweeps_dict[qubit.uid]])
+            # create pulses section
+            excitation_section = Section(
+                uid=f"{qubit.uid}_excitation", alignment=SectionAlignment.RIGHT)
+            # preparation pulses: ge if calibrating ef
+            self.add_preparation_pulses_to_section(excitation_section, qubit)
+            # pulse to calibrate
+            x180_pulse = qt_ops.quantum_gate(
+                qubit, f'X180_{self.transition_to_calib}')
+            excitation_section.play(signal=f"drive_{qubit.uid}",
+                                    pulse=x180_pulse,
+                                    amplitude=self.sweeps_dict[qubit.uid],)
+            # create readout + acquire sections
+            measure_sections = self.create_measure_acquire_sections(
+                uid=f"{qubit.uid}_readout", qubit=qubit,
+                play_after=f"{qubit.uid}_excitation")
 
-        with self.experiment.acquire_loop_rt(
-                uid=f"{self.experiment_name}_shots",
-                count=self.num_averages,
-                averaging_mode=AveragingMode.CYCLIC,
-                acquisition_type=AcquisitionType.INTEGRATION,
-        ):
-            for i, qubit in enumerate(self.qubits):
-                x180_pulse = qt_ops.quantum_gate(
-                    qubit, f'X180_{self.transition_to_calib}')
-                # inner loop - real time sweep of Rabi amplitudes
-                with self.experiment.sweep(
-                        uid=f"{qubit.uid}_{self.experiment_name}_sweep",
-                        parameter=self.sweeps_dict[qubit.uid]):
-                    # qubit drive
-                    with self.experiment.section(
-                            uid=f"{qubit.uid}_excitation",
-                            alignment=SectionAlignment.RIGHT):
-                        # X180_ge pulse if calibrating ef
-                        self.play_preparation_pulses(qubit)
-                        self.experiment.play(
-                            signal=self.signal_name('drive', qubit),
-                            pulse=x180_pulse,
-                            amplitude=self.sweeps_dict[qubit.uid],
-                        )
-                    # measurement
-                    measure_sections = self.create_measure_acquire_sections(
-                        uid=f"{qubit.uid}_readout", qubit=qubit,
-                        play_after=f"{qubit.uid}_excitation")
-                    self.experiment.add(measure_sections)
-
-                # add cal traces
-                self.add_cal_states_sections(qubit)
-
+            # add sweep and sections to acquire loop rt
+            self.acquire_loop.add(sweep)
+            sweep.add(excitation_section)
+            sweep.add(measure_sections)
+            self.add_cal_states_sections(qubit)
 
 
 class Ramsey(SingleQubitGateTuneup):
@@ -654,45 +585,40 @@ class Ramsey(SingleQubitGateTuneup):
             raise ValueError('Please provide detuning.')
 
     def define_experiment(self):
-        with self.experiment.acquire_loop_rt(
-                uid=f"{self.experiment_name}_shots",
-                count=self.num_averages,
-                averaging_mode=AveragingMode.CYCLIC,
-                #             repetition_mode=RepetitionMode.AUTO, # needed to be able to have different delays sweeps for qbs
-                acquisition_type=AcquisitionType.INTEGRATION,
-        ):
-            # inner loop - real time sweep of Rabi amplitudes
-            with self.experiment.sweep(uid=f"{self.experiment_name}_sweep",
-                                       parameter=[self.sweeps_dict[qubit.uid]
-                                                  for qubit in self.qubits]):
-                for i, qubit in enumerate(self.qubits):
-                    # qubit drive
-                    with self.experiment.section(
-                            uid=f"{qubit.uid}_excitation",
-                            alignment=SectionAlignment.RIGHT):
-                        # X180_ge pulse if calibrating ef
-                        self.play_preparation_pulses(qubit)
-                        # Ramsey pulses
-                        ramsey_drive_pulse = qt_ops.quantum_gate(
-                            qubit,f'X90_{self.transition_to_calib}')
-                        self.experiment.play(
-                            signal=self.signal_name('drive', qubit),
-                            pulse=ramsey_drive_pulse)
-                        self.experiment.delay(
-                            signal=self.signal_name('drive', qubit),
-                            time=self.sweeps_dict[qubit.uid])
-                        self.experiment.play(
-                            signal=self.signal_name('drive', qubit),
-                            pulse=ramsey_drive_pulse)
+        self.add_acquire_rt_loop()
+        # create joint sweep for all qubits
+        sweep = Sweep(uid=f"{self.experiment_name}_sweep",
+                      parameters=[self.sweeps_dict[qubit.uid]
+                                  for qubit in self.qubits])
+        self.acquire_loop.add(sweep)
+        for i, qubit in enumerate(self.qubits):
+            # create pulses section
+            excitation_section = Section(
+                uid=f"{qubit.uid}_excitation", alignment=SectionAlignment.RIGHT)
+            # preparation pulses: ge if calibrating ef
+            self.add_preparation_pulses_to_section(excitation_section, qubit)
+            # Ramsey pulses
+            ramsey_drive_pulse = qt_ops.quantum_gate(
+                qubit, f'X90_{self.transition_to_calib}')
+            excitation_section.play(
+                signal=self.signal_name('drive', qubit),
+                pulse=ramsey_drive_pulse)
+            excitation_section.delay(
+                signal=self.signal_name('drive', qubit),
+                time=self.sweeps_dict[qubit.uid])
+            excitation_section.play(
+                signal=self.signal_name('drive', qubit),
+                pulse=ramsey_drive_pulse)
 
-                    # measurement
-                    measure_sections = self.create_measure_acquire_sections(
-                        uid=f"{qubit.uid}_readout", qubit=qubit,
-                        play_after=f"{qubit.uid}_excitation")
-                    self.experiment.add(measure_sections)
+            # create readout + acquire sections
+            measure_sections = self.create_measure_acquire_sections(
+                uid=f"{qubit.uid}_readout", qubit=qubit,
+                play_after=f"{qubit.uid}_excitation")
 
-                    # add cal traces
-                    self.add_cal_states_sections(qubit)
+            # add sweep and sections to acquire loop rt
+            sweep.add(excitation_section)
+            sweep.add(measure_sections)
+            self.add_cal_states_sections(qubit)
 
     def configure_experiment(self):
         calib = Calibration()
@@ -716,101 +642,50 @@ class QScale(SingleQubitGateTuneup):
 
     fallback_experiment_name = 'QScale'
     def define_experiment(self):
-        with self.experiment.acquire_loop_rt(
-                uid=f"{self.experiment_name}_shots",
-                count=self.num_averages,
-                averaging_mode=AveragingMode.CYCLIC,
-                acquisition_type=AcquisitionType.INTEGRATION,
-        ):
-            for i, qubit in enumerate(self.qubits):
-                tn = self.transition_to_calib
-                X90_pulse = qt_ops.quantum_gate(qubit, f'X90_{tn}')
-                X180_pulse = qt_ops.quantum_gate(qubit, f'X180_{tn}')
-                Y180_pulse = qt_ops.quantum_gate(qubit, f'Y180_{tn}')
-                Ym180_pulse = qt_ops.quantum_gate(qubit, f'mY180_{tn}')
-                pulse_ids = ['xy', 'xx', 'xmy']
-                pulses_2nd = [Y180_pulse, X180_pulse, Ym180_pulse]
+        self.add_acquire_rt_loop()
+        for i, qubit in enumerate(self.qubits):
+            tn = self.transition_to_calib
+            X90_pulse = qt_ops.quantum_gate(qubit, f'X90_{tn}')
+            X180_pulse = qt_ops.quantum_gate(qubit, f'X180_{tn}')
+            Y180_pulse = qt_ops.quantum_gate(qubit, f'Y180_{tn}')
+            Ym180_pulse = qt_ops.quantum_gate(qubit, f'mY180_{tn}')
+            pulse_ids = ['xy', 'xx', 'xmy']
+            pulses_2nd = [Y180_pulse, X180_pulse, Ym180_pulse]
 
-                swp = self.sweeps_dict[qubit.uid]
-                with self.experiment.sweep(
-                        uid=f"{qubit.uid}_{self.experiment_name}_sweep",
-                        parameter=swp,
-                        alignment=SectionAlignment.RIGHT):
+            swp = self.sweeps_dict[qubit.uid]
+            # create sweep
+            sweep = Sweep(uid=f"{qubit.uid}_{self.experiment_name}_sweep",
+                          parameters=[swp])
+            self.acquire_loop.add(sweep)
+            # create pulses sections
+            for i, pulse_2nd in enumerate(pulses_2nd):
+                id = pulse_ids[i]
+                play_after = f"{qubit.uid}_{pulse_ids[i - 1]}_section_meas" \
+                    if i > 0 else None
 
-                    for i, pulse_2nd in enumerate(pulses_2nd):
-                        id = pulse_ids[i]
-                        play_after = f'{qubit.uid}_{pulse_ids[i-1]}_section' \
-                            if i > 0 else None
-                        with self.experiment.section(
-                                uid=f'{qubit.uid}_{id}_section',
-                                play_after=play_after,
-                                alignment=SectionAlignment.RIGHT):
-                            # X180_ge pulse if calibrating ef
-                            self.play_preparation_pulses(qubit)
-                            # qscale pulses
-                            self.experiment.play(
-                                signal=self.signal_name('drive', qubit),
-                                pulse=X90_pulse, pulse_parameters={'beta': swp})
-                            self.experiment.play(
-                                signal=self.signal_name('drive', qubit),
-                                pulse=pulse_2nd, pulse_parameters={'beta': swp})
-                        measure_sections = self.create_measure_acquire_sections(
-                            uid=f"{qubit.uid}_{id}_section_meas", qubit=qubit,
-                            play_after=f"{qubit.uid}_{id}_section")
-                        self.experiment.add(measure_sections)
+                excitation_section = Section(uid=f'{qubit.uid}_{id}_section',
+                                             play_after=play_after,
+                                             alignment=SectionAlignment.RIGHT)
+                # preparation pulses: ge if calibrating ef
+                self.add_preparation_pulses_to_section(excitation_section, qubit)
+                # qscale pulses
+                excitation_section.play(
+                    signal=self.signal_name('drive', qubit),
+                    pulse=X90_pulse, pulse_parameters={'beta': swp})
+                excitation_section.play(
+                    signal=self.signal_name('drive', qubit),
+                    pulse=pulse_2nd, pulse_parameters={'beta': swp})
 
-                    # # XX pulses and msmst
-                    # with self.experiment.section(
-                    #         uid=f'{qubit.uid}_xx_section',
-                    #         play_after=f'{qubit.uid}_xy_section',
-                    #         alignment=SectionAlignment.RIGHT):
-                    #     # X180_ge pulse if calibrating ef
-                    #     self.play_preparation_pulses(qubit)
-                    #     # qscale pulses
-                    #     self.experiment.play(signal=f'drive_{qubit.uid}',
-                    #                          pulse=X90_pulse,
-                    #                          pulse_parameters={'beta': swp})
-                    #     self.experiment.play(signal=f'drive_{qubit.uid}',
-                    #                          pulse=X180_pulse,
-                    #                          pulse_parameters={'beta': swp})
-                    # with self.experiment.section(
-                    #         uid=f"{qubit.uid}_xx_section_meas",
-                    #         play_after=f"{qubit.uid}_xx_section"):
-                    #     self.experiment.measure(
-                    #         measure_signal=f"measure_{qubit.uid}",
-                    #         measure_pulse=qt_ops.readout_pulse(qubit),
-                    #         handle=f"{self.experiment_name}_{qubit.uid}",
-                    #         acquire_signal=f"acquire_{qubit.uid}",
-                    #         integration_kernel=qt_ops.readout_pulse(qubit),
-                    #         reset_delay=qubit.parameters.user_defined[
-                    #             "reset_delay_length"],
-                    #     )
-                    # measure_sections = self.create_measure_acquire_sections(
-                    #     uid=f"{qubit.uid}_xx_section_meas", qubit=qubit,
-                    #     play_after=f"{qubit.uid}_xx_section")
-                    # self.experiment.add(measure_sections)
-                    #
-                    # # XmY pulses + msmt
-                    # with self.experiment.section(
-                    #         uid=f'{qubit.uid}_xmy_section',
-                    #         play_after=f'{qubit.uid}_xx_section',
-                    #         alignment=SectionAlignment.RIGHT):
-                    #     # X180_ge pulse if calibrating ef
-                    #     self.play_preparation_pulses(qubit)
-                    #     # qscale pulses
-                    #     self.experiment.play(signal=f'drive_{qubit.uid}',
-                    #                          pulse=X90_pulse,
-                    #                          pulse_parameters={'beta': swp})
-                    #     self.experiment.play(signal=f'drive_{qubit.uid}',
-                    #                          pulse=Ym180_pulse,
-                    #                          pulse_parameters={'beta': swp})
-                    # measure_sections = self.create_measure_acquire_sections(
-                    #     uid=f"{qubit.uid}_xx_section_meas", qubit=qubit,
-                    #     play_after=f"{qubit.uid}_xx_section")
-                    # self.experiment.add(measure_sections)
+                # create readout + acquire sections
+                measure_sections = self.create_measure_acquire_sections(
+                    uid=f"{qubit.uid}_{id}_section_meas", qubit=qubit,
+                    play_after=f"{qubit.uid}_{id}_section")
 
-                # cal traces
-                self.add_cal_states_sections(qubit)
+                # Add sections to sweep
+                sweep.add(excitation_section)
+                sweep.add(measure_sections)
+
+            self.add_cal_states_sections(qubit)
 
 
 class T1(SingleQubitGateTuneup):
@@ -818,39 +693,35 @@ class T1(SingleQubitGateTuneup):
     fallback_experiment_name = 'T1'
 
     def define_experiment(self):
-        with self.experiment.acquire_loop_rt(
-            uid=f"{self.experiment_name}_shots",
-            count=self.num_averages,
-            averaging_mode=AveragingMode.CYCLIC,
-            acquisition_type=AcquisitionType.INTEGRATION,
-        ):
-            with self.experiment.sweep(
-                    uid=f"{self.experiment_name}_sweep",
-                    parameter=[self.sweeps_dict[qb.uid] for qb in self.qubits]):
-                for i, qubit in enumerate(self.qubits):
-                    x180_pulse = qt_ops.quantum_gate(
-                        qubit, f'X180_{self.transition_to_calib}')
-                    # pi pulse
-                    with self.experiment.section(
-                            uid=f"{qubit.uid}_excitation",
-                            alignment=SectionAlignment.RIGHT):
-                        # X180_ge pulse if calibrating ef
-                        self.play_preparation_pulses(qubit)
-                        self.experiment.play(
-                            signal=self.signal_name('drive', qubit),
-                            pulse=x180_pulse)
-                        self.experiment.delay(
-                            signal=self.signal_name('drive', qubit),
-                            time=self.sweeps_dict[qubit.uid])
+        self.add_acquire_rt_loop()
+        # create joint sweep for all qubits
+        sweep = Sweep(uid=f"{self.experiment_name}_sweep",
+                      parameters=[self.sweeps_dict[qubit.uid]
+                                  for qubit in self.qubits])
+        self.acquire_loop.add(sweep)
+        for i, qubit in enumerate(self.qubits):
+            # create pulses section
+            excitation_section = Section(
+                uid=f"{qubit.uid}_excitation", alignment=SectionAlignment.RIGHT)
+            # preparation pulses: ge if calibrating ef
+            self.add_preparation_pulses_to_section(excitation_section, qubit)
+            x180_pulse = qt_ops.quantum_gate(
+                qubit, f'X180_{self.transition_to_calib}')
+            excitation_section.play(
+                signal=self.signal_name('drive', qubit),
+                pulse=x180_pulse)
+            excitation_section.delay(
+                signal=self.signal_name('drive', qubit),
+                time=self.sweeps_dict[qubit.uid])
+            # create readout + acquire sections
+            measure_sections = self.create_measure_acquire_sections(
+                uid=f"{qubit.uid}_readout", qubit=qubit,
+                play_after=f"{qubit.uid}_excitation")
 
-                    # measurement
-                    measure_sections = self.create_measure_acquire_sections(
-                        uid=f"{qubit.uid}_readout", qubit=qubit,
-                        play_after=f"{qubit.uid}_excitation")
-                    self.experiment.add(measure_sections)
-
-                    # add cal traces
-                    self.add_cal_states_sections(qubit)
+            # add sweep and sections to acquire loop rt
+            sweep.add(excitation_section)
+            sweep.add(measure_sections)
+            self.add_cal_states_sections(qubit)
 
 
 class Echo(SingleQubitGateTuneup):
@@ -861,52 +732,50 @@ class Echo(SingleQubitGateTuneup):
         self.detuning = detuning
 
     def define_experiment(self):
-        with self.experiment.acquire_loop_rt(
-                uid=f"{self.experiment_name}_shots",
-                count=self.num_averages,
-                averaging_mode=AveragingMode.CYCLIC,
-                acquisition_type=AcquisitionType.INTEGRATION,
-        ):
-            for i, qubit in enumerate(self.qubits):
-                echo_sweep = SweepParameter(
-                    uid=f"echo_delays_{qubit.uid}",
-                    values=self.sweeps_dict[qubit.uid].values / 2)
-                with self.experiment.sweep(
-                        uid=f"{qubit.uid}_{self.experiment_name}_sweep",
-                        parameter=echo_sweep):
-                    with self.experiment.section(
-                            uid=f"{qubit.uid}_echo",
-                            alignment=SectionAlignment.RIGHT):
-                        # X180_ge pulse if calibrating ef
-                        self.play_preparation_pulses(qubit)
-                        # Echo pulses
-                        ramsey_drive_pulse = qt_ops.quantum_gate(
-                            qubit, f'X90_{self.transition_to_calib}')
-                        echo_drive_pulse = qt_ops.quantum_gate(
-                            qubit, f'X180_{self.transition_to_calib}')
-                        self.experiment.play(
-                            signal=self.signal_name('drive', qubit),
-                            pulse=ramsey_drive_pulse)
-                        self.experiment.delay(
-                            signal=self.signal_name('drive', qubit),
-                            time=echo_sweep)
-                        self.experiment.play(
-                            signal=self.signal_name('drive', qubit),
-                            pulse=echo_drive_pulse)
-                        self.experiment.delay(
-                            signal=self.signal_name('drive', qubit),
-                            time=echo_sweep)
-                        self.experiment.play(
-                            signal=self.signal_name('drive', qubit),
-                            pulse=ramsey_drive_pulse)
-                    # measurement
-                    measure_sections = self.create_measure_acquire_sections(
-                        uid=f"{qubit.uid}_readout", qubit=qubit,
-                        play_after=f"{qubit.uid}_echo")
-                    self.experiment.add(measure_sections)
+        self.add_acquire_rt_loop()
+        # create joint sweep for all qubits
+        sweep_list = [SweepParameter(
+                uid=f"echo_delays_{qubit.uid}",
+                values=self.sweeps_dict[qubit.uid].values / 2)
+            for qubit in self.qubits]
+        sweep = Sweep(uid=f"{self.experiment_name}_sweep",
+                      parameters=sweep_list)
+        self.acquire_loop.add(sweep)
+        for i, qubit in enumerate(self.qubits):
+            # create pulses section
+            excitation_section = Section(
+                uid=f"{qubit.uid}_excitation", alignment=SectionAlignment.RIGHT)
+            # preparation pulses: ge if calibrating ef
+            self.add_preparation_pulses_to_section(excitation_section, qubit)
+            # Echo pulses
+            ramsey_drive_pulse = qt_ops.quantum_gate(
+                qubit, f'X90_{self.transition_to_calib}')
+            echo_drive_pulse = qt_ops.quantum_gate(
+                qubit, f'X180_{self.transition_to_calib}')
+            excitation_section.play(
+                signal=self.signal_name('drive', qubit),
+                pulse=ramsey_drive_pulse)
+            excitation_section.delay(
+                signal=self.signal_name('drive', qubit),
+                time=sweep_list[i])
+            excitation_section.play(
+                signal=self.signal_name('drive', qubit),
+                pulse=echo_drive_pulse)
+            excitation_section.delay(
+                signal=self.signal_name('drive', qubit),
+                time=sweep_list[i])
+            excitation_section.play(
+                signal=self.signal_name('drive', qubit),
+                pulse=ramsey_drive_pulse)
+            # create readout + acquire sections
+            measure_sections = self.create_measure_acquire_sections(
+                uid=f"{qubit.uid}_readout", qubit=qubit,
+                play_after=f"{qubit.uid}_excitation")
 
-                # add cal traces
-                self.add_cal_states_sections(qubit)
+            # add sweep and sections to acquire loop rt
+            sweep.add(excitation_section)
+            sweep.add(measure_sections)
+            self.add_cal_states_sections(qubit)
 
     def configure_experiment(self):
         calib = Calibration()
