@@ -4,6 +4,7 @@ from laboneq.simple import *  # noqa: F403
 from . import quantum_operations as qt_ops
 from laboneq_library.calibration_helpers import \
     update_setup_calibration_from_qubits
+from laboneq.contrib.example_helpers.plotting import plot_helpers as plt_hlp
 import time
 import json
 import os
@@ -288,9 +289,9 @@ class ExperimentTemplate():
     compiled_exp = None
 
     def __init__(self, qubits, session, measurement_setup, experiment_name=None,
-                 signals_list=None, sweeps_dict=None, num_averages=2 ** 10,
-                 cal_states=None, datadir=None, do_analysis=True,
-                 update_setup=False, save=True, **kwargs):
+                 signals=None, sweeps_dict=None, experiment_metainfo=None,
+                 num_averages=2 ** 10, cal_states=None, datadir=None,
+                 do_analysis=True, update_setup=False, save=True, **kwargs):
 
         self.qubits = qubits
         self.session = session
@@ -303,17 +304,20 @@ class ExperimentTemplate():
         self.do_analysis = do_analysis
         self.update_setup = update_setup
         self.save = save
+        self.experiment_metainfo = experiment_metainfo
+        if self.experiment_metainfo is None:
+            self.experiment_metainfo = {}
 
         self.experiment_name = experiment_name
         if self.experiment_name is None:
             self.experiment_name = self.fallback_experiment_name
         self.create_experiment_label()
-        self.signals_list = signals_list
-        if self.signals_list is None:
-            self.signals_list = ['drive', 'measure', 'acquire']
+        self.signals = signals
+        if self.signals is None:
+            self.signals = ['drive', 'measure', 'acquire']
         self.experiment_signals, self.experiment_signal_uids_qubit_map = \
-            self.create_experiment_signals(self.qubits, self.signals_list)
-        self.create_experiment(self.experiment_label, signals_list)
+            self.create_experiment_signals(self.qubits, self.signals)
+        self.create_experiment()
 
     def create_experiment_label(self):
         if len(self.qubits) <= 5:
@@ -327,21 +331,21 @@ class ExperimentTemplate():
         return f"{signal}_{qubit.uid}"
 
     @staticmethod
-    def create_experiment_signals(qubits, signals_list):
+    def create_experiment_signals(qubits, signals):
         experiment_signal_uids_qubit_map = {
             qb.uid: [ExperimentTemplate.signal_name(sig, qb)
-                     for sig in signals_list] for qb in qubits
+                     for sig in signals] for qb in qubits
         }
         experiment_signals = []
         for qb in qubits:
-            for sig in signals_list:
+            for sig in signals:
                 # assumes signals in signals_list exist in qubits!
                 experiment_signals += [ExperimentSignal(f"{sig}_{qb.uid}",
                                                         map_to=qb.signals[sig])]
 
         return experiment_signals, experiment_signal_uids_qubit_map
 
-    def create_experiment(self, experiment_name, signals_list):
+    def create_experiment(self):
         self.experiment = Experiment(uid=self.experiment_name,
                                      signals=self.experiment_signals)
 
@@ -364,6 +368,14 @@ class ExperimentTemplate():
     def run_experiment(self):
         # create experiment timestamp
         self.timestamp = str(time.strftime("%Y%m%d_%H%M%S"))
+        # create experiment savedir
+        self.savedir = os.path.abspath(os.path.join(
+            self.datadir, f'{self.timestamp[:8]}',
+            f'{self.timestamp[-6:]}_{self.experiment_label}'))
+        # create the savedir
+        if not os.path.exists(self.savedir):
+            os.makedirs(self.savedir)
+
         self.results = self.session.run(self.compiled_exp)
         return self.results
 
@@ -376,12 +388,6 @@ class ExperimentTemplate():
         update_setup_calibration_from_qubits(qubits, measurement_setup)
 
     def save_experiment(self):
-        self.savedir = os.path.abspath(os.path.join(
-            self.datadir, f'{self.timestamp[:8]}',
-            f'{self.timestamp[-6:]}_{self.experiment_label}'))
-        if not os.path.exists(self.savedir):
-            os.makedirs(self.savedir)
-
         # Save all qubit parameters in one json file
         qb_pars_file = os.path.abspath(os.path.join(self.savedir,
                                                     'qubit_parameters.json'))
@@ -411,14 +417,18 @@ class ExperimentTemplate():
             self.save_experiment()
         return self.results
 
-    def add_acquire_rt_loop(self):
+    def add_acquire_rt_loop(self, section_container=None):
         self.acquire_loop = AcquireLoopRt(
             uid="RT_Acquire_Loop",
             count=self.num_averages,
             averaging_mode=AveragingMode.CYCLIC,
             # repetition_mode=RepetitionMode.AUTO,
         )
-        self.experiment.add(self.acquire_loop)
+        if section_container is None:
+            self.experiment.add(self.acquire_loop)
+        else:
+            section_container.add(self.acquire_loop)
+
 
     def create_measure_acquire_sections(self, uid, qubit, play_after=None,
                                         handle_suffix=''):
@@ -433,6 +443,7 @@ class ExperimentTemplate():
                 handle=handle,
                 acquire_signal=self.signal_name('acquire', qubit),
                 integration_kernel=qt_ops.readout_pulse(qubit),
+                integration_length=qubit.parameters.readout_integration_length,
                 reset_delay=qubit.parameters.user_defined["reset_delay_length"],
             )
         return measure_acquire_section
@@ -540,10 +551,14 @@ class SingleQubitGateTuneup(ExperimentTemplate):
                              f'not recognised. Please used one of '
                              f'["ge", "ef", "fh"].')
 
+    def run_analysis(self):
+        plt_hlp.plot_results(self.results, savedir=self.savedir)
+
 
 class AmplitudeRabi(SingleQubitGateTuneup):
 
     fallback_experiment_name = 'Rabi'
+
     def define_experiment(self):
         # define Rabi experiment pulse sequence
         # outer loop - real-time, cyclic averaging
@@ -578,11 +593,6 @@ class AmplitudeRabi(SingleQubitGateTuneup):
 class Ramsey(SingleQubitGateTuneup):
 
     fallback_experiment_name = 'Ramsey'
-    def __init__(self, *args, detuning=None, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.detuning = detuning
-        if self.detuning is None:
-            raise ValueError('Please provide detuning.')
 
     def define_experiment(self):
         self.add_acquire_rt_loop()
@@ -621,14 +631,15 @@ class Ramsey(SingleQubitGateTuneup):
             self.add_cal_states_sections(qubit)
 
     def configure_experiment(self):
+        detuning = self.experiment_metainfo.get('detuning')
+        if detuning is None:
+            raise ValueError('Please provide detuning in experiment_metainfo.')
         calib = Calibration()
         for i, qubit in enumerate(self.qubits):
             res_freq = qubit.parameters.resonance_frequency_ef if \
                 self.transition_to_calib == 'ef' else \
                 qubit.parameters.resonance_frequency_ge
-            print(res_freq, self.detuning[qubit.uid],
-                   qubit.parameters.drive_lo_frequency)
-            freq = res_freq + self.detuning[qubit.uid] - \
+            freq = res_freq + detuning[qubit.uid] - \
                    qubit.parameters.drive_lo_frequency
             calib[self.signal_name("drive", qubit)] = SignalCalibration(
                 oscillator=Oscillator(
@@ -727,9 +738,6 @@ class T1(SingleQubitGateTuneup):
 class Echo(SingleQubitGateTuneup):
 
     fallback_experiment_name = 'Echo'
-    def __init__(self, *args, detuning=None, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.detuning = detuning
 
     def define_experiment(self):
         self.add_acquire_rt_loop()
@@ -778,12 +786,16 @@ class Echo(SingleQubitGateTuneup):
             self.add_cal_states_sections(qubit)
 
     def configure_experiment(self):
+        detuning = self.experiment_metainfo.get('detuning')
+        if detuning is None:
+            raise ValueError('Please provide detuning in experiment_metainfo.')
+
         calib = Calibration()
         for i, qubit in enumerate(self.qubits):
             res_freq = qubit.parameters.resonance_frequency_ef if \
                 self.transition_to_calib == 'ef' else \
                 qubit.parameters.resonance_frequency_ge
-            freq = res_freq + self.detuning[qubit.uid] - \
+            freq = res_freq + detuning[qubit.uid] - \
                    qubit.parameters.drive_lo_frequency
             calib[self.signal_name("drive", qubit)] = SignalCalibration(
                 oscillator=Oscillator(
