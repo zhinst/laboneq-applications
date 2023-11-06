@@ -45,7 +45,7 @@ def quantum_gate(qubit, gate_name, pulse_type=pulse_library.drag,
 
 def drive_ge_pi(qubit, amplitude=None):
     return pulse_library.gaussian(
-        length=qubit.parameters.user_defined["pulse_length_ge"],
+        length=qubit.parameters.user_defined["pulse_length"],
         amplitude=amplitude
         if amplitude is not None
         else qubit.parameters.user_defined["amplitude_pi"],
@@ -54,7 +54,7 @@ def drive_ge_pi(qubit, amplitude=None):
 
 def drive_ge_pi2(qubit, amplitude=None):
     return pulse_library.gaussian(
-        length=qubit.parameters.user_defined["pulse_length_ge"],
+        length=qubit.parameters.user_defined["pulse_length"],
         amplitude=amplitude
         if amplitude is not None
         else qubit.parameters.user_defined["amplitude_pi2"],
