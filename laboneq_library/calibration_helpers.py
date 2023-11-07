@@ -57,6 +57,11 @@ def update_qubit_parameters_and_calibration(
     return transmon_list
 
 
+def update_setup_calibration_from_qubits(qubits, device_setup):
+    for qb in qubits:
+        device_setup.set_calibration(qb.calibration(set_local_oscillators=True))
+
+
 # create a transmon qubit object from entries in a parameter dictionary
 def create_transmon(qubit: str, base_parameters, device_setup):
     q_name = qubit
