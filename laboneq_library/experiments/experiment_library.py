@@ -563,19 +563,20 @@ class ResonatorSpectroscopy(ExperimentTemplate):
         experiment_metainfo = kwargs.get('experiment_metainfo', dict())
         self.nt_swp_par = experiment_metainfo.get('neartime_sweep_parameter',
                                                   'frequency')
+        self.pulsed = self.experiment_metainfo.get('continuous_wave', False)
         super().__init__(*args, **kwargs)
 
     def define_experiment(self):
         self.experiment.sections = []
-        cw = self.experiment_metainfo.get('continuous_wave', True)
         for qubit in self.qubits:
             nt_sweep = None
-            qb_sweep = self.sweep_parameters_dict[qubit.uid]
-            if len(qb_sweep) > 1:
-                nt_sweep_func = qb_sweep[1]
+            ro_pulse_amp = 1
+            qb_sweep_pars = self.sweep_parameters_dict[qubit.uid]
+            if len(qb_sweep_pars) > 1:
+                nt_sweep_par = qb_sweep_pars[1]
                 nt_sweep = Sweep(
                     uid=f"neartime_{self.nt_swp_par}_sweep_{qubit.uid}",
-                    parameters=[nt_sweep_func])
+                    parameters=[nt_sweep_par])
                 self.experiment.add(nt_sweep)
                 if self.nt_swp_par == 'voltage':
                     ntsf = self.experiment_metainfo.get(
@@ -587,15 +588,30 @@ class ResonatorSpectroscopy(ExperimentTemplate):
                             "experiment_metainfo['neartime_sweep_prameter'].")
                     # all near-time callback functions have the format
                     # func(session, sweep_param_value, qubit)
-                    nt_sweep.call(ntsf, voltage=nt_sweep_func, qubit=qubit)
+                    nt_sweep.call(ntsf, voltage=nt_sweep_par, qubit=qubit)
+                elif self.nt_swp_par == 'amplitude':
+                    ro_pulse_amp = nt_sweep_par
 
             # define real-time loop
             self.add_acquire_rt_loop(nt_sweep)
-            inner_freq_sweep = qb_sweep[0]
+            inner_freq_sweep = qb_sweep_pars[0]
             sweep_inner = Sweep(uid=f"resonator_frequency_inner_{qubit.uid}",
                                 parameters=[inner_freq_sweep])
             measure_acquire_section = Section(uid=f'measure_acquire_{qubit.uid}')
-            if cw:
+            if self.pulsed:
+                ro_pulse = pulse_library.const(
+                    length=qubit.parameters.user_defined["readout_length"],
+                    amplitude=ro_pulse_amp)
+                measure_acquire_section.measure(
+                    measure_signal=self.signal_name('measure', qubit),
+                    measure_pulse=ro_pulse,
+                    handle=f"{self.experiment_name}_{qubit.uid}",
+                    acquire_signal=self.signal_name('acquire', qubit),
+                    integration_kernel=ro_pulse,
+                    integration_length=qubit.parameters.readout_integration_length,
+                    # reset_delay=qubit.parameters.user_defined["reset_delay_length"],
+                )
+            else:
                 measure_acquire_section.measure(
                     measure_signal=None,
                     handle=f"{self.experiment_name}_{qubit.uid}",
@@ -603,16 +619,7 @@ class ResonatorSpectroscopy(ExperimentTemplate):
                     integration_length=qubit.parameters.readout_integration_length,
                     # reset_delay=qubit.parameters.user_defined["reset_delay_length"],
                 )
-            else:
-                measure_acquire_section.measure(
-                    measure_signal=self.signal_name('measure', qubit),
-                    measure_pulse=qt_ops.readout_pulse(qubit),
-                    handle=f"{self.experiment_name}_{qubit.uid}",
-                    acquire_signal=self.signal_name('acquire', qubit),
-                    integration_kernel=qt_ops.readout_pulse(qubit),
-                    integration_length=qubit.parameters.readout_integration_length,
-                    # reset_delay=qubit.parameters.user_defined["reset_delay_length"],
-                )
+
             reserve_sec = Section(uid=f"delay_{qubit.uid}", length=1e-6)
             # holdoff time after signal acquisition
             reserve_sec.reserve(signal=f"measure_{qubit.uid}")
@@ -631,7 +638,7 @@ class ResonatorSpectroscopy(ExperimentTemplate):
             local_oscillator = None
             ro_amplitude = None
             if len(qb_sweep) > 1:
-                if self.nt_swp_par == 'amplitude':
+                if self.nt_swp_par == 'amplitude'and not self.pulsed:
                     ro_amplitude = qb_sweep[1]
                 elif self.nt_swp_par == 'frequency':
                     local_oscillator = Oscillator(frequency=qb_sweep[1])
@@ -664,19 +671,20 @@ class QubitSpectroscopy(ExperimentTemplate):
         experiment_metainfo = kwargs.get('experiment_metainfo', dict())
         self.nt_swp_par = experiment_metainfo.get('neartime_sweep_parameter',
                                                   'frequency')
+        self.pulsed = self.experiment_metainfo.get('continuous_wave', False)
         super().__init__(*args, **kwargs)
 
     def define_experiment(self):
         self.experiment.sections = []
-        cw = self.experiment_metainfo.get('continuous_wave', True)
         for qubit in self.qubits:
             nt_sweep = None
-            qb_sweep = self.sweep_parameters_dict[qubit.uid]
-            if len(qb_sweep) > 1:
-                nt_sweep_func = qb_sweep[1]
+            spec_pulse_amp = qubit.parameters.user_defined["spec_amplitude"]
+            qb_sweep_pars = self.sweep_parameters_dict[qubit.uid]
+            if len(qb_sweep_pars) > 1:
+                nt_sweep_par = qb_sweep_pars[1]
                 nt_sweep = Sweep(
                     uid=f"neartime_{self.nt_swp_par}_sweep_{qubit.uid}",
-                    parameters=[nt_sweep_func])
+                    parameters=[nt_sweep_par])
                 self.experiment.add(nt_sweep)
                 if self.nt_swp_par == 'voltage':
                     ntsf = self.experiment_metainfo.get(
@@ -688,20 +696,22 @@ class QubitSpectroscopy(ExperimentTemplate):
                             "experiment_metainfo['neartime_sweep_prameter'].")
                     # all near-time callback functions have the format
                     # func(session, sweep_param_value, qubit)
-                    nt_sweep.call(ntsf, voltage=nt_sweep_func, qubit=qubit)
+                    nt_sweep.call(ntsf, voltage=nt_sweep_par, qubit=qubit)
+                elif self.nt_swp_par == 'amplitude':
+                    spec_pulse_amp = nt_sweep_par
 
             # define real-time loop
             self.add_acquire_rt_loop(nt_sweep)
             sweep = Sweep(uid=f"ge_frequency_sweep_{qubit.uid}",
                           parameters=[self.sweep_parameters_dict[qubit.uid][0]])
 
-            if not cw:
+            if self.pulsed:
                 excitation_section = Section(uid=f"{qubit.uid}_excitation")
                 spec_pulse = pulse_library.const(
                     uid=f"spectroscopy_pulse_{qubit.uid}",
                     length=qubit.parameters.user_defined["spec_length"],
-                    amplitude=qubit.parameters.user_defined["spec_amplitude"],
-                    can_compress=True
+                    amplitude=spec_pulse_amp,
+                    can_compress=True  # fails without this!
                 )
                 excitation_section.play(
                     signal=self.signal_name('drive', qubit),
@@ -721,7 +731,7 @@ class QubitSpectroscopy(ExperimentTemplate):
             local_oscillator = None
             drive_amplitude = None
             if len(qb_sweep) > 1:
-                if self.nt_swp_par == 'amplitude':
+                if self.nt_swp_par == 'amplitude' and not self.pulsed:
                     drive_amplitude = qb_sweep[1]
                 elif self.nt_swp_par == 'frequency':
                     local_oscillator = Oscillator(frequency=qb_sweep[1])
