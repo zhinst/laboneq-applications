@@ -671,7 +671,7 @@ class QubitSpectroscopy(ExperimentTemplate):
         experiment_metainfo = kwargs.get('experiment_metainfo', dict())
         self.nt_swp_par = experiment_metainfo.get('neartime_sweep_parameter',
                                                   'frequency')
-        self.pulsed = self.experiment_metainfo.get('continuous_wave', False)
+        self.pulsed = experiment_metainfo.get('continuous_wave', False)
         super().__init__(*args, **kwargs)
 
     def define_experiment(self):
@@ -720,7 +720,7 @@ class QubitSpectroscopy(ExperimentTemplate):
 
             measure_sections = self.create_measure_acquire_sections(
                 uid=f"{qubit.uid}_readout", qubit=qubit,
-                play_after=f"{qubit.uid}_excitation" if not cw else None)
+                play_after=f"{qubit.uid}_excitation" if self.pulsed else None)
             sweep.add(measure_sections)
             self.acquire_loop.add(sweep)
 
