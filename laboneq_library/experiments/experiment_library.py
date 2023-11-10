@@ -2,14 +2,16 @@ from laboneq.dsl.experiment.builtins import *  # noqa: F403
 from laboneq.simple import *  # noqa: F403
 
 from . import quantum_operations as qt_ops
-from laboneq_library.calibration_helpers import \
-    update_setup_calibration_from_qubits
+from laboneq.analysis import fitting as fit_mods
+from laboneq_library import calibration_helpers as calib_hlp
 from laboneq.contrib.example_helpers.plotting import plot_helpers as plt_hlp
 import time
-import pickle
 import json
+import pickle
+import numpy as np
 import os
 from ruamel.yaml import YAML
+import matplotlib.pyplot as plt
 
 ryaml = YAML()
 
@@ -290,11 +292,14 @@ def ramsey_parallel(
 class ExperimentTemplate():
     fallback_experiment_name = 'Experiment'
     compiled_exp = None
+    fit_results = None
+    new_qubit_parameters = None
 
     def __init__(self, qubits, session, measurement_setup, experiment_name=None,
                  signals=None, sweep_parameters_dict=None, experiment_metainfo=None,
                  acquisition_metainfo=None, cal_states=None, datadir=None,
-                 do_analysis=True, update_setup=False, save=True, **kwargs):
+                 do_analysis=True, update_qubit_parameters=False,
+                 update_setup=False, save=True, **kwargs):
 
         self.qubits = qubits
         self.session = session
@@ -319,6 +324,7 @@ class ExperimentTemplate():
 
         self.datadir = datadir
         self.do_analysis = do_analysis
+        self.update_qubit_parameters = update_qubit_parameters
         self.update_setup = update_setup
         self.save = save
 
@@ -399,18 +405,16 @@ class ExperimentTemplate():
     def run_experiment(self):
         if self.compiled_exp is None:
             self.compile_experiment()
-        if self.save:
-            self.create_timestamp_savedir()
         self.results = self.session.run(self.compiled_exp)
         return self.results
 
-    def run_analysis(self):
+    def analyse_experiment(self):
         # to be overridden by children
         pass
 
     @staticmethod
     def update_measurement_setup(qubits, measurement_setup):
-        update_setup_calibration_from_qubits(qubits, measurement_setup)
+        calib_hlp.update_setup_calibration_from_qubits(qubits, measurement_setup)
 
     def create_timestamp_savedir(self):
         # create experiment timestamp
@@ -434,7 +438,7 @@ class ExperimentTemplate():
 
         # Save acquired results
         filename = os.path.abspath(os.path.join(
-            self.savedir, 'acquired_results.p'))
+            self.savedir, f'{self.timestamp}_acquired_results.p'))
         with open(filename, 'wb') as f:
             pickle.dump(self.results.acquired_results, f)
 
@@ -457,17 +461,42 @@ class ExperimentTemplate():
         #         self.savedir, f'{qb.uid}_parameters.json'))
         #     qb.save(qb_pars_file)
 
+    def save_figure(self, fig, qubit):
+        if not hasattr(self, 'savedir'):
+            self.create_timestamp_savedir()
+        fig.savefig(self.savedir +
+                    f'\\{self.timestamp}_{self.experiment_name}_{qubit.uid}.png',
+                    bbox_inches='tight', dpi=600)
+
+    def save_fit_results(self):
+        if self.fit_results is not None:
+            # Save fit results into a json file
+            fit_res_file = os.path.abspath(os.path.join(
+                self.savedir, f'{self.timestamp}_fit_results.json'))
+            fit_results_to_save = {}
+            for qbuid, fit_res in self.fit_results.items():
+                fit_results_to_save[qbuid] = \
+                    calib_hlp.flatten_lmfit_modelresult(fit_res)
+            with open(fit_res_file, "w") as file:
+                json.dump(fit_results_to_save, file, indent=2)
+            # Save fit results into a pickle file
+            filename = os.path.abspath(os.path.join(
+                self.savedir, f'{self.timestamp}_fit_results.p'))
+            with open(filename, 'wb') as f:
+                pickle.dump(self.fit_results, f)
+
     def autorun(self):
         if self.compiled_exp is None:
             self.compile_experiment()
         self.results = self.run_experiment()
+        if self.save:
+            self.save_experiment()
         if self.do_analysis:
-            self.run_analysis()
+            self.analyse_experiment()
             if self.update_setup:
                 self.update_measurement_setup(self.qubits,
                                               self.measurement_setup)
-        if self.save:
-            self.save_experiment()
+
         return self.results
 
     def add_acquire_rt_loop(self, section_container=None):
@@ -563,7 +592,7 @@ class ResonatorSpectroscopy(ExperimentTemplate):
         experiment_metainfo = kwargs.get('experiment_metainfo', dict())
         self.nt_swp_par = experiment_metainfo.get('neartime_sweep_parameter',
                                                   'frequency')
-        self.pulsed = self.experiment_metainfo.get('continuous_wave', False)
+        self.pulsed = self.experiment_metainfo.get('pulsed', False)
         super().__init__(*args, **kwargs)
 
     def define_experiment(self):
@@ -671,7 +700,7 @@ class QubitSpectroscopy(ExperimentTemplate):
         experiment_metainfo = kwargs.get('experiment_metainfo', dict())
         self.nt_swp_par = experiment_metainfo.get('neartime_sweep_parameter',
                                                   'frequency')
-        self.pulsed = experiment_metainfo.get('continuous_wave', False)
+        self.pulsed = experiment_metainfo.get('pulsed', False)
         super().__init__(*args, **kwargs)
 
     def define_experiment(self):
@@ -751,7 +780,54 @@ class QubitSpectroscopy(ExperimentTemplate):
                 frequency=freq_swp, modulation_type=ModulationType.HARDWARE)
             cal_drive.local_oscillator = local_oscillator
             cal_drive.amplitude = drive_amplitude
-            
+
+    def analyse_experiment(self):
+        self.new_qubit_parameters = {}
+        self.fit_results = {}
+        for qubit in self.qubits:
+            # extract data
+            handle = f"{self.experiment_name}_{qubit.uid}"
+            data_mag = abs(self.results.get_data(handle))
+            data_mag = np.array([data for data in data_mag]).flatten()
+            res_axis = self.results.get_axis(handle)
+            if len(res_axis) > 1:
+                outer = self.results.get_axis(handle)[0]
+                inner = self.results.get_axis(handle)[1]
+                freqs = np.array([out + inner for out in outer]).flatten()
+            else:
+                freqs = self.results.get_axis(handle)[0]
+                freqs += qubit.parameters.drive_lo_frequency
+            # fit data
+            fit_res = calib_hlp.fit_data_lmfit(
+                fit_mods.lorentzian, freqs, data_mag,
+                param_hints={'amplitude': {'value': 1e2},
+                             'position': {'value': freqs[np.argmax(data_mag)]},
+                             'width': {'value': 50e3},
+                             'offset': {'value': 0}
+                             })
+            self.fit_results[qubit.uid] = fit_res
+            self.new_qubit_parameters[f'{qubit.uid}_resonance_frequency_ge'] = \
+                fit_res.best_values['position']
+            # plot data
+            fig, ax = plt.subplots()
+            ax.plot(freqs / 1e9, data_mag)
+            freqs_fine = np.linspace(freqs[0], freqs[1], 501)
+            ax.plot(freqs_fine / 1e9, fit_res.model.func(
+                freqs_fine, **fit_res.best_values), 'r-')
+            ax.set_xlabel("Resonator Frequency (GHz)")
+            ax.set_ylabel("Signal magnitude (a.u)")
+            ax.set_title(f'{self.timestamp}_{handle}')
+            # save figures
+            if self.save:
+                # Save the figure
+                self.save_figure(fig, qubit)
+                # Save fit results
+                self.save_fit_results()
+            plt.close(fig)
+            if self.update_qubit_parameters:
+                qubit.parameters.resonance_frequency_ge = \
+                    fit_res.best_values['position']
+
 
 
 ### Single-Qubit Gate Tune-up Experiment classes ###

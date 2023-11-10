@@ -1,5 +1,6 @@
 import datetime
 import time
+import json
 import os
 from pathlib import Path
 
@@ -182,9 +183,37 @@ def reload_qubit_parameters(folder, measurement_setup):
     return create_qubits(qubit_parameters, measurement_setup)
 
 
-def save_qubit_parameters(savedir, qubits):
+def save_qubit_parameters(savedir, qubits, timestamp=''):
     qubit_parameters = {qb.uid: qb.parameters.__dict__ for qb in qubits}
     # Save all qubit parameters in one yaml file
-    qb_pars_file = os.path.abspath(os.path.join(savedir, 'qubit_parameters.yaml'))
+    qb_pars_file = os.path.abspath(os.path.join(
+        savedir, f'{timestamp}_qubit_parameters.json'))
     with open(qb_pars_file, "w") as file:
-        ryaml.dump(qubit_parameters, file)
+        json.dump(qubit_parameters, file, indent=2)
+
+
+def fit_data_lmfit(function, x, y, param_hints):
+    import lmfit
+    model = lmfit.Model(function)
+    model.param_hints = param_hints
+    return model.fit(x=x, data=y, params=model.make_params())
+
+
+def flatten_lmfit_modelresult(fit_result):
+    import lmfit
+    # used for saving an lmfit ModelResults object as a dict
+    assert type(fit_result) is lmfit.model.ModelResult
+    fit_res_dict = dict()
+    fit_res_dict['success'] = fit_result.success
+    fit_res_dict['message'] = fit_result.message
+    fit_res_dict['params'] = {}
+    for param_name in fit_result.params:
+        fit_res_dict['params'][param_name] = {}
+        param = fit_result.params[param_name]
+        for k in param.__dict__:
+            if k == '_val':
+                fit_res_dict['params'][param_name]['value'] = getattr(param, k)
+            else:
+                if not k.startswith('_') and k not in ['from_internal', ]:
+                    fit_res_dict['params'][param_name][k] = getattr(param, k)
+    return fit_res_dict
