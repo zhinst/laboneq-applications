@@ -291,6 +291,8 @@ def ramsey_parallel(
 
 class ExperimentTemplate():
     fallback_experiment_name = 'Experiment'
+    savedir = None
+    timestamp = None
     compiled_exp = None
     fit_results = None
     new_qubit_parameters = None
@@ -816,7 +818,8 @@ class QubitSpectroscopy(ExperimentTemplate):
                 freqs_fine, **fit_res.best_values), 'r-')
             ax.set_xlabel("Resonator Frequency (GHz)")
             ax.set_ylabel("Signal magnitude (a.u)")
-            ax.set_title(f'{self.timestamp}_{handle}')
+            ts = self.timestamp if self.timestamp is not None else ''
+            ax.set_title(f'{ts}_{handle}')
             # save figures
             if self.save:
                 # Save the figure
