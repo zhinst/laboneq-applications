@@ -6,8 +6,12 @@ from laboneq_library.calibration_helpers import \
     update_setup_calibration_from_qubits
 from laboneq.contrib.example_helpers.plotting import plot_helpers as plt_hlp
 import time
+import pickle
 import json
 import os
+from ruamel.yaml import YAML
+
+ryaml = YAML()
 
 
 @experiment(signals=["measure", "acquire"], uid="Full range CW resonator sweep")
@@ -284,7 +288,6 @@ def ramsey_parallel(
 ##### Added by Steph   #####
 
 class ExperimentTemplate():
-
     fallback_experiment_name = 'Experiment'
     compiled_exp = None
 
@@ -310,7 +313,7 @@ class ExperimentTemplate():
             self.experiment_metainfo = {}
         if acquisition_metainfo is None:
             acquisition_metainfo = {}
-        self.acquisition_metainfo = dict(count=2**10)
+        self.acquisition_metainfo = dict(count=2 ** 10)
         # overwrite default with user-provided options
         self.acquisition_metainfo.update(acquisition_metainfo)
 
@@ -361,32 +364,36 @@ class ExperimentTemplate():
                                      signals=self.experiment_signals)
 
     def define_experiment(self):
-        # Define the experiment acquire looks, sweeps, sections, pulses
+        # Define the experiment acquire loops, sweeps, sections, pulses
         # to be overloaded by children
         pass
 
     def configure_experiment(self):
         # Set experiment calibration
-        # to be overloaded by children
-        pass
+        # This method sets the experiment calibration from the
+        # qubit calibration of a signal line.
+        # To be overloaded by children for overwriting settings.
+
+        cal = Calibration()
+        for qubit in self.qubits:
+            for sig in self.signals:  # 'drive', 'flux', 'measure', 'acquire'
+                cal[self.signal_name(sig, qubit)] = \
+                    qubit.calibration()[qubit.signals[sig]]
+        self.experiment.set_calibration(cal)
 
     def compile_experiment(self):
         if len(self.experiment.sections) == 0:
             self.define_experiment()
-        self.configure_experiment()
+        calib = self.experiment.get_calibration()
+        if all([cv is None for cv in calib.values()]):
+            self.configure_experiment()
         self.compiled_exp = self.session.compile(self.experiment)
 
     def run_experiment(self):
-        # create experiment timestamp
-        self.timestamp = str(time.strftime("%Y%m%d_%H%M%S"))
-        # create experiment savedir
-        self.savedir = os.path.abspath(os.path.join(
-            self.datadir, f'{self.timestamp[:8]}',
-            f'{self.timestamp[-6:]}_{self.experiment_label}'))
-        # create the savedir
-        if not os.path.exists(self.savedir):
-            os.makedirs(self.savedir)
-
+        if self.compiled_exp is None:
+            self.compile_experiment()
+        if self.save:
+            self.create_timestamp_savedir()
         self.results = self.session.run(self.compiled_exp)
         return self.results
 
@@ -398,22 +405,50 @@ class ExperimentTemplate():
     def update_measurement_setup(qubits, measurement_setup):
         update_setup_calibration_from_qubits(qubits, measurement_setup)
 
+    def create_timestamp_savedir(self):
+        # create experiment timestamp
+        self.timestamp = str(time.strftime("%Y%m%d_%H%M%S"))
+        # create experiment savedir
+        self.savedir = os.path.abspath(os.path.join(
+            self.datadir, f'{self.timestamp[:8]}',
+            f'{self.timestamp[-6:]}_{self.experiment_label}'))
+        # create the savedir
+        if not os.path.exists(self.savedir):
+            os.makedirs(self.savedir)
+
     def save_experiment(self):
-        # Save all qubit parameters in one json file
-        qb_pars_file = os.path.abspath(os.path.join(self.savedir,
-                                                    'qubit_parameters.json'))
-        with open(qb_pars_file, 'w') as fpo:
-            json.dump({qb.uid: qb.parameters.__dict__ for qb in self.qubits},
-                      fpo, indent=3)
-        # Save individual qubit parameters using QuantumElement.save()
-        for qb in self.qubits:
-            qb_pars_file = os.path.abspath(os.path.join(
-                self.savedir, f'{qb.uid}_parameters.json'))
-            qb.save(qb_pars_file)
-        # Save Results
-        results_file = os.path.abspath(os.path.join(
-            self.savedir, f'results.json'))
-        self.results.save(results_file)
+        if not hasattr(self, 'savedir'):
+            self.create_timestamp_savedir()
+
+        # # Save Results
+        # results_file = os.path.abspath(os.path.join(
+        #     self.savedir, f'results.json'))
+        # self.results.save(results_file)
+
+        # Save acquired results
+        filename = os.path.abspath(os.path.join(
+            self.savedir, 'acquired_results.p'))
+        with open(filename, 'wb') as f:
+            pickle.dump(self.results.acquired_results, f)
+
+        # qubit_parameters = {qb.uid: qb.parameters.__dict__ for qb in self.qubits}
+        # # Save all qubit parameters in one yaml file
+        # qb_pars_file = os.path.abspath(os.path.join(self.savedir,
+        #                                             'qubit_parameters.yaml'))
+        # with open(qb_pars_file, "w") as file:
+        #     ryaml.dump(qubit_parameters, file)
+
+        # # Save all qubit parameters in one json file
+        # qb_pars_file = os.path.abspath(os.path.join(self.savedir,
+        #                                             'qubit_parameters.json'))
+        # with open(qb_pars_file, 'w') as fpo:
+        #     json.dump(qubit_parameters, fpo, indent=3)
+        #
+        # # Save individual qubit parameters using QuantumElement.save()
+        # for qb in self.qubits:
+        #     qb_pars_file = os.path.abspath(os.path.join(
+        #         self.savedir, f'{qb.uid}_parameters.json'))
+        #     qb.save(qb_pars_file)
 
     def autorun(self):
         if self.compiled_exp is None:
@@ -436,7 +471,6 @@ class ExperimentTemplate():
         else:
             section_container.add(self.acquire_loop)
 
-
     def create_measure_acquire_sections(self, uid, qubit, play_after=None,
                                         handle_suffix=''):
         handle = f"{self.experiment_name}_{qubit.uid}"
@@ -445,14 +479,14 @@ class ExperimentTemplate():
         measure_acquire_section = Section(uid=uid)
         measure_acquire_section.play_after = play_after
         measure_acquire_section.measure(
-                measure_signal=self.signal_name('measure', qubit),
-                measure_pulse=qt_ops.readout_pulse(qubit),
-                handle=handle,
-                acquire_signal=self.signal_name('acquire', qubit),
-                integration_kernel=qt_ops.readout_pulse(qubit),
-                integration_length=qubit.parameters.readout_integration_length,
-                reset_delay=qubit.parameters.user_defined["reset_delay_length"],
-            )
+            measure_signal=self.signal_name('measure', qubit),
+            measure_pulse=qt_ops.readout_pulse(qubit),
+            handle=handle,
+            acquire_signal=self.signal_name('acquire', qubit),
+            integration_kernel=qt_ops.readout_pulse(qubit),
+            integration_length=qubit.parameters.readout_integration_length,
+            reset_delay=qubit.parameters.user_defined["reset_delay_length"],
+        )
         return measure_acquire_section
 
     def add_cal_states_sections(self, qubit, section_container=None):
@@ -475,12 +509,12 @@ class ExperimentTemplate():
             e_section = Section(uid=f"{qubit.uid}_cal_trace_e",
                                 play_after=play_after_sections)
             e_section.play(
-                    signal=self.signal_name('drive', qubit),
-                    pulse=qt_ops.quantum_gate(qubit, 'X180_ge'))
+                signal=self.signal_name('drive', qubit),
+                pulse=qt_ops.quantum_gate(qubit, 'X180_ge'))
             e_measure_section = self.create_measure_acquire_sections(
-                    uid=f"{qubit.uid}_cal_trace_e_meas", qubit=qubit,
+                uid=f"{qubit.uid}_cal_trace_e_meas", qubit=qubit,
                 play_after=f"{qubit.uid}_cal_trace_e",
-                    handle_suffix='cal_trace_e')
+                handle_suffix='cal_trace_e')
             play_after_sections = ([s for s in play_after_sections] +
                                    [e_section, e_measure_section])
             cal_trace_sections += [e_section, e_measure_section]
@@ -490,16 +524,16 @@ class ExperimentTemplate():
                                 play_after=play_after_sections)
             # prepare e state
             f_section.play(
-                    signal=self.signal_name('drive', qubit),
-                    pulse=qt_ops.quantum_gate(qubit, 'X180_ge'))
+                signal=self.signal_name('drive', qubit),
+                pulse=qt_ops.quantum_gate(qubit, 'X180_ge'))
             # prepare f state
             f_section.play(
-                    signal=self.signal_name('drive', qubit),
-                    pulse=qt_ops.quantum_gate(qubit, 'X180_ef'))
+                signal=self.signal_name('drive', qubit),
+                pulse=qt_ops.quantum_gate(qubit, 'X180_ef'))
             measure_section = self.create_measure_acquire_sections(
-                    uid=f"{qubit.uid}_cal_trace_f_meas", qubit=qubit,
-                    play_after=f"{qubit.uid}_cal_trace_f",
-                    handle_suffix='cal_trace_f')
+                uid=f"{qubit.uid}_cal_trace_f_meas", qubit=qubit,
+                play_after=f"{qubit.uid}_cal_trace_f",
+                handle_suffix='cal_trace_f')
             cal_trace_sections += [f_section, measure_section]
         for cal_tr_sec in cal_trace_sections:
             if section_container is None:
@@ -509,101 +543,148 @@ class ExperimentTemplate():
 
 
 class ResonatorSpectroscopy(ExperimentTemplate):
-
     fallback_experiment_name = 'ResonatorSpectroscopy'
-    
+
     def __init__(self, *args, **kwargs):
         kwargs['signals'] = kwargs.pop('signals', ['measure', 'acquire'])
+
         acquisition_metainfo_user = kwargs.pop('acquisition_metainfo', dict())
         acquisition_metainfo = dict(acquisition_type=AcquisitionType.SPECTROSCOPY)
         acquisition_metainfo.update(acquisition_metainfo_user)
         kwargs['acquisition_metainfo'] = acquisition_metainfo
+
+        experiment_metainfo = kwargs.get('experiment_metainfo', dict())
+        self.nt_swp_par = experiment_metainfo.get('neartime_sweep_parameter',
+                                                  'frequency')
         super().__init__(*args, **kwargs)
 
     def define_experiment(self):
-        cw = self.experiment_metainfo.get('continuous_wave', True)
         self.experiment.sections = []
-
-        sweep_outer = Sweep(uid=f"resonator_frequency_outer",
-                            parameters=[self.sweeps_dict[qb.uid][1]
-                                        for qb in self.qubits])
-        self.experiment.add(sweep_outer)
-        self.add_acquire_rt_loop(sweep_outer)
-
+        cw = self.experiment_metainfo.get('continuous_wave', True)
         for qubit in self.qubits:
-            inner_freq_sweep = self.sweeps_dict[qubit.uid][0]
+            nt_sweep = None
+            qb_sweep = self.sweeps_dict[qubit.uid]
+            if len(qb_sweep) > 1:
+                nt_sweep_func = qb_sweep[1]
+                nt_sweep = Sweep(
+                    uid=f"neartime_{self.nt_swp_par}_sweep_{qubit.uid}",
+                    parameters=[nt_sweep_func])
+                self.experiment.add(nt_sweep)
+                if self.nt_swp_par == 'voltage':
+                    ntsf = self.experiment_metainfo.get(
+                        'neartime_callback_function', None)
+                    if ntsf is None:
+                        raise ValueError(
+                            "Please provide the neartime callback function for "
+                            "the voltage sweep in "
+                            "experiment_metainfo['neartime_sweep_prameter'].")
+                    # all near-time callback functions have the format
+                    # func(session, sweep_param_value, qubit)
+                    nt_sweep.call(ntsf, voltage=nt_sweep_func, qubit=qubit)
+
+            # define real-time loop
+            self.add_acquire_rt_loop(nt_sweep)
+            inner_freq_sweep = qb_sweep[0]
             sweep_inner = Sweep(uid=f"resonator_frequency_inner_{qubit.uid}",
                                 parameters=[inner_freq_sweep])
             measure_acquire_section = Section(uid=f'measure_acquire_{qubit.uid}')
             if cw:
                 measure_acquire_section.measure(
                     measure_signal=None,
-                    handle=f"resonator_spectroscopy_{qubit.uid}",
+                    handle=f"{self.experiment_name}_{qubit.uid}",
                     acquire_signal=self.signal_name('acquire', qubit),
                     integration_length=qubit.parameters.readout_integration_length,
-                    reset_delay=qubit.parameters.user_defined["reset_delay_length"],
+                    # reset_delay=qubit.parameters.user_defined["reset_delay_length"],
                 )
             else:
                 measure_acquire_section.measure(
                     measure_signal=self.signal_name('measure', qubit),
                     measure_pulse=qt_ops.readout_pulse(qubit),
-                    handle=f"resonator_spectroscopy_{qubit.uid}",
+                    handle=f"{self.experiment_name}_{qubit.uid}",
                     acquire_signal=self.signal_name('acquire', qubit),
                     integration_kernel=qt_ops.readout_pulse(qubit),
                     integration_length=qubit.parameters.readout_integration_length,
-                    reset_delay=qubit.parameters.user_defined["reset_delay_length"],
+                    # reset_delay=qubit.parameters.user_defined["reset_delay_length"],
                 )
+            reserve_sec = Section(uid=f"delay_{qubit.uid}", length=1e-6)
+            # holdoff time after signal acquisition
+            reserve_sec.reserve(signal=f"measure_{qubit.uid}")
+            reserve_sec.reserve(signal=f"acquire_{qubit.uid}")
+
             sweep_inner.add(measure_acquire_section)
+            sweep_inner.add(reserve_sec)
             self.acquire_loop.add(sweep_inner)
 
     def configure_experiment(self):
-        cal = Calibration()
+        super().configure_experiment()
+
+        # configure sweep
         for qubit in self.qubits:
-            local_oscillator = Oscillator(frequency=self.sweeps_dict[qubit.uid][1])
-            freq_swp = self.sweeps_dict[qubit.uid][0]
+            qb_sweep = self.sweeps_dict[qubit.uid]
+            local_oscillator = None
+            ro_amplitude = None
+            if len(qb_sweep) > 1:
+                if self.nt_swp_par == 'amplitude':
+                    ro_amplitude = qb_sweep[1]
+                elif self.nt_swp_par == 'frequency':
+                    local_oscillator = Oscillator(frequency=qb_sweep[1])
+
+            freq_swp = qb_sweep[0]
             if all(freq_swp.values > 1e9):
                 # sweep values are passed as qubit resonance frequencies:
                 # subtract readout lo freq to sweep if
                 freq_swp = SweepParameter(
                     f'if_freq_{qubit.uid}',
-                    values=self.sweeps_dict[qubit.uid][0].values -
+                    values=qb_sweep[0].values -
                            qubit.parameters.readout_lo_frequency)
-            cal[f"measure_{qubit.uid}"] = SignalCalibration(
-                oscillator=Oscillator(frequency=freq_swp,
-                                      modulation_type=ModulationType.HARDWARE),
-                local_oscillator=local_oscillator,
-                range=qubit.parameters.readout_range_in,
-            )
-            cal[f"acquire_{qubit.uid}"] = SignalCalibration(
-                local_oscillator=local_oscillator,
-                range=qubit.parameters.readout_range_in,
-                port_delay=250e-9,
-            )
-        self.experiment.set_calibration(cal)
+
+            cal_measure = self.experiment.signals[
+                self.signal_name('measure', qubit)].calibration
+            cal_measure.oscillator = Oscillator(
+                frequency=freq_swp, modulation_type=ModulationType.HARDWARE)
+            cal_measure.local_oscillator = local_oscillator
+            cal_measure.amplitude = ro_amplitude
+
+            cal_acquire = self.experiment.signals[
+                self.signal_name('acquire', qubit)].calibration
+            cal_acquire.local_oscillator = local_oscillator
 
 
 class QubitSpectroscopy(ExperimentTemplate):
-
     fallback_experiment_name = 'QubitSpectroscopy'
 
     def __init__(self, *args, **kwargs):
-        acquisition_metainfo_user = kwargs.pop('acquisition_metainfo', dict())
-        acquisition_metainfo = dict(acquisition_type=AcquisitionType.SPECTROSCOPY)
-        acquisition_metainfo.update(acquisition_metainfo_user)
-        kwargs['acquisition_metainfo'] = acquisition_metainfo
+        experiment_metainfo = kwargs.get('experiment_metainfo', dict())
+        self.nt_swp_par = experiment_metainfo.get('neartime_sweep_parameter',
+                                                  'frequency')
         super().__init__(*args, **kwargs)
 
     def define_experiment(self):
-        cw = self.experiment_metainfo.get('continuous_wave', True)
         self.experiment.sections = []
-
-        sweep_outer = Sweep(uid=f"qubit_frequency_outer",
-                            parameters=[self.sweeps_dict[qb.uid][1]
-                                        for qb in self.qubits])
-        self.experiment.add(sweep_outer)
-        self.add_acquire_rt_loop(sweep_outer)
-
+        cw = self.experiment_metainfo.get('continuous_wave', True)
         for qubit in self.qubits:
+            nt_sweep = None
+            qb_sweep = self.sweeps_dict[qubit.uid]
+            if len(qb_sweep) > 1:
+                nt_sweep_func = qb_sweep[1]
+                nt_sweep = Sweep(
+                    uid=f"neartime_{self.nt_swp_par}_sweep_{qubit.uid}",
+                    parameters=[nt_sweep_func])
+                self.experiment.add(nt_sweep)
+                if self.nt_swp_par == 'voltage':
+                    ntsf = self.experiment_metainfo.get(
+                        'neartime_callback_function', None)
+                    if ntsf is None:
+                        raise ValueError(
+                            "Please provide the neartime callback function for "
+                            "the voltage sweep in "
+                            "experiment_metainfo['neartime_sweep_prameter'].")
+                    # all near-time callback functions have the format
+                    # func(session, sweep_param_value, qubit)
+                    nt_sweep.call(ntsf, voltage=nt_sweep_func, qubit=qubit)
+
+            # define real-time loop
+            self.add_acquire_rt_loop(nt_sweep)
             sweep = Sweep(uid=f"ge_frequency_sweep_{qubit.uid}",
                           parameters=[self.sweeps_dict[qubit.uid][0]])
 
@@ -613,6 +694,7 @@ class QubitSpectroscopy(ExperimentTemplate):
                     uid=f"spectroscopy_pulse_{qubit.uid}",
                     length=qubit.parameters.user_defined["spec_length"],
                     amplitude=qubit.parameters.user_defined["spec_amplitude"],
+                    can_compress=True
                 )
                 excitation_section.play(
                     signal=self.signal_name('drive', qubit),
@@ -626,9 +708,17 @@ class QubitSpectroscopy(ExperimentTemplate):
             self.acquire_loop.add(sweep)
 
     def configure_experiment(self):
-        cal = Calibration()
+        super().configure_experiment()
         for qubit in self.qubits:
-            local_oscillator = Oscillator(frequency=self.sweeps_dict[qubit.uid][1])
+            qb_sweep = self.sweeps_dict[qubit.uid]
+            local_oscillator = None
+            drive_amplitude = None
+            if len(qb_sweep) > 1:
+                if self.nt_swp_par == 'amplitude':
+                    drive_amplitude = qb_sweep[1]
+                elif self.nt_swp_par == 'frequency':
+                    local_oscillator = Oscillator(frequency=qb_sweep[1])
+
             freq_swp = self.sweeps_dict[qubit.uid][0]
             if all(freq_swp.values > 1e9):
                 # sweep values are passed as qubit resonance frequencies:
@@ -637,11 +727,14 @@ class QubitSpectroscopy(ExperimentTemplate):
                     f'if_freq_{qubit.uid}',
                     values=self.sweeps_dict[qubit.uid][0].values -
                            qubit.parameters.drive_lo_frequency)
-            cal[self.signal_name('drive', qubit)] = SignalCalibration(
-                oscillator=Oscillator(frequency=freq_swp,
-                                      modulation_type=ModulationType.HARDWARE),
-                local_oscillator=local_oscillator)
-        self.experiment.set_calibration(cal)
+
+            cal_drive = self.experiment.signals[
+                self.signal_name('drive', qubit)].calibration
+            cal_drive.oscillator = Oscillator(
+                frequency=freq_swp, modulation_type=ModulationType.HARDWARE)
+            cal_drive.local_oscillator = local_oscillator
+            cal_drive.amplitude = drive_amplitude
+            
 
 
 ### Single-Qubit Gate Tune-up Experiment classes ###
@@ -698,7 +791,6 @@ class SingleQubitGateTuneup(ExperimentTemplate):
 
 
 class AmplitudeRabi(SingleQubitGateTuneup):
-
     fallback_experiment_name = 'Rabi'
 
     def define_experiment(self):
@@ -719,7 +811,7 @@ class AmplitudeRabi(SingleQubitGateTuneup):
                 qubit, f'X180_{self.transition_to_calib}')
             excitation_section.play(signal=f"drive_{qubit.uid}",
                                     pulse=x180_pulse,
-                                    amplitude=self.sweeps_dict[qubit.uid][0],)
+                                    amplitude=self.sweeps_dict[qubit.uid][0], )
             # create readout + acquire sections
             measure_sections = self.create_measure_acquire_sections(
                 uid=f"{qubit.uid}_readout", qubit=qubit,
@@ -733,7 +825,6 @@ class AmplitudeRabi(SingleQubitGateTuneup):
 
 
 class Ramsey(SingleQubitGateTuneup):
-
     fallback_experiment_name = 'Ramsey'
 
     def define_experiment(self):
@@ -773,27 +864,25 @@ class Ramsey(SingleQubitGateTuneup):
             self.add_cal_states_sections(qubit)
 
     def configure_experiment(self):
+        super().configure_experiment()
         detuning = self.experiment_metainfo.get('detuning')
         if detuning is None:
             raise ValueError('Please provide detuning in experiment_metainfo.')
-        calib = Calibration()
         for i, qubit in enumerate(self.qubits):
             res_freq = qubit.parameters.resonance_frequency_ef if \
                 self.transition_to_calib == 'ef' else \
                 qubit.parameters.resonance_frequency_ge
             freq = res_freq + detuning[qubit.uid] - \
                    qubit.parameters.drive_lo_frequency
-            calib[self.signal_name("drive", qubit)] = SignalCalibration(
-                oscillator=Oscillator(
-                    frequency=freq, modulation_type=ModulationType.HARDWARE
-                )
-            )
-        self.experiment.set_calibration(calib)
+            cal_drive = self.experiment.signals[
+                self.signal_name('drive', qubit)].calibration
+            cal_drive.oscillator = Oscillator(
+                frequency=freq, modulation_type=ModulationType.HARDWARE)
 
 
 class QScale(SingleQubitGateTuneup):
-
     fallback_experiment_name = 'QScale'
+
     def define_experiment(self):
         self.add_acquire_rt_loop()
         for i, qubit in enumerate(self.qubits):
@@ -842,7 +931,6 @@ class QScale(SingleQubitGateTuneup):
 
 
 class T1(SingleQubitGateTuneup):
-
     fallback_experiment_name = 'T1'
 
     def define_experiment(self):
@@ -878,15 +966,14 @@ class T1(SingleQubitGateTuneup):
 
 
 class Echo(SingleQubitGateTuneup):
-
     fallback_experiment_name = 'Echo'
 
     def define_experiment(self):
         self.add_acquire_rt_loop()
         # create joint sweep for all qubits
         sweep_list = [SweepParameter(
-                uid=f"echo_delays_{qubit.uid}",
-                values=self.sweeps_dict[qubit.uid][0].values / 2)
+            uid=f"echo_delays_{qubit.uid}",
+            values=self.sweeps_dict[qubit.uid][0].values / 2)
             for qubit in self.qubits]
         sweep = Sweep(uid=f"{self.experiment_name}_sweep",
                       parameters=sweep_list)
@@ -928,6 +1015,7 @@ class Echo(SingleQubitGateTuneup):
             self.add_cal_states_sections(qubit)
 
     def configure_experiment(self):
+        super().configure_experiment()
         detuning = self.experiment_metainfo.get('detuning')
         if detuning is None:
             raise ValueError('Please provide detuning in experiment_metainfo.')
@@ -939,9 +1027,7 @@ class Echo(SingleQubitGateTuneup):
                 qubit.parameters.resonance_frequency_ge
             freq = res_freq + detuning[qubit.uid] - \
                    qubit.parameters.drive_lo_frequency
-            calib[self.signal_name("drive", qubit)] = SignalCalibration(
-                oscillator=Oscillator(
-                    frequency=freq, modulation_type=ModulationType.HARDWARE
-                )
-            )
-        self.experiment.set_calibration(calib)
+            cal_drive = self.experiment.signals[
+                self.signal_name('drive', qubit)].calibration
+            cal_drive.oscillator = Oscillator(
+                frequency=freq, modulation_type=ModulationType.HARDWARE)

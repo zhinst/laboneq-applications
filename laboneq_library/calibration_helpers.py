@@ -1,5 +1,6 @@
 import datetime
 import time
+import os
 from pathlib import Path
 
 from laboneq.simple import *  # noqa: F403
@@ -57,9 +58,12 @@ def update_qubit_parameters_and_calibration(
     return transmon_list
 
 
-def update_setup_calibration_from_qubits(qubits, device_setup):
-    for qb in qubits:
-        device_setup.set_calibration(qb.calibration(set_local_oscillators=True))
+def update_setup_calibration_from_qubits(qubits, measurement_setup):
+    msmt_setup_cal = measurement_setup.get_calibration()
+    for qubit in qubits:
+        for sig_name, lsig_path in qubit.signals.items():
+            msmt_setup_cal[lsig_path] = qubit.calibration()[lsig_path]
+    measurement_setup.set_calibration(msmt_setup_cal)
 
 
 # create a transmon qubit object from entries in a parameter dictionary
@@ -140,3 +144,47 @@ def save_results(results_database, results_object, key_name: str, user_note: str
             "user_note": f"{user_note}",
         },
     )
+
+
+def create_qubits(qubit_parameters, measurement_setup):
+    qubits = []
+    parameters = qubit_parameters
+    for q_name in qubit_parameters:
+        qubits += [Transmon.from_logical_signal_group(
+            q_name,
+            lsg=measurement_setup.logical_signal_groups[q_name],
+            parameters=TransmonParameters(
+                resonance_frequency_ge=parameters[q_name][
+                    "resonance_frequency_ge"],
+                resonance_frequency_ef=parameters[q_name][
+                    "resonance_frequency_ef"],
+                drive_lo_frequency=parameters[q_name]["drive_lo_frequency"],
+                readout_resonator_frequency=parameters[q_name][
+                    "readout_resonator_frequency"],
+                readout_lo_frequency=parameters[q_name][
+                    "readout_lo_frequency"],
+                readout_integration_delay=parameters[q_name][
+                    "readout_integration_delay"],
+                drive_range=parameters[q_name]["drive_range"],
+                drive_parameters_ge=parameters[q_name]["drive_parameters_ge"],
+                drive_parameters_ef=parameters[q_name]["drive_parameters_ef"],
+                readout_range_out=parameters[q_name]["readout_range_out"],
+                readout_range_in=parameters[q_name]["readout_range_in"],
+                flux_offset_voltage=parameters[q_name]["flux_offset_voltage"],
+                user_defined=parameters[q_name]['user_defined'],
+            ),
+        )]
+    return qubits
+
+
+def reload_qubit_parameters(folder, measurement_setup):
+    qubit_parameters = load_qubit_parameters(folder + '\\qubit_parameters.yaml')
+    return create_qubits(qubit_parameters, measurement_setup)
+
+
+def save_qubit_parameters(savedir, qubits):
+    qubit_parameters = {qb.uid: qb.parameters.__dict__ for qb in qubits}
+    # Save all qubit parameters in one yaml file
+    qb_pars_file = os.path.abspath(os.path.join(savedir, 'qubit_parameters.yaml'))
+    with open(qb_pars_file, "w") as file:
+        ryaml.dump(qubit_parameters, file)
