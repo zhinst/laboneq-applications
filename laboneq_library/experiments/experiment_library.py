@@ -365,7 +365,7 @@ class ExperimentTemplate():
 
     def define_experiment(self):
         # Define the experiment acquire loops, sweeps, sections, pulses
-        # to be overwritten by children
+        # to be overridden by children
         self.sweeps_dict = {}
         for qubit in self.qubits:
             self.sweeps_dict[qubit.uid] = []
@@ -379,7 +379,7 @@ class ExperimentTemplate():
         # Set experiment calibration
         # This method sets the experiment calibration from the
         # qubit calibration of a signal line.
-        # To be overwritten by children for overwriting settings.
+        # To be overridden by children for overwriting settings.
 
         cal = Calibration()
         for qubit in self.qubits:
@@ -405,7 +405,7 @@ class ExperimentTemplate():
         return self.results
 
     def run_analysis(self):
-        # to be overwritten by children
+        # to be overridden by children
         pass
 
     @staticmethod
