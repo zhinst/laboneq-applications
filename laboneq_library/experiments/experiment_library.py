@@ -300,8 +300,8 @@ class ExperimentTemplate():
     def __init__(self, qubits, session, measurement_setup, experiment_name=None,
                  signals=None, sweep_parameters_dict=None, experiment_metainfo=None,
                  acquisition_metainfo=None, cal_states=None, datadir=None,
-                 do_analysis=True, update_qubit_parameters=False,
-                 update_setup=False, save=True, **kwargs):
+                 do_analysis=True, analysis_metainfo=None, save=True,
+                 update_qubit_parameters=False, update_setup=False, **kwargs):
 
         self.qubits = qubits
         self.session = session
@@ -326,6 +326,9 @@ class ExperimentTemplate():
 
         self.datadir = datadir
         self.do_analysis = do_analysis
+        self.analysis_metainfo = analysis_metainfo
+        if self.analysis_metainfo is None:
+            self.analysis_metainfo = {}
         self.update_qubit_parameters = update_qubit_parameters
         self.update_setup = update_setup
         self.save = save
@@ -466,9 +469,10 @@ class ExperimentTemplate():
     def save_figure(self, fig, qubit):
         if self.savedir is None:
             self.create_timestamp_savedir()
-        fig.savefig(self.savedir +
-                    f'\\{self.timestamp}_{self.experiment_name}_{qubit.uid}.png',
-                    bbox_inches='tight', dpi=600)
+        fig_name = self.analysis_metainfo.get('figure_name', None)
+        if fig_name is None:
+            fig_name = f'\\{self.timestamp}_{self.experiment_name}_{qubit.uid}'
+        fig.savefig(self.savedir + f'{fig_name}.png', bbox_inches='tight', dpi=600)
 
     def save_fit_results(self):
         if self.fit_results is not None:
@@ -495,9 +499,9 @@ class ExperimentTemplate():
             self.save_experiment()
         if self.do_analysis:
             self.analyse_experiment()
-            if self.update_setup:
-                self.update_measurement_setup(self.qubits,
-                                              self.measurement_setup)
+        if self.update_setup:
+            self.update_measurement_setup(self.qubits,
+                                          self.measurement_setup)
 
         return self.results
 
@@ -694,6 +698,47 @@ class ResonatorSpectroscopy(ExperimentTemplate):
                 self.signal_name('acquire', qubit)].calibration
             cal_acquire.local_oscillator = local_oscillator
 
+    def analyse_experiment(self):
+        self.new_qubit_parameters = {}
+        for qubit in self.qubits:
+            # extract data
+            handle = f"{self.experiment_name}_{qubit.uid}"
+            data_mag = abs(self.results.get_data(handle))
+            data_mag = np.array([data for data in data_mag]).flatten()
+            res_axis = self.results.get_axis(handle)
+            if len(res_axis) > 1:
+                outer = self.results.get_axis(handle)[0]
+                inner = self.results.get_axis(handle)[1]
+                freqs = np.array([out + inner for out in outer]).flatten()
+            else:
+                freqs = self.results.get_axis(handle)[0]
+                freqs += qubit.parameters.drive_lo_frequency
+
+            f0, d0 = freqs[np.argmin(data_mag)], np.min(data_mag)
+            self.new_qubit_parameters[
+                f'{qubit.uid}_readout_resonator_frequency'] = f0
+
+            # plot data
+            fig, ax = plt.subplots()
+            ax.plot(freqs / 1e9, data_mag)
+            if self.update_qubit_parameters:
+                ax.plot(f0 / 1e9, d0, 'ro')
+                textstr = f'Readout-resonator frequency: {f0 / 1e9:.4f} GHz'
+                ax.text(0, -0.15, textstr, ha='left', va='top',
+                        transform=ax.transAxes)
+            ax.set_xlabel("Resonator Frequency (GHz)")
+            ax.set_ylabel("Signal magnitude (a.u)")
+            ts = self.timestamp if self.timestamp is not None else ''
+            ax.set_title(f'{ts}_{handle}')
+            # save figures
+            if self.save:
+                # Save the figure
+                self.save_figure(fig, qubit)
+            plt.close(fig)
+
+            if self.update_qubit_parameters:
+                qubit.parameters.readout_resonator_frequency = f0
+
 
 class QubitSpectroscopy(ExperimentTemplate):
     fallback_experiment_name = 'QubitSpectroscopy'
@@ -799,27 +844,42 @@ class QubitSpectroscopy(ExperimentTemplate):
             else:
                 freqs = self.results.get_axis(handle)[0]
                 freqs += qubit.parameters.drive_lo_frequency
-            # fit data
-            fit_res = calib_hlp.fit_data_lmfit(
-                fit_mods.lorentzian, freqs, data_mag,
-                param_hints={'amplitude': {'value': 1e2},
-                             'position': {'value': freqs[np.argmax(data_mag)]},
-                             'width': {'value': 50e3},
-                             'offset': {'value': 0}
-                             })
-            self.fit_results[qubit.uid] = fit_res
-            self.new_qubit_parameters[f'{qubit.uid}_resonance_frequency_ge'] = \
-                fit_res.best_values['position']
+
             # plot data
             fig, ax = plt.subplots()
             ax.plot(freqs / 1e9, data_mag)
-            freqs_fine = np.linspace(freqs[0], freqs[1], 501)
-            ax.plot(freqs_fine / 1e9, fit_res.model.func(
-                freqs_fine, **fit_res.best_values), 'r-')
-            ax.set_xlabel("Resonator Frequency (GHz)")
+            ax.set_xlabel("Qubit Frequency (GHz)")
             ax.set_ylabel("Signal magnitude (a.u)")
             ts = self.timestamp if self.timestamp is not None else ''
             ax.set_title(f'{ts}_{handle}')
+
+            if self.analysis_metainfo.get('do_fitting', True):
+                # fit data
+                param_hints = self.analysis_metainfo.get(
+                    'param_hints',
+                    {'amplitude': {'value': 1e2},
+                     'position': {'value': freqs[np.argmax(data_mag)]},
+                     'width': {'value': 50e3},
+                     'offset': {'value': 0}
+                     })
+                fit_res = calib_hlp.fit_data_lmfit(
+                    fit_mods.lorentzian, freqs, data_mag,
+                    param_hints=param_hints)
+                self.fit_results[qubit.uid] = fit_res
+                fqb = fit_res.best_values['position']
+                self.new_qubit_parameters[
+                    f'{qubit.uid}_resonance_frequency_ge'] = fqb
+                if self.update_qubit_parameters:
+                    qubit.parameters.resonance_frequency_ge = fqb
+
+                # plot fit
+                freqs_fine = np.linspace(freqs[0], freqs[1], 501)
+                ax.plot(freqs_fine / 1e9, fit_res.model.func(
+                    freqs_fine, **fit_res.best_values), 'r-')
+                textstr = f'Qubit frequency: {fqb / 1e9:.4f} GHz'
+                ax.text(0, -0.15, textstr, ha='left', va='top',
+                        transform=ax.transAxes)
+
             # save figures
             if self.save:
                 # Save the figure
@@ -827,9 +887,7 @@ class QubitSpectroscopy(ExperimentTemplate):
                 # Save fit results
                 self.save_fit_results()
             plt.close(fig)
-            if self.update_qubit_parameters:
-                qubit.parameters.resonance_frequency_ge = \
-                    fit_res.best_values['position']
+
 
 
 
