@@ -18,6 +18,23 @@ def load_qubit_parameters(filename="./qubit_parameters.yaml"):
     return qubit_parameters
 
 
+def load_qubit_parameters_json(folder=None, full_filepath=None):
+    if full_filepath is None:
+        if folder is None:
+            raise ValueError('Please provide either folder or full_filepath.')
+        full_filepath = [fn for fn in os.listdir(folder) if
+                         'qubit_parameters.json' in fn]
+        if len(full_filepath) == 0:
+            raise FileNotFoundError(f'There is no json file containing qubit '
+                                    f'parameters in {folder}.')
+        full_filepath = f'{folder}\\{full_filepath[0]}'
+    with open(full_filepath) as f:
+        qubit_parameters = f.read()
+    # convert to python dictionary
+    qubit_parameters = json.loads(qubit_parameters)
+    return qubit_parameters
+
+
 def update_qubit_parameters_and_calibration(
     qubit_parameters,
     device_setup,
@@ -179,7 +196,10 @@ def create_qubits(qubit_parameters, measurement_setup):
 
 
 def reload_qubit_parameters(folder, measurement_setup):
-    qubit_parameters = load_qubit_parameters(folder + '\\qubit_parameters.yaml')
+    try:
+        qubit_parameters = load_qubit_parameters(folder + '\\qubit_parameters.yaml')
+    except FileNotFoundError:
+        qubit_parameters = load_qubit_parameters_json(folder)
     return create_qubits(qubit_parameters, measurement_setup)
 
 
