@@ -93,14 +93,14 @@ We set up two basic spectroscopy measurements: one to obtain the resonance of th
 
 The qubit resonant frequency obtained by `scan_pulsed_qubit` will be used in `scan_amp_rabi` to find the optimal amplitude for $\pi$ pulses.
 
-To simulate the workflow, we will use `DefaultAnalyzer` which returns a fixed value for each scan and always returns `True` when asked for verification.
+To simulate the workflow, we will use `MockAnalyzer` which returns a fixed value for each scan and always returns `True` when asked for verification.
 
 ## Pulsed resonator spectroscopy
 
 
 ```python
 freq_sweep = LinearSweepParameter(start=35e6, stop=45e6, count=210)
-spec_analyzer = ta.DefaultAnalyzer()
+spec_analyzer = ta.MockAnalyzer()
 exp_settings = {"integration_time": 10e-6, "num_averages": 2**10}
 readout_pulse = pulse_library.const(
     uid="readout_pulse", length=2e-6, amplitude=0.05
@@ -134,7 +134,7 @@ scan_pulsed_resonator.set_extra_calibration(measure_range=-30)
 ```python
 
 freq_sweep = LinearSweepParameter(start=16e6, stop=22e6, count=201)
-spec_analyzer = ta.DefaultAnalyzer()
+spec_analyzer = ta.MockAnalyzer()
 exp_settings = {"num_averages": 2**11}
 readout_pulse = pulse_library.const(
     uid="readout_pulse", length=2e-6, amplitude=0.05
@@ -195,7 +195,7 @@ scan_amp_rabi = Scan(
     update_key="pi_pulse_amplitude",
     exp_fac=AmplitudeRabi,
     exp_settings=exp_settings,
-    analyzer=ta.DefaultAnalyzer(),
+    analyzer=ta.MockAnalyzer(),
     pulse_storage=pulse_storage,
     analyzing_parameters={"amp_pi": 0.2},
 )

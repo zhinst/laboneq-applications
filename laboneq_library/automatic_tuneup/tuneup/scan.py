@@ -5,12 +5,11 @@ from enum import Enum
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Union
 
-from laboneq.dsl.experiment.pulse import Pulse
 from laboneq.simple import *  # noqa: F403
 
-from .analyzer import Analyzer, DefaultAnalyzer
 from .configs import get_config
-from .experiment import TuneUpExperimentFactory
+from .experiment import TuneUpExperiment
+from .qubit_config import QubitConfigs
 from .tuneup_logging import initialize_logging
 
 logger = initialize_logging()
@@ -31,14 +30,10 @@ class Scan:
         self,
         uid: Optional[str] = None,
         session: Session = None,
-        qubit: Qubit = None,
-        update_key: str = "",
-        params: List[LinearSweepParameter] = None,
-        exp_fac: TuneUpExperimentFactory = None,
+        qubit_configs: QubitConfigs = None,
+        exp_fac: TuneUpExperiment = None,
         exp_settings: Dict[str, Any] = None,
         ext_call: Callable = None,
-        analyzer: Analyzer = None,
-        pulse_storage: Dict[str, Pulse] = None,
         dependencies: Union[List["Scan"], "Scan"] = None,
     ) -> None:
         """
@@ -57,39 +52,32 @@ class Scan:
             dependencies: set of scan objects that this scan depends on
         """
 
+        # scan-related
         self.uid = uuid.uuid4() if uid is None else uid
         logger.info(f"Creating scan object {self.uid}")
-
-        self.result = None
-        self.parameters = params
-        self.qubit = qubit
-        self.fig = None
-        self.analyzed_result = None
-
         self.status = ScanStatus.PENDING
-
         if dependencies is None:
             self._dependencies = set()
         else:
             self._add_deps(dependencies)
 
-        self.update_key = update_key
+        # qubit-related
+        self.qubit_configs = qubit_configs
+        self.qubit_configs_need_verify = self.qubit_configs.get_need_to_verify()
+        self.qubits = qubit_configs.get_qubits()
+        logger.debug(f"Number of Qubits: {len(self.qubit_configs)}")
 
-        self._session = session
-        self._device_setup = self._session.device_setup
-        self.pulse_storage = pulse_storage
-
-        if analyzer is not None:
-            logger.info(f"Using provided analyzer {analyzer}")
-            self.analyzer = analyzer
-        else:
-            logger.info("Creating a default analyzer")
-            self.analyzer = DefaultAnalyzer()
-
+        # exps-related
         self._extra_calib = None
-
         self.exp_settings = exp_settings
         self.ext_call = ext_call
+
+        self.fig = None
+        self.result = None
+
+        # session-related
+        self._session = session
+        self._device_setup = self._session.device_setup
 
         # Generate exp
         self._clc_exp_fac = exp_fac
@@ -98,41 +86,6 @@ class Scan:
         self._gen_exp()
 
         logger.info(f"Scan object {self.uid} created")
-
-    @property
-    def analyzer(self):
-        return self._analyzer
-
-    @analyzer.setter
-    def analyzer(self, analyzer):
-        if isinstance(analyzer, Analyzer):
-            self._analyzer = analyzer
-            logger.info(f"Analyzer is set to {analyzer}")
-        else:
-            raise ValueError(
-                "The analyzer must be an instance of Analyzer or a subclass of it"
-            )
-
-    @property
-    def update_key(self):
-        return self._update_key
-
-    @update_key.setter
-    def update_key(self, update_key: str):
-        self._update_key_in_user_defined = False
-        if hasattr(self.qubit.parameters, update_key):
-            self._update_key = update_key
-            logger.info(f"Parameter {update_key} will be scan and updated")
-        elif update_key in self.qubit.parameters.user_defined:
-            self._update_key = update_key
-            self._update_key_in_user_defined = True
-            logger.info(
-                f"Parameter {update_key} of user defined parameters will be scan and updated"
-            )
-        else:
-            logger.warning("The update key must be a valid parameter of the qubit")
-            self._update_key = None
-            # raise ValueError("The update key must be a valid parameter of the qubit")
 
     @property
     def dependencies(self):
@@ -145,11 +98,9 @@ class Scan:
 
     def _gen_exp(self, reapply_extra_calib=False):
         self._exp_fac = self._clc_exp_fac(
-            self.parameters,
-            self.qubit,
-            self.exp_settings,
-            self.ext_call,
-            self.pulse_storage,
+            self.qubit_configs,
+            exp_settings=self.exp_settings,
+            ext_calls=self.ext_call,
         )
         self.experiment = self._exp_fac.exp
         if reapply_extra_calib:
@@ -181,7 +132,7 @@ class Scan:
         except Exception as e:
             logger.error(f"Experiment failed with error {e}")
             self.status = ScanStatus.FAILED
-            raise
+            raise RuntimeError(f"Experiment {self.uid} failed") from e
         else:
             logger.info("Experiment finished")
             self.status = ScanStatus.FINISHED
@@ -201,30 +152,31 @@ class Scan:
         self.update()
 
     def report(self):
-        logger.debug("Qubit parameters")
-        logger.debug(repr(self.qubit.parameters))
-
-        signals = [l for _, l in self.qubit.signals.items()]
-        for l in signals:
-            c = self._device_setup.get_calibration(l)
-            logger.debug(f"Device setup calibration for {l}")
-            logger.debug(c)
+        for qubit in self.qubits:
+            logger.debug("Qubit parameters")
+            logger.debug(repr(qubit.parameters))
+            signals = [l for _, l in qubit.signals.items()]
+            for l in signals:
+                c = self._device_setup.get_calibration(l)
+                logger.debug(f"Device setup calibration for {l}")
+                logger.debug(c)
         logger.debug("Experimental calibrations")
         logger.debug(repr(self.experiment.get_calibration()))
         return signals
 
-    def analyze(self, **kwargs):
+    def analyze(self) -> None:
         """
         Analyze result using the analyzer object
         """
         logger.info("Analyzing scan")
-        if self.analyzer is None:
-            logger.warn("No analyzer has been set")
-            return
+        for qubit_config in self.qubit_configs_need_verify:
+            logger.info(f"Analyzing qubit {qubit_config.qubit.uid}")
+            if qubit_config.analyzer is None:
+                logger.warn("No analyzer has been set for this qubit. Skipping")
+                continue
 
-        self.analyzed_result = self.analyzer.analyze(self.result)
-        logger.info(f"Analyzed result: {self.analyzed_result}")
-        return self.analyzed_result
+            qubit_config._analyzed_result = qubit_config.analyzer.analyze(self.result)
+            logger.info(f"Analyzed result: {qubit_config._analyzed_result}")
 
     def verify(self) -> bool:
         """
@@ -232,54 +184,50 @@ class Scan:
         If the scan has not been analyzed, it will be analyzed first.
         """
         logger.info("Verifying scan")
-        if self.analyzed_result is None:
-            self.analyzed_result = self.analyze()
-        verified = self.analyzer.verify(self.analyzed_result)
+        # Check if any of the qubits has not been analyzed
+        # Rerun analyze and log which qubits have not been analyzed
+        # Ignore qubit config that does not have to be verified
+        analyzed_result = [
+            qubit_config._analyzed_result
+            for qubit_config in self.qubit_configs_need_verify
+        ]
+
+        if None in analyzed_result:
+            logger.info("Some qubits have not been analyzed. Analyzing now")
+            self.analyze()
+        for qubit_config in self.qubit_configs_need_verify:
+            analyzer = qubit_config.analyzer
+            verified = analyzer.verify(qubit_config._analyzed_result)
+            if verified:
+                logger.info(f"Scan verified for qubit {qubit_config.qubit.uid}")
+            else:
+                logger.warning(
+                    f"Scan failed verification for qubit {qubit_config.qubit.uid}"
+                )
+            qubit_config._verified = verified
+
+        verified = self.qubit_configs.all_verified()
         if verified:
             self.status = ScanStatus.PASSED
-            logger.info("Scan verified")
+            logger.info("Scan is verified")
         else:
             self.status = ScanStatus.FAILED
             logger.warning("Scan failed verification")
         return verified
 
-    def update(self, force_value=None):
+    def update(self):
         """
         Update the qubit parameters
-        Args:
-            force_value: The value to update the parameter with. If given, the parameter will be updated with this value regardless of the scan status.
-            If None, the analyzed result will be used and the update only happens if the scan status is PASSED.
         """
         logger.info("Updating qubit parameters")
-        update_value = (
-            force_value
-            if force_value is not None
-            else self._exp_fac.get_updated_value(self.analyzed_result)
-        )
-        if self._update_key is None:
-            warnings.warn(
-                "No update key has been set. Please set one to update the parameters"
-            )
-            return
-        if force_value is not None:
-            self._update(update_value)
-        else:
-            if self.status == ScanStatus.PASSED:
-                self._update(update_value)
-            else:
-                warnings.warn("Scan was not successful. Parameters will not be updated")
 
-    def _update(self, update_value):
-        if self._update_key_in_user_defined:
-            self.qubit.parameters.user_defined[self._update_key] = update_value
-            logger.info(
-                f"User defined parameter {self._update_key} of qubit {self.qubit.uid} is updated to {update_value}"
-            )
-        else:
-            setattr(self.qubit.parameters, self._update_key, update_value)
-            logger.info(
-                f"Parameter {self._update_key} of qubit {self.qubit.uid} was updated to {update_value}"
-            )
+        for qubit_config in self.qubit_configs_need_verify:
+            if qubit_config._verified:
+                qubit_config.update_qubit()
+            else:
+                warnings.warn(
+                    f"Scan for qubit {qubit_config.qubit.uid} failed. Parameters will not be updated"
+                )
 
     def save_result(self):
         current_datetime = datetime.datetime.now()

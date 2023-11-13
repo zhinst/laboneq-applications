@@ -10,85 +10,62 @@ from laboneq_library.automatic_tuneup.tuneup.scan import Scan, ScanStatus
 
 
 @pytest.fixture(scope="function")
-def scans(qubits, device_setup):
-    my_calibration = Calibration()
-    my_calibration["/logical_signal_groups/q0/drive_line"] = SignalCalibration(
-        oscillator=Oscillator(frequency=1.23e6),
-    )
-    my_calibration["/logical_signal_groups/q1/drive_line"] = SignalCalibration(
-        oscillator=Oscillator(frequency=3.21e6),
-    )
-    device_setup.set_calibration(my_calibration)
+def scans(qubit_configs, session):
 
-    q0, q1 = qubits
-
-    my_session = Session(device_setup=device_setup)
-    my_session.connect(do_emulation=True)
-
-    param = LinearSweepParameter(start=-300e6, stop=300e6, count=11)
-    Lorentzian()
-    QubitSpecAnalyzer()
-
+    LinearSweepParameter(start=-300e6, stop=300e6, count=11)
     exp_settings = {"integration_time": 10e-6, "num_averages": 2**5}
+
+    qubit_configs[0].analyzer = MockAnalyzer()
+    qubit_configs[1].analyzer = MockAnalyzer()
 
     scan_rabi = Scan(
         uid="rabi",
-        session=my_session,
-        qubit=q0,
-        params=[param],
-        update_key="readout_resonator_frequency",
-        exp_fac=RSpecCwFactory,
+        session=session,
+        qubit_configs=qubit_configs,
+        exp_fac=ResonatorCWSpec,
         exp_settings=exp_settings,
     )
 
     scan_q_spec = Scan(
         uid="qubit_spec",
-        session=my_session,
-        qubit=q1,
-        params=[param],
-        update_key="resonance_frequency_ge",
-        exp_fac=RSpecCwFactory,
+        session=session,
+        qubit_configs=qubit_configs.copy(),
+        exp_fac=ResonatorCWSpec,
         exp_settings=exp_settings,
     )
 
     scan_res = Scan(
         uid="resonator_spec",
-        session=my_session,
-        qubit=q1,
-        params=[param],
-        update_key="readout_resonator_frequency",
-        exp_fac=RSpecCwFactory,
+        qubit_configs=qubit_configs.copy(),
+        session=session,
+        exp_fac=ResonatorCWSpec,
         exp_settings=exp_settings,
     )
 
     scan_res_cw = Scan(
         uid="resonator_cw",
-        session=my_session,
-        qubit=q1,
-        params=[param],
-        update_key="readout_resonator_frequency",
-        exp_fac=RSpecCwFactory,
+        qubit_configs=qubit_configs.copy(),
+        session=session,
+        exp_fac=ResonatorCWSpec,
         exp_settings=exp_settings,
     )
 
     scan_resonator_power = Scan(
         uid="resonator_power",
-        session=my_session,
-        qubit=q1,
-        params=[param],
-        update_key="readout_resonator_frequency",
-        exp_fac=RSpecCwFactory,
+        qubit_configs=qubit_configs.copy(),
+        session=session,
+        exp_fac=ResonatorCWSpec,
         exp_settings=exp_settings,
     )
 
     scan_isolate = Scan(
         uid="isolate",
-        session=my_session,
-        qubit=q1,
-        params=[param],
-        exp_fac=RSpecCwFactory,
+        qubit_configs=qubit_configs.copy(),
+        session=session,
+        exp_fac=ResonatorCWSpec,
         exp_settings=exp_settings,
     )
+
     scans_list = [
         scan_res_cw,
         scan_res,
@@ -180,7 +157,12 @@ def test_tuneup_run(tuneup_single_qubit):
             assert scan.status == ScanStatus.PASSED
 
     tuneup.reset_status()
-    scans["resonator_spec"].analyzer = AlwaysFailedAnalyzer()
+
+    # Here, to simulate that a failed scan would interrupt the tuneup
+    # we set the analyzer of resonator_spec to AlwaysFailedAnalyzer
+
+    scans["resonator_spec"].qubit_configs[0].analyzer = AlwaysFailedAnalyzer()
+
     tuneup.run_up_to(scans["rabi"], plot=False)
     assert scans["rabi"].status == ScanStatus.PENDING
     assert scans["qubit_spec"].status == ScanStatus.PENDING

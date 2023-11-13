@@ -101,7 +101,7 @@ class Analyzer(ABC):
         return np.asarray(self._result[handle].x)
 
 
-class DefaultAnalyzer(Analyzer):
+class MockAnalyzer(Analyzer):
     def analyze(self, result: Results) -> float:
         return 1234
 
@@ -281,7 +281,9 @@ class RabiAnalyzer(Analyzer):
         return fig
 
 
-class RamseyAnalyzer(DefaultAnalyzer):
+class RamseyAnalyzer(Analyzer):
+    """Analyzer for Ramsey measurement. Not implemented yet."""
+
     def __init__(self, truth=None, tolerance=0) -> None:
         super().__init__(truth=truth, tolerance=tolerance)
 
