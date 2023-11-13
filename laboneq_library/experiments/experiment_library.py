@@ -430,7 +430,7 @@ class ExperimentTemplate():
             os.makedirs(self.savedir)
 
     def save_experiment(self):
-        if not hasattr(self, 'savedir'):
+        if self.savedir is None:
             self.create_timestamp_savedir()
 
         # # Save Results
@@ -464,7 +464,7 @@ class ExperimentTemplate():
         #     qb.save(qb_pars_file)
 
     def save_figure(self, fig, qubit):
-        if not hasattr(self, 'savedir'):
+        if self.savedir is None:
             self.create_timestamp_savedir()
         fig.savefig(self.savedir +
                     f'\\{self.timestamp}_{self.experiment_name}_{qubit.uid}.png',
@@ -594,7 +594,7 @@ class ResonatorSpectroscopy(ExperimentTemplate):
         experiment_metainfo = kwargs.get('experiment_metainfo', dict())
         self.nt_swp_par = experiment_metainfo.get('neartime_sweep_parameter',
                                                   'frequency')
-        self.pulsed = self.experiment_metainfo.get('pulsed', False)
+        self.pulsed = experiment_metainfo.get('pulsed', False)
         super().__init__(*args, **kwargs)
 
     def define_experiment(self):
