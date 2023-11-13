@@ -5,15 +5,18 @@ from . import quantum_operations as qt_ops
 from laboneq.analysis import fitting as fit_mods
 from laboneq_library import calibration_helpers as calib_hlp
 from laboneq.contrib.example_helpers.plotting import plot_helpers as plt_hlp
+
+import matplotlib.pyplot as plt
 import time
 import json
 import pickle
 import numpy as np
 import os
 from ruamel.yaml import YAML
-import matplotlib.pyplot as plt
-
 ryaml = YAML()
+
+import logging
+log = logging.getLogger("experiment_library")
 
 
 @experiment(signals=["measure", "acquire"], uid="Full range CW resonator sweep")
@@ -330,6 +333,11 @@ class ExperimentTemplate():
         if self.analysis_metainfo is None:
             self.analysis_metainfo = {}
         self.update_qubit_parameters = update_qubit_parameters
+        if self.update_qubit_parameters and \
+                self.analysis_metainfo.get('do_fitting', False):
+            log.warning("update_qubit_parameters is True but "
+                        "analysis_metainfo['do_fitting'] is False. Qubit "
+                        "parameters will not be updated.")
         self.update_setup = update_setup
         self.save = save
 
