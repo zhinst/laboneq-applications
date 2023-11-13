@@ -304,7 +304,8 @@ class ExperimentTemplate():
                  signals=None, sweep_parameters_dict=None, experiment_metainfo=None,
                  acquisition_metainfo=None, cal_states=None, datadir=None,
                  do_analysis=True, analysis_metainfo=None, save=True,
-                 update_qubit_parameters=False, update_setup=False, **kwargs):
+                 update_qubit_parameters=False, update_setup=False, run=False,
+                 **kwargs):
 
         self.qubits = qubits
         self.session = session
@@ -351,6 +352,10 @@ class ExperimentTemplate():
         self.experiment_signals, self.experiment_signal_uids_qubit_map = \
             self.create_experiment_signals(self.qubits, self.signals)
         self.create_experiment()
+
+        self.run = run
+        if self.run:
+            self.autorun()
 
     def create_experiment_label(self):
         if len(self.qubits) <= 5:
