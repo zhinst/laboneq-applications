@@ -6,6 +6,7 @@ from laboneq.analysis import fitting as fit_mods
 from laboneq_library import calibration_helpers as calib_hlp
 from laboneq.contrib.example_helpers.plotting import plot_helpers as plt_hlp
 
+from copy import deepcopy
 import matplotlib.pyplot as plt
 import time
 import json
@@ -311,7 +312,7 @@ class ExperimentTemplate():
         self.session = session
         self.measurement_setup = measurement_setup
 
-        self.sweep_parameters_dict = sweep_parameters_dict
+        self.sweep_parameters_dict = deepcopy(sweep_parameters_dict)
         if self.sweep_parameters_dict is None:
             self.sweep_parameters_dict = {}
         for key, sd in self.sweep_parameters_dict.items():
@@ -612,7 +613,25 @@ class ResonatorSpectroscopy(ExperimentTemplate):
         self.nt_swp_par = experiment_metainfo.get('neartime_sweep_parameter',
                                                   'frequency')
         self.pulsed = experiment_metainfo.get('pulsed', False)
+        run = kwargs.pop('run', False)  # instantiate base without running exp
+        kwargs['run'] = False
         super().__init__(*args, **kwargs)
+
+        for qubit in self.qubits:
+            freq_swp = self.sweep_parameters_dict[qubit.uid][0]
+            if all(freq_swp.values > 1e9):
+                # sweep values are passed as qubit resonance frequencies:
+                # subtract lo freq to sweep if freq
+                if_freq_swp = SweepParameter(
+                    f'if_freq_{qubit.uid}',
+                    values=freq_swp.values - qubit.parameters.readout_lo_frequency,
+                    axis_name=freq_swp.axis_name,
+                    driven_by=[freq_swp])
+                self.sweep_parameters_dict[qubit.uid][0] = if_freq_swp
+
+        self.run = run
+        if self.run:
+            self.autorun()
 
     def define_experiment(self):
         self.experiment.sections = []
@@ -686,20 +705,12 @@ class ResonatorSpectroscopy(ExperimentTemplate):
             local_oscillator = None
             ro_amplitude = None
             if len(qb_sweep) > 1:
-                if self.nt_swp_par == 'amplitude'and not self.pulsed:
+                if self.nt_swp_par == 'amplitude' and not self.pulsed:
                     ro_amplitude = qb_sweep[1]
                 elif self.nt_swp_par == 'frequency':
                     local_oscillator = Oscillator(frequency=qb_sweep[1])
 
             freq_swp = qb_sweep[0]
-            if all(freq_swp.values > 1e9):
-                # sweep values are passed as qubit resonance frequencies:
-                # subtract readout lo freq to sweep if
-                freq_swp = SweepParameter(
-                    f'if_freq_{qubit.uid}',
-                    values=qb_sweep[0].values -
-                           qubit.parameters.readout_lo_frequency)
-
             cal_measure = self.experiment.signals[
                 self.signal_name('measure', qubit)].calibration
             cal_measure.oscillator = Oscillator(
@@ -761,7 +772,25 @@ class QubitSpectroscopy(ExperimentTemplate):
         self.nt_swp_par = experiment_metainfo.get('neartime_sweep_parameter',
                                                   'frequency')
         self.pulsed = experiment_metainfo.get('pulsed', False)
+        run = kwargs.pop('run', False)  # instantiate base without running exp
+        kwargs['run'] = False
         super().__init__(*args, **kwargs)
+
+        for qubit in self.qubits:
+            freq_swp = self.sweep_parameters_dict[qubit.uid][0]
+            if all(freq_swp.values > 1e9):
+                # sweep values are passed as qubit resonance frequencies:
+                # subtract lo freq to sweep if freq
+                if_freq_swp = SweepParameter(
+                    f'if_freq_{qubit.uid}',
+                    values=freq_swp.values - qubit.parameters.drive_lo_frequency,
+                    axis_name=freq_swp.axis_name,
+                    driven_by=[freq_swp])
+                self.sweep_parameters_dict[qubit.uid][0] = if_freq_swp
+
+        self.run = run
+        if self.run:
+            self.autorun()
 
     def define_experiment(self):
         self.experiment.sections = []
@@ -826,14 +855,6 @@ class QubitSpectroscopy(ExperimentTemplate):
                     local_oscillator = Oscillator(frequency=qb_sweep[1])
 
             freq_swp = self.sweep_parameters_dict[qubit.uid][0]
-            if all(freq_swp.values > 1e9):
-                # sweep values are passed as qubit resonance frequencies:
-                # subtract lo freq to sweep if
-                freq_swp = SweepParameter(
-                    f'if_freq_{qubit.uid}',
-                    values=self.sweep_parameters_dict[qubit.uid][0].values -
-                           qubit.parameters.drive_lo_frequency)
-
             cal_drive = self.experiment.signals[
                 self.signal_name('drive', qubit)].calibration
             cal_drive.oscillator = Oscillator(
