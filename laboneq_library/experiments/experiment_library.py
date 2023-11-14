@@ -728,40 +728,43 @@ class ResonatorSpectroscopy(ExperimentTemplate):
             # extract data
             handle = f"{self.experiment_name}_{qubit.uid}"
             data_mag = abs(self.results.get_data(handle))
-            data_mag = np.array([data for data in data_mag]).flatten()
             res_axis = self.results.get_axis(handle)
-            if len(res_axis) > 1:
-                outer = self.results.get_axis(handle)[0]
-                inner = self.results.get_axis(handle)[1]
-                freqs = np.array([out + inner for out in outer]).flatten()
+            if self.nt_swp_par == 'frequency':
+                data_mag = np.array([data for data in data_mag]).flatten()
+                if len(res_axis) > 1:
+                    outer = self.results.get_axis(handle)[0]
+                    inner = self.results.get_axis(handle)[1]
+                    freqs = np.array([out + inner for out in outer]).flatten()
+                else:
+                    freqs = self.results.get_axis(handle)[0]
+                    freqs += qubit.parameters.drive_lo_frequency
+
+                f0, d0 = freqs[np.argmin(data_mag)], np.min(data_mag)
+                self.new_qubit_parameters[
+                    f'{qubit.uid}_readout_resonator_frequency'] = f0
+
+                # plot data
+                fig, ax = plt.subplots()
+                ax.plot(freqs / 1e9, data_mag)
+                if self.update_qubit_parameters:
+                    ax.plot(f0 / 1e9, d0, 'ro')
+                    textstr = f'Readout-resonator frequency: {f0 / 1e9:.4f} GHz'
+                    ax.text(0, -0.15, textstr, ha='left', va='top',
+                            transform=ax.transAxes)
+                ax.set_xlabel("Resonator Frequency (GHz)")
+                ax.set_ylabel("Signal Magnitude (a.u)")
+                ts = self.timestamp if self.timestamp is not None else ''
+                ax.set_title(f'{ts}_{handle}')
+                # save figures
+                if self.save:
+                    # Save the figure
+                    self.save_figure(fig, qubit)
+                plt.close(fig)
+
+                if self.update_qubit_parameters:
+                    qubit.parameters.readout_resonator_frequency = f0
             else:
-                freqs = self.results.get_axis(handle)[0]
-                freqs += qubit.parameters.drive_lo_frequency
-
-            f0, d0 = freqs[np.argmin(data_mag)], np.min(data_mag)
-            self.new_qubit_parameters[
-                f'{qubit.uid}_readout_resonator_frequency'] = f0
-
-            # plot data
-            fig, ax = plt.subplots()
-            ax.plot(freqs / 1e9, data_mag)
-            if self.update_qubit_parameters:
-                ax.plot(f0 / 1e9, d0, 'ro')
-                textstr = f'Readout-resonator frequency: {f0 / 1e9:.4f} GHz'
-                ax.text(0, -0.15, textstr, ha='left', va='top',
-                        transform=ax.transAxes)
-            ax.set_xlabel("Resonator Frequency (GHz)")
-            ax.set_ylabel("Signal magnitude (a.u)")
-            ts = self.timestamp if self.timestamp is not None else ''
-            ax.set_title(f'{ts}_{handle}')
-            # save figures
-            if self.save:
-                # Save the figure
-                self.save_figure(fig, qubit)
-            plt.close(fig)
-
-            if self.update_qubit_parameters:
-                qubit.parameters.readout_resonator_frequency = f0
+                plt_hlp.plot_results(self.results)
 
 
 class QubitSpectroscopy(ExperimentTemplate):
@@ -869,58 +872,61 @@ class QubitSpectroscopy(ExperimentTemplate):
             # extract data
             handle = f"{self.experiment_name}_{qubit.uid}"
             data_mag = abs(self.results.get_data(handle))
-            data_mag = np.array([data for data in data_mag]).flatten()
             res_axis = self.results.get_axis(handle)
-            if len(res_axis) > 1:
-                outer = self.results.get_axis(handle)[0]
-                inner = self.results.get_axis(handle)[1]
-                freqs = np.array([out + inner for out in outer]).flatten()
+            if self.nt_swp_par == 'frequency':
+                data_mag = np.array([data for data in data_mag]).flatten()
+                if len(res_axis) > 1:
+                    outer = self.results.get_axis(handle)[0]
+                    inner = self.results.get_axis(handle)[1]
+                    freqs = np.array([out + inner for out in outer]).flatten()
+                else:
+                    freqs = self.results.get_axis(handle)[0]
+                    freqs += qubit.parameters.drive_lo_frequency
+
+                # plot data
+                fig, ax = plt.subplots()
+                ax.plot(freqs / 1e9, data_mag)
+                ax.set_xlabel("Qubit Frequency (GHz)")
+                ax.set_ylabel("Signal Magnitude (a.u)")
+                ts = self.timestamp if self.timestamp is not None else ''
+                ax.set_title(f'{ts}_{handle}')
+
+                if self.analysis_metainfo.get('do_fitting', True):
+                    # fit data
+                    param_hints = self.analysis_metainfo.get(
+                        'param_hints',
+                        {'amplitude': {'value': 1e2},
+                         'position': {'value': freqs[np.argmax(data_mag)]},
+                         'width': {'value': 50e3},
+                         'offset': {'value': 0}
+                         })
+                    fit_res = calib_hlp.fit_data_lmfit(
+                        fit_mods.lorentzian, freqs, data_mag,
+                        param_hints=param_hints)
+                    self.fit_results[qubit.uid] = fit_res
+                    fqb = fit_res.best_values['position']
+                    self.new_qubit_parameters[
+                        f'{qubit.uid}_resonance_frequency_ge'] = fqb
+                    if self.update_qubit_parameters:
+                        qubit.parameters.resonance_frequency_ge = fqb
+
+                    # plot fit
+                    freqs_fine = np.linspace(freqs[0], freqs[1], 501)
+                    ax.plot(freqs_fine / 1e9, fit_res.model.func(
+                        freqs_fine, **fit_res.best_values), 'r-')
+                    textstr = f'Qubit frequency: {fqb / 1e9:.4f} GHz'
+                    ax.text(0, -0.15, textstr, ha='left', va='top',
+                            transform=ax.transAxes)
+
+                # save figures
+                if self.save:
+                    # Save the figure
+                    self.save_figure(fig, qubit)
+                    # Save fit results
+                    self.save_fit_results()
+                plt.close(fig)
             else:
-                freqs = self.results.get_axis(handle)[0]
-                freqs += qubit.parameters.drive_lo_frequency
-
-            # plot data
-            fig, ax = plt.subplots()
-            ax.plot(freqs / 1e9, data_mag)
-            ax.set_xlabel("Qubit Frequency (GHz)")
-            ax.set_ylabel("Signal magnitude (a.u)")
-            ts = self.timestamp if self.timestamp is not None else ''
-            ax.set_title(f'{ts}_{handle}')
-
-            if self.analysis_metainfo.get('do_fitting', True):
-                # fit data
-                param_hints = self.analysis_metainfo.get(
-                    'param_hints',
-                    {'amplitude': {'value': 1e2},
-                     'position': {'value': freqs[np.argmax(data_mag)]},
-                     'width': {'value': 50e3},
-                     'offset': {'value': 0}
-                     })
-                fit_res = calib_hlp.fit_data_lmfit(
-                    fit_mods.lorentzian, freqs, data_mag,
-                    param_hints=param_hints)
-                self.fit_results[qubit.uid] = fit_res
-                fqb = fit_res.best_values['position']
-                self.new_qubit_parameters[
-                    f'{qubit.uid}_resonance_frequency_ge'] = fqb
-                if self.update_qubit_parameters:
-                    qubit.parameters.resonance_frequency_ge = fqb
-
-                # plot fit
-                freqs_fine = np.linspace(freqs[0], freqs[1], 501)
-                ax.plot(freqs_fine / 1e9, fit_res.model.func(
-                    freqs_fine, **fit_res.best_values), 'r-')
-                textstr = f'Qubit frequency: {fqb / 1e9:.4f} GHz'
-                ax.text(0, -0.15, textstr, ha='left', va='top',
-                        transform=ax.transAxes)
-
-            # save figures
-            if self.save:
-                # Save the figure
-                self.save_figure(fig, qubit)
-                # Save fit results
-                self.save_fit_results()
-            plt.close(fig)
+                plt_hlp.plot_results(self.results)
 
 
 
