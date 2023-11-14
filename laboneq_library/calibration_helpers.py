@@ -205,7 +205,7 @@ def reload_qubit_parameters(folder, measurement_setup):
 
 def save_qubit_parameters(savedir, qubits, timestamp=''):
     qubit_parameters = {qb.uid: qb.parameters.__dict__ for qb in qubits}
-    # Save all qubit parameters in one yaml file
+    # Save all qubit parameters in one json file
     qb_pars_file = os.path.abspath(os.path.join(
         savedir, f'{timestamp}_qubit_parameters.json'))
     with open(qb_pars_file, "w") as file:
