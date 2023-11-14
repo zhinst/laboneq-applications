@@ -5,8 +5,8 @@ from laboneq.simple import Results
 from laboneq_library.automatic_tuneup.tuneup.analyzer import (
     AnalyzeData,
     AnalyzeDatum,
-    DefaultAnalyzer,
     Lorentzian,
+    MockAnalyzer,
     RabiAnalyzer,
 )
 
@@ -20,14 +20,14 @@ def test_preprocess_result():
     res2 = AcquiredResult(data=np.array([3, 4]), axis_name=["param1"], axis=[[0, 1]])
     results = Results(acquired_results=AcquiredResults(h1=res1, h2=res2))
 
-    analyzer_one_handle = DefaultAnalyzer()
+    analyzer_one_handle = MockAnalyzer()
     res = analyzer_one_handle._preprocess_result(results)
     assert isinstance(res, AnalyzeData)
     assert len(res) == 1
     assert res["h1"].x == res1.axis
     assert np.array_equal(res["h1"].y, res1.data)
 
-    analyzer_two_handles = DefaultAnalyzer(handles=["h1", "h2"])
+    analyzer_two_handles = MockAnalyzer(handles=["h1", "h2"])
     res = analyzer_two_handles._preprocess_result(results)
     assert isinstance(res, AnalyzeData)
     assert len(res) == 2
@@ -57,7 +57,7 @@ def test_analyzer_default():
     res2 = AcquiredResult(data=np.array([3, 4]), axis_name=["param1"], axis=[[0, 1]])
     results = Results(acquired_results=AcquiredResults(h1=res1, h2=res2))
 
-    analyzer = DefaultAnalyzer(handles=["h1", "h2"])
+    analyzer = MockAnalyzer(handles=["h1", "h2"])
     assert analyzer._result == AnalyzeData()
     assert analyzer.analyze(results) == 1234
     assert analyzer._result == AnalyzeData(
