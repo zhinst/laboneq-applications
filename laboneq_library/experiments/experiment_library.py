@@ -1251,3 +1251,83 @@ class Echo(SingleQubitGateTuneup):
                 self.signal_name('drive', qubit)].calibration
             cal_drive.oscillator = Oscillator(
                 frequency=freq, modulation_type=ModulationType.HARDWARE)
+
+
+class RamseyDC(SingleQubitGateTuneup):
+    fallback_experiment_name = "RamseyDC"
+
+    def define_experiment(self):
+        qubit = self.qubits[0]  # TODO: parallelize
+        nt_sweep_par = qb_sweep_pars[1]
+        nt_sweep = Sweep(
+            uid=f"neartime_{self.nt_swp_par}_sweep_{qubit.uid}",
+            parameters=[nt_sweep_par],
+        )
+        self.experiment.add(nt_sweep)
+        if self.nt_swp_par is not "voltage":
+            raise ValueError(
+                "Please provide the neartime callback function for the voltage sweep in experiment_metainfo['neartime_sweep_prameter']."
+            )
+        ntsf = self.experiment_metainfo.get("neartime_callback_function", None)
+        # all near-time callback functions have the format
+        # func(session, sweep_param_value, qubit)
+        nt_sweep.call(ntsf, voltage=nt_sweep_par, qubit=qubit)
+        self.add_acquire_rt_loop(n)
+        # create sweep for qubit
+        sweep = Sweep(
+            uid=f"{self.experiment_name}_sweep",
+            parameters=[self.sweep_parameters_dict[qubit.uid][0]],
+        )
+        self.acquire_loop.add(sweep)
+        i = 0
+        # create pulses section
+        excitation_section = Section(
+            uid=f"{qubit.uid}_excitation", alignment=SectionAlignment.RIGHT
+        )
+        # preparation pulses: ge if calibrating ef
+        self.add_preparation_pulses_to_section(excitation_section, qubit)
+        # Ramsey pulses
+        ramsey_drive_pulse = qt_ops.quantum_gate(
+            qubit, f"X90_{self.transition_to_calib}"
+        )
+        excitation_section.play(
+            signal=self.signal_name("drive", qubit), pulse=ramsey_drive_pulse
+        )
+        excitation_section.delay(
+            signal=self.signal_name("drive", qubit),
+            time=self.sweep_parameters_dict[qubit.uid][0],
+        )
+        excitation_section.play(
+            signal=self.signal_name("drive", qubit), pulse=ramsey_drive_pulse
+        )
+
+        # create readout + acquire sections
+        measure_sections = self.create_measure_acquire_sections(
+            uid=f"{qubit.uid}_readout",
+            qubit=qubit,
+            play_after=f"{qubit.uid}_excitation",
+        )
+
+        # add sweep and sections to acquire loop rt
+        sweep.add(excitation_section)
+        sweep.add(measure_sections)
+        self.add_cal_states_sections(qubit)
+
+    def configure_experiment(self):
+        super().configure_experiment()
+        detuning = self.experiment_metainfo.get("detuning")
+        if detuning is None:
+            raise ValueError("Please provide detuning in experiment_metainfo.")
+        for i, qubit in enumerate(self.qubits):
+            res_freq = (
+                qubit.parameters.resonance_frequency_ef
+                if self.transition_to_calib == "ef"
+                else qubit.parameters.resonance_frequency_ge
+            )
+            freq = res_freq + detuning[qubit.uid] - qubit.parameters.drive_lo_frequency
+            cal_drive = self.experiment.signals[
+                self.signal_name("drive", qubit)
+            ].calibration
+            cal_drive.oscillator = Oscillator(
+                frequency=freq, modulation_type=ModulationType.HARDWARE
+            )
