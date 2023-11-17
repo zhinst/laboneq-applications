@@ -79,8 +79,9 @@ def update_qubit_parameters_and_calibration(
 def update_setup_calibration_from_qubits(qubits, measurement_setup):
     msmt_setup_cal = measurement_setup.get_calibration()
     for qubit in qubits:
+        cal = qubit.calibration()
         for sig_name, lsig_path in qubit.signals.items():
-            msmt_setup_cal[lsig_path] = qubit.calibration()[lsig_path]
+            msmt_setup_cal[lsig_path] = cal[lsig_path]
     measurement_setup.set_calibration(msmt_setup_cal)
 
 
