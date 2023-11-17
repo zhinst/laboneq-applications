@@ -6,9 +6,11 @@ import numpy as np
 from copy import deepcopy
 import matplotlib.pyplot as plt
 from ruamel.yaml import YAML
+
 ryaml = YAML()
 
 import logging
+
 log = logging.getLogger("experiment_library")
 
 from . import quantum_operations as qt_ops
@@ -19,17 +21,16 @@ from laboneq.dsl.experiment.builtins import *  # noqa: F403
 from laboneq.simple import *  # noqa: F403
 
 
-
 @experiment(signals=["measure", "acquire"], uid="Full range CW resonator sweep")
 def resonator_spectroscopy_full_range(
-    qubit,
-    lo_frequencies,
-    inner_start,
-    inner_stop,
-    inner_count,
-    cw=True,
-    integration_time=10e-3,
-    num_averages=1,
+        qubit,
+        lo_frequencies,
+        inner_start,
+        inner_stop,
+        inner_count,
+        cw=True,
+        integration_time=10e-3,
+        num_averages=1,
 ):
     map_signal("measure", qubit.signals["measure"])
     map_signal("acquire", qubit.signals["acquire"])
@@ -53,15 +54,15 @@ def resonator_spectroscopy_full_range(
         local_oscillator.frequency = lo_freq
 
         with acquire_loop_rt(
-            uid="shots",
-            count=num_averages,
-            acquisition_type=AcquisitionType.SPECTROSCOPY,
+                uid="shots",
+                count=num_averages,
+                acquisition_type=AcquisitionType.SPECTROSCOPY,
         ):
             with sweep_range(
-                start=inner_start,
-                stop=inner_stop,
-                count=inner_count,
-                axis_name="inner_sweep",
+                    start=inner_start,
+                    stop=inner_stop,
+                    count=inner_count,
+                    axis_name="inner_sweep",
             ) as inner_freq:
                 inner_oscillator.frequency = inner_freq
 
@@ -85,17 +86,17 @@ def resonator_spectroscopy_full_range(
                             length=kernel_length,
                         )
                 with section(
-                    uid="delay", length=1e-6, play_after="resonator_spectroscopy"
+                        uid="delay", length=1e-6, play_after="resonator_spectroscopy"
                 ):
                     pass
 
 
 @experiment(signals=["drive", "measure", "acquire"], uid="Amplitude Rabi Experiment")
 def amplitude_rabi_single(
-    qubit,
-    amplitude_sweep,
-    num_averages=2**10,
-    cal_trace=False,
+        qubit,
+        amplitude_sweep,
+        num_averages=2 ** 10,
+        cal_trace=False,
 ):
     map_signal("drive", qubit.signals["drive"])
     map_signal("measure", qubit.signals["measure"])
@@ -104,10 +105,10 @@ def amplitude_rabi_single(
     ## define Rabi experiment pulse sequence
     # outer loop - real-time, cyclic averaging
     with acquire_loop_rt(
-        uid="rabi_shots",
-        count=num_averages,
-        averaging_mode=AveragingMode.CYCLIC,
-        acquisition_type=AcquisitionType.INTEGRATION,
+            uid="rabi_shots",
+            count=num_averages,
+            averaging_mode=AveragingMode.CYCLIC,
+            acquisition_type=AcquisitionType.INTEGRATION,
     ):
         # inner loop - real time sweep of Rabi amplitudes
         with sweep(uid="rabi_sweep", parameter=amplitude_sweep):
@@ -163,13 +164,12 @@ def amplitude_rabi_single(
 
 
 def ramsey_parallel(
-    qubits,
-    delay_sweep,
-    num_averages=2**10,
-    detuning=0,
-    cal_trace=False,
+        qubits,
+        delay_sweep,
+        num_averages=2 ** 10,
+        detuning=0,
+        cal_trace=False,
 ):
-
     signal_list = []
     signal_types = ["drive", "measure", "acquire"]
 
@@ -207,20 +207,20 @@ def ramsey_parallel(
         ## define Ramsey experiment pulse sequence
         # outer loop - real-time, cyclic averaging
         with acquire_loop_rt(
-            uid="ramsey_shots",
-            count=num_averages,
-            averaging_mode=AveragingMode.CYCLIC,
-            acquisition_type=AcquisitionType.INTEGRATION,
+                uid="ramsey_shots",
+                count=num_averages,
+                averaging_mode=AveragingMode.CYCLIC,
+                acquisition_type=AcquisitionType.INTEGRATION,
         ):
             for qubit in qubits:
                 # inner loop - real time sweep of Ramsey time delays
                 with sweep(
-                    uid=f"ramsey_sweep_{qubit.uid}",
-                    parameter=delay_sweep,
-                    alignment=SectionAlignment.RIGHT,
+                        uid=f"ramsey_sweep_{qubit.uid}",
+                        parameter=delay_sweep,
+                        alignment=SectionAlignment.RIGHT,
                 ):
                     with section(
-                        uid=f"{qubit.uid}_excitation", alignment=SectionAlignment.RIGHT
+                            uid=f"{qubit.uid}_excitation", alignment=SectionAlignment.RIGHT
                     ):
                         ramsey_drive_pulse = qt_ops.drive_ge_pi2(qubit)
                         play(signal=f"drive_{qubit.uid}", pulse=ramsey_drive_pulse)
@@ -230,7 +230,7 @@ def ramsey_parallel(
                     # readout pulse and data acquisition
                     # measurement
                     with section(
-                        uid=f"readout_{qubit.uid}", play_after=f"{qubit.uid}_excitation"
+                            uid=f"readout_{qubit.uid}", play_after=f"{qubit.uid}_excitation"
                     ):
                         measure(
                             measure_signal=f"measure_{qubit.uid}",
@@ -245,8 +245,8 @@ def ramsey_parallel(
 
                 if cal_trace:
                     with section(
-                        uid=f"cal_trace_gnd_{qubit.uid}",
-                        play_after=f"ramsey_sweep_{qubit.uid}",
+                            uid=f"cal_trace_gnd_{qubit.uid}",
+                            play_after=f"ramsey_sweep_{qubit.uid}",
                     ):
                         measure(
                             measure_signal=f"measure_{qubit.uid}",
@@ -258,8 +258,8 @@ def ramsey_parallel(
                         )
 
                     with section(
-                        uid=f"cal_trace_exc_{qubit.uid}",
-                        play_after=f"cal_trace_gnd_{qubit.uid}",
+                            uid=f"cal_trace_exc_{qubit.uid}",
+                            play_after=f"cal_trace_gnd_{qubit.uid}",
                     ):
                         play(
                             signal=f"drive_{qubit.uid}",
@@ -267,8 +267,8 @@ def ramsey_parallel(
                         )
 
                     with section(
-                        uid=f"cal_trace_exc_meas_{qubit.uid}",
-                        play_after=f"cal_trace_exc_{qubit.uid}",
+                            uid=f"cal_trace_exc_meas_{qubit.uid}",
+                            play_after=f"cal_trace_exc_{qubit.uid}",
                     ):
                         measure(
                             measure_signal=f"measure_{qubit.uid}",
@@ -549,10 +549,10 @@ class ExperimentTemplate():
         ro_pulse = qt_ops.readout_pulse(qubit)
         if integration_kernel is None:
             integration_kernel = pulse_library.const(
-        uid=f"integration_kernel_{qubit.uid}",
-        length=qubit.parameters.readout_integration_length,
-        amplitude=1,
-    )
+                uid=f"integration_kernel_{qubit.uid}",
+                length=qubit.parameters.readout_integration_length,
+                amplitude=1,
+            )
         measure_acquire_section = Section(uid=uid)
         measure_acquire_section.play_after = play_after
         measure_acquire_section.measure(
@@ -631,7 +631,6 @@ class ExperimentTemplate():
 
 
 class ResonatorSpectroscopy(ExperimentTemplate):
-
     fallback_experiment_name = 'ResonatorSpectroscopy'
 
     def __init__(self, *args, **kwargs):
@@ -739,7 +738,7 @@ class ResonatorSpectroscopy(ExperimentTemplate):
             local_oscillator = None
             ro_amplitude = None
             if len(qb_sweep) > 1:
-                if self.nt_swp_par == 'amplitude': # and not self.pulsed:
+                if self.nt_swp_par == 'amplitude':  # and not self.pulsed:
                     ro_amplitude = qb_sweep[1]
                 elif self.nt_swp_par == "frequency":
                     local_oscillator = Oscillator(frequency=qb_sweep[1])
@@ -799,7 +798,7 @@ class ResonatorSpectroscopy(ExperimentTemplate):
     def update_qubit_parameters(self):
         for qubit in self.qubits:
             qubit.parameters.readout_resonator_frequency = self.new_qubit_parameters[
-                    f'{qubit.uid}_readout_resonator_frequency']
+                f'{qubit.uid}_readout_resonator_frequency']
 
 
 class QubitSpectroscopy(ExperimentTemplate):
@@ -973,7 +972,7 @@ class QubitSpectroscopy(ExperimentTemplate):
     def update_qubit_parameters(self):
         for qubit in self.qubits:
             qubit.parameters.resonance_frequency_ge = self.new_qubit_parameters[
-                        f'{qubit.uid}_resonance_frequency_ge']
+                f'{qubit.uid}_resonance_frequency_ge']
 
 
 ### Single-Qubit Gate Tune-up Experiment classes ###
@@ -1039,7 +1038,6 @@ class SingleQubitGateTuneup(ExperimentTemplate):
 
 
 class AmplitudeRabi(SingleQubitGateTuneup):
-
     fallback_experiment_name = "Rabi"
 
     def define_experiment(self):
@@ -1081,7 +1079,6 @@ class AmplitudeRabi(SingleQubitGateTuneup):
 
 
 class Ramsey(SingleQubitGateTuneup):
-
     fallback_experiment_name = "Ramsey"
 
     def define_experiment(self):
@@ -1204,7 +1201,6 @@ class QScale(SingleQubitGateTuneup):
 
 
 class T1(SingleQubitGateTuneup):
-
     fallback_experiment_name = "T1"
 
     def define_experiment(self):
@@ -1245,7 +1241,6 @@ class T1(SingleQubitGateTuneup):
 
 
 class Echo(SingleQubitGateTuneup):
-
     fallback_experiment_name = "Echo"
 
     def define_experiment(self):
