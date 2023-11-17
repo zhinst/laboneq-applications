@@ -649,6 +649,11 @@ class ResonatorSpectroscopy(ExperimentTemplate):
         kwargs["run"] = False
         super().__init__(*args, **kwargs)
 
+        # Add suffix to experiment name
+        if self.nt_swp_par != "frequency":
+            self.experiment_name += f"{self.nt_swp_par[0].upper()}{self.nt_swp_par[1:]}Sweep"
+            self.create_experiment_label()
+
         for qubit in self.qubits:
             freq_swp = self.sweep_parameters_dict[qubit.uid][0]
             if all(freq_swp.values > 1e9):
@@ -812,6 +817,11 @@ class QubitSpectroscopy(ExperimentTemplate):
         run = kwargs.pop('run', False)  # instantiate base without running exp
         kwargs['run'] = False
         super().__init__(*args, **kwargs)
+
+        # Add suffix to experiment name
+        if self.nt_swp_par != "frequency":
+            self.experiment_name += f"{self.nt_swp_par[0].upper()}{self.nt_swp_par[1:]}Sweep"
+            self.create_experiment_label()
 
         for qubit in self.qubits:
             freq_swp = self.sweep_parameters_dict[qubit.uid][0]
