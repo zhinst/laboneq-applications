@@ -991,9 +991,11 @@ class QubitSpectroscopy(ExperimentTemplate):
 class SingleQubitGateTuneup(ExperimentTemplate):
     def __init__(self, *args, transition_to_calib="ge", **kwargs):
         self.transition_to_calib = transition_to_calib
+        cal_states = kwargs.get("cal_states", None)
+        if cal_states is None:
+            cal_states = "gef" if "f" in self.transition_to_calib else "ge"
+        kwargs["cal_states"] = cal_states
         super().__init__(*args, **kwargs)
-        if self.cal_states is None:
-            self.cal_states = "gef" if "f" in self.transition_to_calib else "ge"
 
     def play_preparation_pulses(self, qubit):
         if self.transition_to_calib == "ge":
