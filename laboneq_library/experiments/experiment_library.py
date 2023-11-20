@@ -1327,17 +1327,23 @@ class Echo(SingleQubitGateTuneup):
 
 
 class RamseyDC(SingleQubitGateTuneup):
-    fallback_experiment_name = "RamseyDC"
+    fallback_experiment_name = "RamseyParking"
+
+    def __init__(self, *args, **kwargs):
+        experiment_metainfo = kwargs.get('experiment_metainfo', dict())
+        self.nt_swp_par = experiment_metainfo.get('neartime_sweep_parameter',
+                                                  'voltage')
+        super().__init__(*args, **kwargs)
 
     def define_experiment(self):
         qubit = self.qubits[0]  # TODO: parallelize
-        nt_sweep_par = qb_sweep_pars[1]
+        nt_sweep_par = self.sweep_parameters_dict[qubit.uid][1]
         nt_sweep = Sweep(
             uid=f"neartime_{self.nt_swp_par}_sweep_{qubit.uid}",
             parameters=[nt_sweep_par],
         )
         self.experiment.add(nt_sweep)
-        if self.nt_swp_par is not "voltage":
+        if self.nt_swp_par != "voltage":
             raise ValueError(
                 "Please provide the neartime callback function for the voltage sweep in experiment_metainfo['neartime_sweep_prameter']."
             )
