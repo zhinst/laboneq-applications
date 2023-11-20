@@ -16,6 +16,8 @@ log = logging.getLogger("experiment_library")
 from . import quantum_operations as qt_ops
 from laboneq.analysis import fitting as fit_mods
 from laboneq_library import calibration_helpers as calib_hlp
+from laboneq_library.analysis import helper_functions as ana_hlp
+from laboneq_library.analysis import cal_trace_rotation as cal_tr_rot
 from laboneq.contrib.example_helpers.plotting import plot_helpers as plt_hlp
 from laboneq.dsl.experiment.builtins import *  # noqa: F403
 from laboneq.simple import *  # noqa: F403
@@ -508,7 +510,7 @@ class ExperimentTemplate():
             fit_results_to_save = {}
             for qbuid, fit_res in self.fit_results.items():
                 fit_results_to_save[qbuid] = \
-                    calib_hlp.flatten_lmfit_modelresult(fit_res)
+                    ana_hlp.flatten_lmfit_modelresult(fit_res)
             with open(fit_res_file, "w") as file:
                 json.dump(fit_results_to_save, file, indent=2)
             # Save fit results into a pickle file
@@ -938,7 +940,7 @@ class QubitSpectroscopy(ExperimentTemplate):
 
                 # plot data
                 fig, ax = plt.subplots()
-                ax.plot(freqs / 1e9, data_mag, 'o-')
+                ax.plot(freqs / 1e9, data_mag, 'o')
                 ax.set_xlabel("Qubit Frequency (GHz)")
                 ax.set_ylabel("Signal Magnitude (a.u)")
                 ts = self.timestamp if self.timestamp is not None else ''
@@ -953,7 +955,7 @@ class QubitSpectroscopy(ExperimentTemplate):
                          'width': {'value': 50e3},
                          'offset': {'value': 0}
                          })
-                    fit_res = calib_hlp.fit_data_lmfit(
+                    fit_res = ana_hlp.fit_data_lmfit(
                         fit_mods.lorentzian, freqs, data_mag,
                         param_hints=param_hints)
                     self.fit_results[qubit.uid] = fit_res
@@ -1088,6 +1090,66 @@ class AmplitudeRabi(SingleQubitGateTuneup):
             sweep.add(excitation_section)
             sweep.add(measure_sections)
             self.add_cal_states_sections(qubit)
+
+    def analyse_experiment(self):
+        self.new_qubit_parameters = {}
+        self.fit_results = {}
+        for qubit in self.qubits:
+            # extract data
+            handle = f"{self.experiment_name}_{qubit.uid}"
+            amps = self.results.get_axis(handle)
+            data_mag = abs(self.results.get_data(handle))
+            # rotate data
+            data_rot = cal_tr_rot.principal_component_analysis(data_mag)
+
+            # plot data
+            fig, ax = plt.subplots()
+            ax.plot(amps, data_rot, 'o')
+            ax.set_xlabel("Amplitude Scaling")
+            ax.set_ylabel("Principal Component (a.u)")
+            ts = self.timestamp if self.timestamp is not None else ''
+            ax.set_title(f'{ts}_{handle}')
+
+            if self.analysis_metainfo.get('do_fitting', True):
+                # fit data
+                param_hints = self.analysis_metainfo.get(
+                    'param_hints', {
+                        'frequency': {
+                            'value': 2*np.pi*ana_hlp.find_oscillation_frequency(
+                                data_rot, amps),
+                            'min': 0},
+                        'phase': {'value': 0},
+                        'amplitude': {'value': abs(max(data_rot) - min(data_rot)) / 2,
+                                      'min': 0},
+                        'offset': {'value': np.mean(data_rot)}
+                    })
+                fit_res = ana_hlp.fit_data_lmfit(
+                    fit_mods.oscillatory, amps, data_rot,
+                    param_hints=param_hints)
+                self.fit_results[qubit.uid] = fit_res
+
+                freq_fit = fit_res.best_values['frequency']
+                phase_fit = fit_res.best_values['phase']
+                n = np.arange(-10, 10)
+                pi_amps = (n * np.pi - phase_fit) / freq_fit
+                pi2_amps = (n * np.pi + np.pi / 2 - phase_fit) / freq_fit
+                mask = np.logical_and(pi_amps >= amps[0] - 1e-2,
+                                      pi_amps <= amps[-1] + 1e-2)
+                pi_amps = pi_amps[mask]
+                pi2_amps = pi2_amps[mask]
+
+                pi2_amp = pi2_amps[0]
+                pi_amp = pi_amps[pi_amps > pi2_amp][0]
+
+                # plot fit
+                amps_fine = np.linspace(amps[0], amps[-1], 501)
+                ax.plot(amps_fine, fit_res.model.func(
+                    amps_fine, **fit_res.best_values), 'r-')
+                plt.plot(pi_amp, fit_res.model.func(pi_amp, **fit_res.best_values), 'ok')
+                plt.plot(pi2_amp, fit_res.model.func(pi2_amp, **fit_res.best_values), 'ok')
+                textstr = f'$\\pi$-pulse amplitude: {pi_amp / 1e9:.4f} GHz'
+                ax.text(0, -0.15, textstr, ha='left', va='top',
+                        transform=ax.transAxes)
 
 
 class Ramsey(SingleQubitGateTuneup):
