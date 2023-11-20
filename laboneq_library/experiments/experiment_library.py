@@ -16,7 +16,7 @@ log = logging.getLogger("experiment_library")
 from . import quantum_operations as qt_ops
 from laboneq.analysis import fitting as fit_mods
 from laboneq_library import calibration_helpers as calib_hlp
-from laboneq_library.analysis import helper_functions as ana_hlp
+from laboneq_library.analysis import analysis_helpers as ana_hlp
 from laboneq_library.analysis import cal_trace_rotation as cal_tr_rot
 from laboneq.contrib.example_helpers.plotting import plot_helpers as plt_hlp
 from laboneq.dsl.experiment.builtins import *  # noqa: F403
