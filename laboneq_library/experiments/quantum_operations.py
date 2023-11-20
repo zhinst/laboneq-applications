@@ -30,7 +30,8 @@ def quantum_gates(qubit):
 
 
 def quantum_gate(
-    qubit, gate_name, pulse_type=pulse_library.drag, additional_pulse_parameters=None
+    qubit, gate_name, pulse_type=pulse_library.drag, uid=None,
+    additional_pulse_parameters=None
 ):
     pulse_pars = (
         qubit.parameters.drive_parameters_ef
@@ -48,7 +49,9 @@ def quantum_gate(
     pulse_kwargs.update(gates[gate_name])
     if additional_pulse_parameters is not None:
         pulse_kwargs.update(additional_pulse_parameters)
-    return drive_pulse(pulse_type, uid=f"{gate_name} {qubit.uid}", **pulse_kwargs)
+    if uid is None:
+        uid = f"{gate_name} {qubit.uid}"
+    return drive_pulse(pulse_type, uid=uid, **pulse_kwargs)
 
 
 def drive_ge_pi(qubit, amplitude=None):

@@ -118,9 +118,9 @@ def rotate_data_to_cal_trace_results(raw_data=None, raw_data_cal_pt_0=None,
         check_for_results_handle()
         raw_data_cal_pt_0 = results.get_data(handle_cal_pt_0)
 
-    if handle_cal_pt_1 is None:
+    if raw_data_cal_pt_1 is None:
         check_for_results_handle()
-        handle_cal_pt_1 = results.get_data(handle_cal_pt_1)
+        raw_data_cal_pt_1 = results.get_data(handle_cal_pt_1)
 
     data_iq = np.array([np.real(raw_data), np.imag(raw_data)])
     data_cal0 = np.array([np.mean(np.real(raw_data_cal_pt_0)),
@@ -129,7 +129,7 @@ def rotate_data_to_cal_trace_results(raw_data=None, raw_data_cal_pt_0=None,
                           np.mean(np.imag(raw_data_cal_pt_1))])
 
     # Translate the data
-    trans_data = data_iq - data_cal0
+    trans_data = data_iq - np.repeat(data_cal0[:, np.newaxis], data_iq.shape[1], axis=1)
 
     # Rotate the data
     diff_data_cal = data_cal1 - data_cal0
@@ -140,4 +140,4 @@ def rotate_data_to_cal_trace_results(raw_data=None, raw_data_cal_pt_0=None,
     one_zero_dist = np.sqrt(diff_data_cal[0] ** 2 + diff_data_cal[1] ** 2)
     normalised_data = rotated_data / one_zero_dist
 
-    return normalised_data
+    return normalised_data[0]
