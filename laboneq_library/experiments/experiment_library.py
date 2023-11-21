@@ -474,24 +474,11 @@ class ExperimentTemplate():
         with open(filename, "wb") as f:
             pickle.dump(self.results.acquired_results, f)
 
-        # qubit_parameters = {qb.uid: qb.parameters.__dict__ for qb in self.qubits}
-        # # Save all qubit parameters in one yaml file
-        # qb_pars_file = os.path.abspath(os.path.join(self.savedir,
-        #                                             'qubit_parameters.yaml'))
-        # with open(qb_pars_file, "w") as file:
-        #     ryaml.dump(qubit_parameters, file)
-
-        # # Save all qubit parameters in one json file
-        # qb_pars_file = os.path.abspath(os.path.join(self.savedir,
-        #                                             'qubit_parameters.json'))
-        # with open(qb_pars_file, 'w') as fpo:
-        #     json.dump(qubit_parameters, fpo, indent=3)
-        #
-        # # Save individual qubit parameters using QuantumElement.save()
-        # for qb in self.qubits:
-        #     qb_pars_file = os.path.abspath(os.path.join(
-        #         self.savedir, f'{qb.uid}_parameters.json'))
-        #     qb.save(qb_pars_file)
+        # Save the measurement setup
+        filename = os.path.abspath(os.path.join(
+            self.savedir, f"{self.timestamp}_measurement_setup.json")
+        )
+        self.measurement_setup.save(filename)
 
     def save_figure(self, fig, qubit):
         if self.savedir is None:
@@ -524,7 +511,7 @@ class ExperimentTemplate():
         try:
             if self.compiled_exp is None:
                 self.compile_experiment()
-            self.results = self.run_experiment()
+            self.run_experiment()
             if self.save:
                 self.save_experiment()
             if self.do_analysis:
@@ -532,7 +519,7 @@ class ExperimentTemplate():
             if self.update:
                 self.update_entire_setup()
             return self.results
-        except Exception as e:
+        except Exception:
             log.error("Unhandled error during experiment!")
             log.error(traceback.format_exc())
 
