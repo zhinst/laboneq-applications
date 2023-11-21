@@ -401,12 +401,12 @@ class ExperimentTemplate():
         # qubit calibration of a signal line.
         # To be overridden by children for overwriting settings.
 
-        cal = Calibration()
+        expcal = Calibration()
         for qubit in self.qubits:
+            qbcal = qubit.calibration()
             for sig in self.signals:  # 'drive', 'flux', 'measure', 'acquire'
-                cal[self.signal_name(sig, qubit)] = \
-                    qubit.calibration()[qubit.signals[sig]]
-        self.experiment.set_calibration(cal)
+                expcal[self.signal_name(sig, qubit)] = qbcal[qubit.signals[sig]]
+        self.experiment.set_calibration(expcal)
 
     def compile_experiment(self):
         if len(self.experiment.sections) == 0:
