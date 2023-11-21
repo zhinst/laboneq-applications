@@ -92,3 +92,20 @@ def extract_and_rotate_data_1d(results, handle, cal_states='ge'):
 
     return data_dict
 
+
+def is_data_convex(x, y):
+    """
+    Check if a data set is convex by comparing the data points y to the line
+    between the two end points of the data set (x[0], y[0]), (x[-1], y[-1]).
+
+    Args:
+        x: x values of the data set
+        y: y values of the data set
+
+    Returns:
+        True if the data set is convex, else False
+    """
+    secant_gradient = ((y[-1] - y[0]) / (x[-1] - x[0]))
+    b = y[0] - secant_gradient * x[0]
+    l = secant_gradient * x + b
+    return np.all(y[1:-1] >= l[1:-1])

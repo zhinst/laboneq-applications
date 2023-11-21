@@ -11,6 +11,7 @@ ryaml = YAML()
 
 import traceback
 import logging
+
 logging.basicConfig(level=logging.WARNING)
 log = logging.getLogger("experiment_library")
 
@@ -756,6 +757,7 @@ class ResonatorSpectroscopy(ExperimentTemplate):
             cal_acquire.local_oscillator = local_oscillator
 
     def analyse_experiment(self):
+        ts = self.timestamp if self.timestamp is not None else ''
         self.new_qubit_parameters = {}
         for qubit in self.qubits:
             # extract data
@@ -783,9 +785,8 @@ class ResonatorSpectroscopy(ExperimentTemplate):
                 textstr = f'Readout-resonator frequency: {f0 / 1e9:.4f} GHz'
                 ax.text(0, -0.15, textstr, ha='left', va='top',
                         transform=ax.transAxes)
-                ax.set_xlabel("Resonator Frequency (GHz)")
-                ax.set_ylabel("Signal Magnitude (a.u)")
-                ts = self.timestamp if self.timestamp is not None else ''
+                ax.set_xlabel(self.results.get_axis_name(handle)[0])
+                ax.set_ylabel("Signal Magnitude (a.u.)")
                 ax.set_title(f'{ts}_{handle}')
                 # save figures
                 if self.save:
@@ -793,7 +794,77 @@ class ResonatorSpectroscopy(ExperimentTemplate):
                     self.save_figure(fig, qubit)
                 plt.close(fig)
             else:
-                plt_hlp.plot_results(self.results, savedir=self.savedir)
+                # 2D plot of results
+                nt_sweep_par_vals = self.results.get_axis(handle)[0]
+                nt_sweep_par_name = self.results.get_axis_name(handle)[0]
+                freqs = self.results.get_axis(handle)[1] + \
+                        qubit.parameters.drive_lo_frequency
+                freqs_axis_name = self.results.get_axis_name(handle)[1]
+                data_mag = abs(self.results.get_data(handle))
+
+                X, Y = np.meshgrid(freqs / 1e9, nt_sweep_par_vals)
+                fig, ax = plt.subplots(constrained_layout=True)
+
+                CS = ax.contourf(X, Y, data_mag, levels=100, cmap="magma")
+                ax.set_title(f"{handle}")
+                ax.set_xlabel(freqs_axis_name)
+                ax.set_ylabel(nt_sweep_par_name)
+                cbar = fig.colorbar(CS)
+                cbar.set_label("Signal Magnitude (a.u.)")
+                plt.show()
+
+                if self.nt_swp_par == 'voltage' and \
+                        self.analysis_metainfo.get('do_fitting', True):
+                    # 1D plot of the qubit frequency vs voltage
+                    find_peaks = self.analysis_metainfo.get('find_peaks', False)
+                    take_extremum = np.argmax if find_peaks else np.argmin
+                    freq_filter = self.analysis_metainfo.get('frequency_filter', None)
+                    if freq_filter is None:
+                        freqs_dips = freqs[take_extremum(data_mag, axis=1)]
+                    else:
+                        mask = freq_filter(freqs)
+                        freqs_dips = freqs[take_extremum(data_mag[:, mask], axis=1)]
+                    # fit frequency vs voltage
+                    fit_func = lambda x, V0, f0, fv: f0 - fv * (x - V0) ** 2
+                    take_extremum, scf = (np.argmax, 1) if (
+                        ana_hlp.is_data_convex(nt_sweep_par_vals, freqs_dips)) \
+                        else (np.argmin, -1)
+                    param_hints = {
+                        'V0': {'value': nt_sweep_par_vals[take_extremum(freqs_dips)]},
+                        'f0': {'value': freqs_dips[take_extremum(freqs_dips)]},
+                        'fv': {'value': scf * (max(freqs_dips) - min(freqs_dips))},
+                    }
+                    fit_res = ana_hlp.fit_data_lmfit(
+                        fit_func, nt_sweep_par_vals, freqs_dips,
+                        param_hints=param_hints)
+                    self.fit_results[qubit.uid] = fit_res
+                    self.new_qubit_parameters[qubit.uid] = {
+                        "resonance_frequency_ge": fit_res.best_values['f0']
+                    }
+                    # plot fit
+                    ntpval_fine = np.linspace(nt_sweep_par_vals[0],
+                                              nt_sweep_par_vals[-1], 501)
+                    ax.plot(fit_res.model.func(
+                        ntpval_fine, **fit_res.best_values) / 1e9,
+                            ntpval_fine, 'w-')
+                    f0, f0err = fit_res.best_values['f0'], fit_res.params['f0'].stderr
+                    V0, V0err = fit_res.best_values['V0'], fit_res.params['V0'].stderr
+                    ax.plot(f0 / 1e9, V0, 'sC2',
+                            markersize=plt.rcParams['lines.markersize'] + 1)
+                    textstr = f"Parking voltage: {V0:.4f} $\\pm$ {V0err:.4f} V"
+                    textstr += f"\nParking frequency: {f0 / 1e9:.4f} $\\pm$ {f0err / 1e9:.4f} GHz"
+                    ax.text(0, -0.15, textstr, ha='left', va='top',
+                            transform=ax.transAxes)
+
+            ax.set_title(f'{ts}_{handle}')
+            # save figures and results
+            if self.save:
+                # Save the figure
+                self.save_figure(fig, qubit)
+                if len(self.fit_results) > 0:
+                    # Save fit results
+                    self.save_fit_results()
+            plt.close(fig)
 
     def update_qubit_parameters(self):
         for qubit in self.qubits:
@@ -914,6 +985,7 @@ class QubitSpectroscopy(ExperimentTemplate):
             cal_drive.amplitude = drive_amplitude
 
     def analyse_experiment(self):
+        ts = self.timestamp if self.timestamp is not None else ''
         self.new_qubit_parameters = {}
         self.fit_results = {}
         for qubit in self.qubits:
@@ -934,10 +1006,8 @@ class QubitSpectroscopy(ExperimentTemplate):
                 # plot data
                 fig, ax = plt.subplots()
                 ax.plot(freqs / 1e9, data_mag, 'o')
-                ax.set_xlabel("Qubit Frequency (GHz)")
-                ax.set_ylabel("Signal Magnitude (a.u)")
-                ts = self.timestamp if self.timestamp is not None else ''
-                ax.set_title(f'{ts}_{handle}')
+                ax.set_xlabel(self.results.get_axis_name(handle)[0])
+                ax.set_ylabel("Signal Magnitude (a.u.)")
 
                 if self.analysis_metainfo.get('do_fitting', True):
                     # fit data
@@ -963,16 +1033,78 @@ class QubitSpectroscopy(ExperimentTemplate):
                     textstr = f'Qubit frequency: {fqb / 1e9:.4f} GHz'
                     ax.text(0, -0.15, textstr, ha='left', va='top',
                             transform=ax.transAxes)
+            else:
+                # 2D plot of results
+                nt_sweep_par_vals = self.results.get_axis(handle)[0]
+                nt_sweep_par_name = self.results.get_axis_name(handle)[0]
+                freqs = self.results.get_axis(handle)[1] + \
+                        qubit.parameters.drive_lo_frequency
+                freqs_axis_name = self.results.get_axis_name(handle)[1]
+                data_mag = abs(self.results.get_data(handle))
 
-                # save figures
-                if self.save:
-                    # Save the figure
-                    self.save_figure(fig, qubit)
+                X, Y = np.meshgrid(freqs / 1e9, nt_sweep_par_vals)
+                fig, ax = plt.subplots(constrained_layout=True)
+
+                CS = ax.contourf(X, Y, data_mag, levels=100, cmap="magma")
+                ax.set_title(f"{handle}")
+                ax.set_xlabel(freqs_axis_name)
+                ax.set_ylabel(nt_sweep_par_name)
+                cbar = fig.colorbar(CS)
+                cbar.set_label("Signal Magnitude (a.u.)")
+                plt.show()
+
+                if self.nt_swp_par == 'voltage' and \
+                        self.analysis_metainfo.get('do_fitting', True):
+                    # 1D plot of the qubit frequency vs voltage
+                    find_peaks = self.analysis_metainfo.get('find_peaks', True)
+                    take_extremum = np.argmax if find_peaks else np.argmin
+                    freq_filter = self.analysis_metainfo.get('frequency_filter', None)
+                    if freq_filter is None:
+                        freqs_peaks = freqs[take_extremum(data_mag, axis=1)]
+                    else:
+                        mask = freq_filter(freqs)
+                        freqs_peaks = freqs[take_extremum(data_mag[:, mask], axis=1)]
+                    # fit frequency vs voltage
+                    fit_func = lambda x, V0, f0, fv: f0 - fv * (x - V0) ** 2
+                    take_extremum, scf = (np.argmax, 1) if (
+                        ana_hlp.is_data_convex(nt_sweep_par_vals, freqs_peaks)) \
+                        else (np.argmin, -1)
+                    param_hints = {
+                        'V0': {'value': nt_sweep_par_vals[take_extremum(freqs_peaks)]},
+                        'f0': {'value': freqs_peaks[take_extremum(freqs_peaks)]},
+                        'fv': {'value': scf * (max(freqs_peaks) - min(freqs_peaks))},
+                    }
+                    fit_res = ana_hlp.fit_data_lmfit(
+                        fit_func, nt_sweep_par_vals, freqs_peaks,
+                        param_hints=param_hints)
+                    self.fit_results[qubit.uid] = fit_res
+                    self.new_qubit_parameters[qubit.uid] = {
+                        "resonance_frequency_ge": fit_res.best_values['f0']
+                    }
+                    # plot fit
+                    ntpval_fine = np.linspace(nt_sweep_par_vals[0],
+                                              nt_sweep_par_vals[-1], 501)
+                    ax.plot(fit_res.model.func(
+                        ntpval_fine, **fit_res.best_values) / 1e9,
+                            ntpval_fine, 'w-')
+                    f0, f0err = fit_res.best_values['f0'], fit_res.params['f0'].stderr
+                    V0, V0err = fit_res.best_values['V0'], fit_res.params['V0'].stderr
+                    ax.plot(f0 / 1e9, V0, 'sC2',
+                            markersize=plt.rcParams['lines.markersize'] + 1)
+                    textstr = f"Parking voltage: {V0:.4f} $\\pm$ {V0err:.4f} V"
+                    textstr += f"\nParking frequency: {f0 / 1e9:.4f} $\\pm$ {f0err / 1e9:.4f} GHz"
+                    ax.text(0, -0.15, textstr, ha='left', va='top',
+                            transform=ax.transAxes)
+
+            ax.set_title(f'{ts}_{handle}')
+            # save figures and results
+            if self.save:
+                # Save the figure
+                self.save_figure(fig, qubit)
+                if len(self.fit_results) > 0:
                     # Save fit results
                     self.save_fit_results()
-                plt.close(fig)
-            else:
-                plt_hlp.plot_results(self.results, savedir=self.savedir)
+            plt.close(fig)
 
     def update_qubit_parameters(self):
         for qubit in self.qubits:
@@ -1092,6 +1224,7 @@ class AmplitudeRabi(SingleQubitGateTuneup):
     def analyse_experiment(self):
         self.new_qubit_parameters = {}
         self.fit_results = {}
+        ts = self.timestamp if self.timestamp is not None else ''
         for qubit in self.qubits:
             # extract data
             handle = f"{self.experiment_name}_{qubit.uid}"
@@ -1105,7 +1238,6 @@ class AmplitudeRabi(SingleQubitGateTuneup):
             ax.set_xlabel("Amplitude Scaling")
             ax.set_ylabel("Principal Component (a.u)" if num_cal_traces == 0 else
                           f"$|{self.cal_states[-1]}\\rangle$-State Population")
-            ts = self.timestamp if self.timestamp is not None else ''
             ax.set_title(f'{ts}_{handle}')
 
             if self.analysis_metainfo.get('do_fitting', True):
@@ -1238,6 +1370,7 @@ class Ramsey(SingleQubitGateTuneup):
                 frequency=freq, modulation_type=ModulationType.HARDWARE)
 
     def analyse_experiment(self):
+        ts = self.timestamp if self.timestamp is not None else ''
         self.new_qubit_parameters = {}
         self.fit_results = {}
         for qubit in self.qubits:
@@ -1254,7 +1387,6 @@ class Ramsey(SingleQubitGateTuneup):
             ax.set_xlabel("Pulse Delay ($\\mu$s)")
             ax.set_ylabel("Principal Component (a.u)" if num_cal_traces == 0 else
                           f"$|{self.cal_states[-1]}\\rangle$-State Population")
-            ts = self.timestamp if self.timestamp is not None else ''
             ax.set_title(f'{ts}_{handle}')
 
             if self.analysis_metainfo.get('do_fitting', True):
@@ -1415,6 +1547,7 @@ class T1(SingleQubitGateTuneup):
             self.add_cal_states_sections(qubit)
 
     def analyse_experiment(self):
+        ts = self.timestamp if self.timestamp is not None else ''
         self.new_qubit_parameters = {}
         self.fit_results = {}
         for qubit in self.qubits:
@@ -1431,7 +1564,6 @@ class T1(SingleQubitGateTuneup):
             ax.set_xlabel("Pulse Delay ($\\mu$s)")
             ax.set_ylabel("Principal Component (a.u)" if num_cal_traces == 0 else
                           f"$|{self.cal_states[-1]}\\rangle$-State Population")
-            ts = self.timestamp if self.timestamp is not None else ''
             ax.set_title(f'{ts}_{handle}')
 
             if self.analysis_metainfo.get('do_fitting', True):
@@ -1484,12 +1616,12 @@ class Echo(SingleQubitGateTuneup):
         for qubit in self.qubits:
             delays = self.sweep_parameters_dict[qubit.uid][0].values
             swp_pars_half_delays += [
-                SweepParameter(uid=f"echo_delays_{qubit.uid}", values= delays / 2)
+                SweepParameter(uid=f"echo_delays_{qubit.uid}", values=delays / 2)
             ]
             swp_pars_phases += [
                 SweepParameter(
                     uid=f"echo_phases_{qubit.uid}",
-                    values=((delays-delays[0]) * detuning[qubit.uid]*np.pi) % np.pi
+                    values=((delays - delays[0]) * detuning[qubit.uid] * np.pi) % np.pi
                 )
             ]
 
@@ -1557,6 +1689,7 @@ class Echo(SingleQubitGateTuneup):
     #             frequency=freq, modulation_type=ModulationType.HARDWARE)
 
     def analyse_experiment(self):
+        ts = self.timestamp if self.timestamp is not None else ''
         self.new_qubit_parameters = {}
         self.fit_results = {}
         for qubit in self.qubits:
@@ -1573,7 +1706,6 @@ class Echo(SingleQubitGateTuneup):
             ax.set_xlabel("Pulse Delay ($\\mu$s)")
             ax.set_ylabel("Principal Component (a.u)" if num_cal_traces == 0 else
                           f"$|{self.cal_states[-1]}\\rangle$-State Population")
-            ts = self.timestamp if self.timestamp is not None else ''
             ax.set_title(f'{ts}_{handle}')
 
             if self.analysis_metainfo.get('do_fitting', True):
