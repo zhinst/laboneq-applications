@@ -1487,15 +1487,27 @@ class Echo(SingleQubitGateTuneup):
 
     def define_experiment(self):
         self.add_acquire_rt_loop()
+        # from the delays sweep parameters, create sweep parameters for
+        # half the total delay time and for the phase of the second X90 pulse
+        detuning = self.experiment_metainfo.get('detuning')
+        if detuning is None:
+            raise ValueError("Please provide detuning in experiment_metainfo.")
+        swp_pars_half_delays = []
+        swp_pars_phases = []
+        for qubit in self.qubits:
+            delays = self.sweep_parameters_dict[qubit.uid][0].values
+            swp_pars_half_delays += [
+                SweepParameter(uid=f"echo_delays_{qubit.uid}", values= delays / 2)
+            ]
+            swp_pars_phases += [
+                SweepParameter(
+                    uid=f"echo_phases_{qubit.uid}",
+                    values=((delays-delays[0]) * detuning[qubit.uid]*np.pi) % np.pi
+                )
+            ]
+
         # create joint sweep for all qubits
-        sweep_list = [
-            SweepParameter(
-                uid=f"echo_delays_{qubit.uid}",
-                values=self.sweep_parameters_dict[qubit.uid][0].values / 2
-            )
-            for qubit in self.qubits
-        ]
-        sweep = Sweep(uid=f"{self.experiment_name}_sweep", parameters=sweep_list)
+        sweep = Sweep(uid=f"{self.experiment_name}_sweep", parameters=swp_pars_half_delays)
         self.acquire_loop.add(sweep)
         for i, qubit in enumerate(self.qubits):
             # create pulses section
@@ -1504,7 +1516,7 @@ class Echo(SingleQubitGateTuneup):
             )
             # preparation pulses: ge if calibrating ef
             self.add_preparation_pulses_to_section(excitation_section, qubit)
-            # Echo pulses
+            # Echo pulses and delays
             ramsey_drive_pulse = qt_ops.quantum_gate(
                 qubit, f"X90_{self.transition_to_calib}"
             )
@@ -1515,16 +1527,18 @@ class Echo(SingleQubitGateTuneup):
                 signal=self.signal_name("drive", qubit), pulse=ramsey_drive_pulse
             )
             excitation_section.delay(
-                signal=self.signal_name("drive", qubit), time=sweep_list[i]
+                signal=self.signal_name("drive", qubit), time=swp_pars_half_delays[i]
             )
             excitation_section.play(
                 signal=self.signal_name("drive", qubit), pulse=echo_drive_pulse
             )
             excitation_section.delay(
-                signal=self.signal_name("drive", qubit), time=sweep_list[i]
+                signal=self.signal_name("drive", qubit), time=swp_pars_half_delays[i]
             )
+
             excitation_section.play(
-                signal=self.signal_name("drive", qubit), pulse=ramsey_drive_pulse
+                signal=self.signal_name("drive", qubit), pulse=ramsey_drive_pulse,
+                phase=swp_pars_phases[i]
             )
             # create readout + acquire sections
             measure_sections = self.create_measure_acquire_sections(
@@ -1538,22 +1552,22 @@ class Echo(SingleQubitGateTuneup):
             sweep.add(measure_sections)
             self.add_cal_states_sections(qubit)
 
-    def configure_experiment(self):
-        super().configure_experiment()
-        detuning = self.experiment_metainfo.get('detuning')
-        if detuning is None:
-            raise ValueError("Please provide detuning in experiment_metainfo.")
-
-        for i, qubit in enumerate(self.qubits):
-            res_freq = qubit.parameters.resonance_frequency_ef if \
-                self.transition_to_calib == 'ef' else \
-                qubit.parameters.resonance_frequency_ge
-            freq = res_freq + detuning[qubit.uid] - \
-                   qubit.parameters.drive_lo_frequency
-            cal_drive = self.experiment.signals[
-                self.signal_name('drive', qubit)].calibration
-            cal_drive.oscillator = Oscillator(
-                frequency=freq, modulation_type=ModulationType.HARDWARE)
+    # def configure_experiment(self):
+    #     super().configure_experiment()
+    #     detuning = self.experiment_metainfo.get('detuning')
+    #     if detuning is None:
+    #         raise ValueError("Please provide detuning in experiment_metainfo.")
+    #
+    #     for i, qubit in enumerate(self.qubits):
+    #         res_freq = qubit.parameters.resonance_frequency_ef if \
+    #             self.transition_to_calib == 'ef' else \
+    #             qubit.parameters.resonance_frequency_ge
+    #         freq = res_freq + detuning[qubit.uid] - \
+    #                qubit.parameters.drive_lo_frequency
+    #         cal_drive = self.experiment.signals[
+    #             self.signal_name('drive', qubit)].calibration
+    #         cal_drive.oscillator = Oscillator(
+    #             frequency=freq, modulation_type=ModulationType.HARDWARE)
 
     def analyse_experiment(self):
         self.new_qubit_parameters = {}
