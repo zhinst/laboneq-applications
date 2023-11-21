@@ -1011,16 +1011,40 @@ class QubitSpectroscopy(ExperimentTemplate):
 
                 if self.analysis_metainfo.get('do_fitting', True):
                     # fit data
-                    param_hints = self.analysis_metainfo.get(
-                        'param_hints',
-                        {'amplitude': {'value': 1e2},
-                         'position': {'value': freqs[np.argmax(data_mag)]},
-                         'width': {'value': 50e3},
-                         'offset': {'value': 0}
-                         })
-                    fit_res = ana_hlp.fit_data_lmfit(
-                        fit_mods.lorentzian, freqs, data_mag,
-                        param_hints=param_hints)
+                    param_hints = self.analysis_metainfo.get('param_hints')
+                    if param_hints is None:
+                        # fit with guess values for a peak
+                        param_hints = {
+                            'amplitude': {'value': 1e2},
+                            'position': {'value': freqs[np.argmax(data_mag)]},
+                            'width': {'value': 50e3},
+                            'offset': {'value': 0}
+                         }
+                        fit_res_peak = ana_hlp.fit_data_lmfit(
+                            fit_mods.lorentzian, freqs, data_mag,
+                            param_hints=param_hints)
+                        # fit with guess values for a dip
+                        param_hints['amplitude']['value'] *= -1
+                        param_hints['position']['value'] = freqs[np.argmin(data_mag)]
+                        fit_res_dip = ana_hlp.fit_data_lmfit(
+                            fit_mods.lorentzian, freqs, data_mag,
+                            param_hints=param_hints)
+                        # determine whether there is a peak or a dip: compare
+                        # the distance between the value at the fitted peak/dip
+                        # to the mean of the data_mag array: the larger distance
+                        # is the true spectroscopy signal
+                        dpeak = abs(fit_res_peak.model.func(
+                            fit_res_peak.best_values['position'],
+                            **fit_res_peak.best_values) - np.mean(data_mag))
+                        ddip = abs(fit_res_dip.model.func(
+                            fit_res_dip.best_values['position'],
+                            **fit_res_dip.best_values) - np.mean(data_mag))
+                        fit_res = fit_res_peak if dpeak > ddip else fit_res_dip
+                    else:
+                        # do what the user asked
+                        fit_res = ana_hlp.fit_data_lmfit(
+                            fit_mods.lorentzian, freqs, data_mag,
+                            param_hints=param_hints)
                     self.fit_results[qubit.uid] = fit_res
                     fqb = fit_res.best_values['position']
                     self.new_qubit_parameters[
