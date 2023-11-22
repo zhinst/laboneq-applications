@@ -1,6 +1,9 @@
 import matplotlib.pyplot as plt
 import numpy as np
 from copy import deepcopy
+import logging
+logging.basicConfig(level=logging.WARNING)
+log = logging.getLogger("analysis_helpers")
 
 from laboneq_library.analysis import cal_trace_rotation as cal_tr_rot
 
@@ -20,7 +23,12 @@ def fit_data_lmfit(function, x, y, param_hints):
     import lmfit
     model = lmfit.Model(function)
     model.param_hints = param_hints
-    return model.fit(x=x, data=y, params=model.make_params())
+    fit_res = model.fit(x=x, data=y, params=model.make_params())
+    for par in fit_res.params:
+        if fit_res.params[par].stderr is None:
+            log.warning(f'Stderr for {par} is None. Setting it to 0.')
+            fit_res.params[par].stderr = 0
+    return fit_res
 
 
 def flatten_lmfit_modelresult(fit_result):
@@ -56,7 +64,7 @@ def extend_sweep_points_cal_traces(sweep_points, num_cal_traces=0):
     return np.concatenate([sweep_points, cal_traces_swpts])
 
 
-def extract_and_rotate_data_1d(results, handle, cal_states='ge'):
+def extract_and_rotate_data_1d(results, handle, cal_states='ge', do_pca=False):
     # extract data
     swpts = deepcopy(results.get_axis(handle)[0])
     if isinstance(swpts, list):
@@ -71,13 +79,16 @@ def extract_and_rotate_data_1d(results, handle, cal_states='ge'):
         raw_data_cal_pt_1 = results.get_data(f"{handle}_cal_trace_{cal_states[1]}")
         cal_traces = np.array([raw_data_cal_pt_0, raw_data_cal_pt_1])
         data_raw_w_cal_tr = np.concatenate([data_raw, cal_traces])
-        data_rot = cal_tr_rot.rotate_data_to_cal_trace_results(
-            data_raw_w_cal_tr, raw_data_cal_pt_0, raw_data_cal_pt_1)
+        if not do_pca > 0:
+            data_rot = cal_tr_rot.rotate_data_to_cal_trace_results(
+                data_raw_w_cal_tr, raw_data_cal_pt_0, raw_data_cal_pt_1)
+        else:
+            # rotate data using pca
+            data_rot = cal_tr_rot.principal_component_analysis(data_raw_w_cal_tr)
     else:
         # rotate data using pca
+        data_rot = cal_tr_rot.principal_component_analysis(data_raw)
         data_raw_w_cal_tr = data_raw
-        data_rot = cal_tr_rot.principal_component_analysis(data_raw_w_cal_tr)
-
     swpts_w_cal_tr = extend_sweep_points_cal_traces(swpts, num_cal_traces)
 
     data_dict = {
