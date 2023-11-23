@@ -120,3 +120,46 @@ def is_data_convex(x, y):
     b = y[0] - secant_gradient * x[0]
     l = secant_gradient * x + b
     return np.all(y[1:-1] >= l[1:-1])
+
+
+def get_pi_pi2_xvalues_on_cos(x, frequency, phase):
+    """
+    Calculate the x-values of a cosine function of the form
+    cos(x * frequency + phase) at which x * frequency + phase = n * pi
+    and x * frequency + phase = n * pi + pi/2.
+
+    Only the values that are inside the interval [min(x)-1e-2, max(x)+1e-2]
+    are returned. Here, the factor 1e-2 is a tolerance value.
+
+    Args:
+        x: array of x-values of the cosine function, corresponding for example
+            to:
+             - amplitudes in an amplitude-Rabi measurement
+             - voltages in a resonator-spectroscopy-vs-dc-voltage measurement
+             - phases in a dynamic-phase measurement
+        frequency: the frequency of the cosine oscillation in angular units
+        phase: the phase of the cosine oscillation in radians
+
+    Returns: the following array in the following order
+        - x-values for which cos(x * frequency + phase) = 1
+        - x-values for which cos(x * frequency + phase) = - 1
+        - x-values for which cos(x * frequency + phase) = 0 on the rising edge
+        - x-values for which cos(x * frequency + phase) = 0 on the falling edge
+
+    """
+    n = np.arange(-20, 20)
+    pi_xvals = (n * np.pi - phase) / frequency
+    pi2_xvals = (n * np.pi + np.pi / 2 - phase) / frequency
+    pi_xvals_top = pi_xvals[0::2]
+    pi_xvals_bottom = pi_xvals[1::2]
+    pi2_xvals_rising = pi2_xvals[0::2]
+    pi2_xvals_falling = pi2_xvals[1::2]
+
+    mask_func = lambda cos_xvals: np.logical_and(cos_xvals >= min(x) - 1e-2,
+                                                 cos_xvals <= max(x) + 1e-2)
+    pixv_top = pi_xvals_top[mask_func(pi_xvals_top)]
+    pixv_bottom = pi_xvals_bottom[mask_func(pi_xvals_bottom)]
+    pi2xv_rising = pi_xvals_top[mask_func(pi2_xvals_rising)]
+    pi2xv_falling = pi_xvals_top[mask_func(pi2_xvals_falling)]
+    
+    return pixv_top, pixv_bottom, pi2xv_rising, pi2xv_falling

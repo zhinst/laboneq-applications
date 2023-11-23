@@ -770,6 +770,7 @@ class ResonatorSpectroscopy(ExperimentTemplate):
         freq_filter = self.analysis_metainfo.get('frequency_filter_for_fit', {})
         find_peaks = self.analysis_metainfo.get('find_peaks', {})
         for qubit in self.qubits:
+            self.new_qubit_parameters[qubit.uid] = {}
             # get frequency filter of qubit
             ff_qb = freq_filter.get(qubit.uid, None)
             # decide whether to extract peaks or dips for qubit
@@ -793,8 +794,7 @@ class ResonatorSpectroscopy(ExperimentTemplate):
                 freqs_to_search = freqs if ff_qb is None else freqs[ff_qb(freqs)]
                 f0 = freqs_to_search[take_extremum(data_to_search)]
                 d0 = data_to_search[take_extremum(data_to_search)]
-                self.new_qubit_parameters[qubit.uid] = {
-                    "readout_resonator_frequency": f0}
+                self.new_qubit_parameters[qubit.uid]["readout_resonator_frequency"] = f0
 
                 # plot data
                 fig, ax = plt.subplots()
@@ -844,42 +844,76 @@ class ResonatorSpectroscopy(ExperimentTemplate):
                     # voltages vs frequencies
                     f0 = freqs_dips[take_extremum_fit(freqs_dips)]
                     V0 = nt_sweep_par_vals[take_extremum_fit(freqs_dips)]
-                    self.new_qubit_parameters[qubit.uid] = {
+                    self.new_qubit_parameters[qubit.uid].update({
                         "readout_resonator_frequency": f0,
                         "dc_voltage_parking": V0
-                    }
+                    })
 
                     if self.analysis_metainfo.get('do_fitting', True):
                         # fit frequency vs voltage and take the optimal parking
                         # parameters from fit
-                        # fit_func = lambda x, V0, f0, fv: f0 - fv * (x - V0) ** 2
-                        param_hints = {
-                            'V0': {'value': V0},
-                            'f0': {'value': f0},
-                            'fv': {'value': scf * (max(freqs_dips) - min(freqs_dips))},
-                        }
+                        data_to_fit = freqs_dips
+                        swpts_to_fit = nt_sweep_par_vals
+                        freqs_guess, phase_guess = ana_hlp.find_oscillation_frequency_and_phase(
+                            data_to_fit, swpts_to_fit)
+                        param_hints = self.analysis_metainfo.get(
+                            'param_hints', {
+                                'frequency': {'value': 2 * np.pi * freqs_guess,
+                                              'min': 0},
+                                'phase': {'value': phase_guess},
+                                'amplitude': {'value': abs(max(data_to_fit) -
+                                                           min(data_to_fit)) / 2,
+                                              'min': 0},
+                                'offset': {'value': np.mean(data_to_fit)}
+                            })
                         fit_res = ana_hlp.fit_data_lmfit(
-                            fit_mods.transmon_voltage_dependence, nt_sweep_par_vals,
-                            freqs_dips, param_hints=param_hints)
+                            fit_mods.oscillatory, swpts_to_fit, data_to_fit,
+                            param_hints=param_hints)
                         self.fit_results[qubit.uid] = fit_res
-                        self.new_qubit_parameters[qubit.uid] = {
-                            "readout_resonator_frequency": fit_res.best_values['f0'],
-                            "dc_voltage_parking": fit_res.best_values['V0']
-                        }
+
+                        # extract USS and LSS voltages and frequencies
+                        voltage_uss, voltage_lss, _, _ = ana_hlp.get_pi_pi2_xvalues_on_cos(
+                            swpts_to_fit, fit_res.best_values["frequency"], fit_res.best_values["phase"])
+                        freqs_uss = fit_res.model.func(voltage_uss, **fit_res.best_values)
+                        freqs_lss = fit_res.model.func(voltage_lss, **fit_res.best_values)
+
                         # plot fit
-                        ntpval_fine = np.linspace(nt_sweep_par_vals[0],
-                                                  nt_sweep_par_vals[-1], 501)
+                        swpts_fine = np.linspace(swpts_to_fit[0],
+                                                 swpts_to_fit[-1], 501)
                         ax.plot(fit_res.model.func(
-                            ntpval_fine, **fit_res.best_values) / 1e9,
-                                ntpval_fine, 'w-')
-                        f0, f0err = fit_res.best_values['f0'], fit_res.params['f0'].stderr
-                        V0, V0err = fit_res.best_values['V0'], fit_res.params['V0'].stderr
-                        ax.plot(f0 / 1e9, V0, 'sC2',
-                                markersize=plt.rcParams['lines.markersize'] + 1)
-                        textstr = f"Parking voltage: {V0:.4f} $\\pm$ {V0err:.4f} V"
-                        textstr += f"\nParking frequency: {f0 / 1e9:.4f} $\\pm$ {f0err / 1e9:.4f} GHz"
-                        ax.text(0, -0.15, textstr, ha='left', va='top',
-                                transform=ax.transAxes)
+                            swpts_fine, **fit_res.best_values) / 1e9,
+                                swpts_fine, 'w-')
+                        line_uss, = ax.plot(freqs_uss / 1e9, voltage_uss, 'bo')
+                        line_lss, = ax.plot(freqs_lss / 1e9, voltage_lss, 'go')
+
+                        # extract parking values, show them on plot and save
+                        # them in self.new_qubit_parameters
+                        self.new_qubit_parameters[qubit.uid].update({
+                            "readout_resonator_frequency": {},
+                            "dc_voltage_parking": {}
+                        })
+                        if len(voltage_uss) > 0:
+                            uss_idx = np.argsort(abs(voltage_uss))[0]
+                            v_uss, f_uss = voltage_uss[uss_idx], freqs_uss[uss_idx]
+                            textstr = f"Smallest USS voltage: {v_uss:.4f} V"
+                            textstr += f"\nParking frequency: {f_uss / 1e9:.4f} GHz"
+                            ax.text(1, -0.15, textstr, ha='right', va='top',
+                                    c=line_uss.get_c(), transform=ax.transAxes)
+                            self.new_qubit_parameters[qubit.uid][
+                                "readout_resonator_frequency"]['uss'] = v_uss
+                            self.new_qubit_parameters[qubit.uid][
+                                "dc_voltage_parking"]['uss'] = f_uss
+                        if len(voltage_lss) > 0:
+                            lss_idx = np.argsort(abs(voltage_lss))[0]
+                            v_lss, f_lss = voltage_lss[lss_idx], freqs_lss[lss_idx]
+                            textstr = f"Smallest LSS voltage: {v_lss:.4f} V"
+                            textstr += f"\nParking frequency: {f_lss / 1e9:.4f} GHz"
+                            ax.text(0, -0.15, textstr, ha='left', va='top',
+                                    c=line_lss.get_c(), transform=ax.transAxes)
+                            self.new_qubit_parameters[qubit.uid][
+                                "readout_resonator_frequency"]['lss'] = v_lss
+                            self.new_qubit_parameters[qubit.uid][
+                                "dc_voltage_parking"]['lss'] = f_lss
 
             ax.set_title(f'{ts}_{handle}')
             # save figures and results
@@ -896,6 +930,11 @@ class ResonatorSpectroscopy(ExperimentTemplate):
     def update_qubit_parameters(self):
         for qubit in self.qubits:
             new_qb_pars = self.new_qubit_parameters[qubit.uid]
+            if len(new_qb_pars) == 4:
+                # both uss and lss found
+                raise ValueError('Both upper and lower sweep spots were found. '
+                                 'Unclear which one to set. Please update '
+                                 'qubit parameters manually.')
             qubit.parameters.readout_resonator_frequency = new_qb_pars[
                 "readout_resonator_frequency"]
             if "dc_voltage_parking" in new_qb_pars:
@@ -1179,8 +1218,8 @@ class QubitSpectroscopy(ExperimentTemplate):
                             'fv': {'value': scf * (max(freqs_peaks) - min(freqs_peaks))},
                         }
                         fit_res = ana_hlp.fit_data_lmfit(
-                            fit_mods.transmon_voltage_dependence, nt_sweep_par_vals,
-                            freqs_peaks, param_hints=param_hints)
+                            fit_mods.transmon_voltage_dependence_quadratic,
+                            nt_sweep_par_vals, freqs_peaks, param_hints=param_hints)
                         self.fit_results[qubit.uid] = fit_res
                         self.new_qubit_parameters[qubit.uid] = {
                             "resonance_frequency_ge": fit_res.best_values['f0'],
