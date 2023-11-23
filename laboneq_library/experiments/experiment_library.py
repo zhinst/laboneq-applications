@@ -1347,7 +1347,8 @@ class AmplitudeRabi(SingleQubitGateTuneup):
 
             # plot data
             fig, ax = plt.subplots()
-            ax.plot(data_dict["sweep_points_w_cal_tr"], data_dict["data_rotated_w_cal_tr"], 'o')
+            ax.plot(data_dict["sweep_points_w_cal_tr"], data_dict["data_rotated_w_cal_tr"],
+                    'o', zorder=2)
             ax.set_xlabel("Amplitude Scaling")
             ax.set_ylabel("Principal Component (a.u)" if num_cal_traces == 0 else
                           f"$|{self.cal_states[-1]}\\rangle$-State Population")
@@ -1392,11 +1393,11 @@ class AmplitudeRabi(SingleQubitGateTuneup):
                 # plot fit
                 swpts_fine = np.linspace(swpts_to_fit[0], swpts_to_fit[-1], 501)
                 ax.plot(swpts_fine, fit_res.model.func(
-                    swpts_fine, **fit_res.best_values), 'r-')
+                    swpts_fine, **fit_res.best_values), 'r-', zorder=1)
                 plt.plot(pi_amp, fit_res.model.func(
-                    pi_amp, **fit_res.best_values), 'ok')
+                    pi_amp, **fit_res.best_values), 'ok', zorder=3)
                 plt.plot(pi2_amp, fit_res.model.func(
-                    pi2_amp, **fit_res.best_values), 'ok')
+                    pi2_amp, **fit_res.best_values), 'ok', zorder=3)
                 # textbox
                 old_pi_amp = qubit.parameters.drive_parameters_ge["amplitude_pi"]
                 old_pi2_amp = qubit.parameters.drive_parameters_ge["amplitude_pi2"]
@@ -1527,7 +1528,7 @@ class Ramsey(SingleQubitGateTuneup):
             # plot data
             fig, ax = plt.subplots()
             ax.plot(data_dict["sweep_points_w_cal_tr"] * 1e6,
-                    data_dict["data_rotated_w_cal_tr"], 'o')
+                    data_dict["data_rotated_w_cal_tr"], 'o', zorder=2)
             ax.set_xlabel("Pulse Delay ($\\mu$s)")
             ax.set_ylabel("Principal Component (a.u)" if num_cal_traces == 0 else
                           f"$|{self.cal_states[-1]}\\rangle$-State Population")
@@ -1574,7 +1575,7 @@ class Ramsey(SingleQubitGateTuneup):
                 # plot fit
                 swpts_fine = np.linspace(swpts_to_fit[0], swpts_to_fit[-1], 501)
                 ax.plot(swpts_fine * 1e6, fit_res.model.func(
-                    swpts_fine, **fit_res.best_values), 'r-')
+                    swpts_fine, **fit_res.best_values), 'r-', zorder=1)
                 textstr = (f'New qubit frequency: {new_qb_freq / 1e9:.6f} GHz '
                            f'$\\pm$ {freq_fit_err / 1e6:.4f} MHz')
                 textstr += f'\nOld qubit frequency: {old_qb_freq / 1e9:.6f} GHz'
@@ -1719,7 +1720,7 @@ class T1(SingleQubitGateTuneup):
             # plot data
             fig, ax = plt.subplots()
             ax.plot(data_dict["sweep_points_w_cal_tr"] * 1e6,
-                    data_dict["data_rotated_w_cal_tr"], 'o')
+                    data_dict["data_rotated_w_cal_tr"], 'o', zorder=2)
             ax.set_xlabel("Pulse Delay ($\\mu$s)")
             ax.set_ylabel("Principal Component (a.u)" if num_cal_traces == 0 else
                           f"$|{self.cal_states[-1]}\\rangle$-State Population")
@@ -1748,7 +1749,7 @@ class T1(SingleQubitGateTuneup):
                 # plot fit
                 swpts_fine = np.linspace(swpts_to_fit[0], swpts_to_fit[-1], 501)
                 ax.plot(swpts_fine * 1e6, fit_res.model.func(
-                    swpts_fine, **fit_res.best_values), 'r-')
+                    swpts_fine, **fit_res.best_values), 'r-', zorder=1)
                 textstr = f'$T_1$: {t1 * 1e6:.4f} $\\mu$s'
                 ax.text(0, -0.15, textstr, ha='left', va='top',
                         transform=ax.transAxes)
@@ -1852,7 +1853,7 @@ class Echo(SingleQubitGateTuneup):
             # plot data
             fig, ax = plt.subplots()
             ax.plot(data_dict["sweep_points_w_cal_tr"] * 1e6,
-                    data_dict["data_rotated_w_cal_tr"], 'o')
+                    data_dict["data_rotated_w_cal_tr"], 'o', zorder=2)
             ax.set_xlabel("Pulse Delay ($\\mu$s)")
             ax.set_ylabel("Principal Component (a.u)" if num_cal_traces == 0 else
                           f"$|{self.cal_states[-1]}\\rangle$-State Population")
@@ -1885,7 +1886,7 @@ class Echo(SingleQubitGateTuneup):
                 # plot fit
                 swpts_fine = np.linspace(swpts_to_fit[0], swpts_to_fit[-1], 501)
                 ax.plot(swpts_fine * 1e6, fit_res.model.func(
-                    swpts_fine, **fit_res.best_values), 'r-')
+                    swpts_fine, **fit_res.best_values), 'r-', zorder=1)
                 textstr = f'$T_2$: {t2 * 1e6:.4f} $\\mu$s'
                 ax.text(0, -0.15, textstr, ha='left', va='top',
                         transform=ax.transAxes)
