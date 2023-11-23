@@ -1925,7 +1925,8 @@ class RamseyDC(SingleQubitGateTuneup):
         # all near-time callback functions have the format
         # func(session, sweep_param_value, qubit)
         nt_sweep.call(ntsf, voltage=nt_sweep_par, qubit=qubit)
-        self.add_acquire_rt_loop(nt_sweep)
+        self.create_acquire_rt_loop()
+        nt_sweep.add(self.acquire_loop)
         # create sweep for qubit
         sweep = Sweep(
             uid=f"{self.experiment_name}_sweep",
