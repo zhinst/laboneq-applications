@@ -822,8 +822,7 @@ class ResonatorSpectroscopy(ExperimentTemplate):
                 cbar = fig.colorbar(CS)
                 cbar.set_label("Signal Magnitude (a.u.)")
 
-                if self.nt_swp_par == 'voltage' and \
-                        self.analysis_metainfo.get('do_fitting', True):
+                if self.nt_swp_par == 'voltage':
                     # 1D plot of the qubit frequency vs voltage
                     find_peaks = self.analysis_metainfo.get('find_peaks', False)
                     take_extremum = np.argmax if find_peaks else np.argmin
@@ -833,38 +832,51 @@ class ResonatorSpectroscopy(ExperimentTemplate):
                     else:
                         mask = freq_filter(freqs)
                         freqs_dips = freqs[take_extremum(data_mag[:, mask], axis=1)]
-                    # fit frequency vs voltage
-                    # fit_func = lambda x, V0, f0, fv: f0 - fv * (x - V0) ** 2
+                    ax.plot(nt_sweep_par_vals, freqs_dips, 'ow')
+                    # figure out whether voltages vs freqs is convex or concave
                     take_extremum, scf = (np.argmax, 1) if (
                         ana_hlp.is_data_convex(nt_sweep_par_vals, freqs_dips)) \
                         else (np.argmin, -1)
-                    param_hints = {
-                        'V0': {'value': nt_sweep_par_vals[take_extremum(freqs_dips)]},
-                        'f0': {'value': freqs_dips[take_extremum(freqs_dips)]},
-                        'fv': {'value': scf * (max(freqs_dips) - min(freqs_dips))},
-                    }
-                    fit_res = ana_hlp.fit_data_lmfit(
-                        fit_mods.transmon_voltage_dependence, nt_sweep_par_vals,
-                        freqs_dips, param_hints=param_hints)
-                    self.fit_results[qubit.uid] = fit_res
+                    # optimal parking parameters at the extremum of
+                    # voltages vs frequencies
+                    f0 = freqs_dips[take_extremum(freqs_dips)]
+                    V0 = nt_sweep_par_vals[take_extremum(freqs_dips)]
                     self.new_qubit_parameters[qubit.uid] = {
-                        "readout_resonator_frequency": fit_res.best_values['f0'],
-                        "dc_voltage_parking": fit_res.best_values['V0']
+                        "readout_resonator_frequency": f0,
+                        "dc_voltage_parking": V0
                     }
-                    # plot fit
-                    ntpval_fine = np.linspace(nt_sweep_par_vals[0],
-                                              nt_sweep_par_vals[-1], 501)
-                    ax.plot(fit_res.model.func(
-                        ntpval_fine, **fit_res.best_values) / 1e9,
-                            ntpval_fine, 'w-')
-                    f0, f0err = fit_res.best_values['f0'], fit_res.params['f0'].stderr
-                    V0, V0err = fit_res.best_values['V0'], fit_res.params['V0'].stderr
-                    ax.plot(f0 / 1e9, V0, 'sC2',
-                            markersize=plt.rcParams['lines.markersize'] + 1)
-                    textstr = f"Parking voltage: {V0:.4f} $\\pm$ {V0err:.4f} V"
-                    textstr += f"\nParking frequency: {f0 / 1e9:.4f} $\\pm$ {f0err / 1e9:.4f} GHz"
-                    ax.text(0, -0.15, textstr, ha='left', va='top',
-                            transform=ax.transAxes)
+
+                    if self.analysis_metainfo.get('do_fitting', True):
+                        # fit frequency vs voltage and take the optimal parking
+                        # parameters from fit
+                        # fit_func = lambda x, V0, f0, fv: f0 - fv * (x - V0) ** 2
+                        param_hints = {
+                            'V0': {'value': V0},
+                            'f0': {'value': f0},
+                            'fv': {'value': scf * (max(freqs_dips) - min(freqs_dips))},
+                        }
+                        fit_res = ana_hlp.fit_data_lmfit(
+                            fit_mods.transmon_voltage_dependence, nt_sweep_par_vals,
+                            freqs_dips, param_hints=param_hints)
+                        self.fit_results[qubit.uid] = fit_res
+                        self.new_qubit_parameters[qubit.uid] = {
+                            "readout_resonator_frequency": fit_res.best_values['f0'],
+                            "dc_voltage_parking": fit_res.best_values['V0']
+                        }
+                        # plot fit
+                        ntpval_fine = np.linspace(nt_sweep_par_vals[0],
+                                                  nt_sweep_par_vals[-1], 501)
+                        ax.plot(fit_res.model.func(
+                            ntpval_fine, **fit_res.best_values) / 1e9,
+                                ntpval_fine, 'w-')
+                        f0, f0err = fit_res.best_values['f0'], fit_res.params['f0'].stderr
+                        V0, V0err = fit_res.best_values['V0'], fit_res.params['V0'].stderr
+                        ax.plot(f0 / 1e9, V0, 'sC2',
+                                markersize=plt.rcParams['lines.markersize'] + 1)
+                        textstr = f"Parking voltage: {V0:.4f} $\\pm$ {V0err:.4f} V"
+                        textstr += f"\nParking frequency: {f0 / 1e9:.4f} $\\pm$ {f0err / 1e9:.4f} GHz"
+                        ax.text(0, -0.15, textstr, ha='left', va='top',
+                                transform=ax.transAxes)
 
             ax.set_title(f'{ts}_{handle}')
             # save figures and results
@@ -1118,8 +1130,7 @@ class QubitSpectroscopy(ExperimentTemplate):
                 cbar = fig.colorbar(CS)
                 cbar.set_label("Signal Magnitude (a.u.)")
 
-                if self.nt_swp_par == 'voltage' and \
-                        self.analysis_metainfo.get('do_fitting', True):
+                if self.nt_swp_par == 'voltage':
                     # 1D plot of the qubit frequency vs voltage
                     find_peaks = self.analysis_metainfo.get('find_peaks', True)
                     take_extremum = np.argmax if find_peaks else np.argmin
@@ -1129,38 +1140,50 @@ class QubitSpectroscopy(ExperimentTemplate):
                     else:
                         mask = freq_filter(freqs)
                         freqs_peaks = freqs[take_extremum(data_mag[:, mask], axis=1)]
-                    # fit frequency vs voltage
-                    # fit_func = lambda x, V0, f0, fv: f0 - fv * (x - V0) ** 2
+                    # figure out whether voltages vs freqs is convex or concave
                     take_extremum, scf = (np.argmax, 1) if (
                         ana_hlp.is_data_convex(nt_sweep_par_vals, freqs_peaks)) \
                         else (np.argmin, -1)
-                    param_hints = {
-                        'V0': {'value': nt_sweep_par_vals[take_extremum(freqs_peaks)]},
-                        'f0': {'value': freqs_peaks[take_extremum(freqs_peaks)]},
-                        'fv': {'value': scf * (max(freqs_peaks) - min(freqs_peaks))},
-                    }
-                    fit_res = ana_hlp.fit_data_lmfit(
-                        fit_mods.transmon_voltage_dependence, nt_sweep_par_vals,
-                        freqs_peaks, param_hints=param_hints)
-                    self.fit_results[qubit.uid] = fit_res
+                    # optimal parking parameters at the extremum of
+                    # voltages vs frequencies
+                    f0 = freqs_peaks[take_extremum(freqs_peaks)]
+                    V0 = nt_sweep_par_vals[take_extremum(freqs_peaks)]
                     self.new_qubit_parameters[qubit.uid] = {
-                        "resonance_frequency_ge": fit_res.best_values['f0'],
-                        "dc_voltage_parking": fit_res.best_values['V0']
+                        "readout_resonator_frequency": f0,
+                        "dc_voltage_parking": V0
                     }
-                    # plot fit
-                    ntpval_fine = np.linspace(nt_sweep_par_vals[0],
-                                              nt_sweep_par_vals[-1], 501)
-                    ax.plot(fit_res.model.func(
-                        ntpval_fine, **fit_res.best_values) / 1e9,
-                            ntpval_fine, 'w-')
-                    f0, f0err = fit_res.best_values['f0'], fit_res.params['f0'].stderr
-                    V0, V0err = fit_res.best_values['V0'], fit_res.params['V0'].stderr
-                    ax.plot(f0 / 1e9, V0, 'sC2',
-                            markersize=plt.rcParams['lines.markersize'] + 1)
-                    textstr = f"Parking voltage: {V0:.4f} $\\pm$ {V0err:.4f} V"
-                    textstr += f"\nParking frequency: {f0 / 1e9:.4f} $\\pm$ {f0err / 1e9:.4f} GHz"
-                    ax.text(0, -0.15, textstr, ha='left', va='top',
-                            transform=ax.transAxes)
+
+                    if self.analysis_metainfo.get('do_fitting', True):
+                        # fit frequency vs voltage and take the optimal parking
+                        # parameters from fit
+                        # fit_func = lambda x, V0, f0, fv: f0 - fv * (x - V0) ** 2
+                        param_hints = {
+                            'V0': {'value': V0},
+                            'f0': {'value': f0},
+                            'fv': {'value': scf * (max(freqs_peaks) - min(freqs_peaks))},
+                        }
+                        fit_res = ana_hlp.fit_data_lmfit(
+                            fit_mods.transmon_voltage_dependence, nt_sweep_par_vals,
+                            freqs_peaks, param_hints=param_hints)
+                        self.fit_results[qubit.uid] = fit_res
+                        self.new_qubit_parameters[qubit.uid] = {
+                            "resonance_frequency_ge": fit_res.best_values['f0'],
+                            "dc_voltage_parking": fit_res.best_values['V0']
+                        }
+                        # plot fit
+                        ntpval_fine = np.linspace(nt_sweep_par_vals[0],
+                                                  nt_sweep_par_vals[-1], 501)
+                        ax.plot(fit_res.model.func(
+                            ntpval_fine, **fit_res.best_values) / 1e9,
+                                ntpval_fine, 'w-')
+                        f0, f0err = fit_res.best_values['f0'], fit_res.params['f0'].stderr
+                        V0, V0err = fit_res.best_values['V0'], fit_res.params['V0'].stderr
+                        ax.plot(f0 / 1e9, V0, 'sC2',
+                                markersize=plt.rcParams['lines.markersize'] + 1)
+                        textstr = f"Parking voltage: {V0:.4f} $\\pm$ {V0err:.4f} V"
+                        textstr += f"\nParking frequency: {f0 / 1e9:.4f} $\\pm$ {f0err / 1e9:.4f} GHz"
+                        ax.text(0, -0.15, textstr, ha='left', va='top',
+                                transform=ax.transAxes)
 
             ax.set_title(f'{ts}_{handle}')
             # save figures and results
