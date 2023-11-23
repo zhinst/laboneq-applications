@@ -767,7 +767,14 @@ class ResonatorSpectroscopy(ExperimentTemplate):
         ts = self.timestamp if self.timestamp is not None else ''
         self.new_qubit_parameters = {}
         self.fit_results = {}
+        freq_filter = self.analysis_metainfo.get('frequency_filter_for_fit', {})
+        find_peaks = self.analysis_metainfo.get('find_peaks', {})
         for qubit in self.qubits:
+            # get frequency filter of qubit
+            ff_qb = freq_filter.get(qubit.uid, None)
+            # decide whether to extract peaks or dips for qubit
+            fp_qb = find_peaks.get(qubit.uid, False)
+            take_extremum = np.argmax if fp_qb else np.argmin
             # extract data
             handle = f"{self.experiment_name}_{qubit.uid}"
             data_mag = abs(self.results.get_data(handle))
@@ -782,7 +789,10 @@ class ResonatorSpectroscopy(ExperimentTemplate):
                     freqs = self.results.get_axis(handle)[0] + \
                             qubit.parameters.readout_lo_frequency
 
-                f0, d0 = freqs[np.argmin(data_mag)], np.min(data_mag)
+                data_to_search = data_mag if ff_qb is None else data_mag[ff_qb(freqs)]
+                freqs_to_search = freqs if ff_qb is None else freqs[ff_qb(freqs)]
+                f0 = freqs_to_search[take_extremum(data_to_search)]
+                d0 = data_to_search[take_extremum(data_to_search)]
                 self.new_qubit_parameters[qubit.uid] = {
                     "readout_resonator_frequency": f0}
 
@@ -797,12 +807,6 @@ class ResonatorSpectroscopy(ExperimentTemplate):
                         transform=ax.transAxes)
                 ax.set_xlabel(self.results.get_axis_name(handle)[0])
                 ax.set_ylabel("Signal Magnitude (a.u.)")
-                ax.set_title(f'{ts}_{handle}')
-                # save figures
-                if self.save:
-                    # Save the figure
-                    self.save_figure(fig, qubit)
-                plt.close(fig)
             else:
                 # 2D plot of results
                 nt_sweep_par_vals = self.results.get_axis(handle)[0]
@@ -824,23 +828,22 @@ class ResonatorSpectroscopy(ExperimentTemplate):
 
                 if self.nt_swp_par == 'voltage':
                     # 1D plot of the qubit frequency vs voltage
-                    find_peaks = self.analysis_metainfo.get('find_peaks', False)
-                    take_extremum = np.argmax if find_peaks else np.argmin
-                    freq_filter = self.analysis_metainfo.get('frequency_filter', None)
-                    if freq_filter is None:
+                    if ff_qb is None:
                         freqs_dips = freqs[take_extremum(data_mag, axis=1)]
                     else:
-                        mask = freq_filter(freqs)
-                        freqs_dips = freqs[take_extremum(data_mag[:, mask], axis=1)]
-                    ax.plot(nt_sweep_par_vals, freqs_dips, 'ow')
+                        mask = ff_qb(freqs)
+                        freqs_dips = freqs[mask][take_extremum(
+                            data_mag[:, mask], axis=1)]
+                    # plot
+                    ax.plot(freqs_dips / 1e9, nt_sweep_par_vals, 'ow')
                     # figure out whether voltages vs freqs is convex or concave
-                    take_extremum, scf = (np.argmax, 1) if (
+                    take_extremum_fit, scf = (np.argmax, 1) if (
                         ana_hlp.is_data_convex(nt_sweep_par_vals, freqs_dips)) \
                         else (np.argmin, -1)
                     # optimal parking parameters at the extremum of
                     # voltages vs frequencies
-                    f0 = freqs_dips[take_extremum(freqs_dips)]
-                    V0 = nt_sweep_par_vals[take_extremum(freqs_dips)]
+                    f0 = freqs_dips[take_extremum_fit(freqs_dips)]
+                    V0 = nt_sweep_par_vals[take_extremum_fit(freqs_dips)]
                     self.new_qubit_parameters[qubit.uid] = {
                         "readout_resonator_frequency": f0,
                         "dc_voltage_parking": V0
@@ -1042,7 +1045,11 @@ class QubitSpectroscopy(ExperimentTemplate):
         ts = self.timestamp if self.timestamp is not None else ''
         self.new_qubit_parameters = {}
         self.fit_results = {}
+        freq_filter = self.analysis_metainfo.get('frequency_filter_for_fit', {})
+        find_peaks = self.analysis_metainfo.get('find_peaks', {})
         for qubit in self.qubits:
+            # get frequency filter of qubit
+            ff_qb = freq_filter.get(qubit.uid, None)
             # extract data
             handle = f"{self.experiment_name}_{qubit.uid}"
             data_mag = abs(self.results.get_data(handle))
@@ -1064,24 +1071,27 @@ class QubitSpectroscopy(ExperimentTemplate):
                 ax.set_ylabel("Signal Magnitude (a.u.)")
 
                 if self.analysis_metainfo.get('do_fitting', True):
+                    data_to_fit = data_mag if ff_qb is None else data_mag[ff_qb(freqs)]
+                    freqs_to_fit = freqs if ff_qb is None else freqs[ff_qb(freqs)]
                     # fit data
                     param_hints = self.analysis_metainfo.get('param_hints')
                     if param_hints is None:
+                        width_guess = 50e3
                         # fit with guess values for a peak
                         param_hints = {
-                            'amplitude': {'value': 1e2},
-                            'position': {'value': freqs[np.argmax(data_mag)]},
-                            'width': {'value': 50e3},
+                            'amplitude': {'value': np.max(data_to_fit)*width_guess},
+                            'position': {'value': freqs_to_fit[np.argmax(data_to_fit)]},
+                            'width': {'value': width_guess},
                             'offset': {'value': 0}
                          }
                         fit_res_peak = ana_hlp.fit_data_lmfit(
-                            fit_mods.lorentzian, freqs, data_mag,
+                            fit_mods.lorentzian, freqs_to_fit, data_to_fit,
                             param_hints=param_hints)
                         # fit with guess values for a dip
                         param_hints['amplitude']['value'] *= -1
-                        param_hints['position']['value'] = freqs[np.argmin(data_mag)]
+                        param_hints['position']['value'] = freqs_to_fit[np.argmin(data_to_fit)]
                         fit_res_dip = ana_hlp.fit_data_lmfit(
-                            fit_mods.lorentzian, freqs, data_mag,
+                            fit_mods.lorentzian, freqs_to_fit, data_to_fit,
                             param_hints=param_hints)
                         # determine whether there is a peak or a dip: compare
                         # the distance between the value at the fitted peak/dip
@@ -1089,15 +1099,15 @@ class QubitSpectroscopy(ExperimentTemplate):
                         # is the true spectroscopy signal
                         dpeak = abs(fit_res_peak.model.func(
                             fit_res_peak.best_values['position'],
-                            **fit_res_peak.best_values) - np.mean(data_mag))
+                            **fit_res_peak.best_values) - np.mean(data_to_fit))
                         ddip = abs(fit_res_dip.model.func(
                             fit_res_dip.best_values['position'],
-                            **fit_res_dip.best_values) - np.mean(data_mag))
+                            **fit_res_dip.best_values) - np.mean(data_to_fit))
                         fit_res = fit_res_peak if dpeak > ddip else fit_res_dip
                     else:
                         # do what the user asked
                         fit_res = ana_hlp.fit_data_lmfit(
-                            fit_mods.lorentzian, freqs, data_mag,
+                            fit_mods.lorentzian, freqs_to_fit, data_to_fit,
                             param_hints=param_hints)
                     self.fit_results[qubit.uid] = fit_res
                     fqb = fit_res.best_values['position']
@@ -1105,7 +1115,7 @@ class QubitSpectroscopy(ExperimentTemplate):
                         "resonance_frequency_ge": fqb}
 
                     # plot fit
-                    freqs_fine = np.linspace(freqs[0], freqs[-1], 501)
+                    freqs_fine = np.linspace(freqs_to_fit[0], freqs_to_fit[-1], 501)
                     ax.plot(freqs_fine / 1e9, fit_res.model.func(
                         freqs_fine, **fit_res.best_values), 'r-')
                     textstr = f'Extracted qubit frequency: {fqb / 1e9:.4f} GHz'
@@ -1134,22 +1144,26 @@ class QubitSpectroscopy(ExperimentTemplate):
 
                 if self.nt_swp_par == 'voltage':
                     # 1D plot of the qubit frequency vs voltage
-                    find_peaks = self.analysis_metainfo.get('find_peaks', True)
-                    take_extremum = np.argmax if find_peaks else np.argmin
-                    freq_filter = self.analysis_metainfo.get('frequency_filter', None)
-                    if freq_filter is None:
+                    # decide whether to extract peaks or dips for qubit
+                    fp_qb = find_peaks.get(qubit.uid, True)
+                    take_extremum = np.argmax if fp_qb else np.argmin
+                    if ff_qb is None:
                         freqs_peaks = freqs[take_extremum(data_mag, axis=1)]
                     else:
-                        mask = freq_filter(freqs)
-                        freqs_peaks = freqs[take_extremum(data_mag[:, mask], axis=1)]
+                        mask = ff_qb(freqs)
+                        print(len(freqs), len(freqs[mask]))
+                        freqs_peaks = freqs[mask][take_extremum(
+                            data_mag[:, mask], axis=1)]
+                    # plot
+                    ax.plot(freqs_peaks / 1e9, nt_sweep_par_vals, 'ow')
                     # figure out whether voltages vs freqs is convex or concave
-                    take_extremum, scf = (np.argmax, 1) if (
+                    take_extremum_fit, scf = (np.argmax, 1) if (
                         ana_hlp.is_data_convex(nt_sweep_par_vals, freqs_peaks)) \
                         else (np.argmin, -1)
                     # optimal parking parameters at the extremum of
                     # voltages vs frequencies
-                    f0 = freqs_peaks[take_extremum(freqs_peaks)]
-                    V0 = nt_sweep_par_vals[take_extremum(freqs_peaks)]
+                    f0 = freqs_peaks[take_extremum_fit(freqs_peaks)]
+                    V0 = nt_sweep_par_vals[take_extremum_fit(freqs_peaks)]
                     self.new_qubit_parameters[qubit.uid] = {
                         "readout_resonator_frequency": f0,
                         "dc_voltage_parking": V0
