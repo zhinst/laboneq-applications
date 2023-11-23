@@ -524,14 +524,10 @@ class ExperimentTemplate():
             log.error("Unhandled error during experiment!")
             log.error(traceback.format_exc())
 
-    def add_acquire_rt_loop(self, section_container=None):
+    def create_acquire_rt_loop(self):
         self.acquire_loop = AcquireLoopRt(
             uid="RT_Acquire_Loop", **self.acquisition_metainfo
         )
-        if section_container is None:
-            self.experiment.add(self.acquire_loop)
-        else:
-            section_container.add(self.acquire_loop)
 
     def create_measure_acquire_sections(self, uid, qubit, play_after=None,
                                         handle_suffix='', integration_kernel=None):
@@ -669,10 +665,11 @@ class ResonatorSpectroscopy(ExperimentTemplate):
 
     def define_experiment(self):
         self.experiment.sections = []
-        self.add_acquire_rt_loop()
+        self.create_acquire_rt_loop()
         for qubit in self.qubits:
             ro_pulse_amp = qubit.parameters.user_defined['readout_amplitude']
             qb_sweep_pars = self.sweep_parameters_dict[qubit.uid]
+            nt_sweep = None
             if len(qb_sweep_pars) > 1:
                 nt_sweep_par = qb_sweep_pars[1]
                 nt_sweep = Sweep(
@@ -692,8 +689,10 @@ class ResonatorSpectroscopy(ExperimentTemplate):
                     nt_sweep.call(ntsf, voltage=nt_sweep_par, qubit=qubit)
                 elif self.nt_swp_par == 'amplitude':
                     ro_pulse_amp = 1
-                # define real-time loop
-                self.add_acquire_rt_loop(nt_sweep)
+                # add real-time loop to nt_sweep
+                nt_sweep.add(self.acquire_loop)
+            else:
+                self.experiment.add(self.acquire_loop)
 
             inner_freq_sweep = qb_sweep_pars[0]
             sweep_inner = Sweep(uid=f"resonator_frequency_inner_{qubit.uid}",
@@ -922,7 +921,7 @@ class QubitSpectroscopy(ExperimentTemplate):
 
     def define_experiment(self):
         self.experiment.sections = []
-        self.add_acquire_rt_loop()
+        self.create_acquire_rt_loop()
         # nt_sweep = Sweep(
         #     uid=f"neartime_{self.nt_swp_par}_sweep",
         #     parameters=[self.sweep_parameters_dict[qubit.uid][1]
@@ -968,8 +967,10 @@ class QubitSpectroscopy(ExperimentTemplate):
                     nt_sweep.call(ntsf, voltage=nt_sweep_par, qubit=qubit)
                 elif self.nt_swp_par == 'amplitude':
                     spec_pulse_amp = nt_sweep_par
-                # define real-time loop
-                self.add_acquire_rt_loop(nt_sweep)
+                # add real-time loop to nt_sweep
+                nt_sweep.add(self.acquire_loop)
+            else:
+                self.experiment.add(self.acquire_loop)
 
             freq_sweep = Sweep(uid=f"frequency_sweep_{qubit.uid}",
                                parameters=[self.sweep_parameters_dict[qubit.uid][0]])
@@ -1252,9 +1253,11 @@ class AmplitudeRabi(SingleQubitGateTuneup):
     fallback_experiment_name = "Rabi"
 
     def define_experiment(self):
+        self.experiment.sections = []
         # define Rabi experiment pulse sequence
         # outer loop - real-time, cyclic averaging
-        self.add_acquire_rt_loop()
+        self.create_acquire_rt_loop()
+        self.experiment.add(self.acquire_loop)
         for i, qubit in enumerate(self.qubits):
             # create sweep
             sweep = Sweep(uid=f"{qubit.uid}_{self.experiment_name}_sweep",
@@ -1381,7 +1384,9 @@ class Ramsey(SingleQubitGateTuneup):
     fallback_experiment_name = "Ramsey"
 
     def define_experiment(self):
-        self.add_acquire_rt_loop()
+        self.experiment.sections = []
+        self.create_acquire_rt_loop()
+        self.experiment.add(self.acquire_loop)
         # from the delays sweep parameters, create sweep parameters for
         # half the total delay time and for the phase of the second X90 pulse
         detuning = self.experiment_metainfo.get('detuning')
@@ -1556,7 +1561,9 @@ class QScale(SingleQubitGateTuneup):
     fallback_experiment_name = "QScale"
 
     def define_experiment(self):
-        self.add_acquire_rt_loop()
+        self.experiment.sections = []
+        self.create_acquire_rt_loop()
+        self.experiment.add(self.acquire_loop)
         for i, qubit in enumerate(self.qubits):
             tn = self.transition_to_calib
             X90_pulse = qt_ops.quantum_gate(qubit, f"X90_{tn}")
@@ -1616,7 +1623,9 @@ class T1(SingleQubitGateTuneup):
     fallback_experiment_name = "T1"
 
     def define_experiment(self):
-        self.add_acquire_rt_loop()
+        self.experiment.sections = []
+        self.create_acquire_rt_loop()
+        self.experiment.add(self.acquire_loop)
         # create joint sweep for all qubits
         sweep = Sweep(
             uid=f"{self.experiment_name}_sweep",
@@ -1711,7 +1720,8 @@ class Echo(SingleQubitGateTuneup):
 
     def define_experiment(self):
         self.experiment.sections = []
-        self.add_acquire_rt_loop()
+        self.create_acquire_rt_loop()
+        self.experiment.add(self.acquire_loop)
         # from the delays sweep parameters, create sweep parameters for
         # half the total delay time and for the phase of the second X90 pulse
         detuning = self.experiment_metainfo.get('detuning')
