@@ -16,10 +16,10 @@ def quantum_gates(qubit):
     for suff, pars in zip(["ge", "ef"], [ge_pars, ef_pars]):
         gates.update(
             {
-                f"X180_{suff}": dict(amplitude=pars["amplitude_pi"]),
-                f"mX180_{suff}": dict(amplitude=-pars["amplitude_pi"]),
-                f"X90_{suff}": dict(amplitude=pars["amplitude_pi2"]),
-                f"mX90_{suff}": dict(amplitude=-pars["amplitude_pi2"]),
+                f"X180_{suff}": dict(amplitude=pars["amplitude_pi"], phase=0),
+                f"mX180_{suff}": dict(amplitude=-pars["amplitude_pi"], phase=0),
+                f"X90_{suff}": dict(amplitude=pars["amplitude_pi2"], phase=0),
+                f"mX90_{suff}": dict(amplitude=-pars["amplitude_pi2"], phase=0),
                 f"Y180_{suff}": dict(amplitude=pars["amplitude_pi"], phase=np.pi / 2),
                 f"mY180_{suff}": dict(amplitude=-pars["amplitude_pi"], phase=np.pi / 2),
                 f"Y90_{suff}": dict(amplitude=pars["amplitude_pi2"], phase=np.pi / 2),
