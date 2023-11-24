@@ -1416,18 +1416,20 @@ class AmplitudeRabi(SingleQubitGateTuneup):
 
                 freq_fit = fit_res.best_values['frequency']
                 phase_fit = fit_res.best_values['phase']
-                n = np.arange(-10, 10)
-                pi_amps = (n * np.pi - phase_fit) / freq_fit
-                pi2_amps = (n * np.pi + np.pi / 2 - phase_fit) / freq_fit
-                mask = np.logical_and(pi2_amps >= swpts_to_fit[0] - 1e-2,
-                                      pi2_amps <= swpts_to_fit[-1] + 1e-2)
-                pi2_amps = pi2_amps[mask]
+                pi_amps_top, pi_amps_bottom, pi2_amps_rise, pi2_amps_fall = \
+                    ana_hlp.get_pi_pi2_xvalues_on_cos(
+                        swpts_to_fit, freq_fit, phase_fit)
+                # if pca is done, it can happen that the pi-pulse amplitude
+                # is in pi_amps_bottom and the pi/2-pulse amplitude in pi2_amps_fall
+                pi_amps = np.sort(np.concatenate([pi_amps_top, pi_amps_bottom]))
+                pi2_amps = np.sort(np.concatenate([pi2_amps_rise, pi2_amps_fall]))
                 pi2_amp = pi2_amps[0]
                 pi_amp = pi_amps[pi_amps > pi2_amp][0]
                 self.new_qubit_parameters[qubit.uid] = {'amplitude_pi': pi_amp,
                                                         'amplitude_pi2': pi2_amp,
                                                         'pi_amps': pi_amps,
-                                                        'pi2_amps': pi2_amps}
+                                                        'pi2_amps': pi2_amps
+                                                        }
 
                 # plot fit
                 swpts_fine = np.linspace(swpts_to_fit[0], swpts_to_fit[-1], 501)
