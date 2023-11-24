@@ -1587,7 +1587,7 @@ class Ramsey(SingleQubitGateTuneup):
             param_hints = self.analysis_metainfo.get(
                 'param_hints', {
                     'frequency': {'value': freqs_guess},
-                    'phase': {'value': phase_guess, 'vary': False},
+                    'phase': {'value': phase_guess},
                     'decay_time': {'value': 2 / 3 * max(swpts_to_fit),
                                    'min': 0},
                     'amplitude': {'value': 0.5,
