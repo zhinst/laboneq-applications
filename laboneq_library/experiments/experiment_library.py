@@ -1436,9 +1436,11 @@ class AmplitudeRabi(SingleQubitGateTuneup):
                 ax.plot(swpts_fine, fit_res.model.func(
                     swpts_fine, **fit_res.best_values), 'r-', zorder=1)
                 plt.plot(pi_amp, fit_res.model.func(
-                    pi_amp, **fit_res.best_values), 'ok', zorder=3)
+                    pi_amp, **fit_res.best_values), 'sk', zorder=3,
+                         markersize=plt.rcParams['lines.markersize'] + 1)
                 plt.plot(pi2_amp, fit_res.model.func(
-                    pi2_amp, **fit_res.best_values), 'ok', zorder=3)
+                    pi2_amp, **fit_res.best_values), 'sk', zorder=3,
+                         markersize=plt.rcParams['lines.markersize'] + 1)
                 # textbox
                 old_pi_amp = qubit.parameters.drive_parameters_ge["amplitude_pi"]
                 old_pi2_amp = qubit.parameters.drive_parameters_ge["amplitude_pi2"]
