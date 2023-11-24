@@ -152,14 +152,13 @@ def get_pi_pi2_xvalues_on_cos(x, frequency, phase):
     pi2_xvals = (n * np.pi + np.pi / 2 - phase) / frequency
     pi_xvals_top = pi_xvals[0::2]
     pi_xvals_bottom = pi_xvals[1::2]
-    pi2_xvals_rising = pi2_xvals[0::2]
-    pi2_xvals_falling = pi2_xvals[1::2]
-
+    pi2_xvals_rising = pi2_xvals[1::2]
+    pi2_xvals_falling = pi2_xvals[0::2]
     mask_func = lambda cos_xvals: np.logical_and(cos_xvals >= min(x) - 1e-2,
                                                  cos_xvals <= max(x) + 1e-2)
     pixv_top = pi_xvals_top[mask_func(pi_xvals_top)]
     pixv_bottom = pi_xvals_bottom[mask_func(pi_xvals_bottom)]
-    pi2xv_rising = pi_xvals_top[mask_func(pi2_xvals_rising)]
-    pi2xv_falling = pi_xvals_top[mask_func(pi2_xvals_falling)]
-    
+    pi2xv_rising = pi2_xvals_rising[mask_func(pi2_xvals_rising)]
+    pi2xv_falling = pi2_xvals_falling[mask_func(pi2_xvals_falling)]
+
     return pixv_top, pixv_bottom, pi2xv_rising, pi2xv_falling
