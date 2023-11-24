@@ -18,14 +18,10 @@ We will illustrate both the concepts and how-to by writing an experiment that de
 
 In general, the tuneup experiment class should have the following signatures for the constructor
 
-- `parameters: List[LinearSweepParameter]`
+- `qubit_configs: QubitConfigs`
 
-    A list of sweep parameters, that will be included in the experiment.
+    A class that contains one or many `QubitConfig`, each of which contains the information about required scan parameters and analysis parameters for a qubit.
 
-- `qubit: QuantumElement`
-
-    The official L1Q QuantumElement object, containing information about mapping between logical signal lines and experimental lines.
-        
 - `exp_settings: Optional[dict]`
 
     A dictionary of additional experiment settings such as averaging numbers.
@@ -34,123 +30,104 @@ In general, the tuneup experiment class should have the following signatures for
 
     A user-defined function that may be used in the experiment.
 
-- `pulse_storage: Optional[dict]`
-
-    A dictionary of pulses that may be used in the experiment.
-
 An example for the constructor is as following. Here, because we use an user-defined function to sweep the dc bias `ext_calls` is compulsory and we would rise an `Exception` is it is not provided.
 
-On the last line, we also need to generate an experiment by calling `self._gen_experiment(self.parameter)` and assign it to the attribute `self.exp`
+For all tune up experiments, it is required to have a ready-to-play L1Q experiment object. We do this calling `self.exp = self._gen_experiment()` and assign it to the attribute `self.exp`
 
 
 ```python
 class ReadoutSpectroscopyCWBiasSweep(TuneUpExperimentFactory):
     def __init__(
         self,
-        parameters,
-        qubit,
-        exp_settings={"integration_time": 10e-6, "num_averages": 2**5, "slot": 0},
+        qubit_configs,
+        exp_settings={"integration_time": 10e-6, "num_averages": 2**5},
         ext_calls=None,
-        pulse_storage=None,
     ):
-        if ext_calls is None:
-            raise ValueError("ext_calls must be defined for this experiment")
-        self.parameters = parameters
+        self.qubit_configs = qubit_configs
         self.exp_settings = exp_settings
-        self.qubit = qubit
-        self.ext_call = ext_calls
-        self.exp = self._gen_experiment(self.parameters)
+        self.ext_calls = ext_calls
+        self.qubits = self.qubit_configs.get_qubits()
+        self.exp = self._gen_experiment()
 ```
 
-If there is no special logics in the constructor, we could also call the constructor of the base class to save us a few code lines
+If there is no additional logics in the constructor, we could also call the constructor of the base class to save us a few lines of code.
 
 
 ```python
 class ReadoutSpectroscopyCWBiasSweep(TuneUpExperimentFactory):
     def __init__(
         self,
-        parameters,
-        qubit,
-        exp_settings={"integration_time": 10e-6, "num_averages": 2**5, "slot": 0},
+        qubit_configs,
+        exp_settings={"integration_time": 10e-6, "num_averages": 2**5},
         ext_calls=None,
-        pulse_storage=None,
     ):
         if ext_calls is None:
-            raise ValueError("ext_calls must be defined for this experiment")
-        super().__init__(parameters, qubit, exp_settings, ext_calls, pulse_storage)
-        self.exp = self._gen_experiment(self.parameters)
+            raise ValueError(
+                "ext_calls must be provided for sweeping flux for this experiment"
+            )
+        super().__init__(qubit_configs, exp_settings, ext_calls)
 ```
 
 Now, let's go through the first required method: `_gen_experiment`. This method plays the central role in the tuneup experiment class by providing the ready-to-go L1Q experiment object. 
 Here, we can plug in the attributes `exp_settings`, `parameters` and `qubit`.
 The experiment is written in a standard way of L1Q with signals generated from the `experimental_signals(with_calibration=True)` of `qubit`.
-Please note that `with_calibration` must be set to `True` so that we could transfer the qubit parameters to the experimental calibration.
+Please note that `with_calibration` must be set to `True` so that the qubit parameters could be transferred to the experimental calibration.
 
 
 
 
 ```python
-def _gen_experiment(self, parameters):
-        freq_sweep, dc_volt_sweep = parameters
-        exp_settings = self.exp_settings
-        exp_spec = Experiment(
-            uid="Resonator Spectroscopy",
-            signals=self.qubit.experiment_signals(with_calibration=True),
-        )
+def _gen_experiment(self):
+    freq_sweep = self.qubit_configs[0].parameter.frequency[0]
+    dc_volt_sweep = self.qubit_configs[0].parameter.flux[0]
+    qubit = self.qubits[0]
+    exp_settings = self.exp_settings
+    exp_spec = Experiment(
+        uid="Resonator Spectroscopy Flux Bias Sweep",
+        signals=qubit.experiment_signals(with_calibration=True),
+    )
 
-        exp_spec.signals[self.qubit.signals["measure"]].oscillator = Oscillator(
-            "measure_osc",
-            frequency=freq_sweep,
-            modulation_type=ModulationType.HARDWARE,  # HAS TO USE HARDWARE MODULATION FOR SPECTROSCOPY MODE
-        )
+    exp_spec.signals[qubit.signals["measure"]].oscillator = Oscillator(
+        "measure_osc",
+        frequency=freq_sweep,
+        modulation_type=ModulationType.HARDWARE,  # HAS TO USE HARDWARE MODULATION FOR SPECTROSCOPY MODE
+    )
 
-        with exp_spec.sweep(uid="dc_volt_sweep", parameter=dc_volt_sweep):
-            exp_spec.call(self.ext_call, qubit_uid=0, voltage=dc_volt_sweep)
-            with exp_spec.acquire_loop_rt(
-                uid="shots",
-                count=exp_settings["num_averages"],
-                acquisition_type=AcquisitionType.SPECTROSCOPY,
-            ):
-                with exp_spec.sweep(uid="res_freq", parameter=freq_sweep):
-                    with exp_spec.section(uid="spectroscopy"):
-                        exp_spec.acquire(
-                            signal=self.qubit.signals["acquire"],
-                            handle="res_spec",
-                            length=exp_settings["integration_time"],
-                        )
-                    with exp_spec.section(uid="delay", length=1e-6):
-                        exp_spec.reserve(signal=self.qubit.signals["measure"])
+    with exp_spec.sweep(uid="dc_volt_sweep", parameter=dc_volt_sweep):
+        exp_spec.call(self.ext_calls, qubit_uid=0, voltage=dc_volt_sweep)
+        with exp_spec.acquire_loop_rt(
+            uid="shots",
+            count=exp_settings["num_averages"],
+            acquisition_type=AcquisitionType.SPECTROSCOPY,
+        ):
+            with exp_spec.sweep(uid="res_freq", parameter=freq_sweep):
+                with exp_spec.section(uid="spectroscopy"):
+                    exp_spec.acquire(
+                        signal=qubit.signals["acquire"],
+                        handle="res_spec",
+                        length=exp_settings["integration_time"],
+                    )
+                with exp_spec.section(uid="delay", length=1e-6):
+                    exp_spec.reserve(signal=qubit.signals["measure"])
+                    exp_spec.reserve(signal=qubit.signals["acquire"])
 
-        return exp_spec
+    return exp_spec
 ```
 
-Sometimes the analyzed results do not match exactly what we want to assign to the qubit parameters. 
-
-For instance, in the spectroscopy experiment we only sweep the frequency of the baseband oscillators and the analyzed results from the fitting do not contain information about the local oscillator frequency.
-
-To overcome this, we could implement `get_updated_value` which is the next abstract method required for the tune up experiment classes.
-In `get_updated_value`, we will modify the `analyzed_result` and returns the value that will update the qubit parameters.
-
-
-```python
-def get_updated_value(self, analyzed_result):
-    return self.qubit.parameters.readout_lo_frequency + analyzed_result
-
-```
 
 The next two methods are optional. There won't be any exceptions if they are not implemented. 
 
 - `set_extra_calibration`
 
-    In this methods, you can override some of the experiment calibration after the experiment is generated by `_gen_experiment`. 
+    In this methods, you can override some of the experiment calibration after the experiment object `self.exp` is generated by `_gen_experiment`. This provide some flexibility to adjust some power range setting of the lines.
+    For example, during the qubit spectroscopy, we would like to use a very long drive pulses (preferable to be much longer than the lifetime of the qubit transition) with very low power. But to observe Rabi flip flop, the pulse duration
+    must be much shorter than the coherence time of the qubits and hence low power is required. In this case, we could use `set_extra_calibration` to adjust the power range of the drive line to a lower value.
 
 - `plot`
 
     used for plotting.
 
     
-
-
 ```python
 def set_extra_calibration(
     self, drive_range=None, measure_range=None, acquire_range=None

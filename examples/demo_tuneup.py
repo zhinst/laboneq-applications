@@ -9,9 +9,11 @@ from laboneq_library.automatic_tuneup.tuneup.helper import (
     save_qubits,
 )
 from laboneq_library.automatic_tuneup.tuneup.scan import *
+from laboneq_library.automatic_tuneup.tuneup.qubit_config import QubitConfig, QubitConfigs
+from laboneq_library.automatic_tuneup.tuneup.params import SweepParams
 
 EMULATION = True
-TEST_ON_SCOPE = True
+TEST_ON_SCOPE = False
 if TEST_ON_SCOPE:
     device_setup = get_device_setup_qzilla_shfqc()
 else:
@@ -59,29 +61,24 @@ q1 = Transmon.from_logical_signal_group(
 # setting up scans
 def generate_pulsed_resonator_scan():
     freq_sweep = LinearSweepParameter(start=35e6, stop=45e6, count=210)
-    spec_analyzer = ta.Lorentzian()
+    spec_analyzer = ta.MockAnalyzer(handles=["res_spec"])
     exp_settings = {"integration_time": 10e-6, "num_averages": 2**10}
     readout_pulse = pulse_library.const(
         uid="readout_pulse", length=2e-6, amplitude=0.05
     )
     kernel_pulse = pulse_library.const(uid="kernel_pulse", length=2e-6, amplitude=1.0)
     pulse_storage = {"readout_pulse": readout_pulse, "kernel_pulse": kernel_pulse}
+
+    param0 = SweepParams(frequency=freq_sweep)
+    qconfig0 = QubitConfig(param0,q0,update_key="readout_resonator_frequency", pulses=pulse_storage, analyzer=spec_analyzer)
+    qconfigs = QubitConfigs([qconfig0])
+
     scan_prs = Scan(
         uid="pulsed_resonator_spec",
         session=session,
-        qubit=q0,
-        params=[freq_sweep],
-        update_key="readout_resonator_frequency",
-        exp_fac=ReadoutSpectroscopyPulsed,
+        qubit_configs=qconfigs,
+        exp_fac=ResonatorPulsedSpec,
         exp_settings=exp_settings,
-        analyzer=spec_analyzer,
-        pulse_storage=pulse_storage,
-        analyzing_parameters={
-            "f0": 0.4e8,
-            "a": 1e-5,
-            "gamma": 0.05e8,
-            "frequency_offset": 0,
-        },
     )
 
     scan_prs.set_extra_calibration(measure_range=-30)
@@ -90,7 +87,7 @@ def generate_pulsed_resonator_scan():
 
 def generate_qubit_spectroscopy_scan():
     freq_sweep = LinearSweepParameter(start=16e6, stop=22e6, count=201)
-    spec_analyzer = ta.Lorentzian()
+    spec_analyzer = ta.MockAnalyzer()
     exp_settings = {"num_averages": 2**11}
     readout_pulse = pulse_library.const(
         uid="readout_pulse", length=2e-6, amplitude=0.05
@@ -105,23 +102,17 @@ def generate_qubit_spectroscopy_scan():
         "drive_pulse": drive_pulse,
         "kernel_pulse": kernel_pulse,
     }
+
+    param0 = SweepParams(frequency=freq_sweep)
+    qconfig0 = QubitConfig(param0,q0,update_key="readout_resonator_frequency", pulses=pulse_storage, analyzer=spec_analyzer)
+    qconfigs = QubitConfigs([qconfig0])
+
     scan_qspec = Scan(
         uid="pulsed_qspec",
         session=session,
-        qubit=q0,
-        params=[freq_sweep],
-        update_key="resonance_frequency_ge",
+        qubit_configs=qconfigs,
         exp_fac=PulsedQubitSpectroscopy,
         exp_settings=exp_settings,
-        analyzer=spec_analyzer,
-        pulse_storage=pulse_storage,
-        analyzing_parameters={
-            "f0": 1.85e7,
-            "a": 0.02,
-            "gamma": 0.05e8,
-            "offset": 0.04,
-            "flip_sign": True,
-        },
     )
     scan_qspec.set_extra_calibration(drive_range=-25)
     return scan_qspec
@@ -143,24 +134,27 @@ def generate_rabi_scan():
         "drive_pulse": drive_pulse,
         "kernel_pulse": kernel_pulse,
     }
-    analyzer = ta.RabiAnalyzer()
+    rabi_analyzer = ta.RabiAnalyzer()
+
+    param0 = SweepParams(amplitude=amp_sweep)
+    qconfig0 = QubitConfig(param0,q0,update_key="pi_pulse_amplitude", pulses=pulse_storage, analyzer=rabi_analyzer)
+    qconfigs = QubitConfigs([qconfig0])
+
     scan_amp_rabi = Scan(
         uid="amplitude_rabi",
         session=session,
-        qubit=q0,
-        params=[amp_sweep],
-        update_key="pi_pulse_amplitude",
+        qubit_configs=qconfigs,
         exp_fac=AmplitudeRabi,
         exp_settings=exp_settings,
-        analyzer=analyzer,
-        pulse_storage=pulse_storage,
-        analyzing_parameters={"amp_pi": 0.2},
     )
     return scan_amp_rabi
 
 
 def generate_mock_scan(uid):
-    scan = Scan(uid=uid, session=mock_session, exp_fac=MockExp, qubit=q0)
+    analyzer = ta.MockAnalyzer()
+    qconfig0 = QubitConfig(None, q0, update_key="pi_pulse_amplitude", analyzer=analyzer)
+    qconfigs = QubitConfigs([qconfig0])
+    scan = Scan(uid=uid, session=mock_session, exp_fac=MockExp, qubit_configs=qconfigs)
     return scan
 
 
@@ -203,4 +197,4 @@ if __name__ == "__main__":
         update=update_params,
     )
 
-    save_qubits(scan_rabi.qubit)
+    save_qubits(q0)
