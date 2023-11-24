@@ -386,7 +386,7 @@ class ExperimentTemplate():
 
     def define_experiment(self):
         # Define the experiment acquire loops, sweeps, sections, pulses
-        # to be overridden by children
+        # To be overridden by children
         self.sweeps_dict = {}
         for qubit in self.qubits:
             self.sweeps_dict[qubit.uid] = []
@@ -1325,8 +1325,47 @@ class SingleQubitGateTuneup(ExperimentTemplate):
                 f'["ge", "ef", "fh"].'
             )
 
-    def run_analysis(self):
-        plt_hlp.plot_results(self.results, savedir=self.savedir)
+    def analyse_experiment(self):
+        self.new_qubit_parameters = {}
+        self.fit_results = {}
+        ts = self.timestamp if self.timestamp is not None else ''
+        for qubit in self.qubits:
+            # extract data
+            handle = f"{self.experiment_name}_{qubit.uid}"
+            do_pca = self.analysis_metainfo.get("do_pca", False)
+            data_dict = ana_hlp.extract_and_rotate_data_1d(
+                self.results, handle, cal_states=self.cal_states, do_pca=do_pca)
+            num_cal_traces = data_dict["num_cal_traces"]
+
+            # configure plot: data is plotted in analyse_experiment_qubit
+            fig, ax = plt.subplots()
+            ax.set_xlabel(self.results.get_axis_name(handle)[0])
+            ax.set_ylabel("Principal Component (a.u)" if num_cal_traces == 0 else
+                          f"$|{self.cal_states[-1]}\\rangle$-State Population")
+            ax.set_title(f'{ts}_{handle}')
+            # run the analysis from the children
+            self.analyse_experiment_qubit(qubit, data_dict, fig, ax)
+            if self.save:
+                # Save the figure
+                self.save_figure(fig, qubit)
+                # Save fit results
+                self.save_fit_results()
+            if self.analysis_metainfo.get("show_figures", False):
+                plt.show()
+            plt.close(fig)
+
+    def analyse_experiment_qubit(self, qubit, data_dict, figure, ax):
+        """
+        Method to be overriden by children.
+
+        Args:
+            qubit: qubit-class instance
+            data_dict: the return dict of ana_hlp.extract_and_rotate_data_1d
+            figure: figure instance
+            ax: axis instance
+
+        """
+        pass
 
 
 class AmplitudeRabi(SingleQubitGateTuneup):
@@ -1373,91 +1412,67 @@ class AmplitudeRabi(SingleQubitGateTuneup):
             sweep.add(measure_sections)
             self.add_cal_states_sections(qubit)
 
-    def analyse_experiment(self):
-        self.new_qubit_parameters = {}
-        self.fit_results = {}
-        ts = self.timestamp if self.timestamp is not None else ''
-        for qubit in self.qubits:
-            # extract data
-            handle = f"{self.experiment_name}_{qubit.uid}"
-            data_dict = ana_hlp.extract_and_rotate_data_1d(
-                self.results, handle, cal_states=self.cal_states)
-            num_cal_traces = data_dict["num_cal_traces"]
+    def analyse_experiment_qubit(self, qubit, data_dict, figure, ax):
+        # plot data
+        ax.plot(data_dict["sweep_points_w_cal_tr"],
+                data_dict["data_rotated_w_cal_tr"], 'o', zorder=2)
+        if self.analysis_metainfo.get('do_fitting', True):
+            swpts_to_fit = data_dict["sweep_points"]
+            data_to_fit = data_dict["data_rotated"]
+            # fit data
+            freqs_guess, phase_guess = ana_hlp.find_oscillation_frequency_and_phase(
+                data_to_fit, swpts_to_fit)
+            param_hints = self.analysis_metainfo.get(
+                'param_hints', {
+                    'frequency': {'value': 2 * np.pi * freqs_guess,
+                                  'min': 0},
+                    'phase': {'value': phase_guess},
+                    'amplitude': {'value': abs(max(data_to_fit) -
+                                               min(data_to_fit)) / 2,
+                                  'min': 0},
+                    'offset': {'value': np.mean(data_to_fit)}
+                })
+            fit_res = ana_hlp.fit_data_lmfit(
+                fit_mods.oscillatory, swpts_to_fit, data_to_fit,
+                param_hints=param_hints)
+            self.fit_results[qubit.uid] = fit_res
 
-            # plot data
-            fig, ax = plt.subplots()
-            ax.plot(data_dict["sweep_points_w_cal_tr"], data_dict["data_rotated_w_cal_tr"],
-                    'o', zorder=2)
-            ax.set_xlabel("Amplitude Scaling")
-            ax.set_ylabel("Principal Component (a.u)" if num_cal_traces == 0 else
-                          f"$|{self.cal_states[-1]}\\rangle$-State Population")
-            ax.set_title(f'{ts}_{handle}')
+            freq_fit = fit_res.best_values['frequency']
+            phase_fit = fit_res.best_values['phase']
+            pi_amps_top, pi_amps_bottom, pi2_amps_rise, pi2_amps_fall = \
+                ana_hlp.get_pi_pi2_xvalues_on_cos(
+                    swpts_to_fit, freq_fit, phase_fit)
+            # if pca is done, it can happen that the pi-pulse amplitude
+            # is in pi_amps_bottom and the pi/2-pulse amplitude in pi2_amps_fall
+            pi_amps = np.sort(np.concatenate([pi_amps_top, pi_amps_bottom]))
+            pi2_amps = np.sort(np.concatenate([pi2_amps_rise, pi2_amps_fall]))
+            pi2_amp = pi2_amps[0]
+            pi_amp = pi_amps[pi_amps > pi2_amp][0]
+            self.new_qubit_parameters[qubit.uid] = {'amplitude_pi': pi_amp,
+                                                    'amplitude_pi2': pi2_amp,
+                                                    'pi_amps': pi_amps,
+                                                    'pi2_amps': pi2_amps
+                                                    }
 
-            if self.analysis_metainfo.get('do_fitting', True):
-                swpts_to_fit = data_dict["sweep_points"]
-                data_to_fit = data_dict["data_rotated"]
-                # fit data
-                freqs_guess, phase_guess = ana_hlp.find_oscillation_frequency_and_phase(
-                    data_to_fit, swpts_to_fit)
-                param_hints = self.analysis_metainfo.get(
-                    'param_hints', {
-                        'frequency': {'value': 2 * np.pi * freqs_guess,
-                                      'min': 0},
-                        'phase': {'value': phase_guess},
-                        'amplitude': {'value': abs(max(data_to_fit) -
-                                                   min(data_to_fit)) / 2,
-                                      'min': 0},
-                        'offset': {'value': np.mean(data_to_fit)}
-                    })
-                fit_res = ana_hlp.fit_data_lmfit(
-                    fit_mods.oscillatory, swpts_to_fit, data_to_fit,
-                    param_hints=param_hints)
-                self.fit_results[qubit.uid] = fit_res
-
-                freq_fit = fit_res.best_values['frequency']
-                phase_fit = fit_res.best_values['phase']
-                pi_amps_top, pi_amps_bottom, pi2_amps_rise, pi2_amps_fall = \
-                    ana_hlp.get_pi_pi2_xvalues_on_cos(
-                        swpts_to_fit, freq_fit, phase_fit)
-                # if pca is done, it can happen that the pi-pulse amplitude
-                # is in pi_amps_bottom and the pi/2-pulse amplitude in pi2_amps_fall
-                pi_amps = np.sort(np.concatenate([pi_amps_top, pi_amps_bottom]))
-                pi2_amps = np.sort(np.concatenate([pi2_amps_rise, pi2_amps_fall]))
-                pi2_amp = pi2_amps[0]
-                pi_amp = pi_amps[pi_amps > pi2_amp][0]
-                self.new_qubit_parameters[qubit.uid] = {'amplitude_pi': pi_amp,
-                                                        'amplitude_pi2': pi2_amp,
-                                                        'pi_amps': pi_amps,
-                                                        'pi2_amps': pi2_amps
-                                                        }
-
-                # plot fit
-                swpts_fine = np.linspace(swpts_to_fit[0], swpts_to_fit[-1], 501)
-                ax.plot(swpts_fine, fit_res.model.func(
-                    swpts_fine, **fit_res.best_values), 'r-', zorder=1)
-                plt.plot(pi_amp, fit_res.model.func(
-                    pi_amp, **fit_res.best_values), 'sk', zorder=3,
-                         markersize=plt.rcParams['lines.markersize'] + 1)
-                plt.plot(pi2_amp, fit_res.model.func(
-                    pi2_amp, **fit_res.best_values), 'sk', zorder=3,
-                         markersize=plt.rcParams['lines.markersize'] + 1)
-                # textbox
-                old_pi_amp = qubit.parameters.drive_parameters_ge["amplitude_pi"]
-                old_pi2_amp = qubit.parameters.drive_parameters_ge["amplitude_pi2"]
-                textstr = f'$\\pi$-pulse amplitude: {pi_amp:.4f}'
-                textstr += f'\nOld $\\pi$-pulse amplitude: {old_pi_amp:.4f}'
-                textstr += f'\n$\\pi/2$-pulse amplitude: {pi2_amp:.4f}'
-                textstr += f'\nOld $\\pi/2$-pulse amplitude: {old_pi2_amp:.4f}'
-                ax.text(0, -0.15, textstr, ha='left', va='top',
-                        transform=ax.transAxes)
-            if self.save:
-                # Save the figure
-                self.save_figure(fig, qubit)
-                # Save fit results
-                self.save_fit_results()
-            if self.analysis_metainfo.get("show_figures", False):
-                plt.show()
-            plt.close(fig)
+            # plot fit
+            swpts_fine = np.linspace(swpts_to_fit[0], swpts_to_fit[-1], 501)
+            ax.plot(swpts_fine, fit_res.model.func(
+                swpts_fine, **fit_res.best_values), 'r-', zorder=1)
+            plt.plot(pi_amp, fit_res.model.func(
+                pi_amp, **fit_res.best_values), 'sk', zorder=3,
+                     markersize=plt.rcParams['lines.markersize'] + 1)
+            plt.plot(pi2_amp, fit_res.model.func(
+                pi2_amp, **fit_res.best_values), 'sk', zorder=3,
+                     markersize=plt.rcParams['lines.markersize'] + 1)
+            # textbox
+            old_pi_amp = qubit.parameters.drive_parameters_ge["amplitude_pi"]
+            old_pi2_amp = qubit.parameters.drive_parameters_ge["amplitude_pi2"]
+            textstr = f'$\\pi$-pulse amplitude: {pi_amp:.4f}'
+            textstr += f'\nOld $\\pi$-pulse amplitude: {old_pi_amp:.4f}'
+            textstr += f'\n$\\pi/2$-pulse amplitude: {pi2_amp:.4f}'
+            textstr += f'\nOld $\\pi/2$-pulse amplitude: {old_pi2_amp:.4f}'
+            ax.text(0, -0.15, textstr, ha='left', va='top',
+                    transform=ax.transAxes)
 
     def update_qubit_parameters(self):
         for qubit in self.qubits:
@@ -1557,88 +1572,65 @@ class Ramsey(SingleQubitGateTuneup):
     #         cal_drive.oscillator = Oscillator(
     #             frequency=freq, modulation_type=ModulationType.HARDWARE)
 
-    def analyse_experiment(self):
-        ts = self.timestamp if self.timestamp is not None else ''
-        self.new_qubit_parameters = {}
-        self.fit_results = {}
-        for qubit in self.qubits:
-            # extract data
-            handle = f"{self.experiment_name}_{qubit.uid}"
-            data_dict = ana_hlp.extract_and_rotate_data_1d(
-                self.results, handle, cal_states=self.cal_states)
-            num_cal_traces = data_dict["num_cal_traces"]
+    def analyse_experiment_qubit(self, qubit, data_dict, figure, ax):
+        # plot data with correct scaling
+        ax.plot(data_dict["sweep_points_w_cal_tr"] * 1e6,
+                data_dict["data_rotated_w_cal_tr"], 'o', zorder=2)
+        ax.set_xlabel("Pulse Delay, $\\tau$ ($\\mu$s)")
+        if self.analysis_metainfo.get('do_fitting', True):
+            swpts_to_fit = data_dict["sweep_points"]
+            data_to_fit = data_dict["data_rotated"]
+            # fit data
+            freqs_guess, phase_guess = ana_hlp.find_oscillation_frequency_and_phase(
+                data_to_fit, swpts_to_fit)
+            param_hints = self.analysis_metainfo.get(
+                'param_hints', {
+                    'frequency': {'value': freqs_guess},
+                    'phase': {'value': phase_guess, 'vary': False},
+                    'decay_time': {'value': 2 / 3 * max(swpts_to_fit),
+                                   'min': 0},
+                    'amplitude': {'value': 0.5,
+                                  'vary': False},
+                    'oscillation_offset': {'value': 0,
+                                           'vary': 'f' in self.cal_states},
+                    'exponential_offset': {'value': np.mean(data_to_fit)},
+                    'decay_exponent': {'value': 1, 'vary': False},
+                })
+            fit_res = ana_hlp.fit_data_lmfit(
+                fit_mods.oscillatory_decay_new, swpts_to_fit, data_to_fit,
+                param_hints=param_hints)
+            self.fit_results[qubit.uid] = fit_res
 
-            # plot data
-            fig, ax = plt.subplots()
-            ax.plot(data_dict["sweep_points_w_cal_tr"] * 1e6,
-                    data_dict["data_rotated_w_cal_tr"], 'o', zorder=2)
-            ax.set_xlabel("Pulse Delay ($\\mu$s)")
-            ax.set_ylabel("Principal Component (a.u)" if num_cal_traces == 0 else
-                          f"$|{self.cal_states[-1]}\\rangle$-State Population")
-            ax.set_title(f'{ts}_{handle}')
+            t2_star = fit_res.best_values['decay_time']
+            t2_star_err = fit_res.params['decay_time'].stderr
+            freq_fit = fit_res.best_values['frequency']
+            freq_fit_err = fit_res.params['frequency'].stderr
+            old_qb_freq = qubit.parameters.resonance_frequency_ge
+            introduced_detuning = self.experiment_metainfo["detuning"][qubit.uid]
+            print(old_qb_freq, introduced_detuning, freq_fit)
+            # new_qb_freq = old_qb_freq - (introduced_detuning - freq_fit)
+            new_qb_freq = old_qb_freq + introduced_detuning - freq_fit
+            self.new_qubit_parameters[qubit.uid] = {
+                'resonance_frequency_ge': new_qb_freq,
+                'T2_star': t2_star
+            }
 
-            if self.analysis_metainfo.get('do_fitting', True):
-                swpts_to_fit = data_dict["sweep_points"]
-                data_to_fit = data_dict["data_rotated"]
-                # fit data
-                freqs_guess, phase_guess = ana_hlp.find_oscillation_frequency_and_phase(
-                    data_to_fit, swpts_to_fit)
-                param_hints = self.analysis_metainfo.get(
-                    'param_hints', {
-                        'frequency': {'value': freqs_guess},
-                        'phase': {'value': phase_guess, 'vary': False},
-                        'decay_time': {'value': 2 / 3 * max(swpts_to_fit),
-                                       'min': 0},
-                        'amplitude': {'value': 0.5,
-                                      'vary': False},
-                        'oscillation_offset': {'value': 0,
-                                               'vary': 'f' in self.cal_states},
-                        'exponential_offset': {'value': np.mean(data_to_fit)},
-                        'decay_exponent': {'value': 1, 'vary': False},
-                    })
-                fit_res = ana_hlp.fit_data_lmfit(
-                    fit_mods.oscillatory_decay_new, swpts_to_fit, data_to_fit,
-                    param_hints=param_hints)
-                self.fit_results[qubit.uid] = fit_res
-
-                t2_star = fit_res.best_values['decay_time']
-                t2_star_err = fit_res.params['decay_time'].stderr
-                freq_fit = fit_res.best_values['frequency']
-                freq_fit_err = fit_res.params['frequency'].stderr
-                old_qb_freq = qubit.parameters.resonance_frequency_ge
-                introduced_detuning = self.experiment_metainfo["detuning"][qubit.uid]
-                print(old_qb_freq, introduced_detuning, freq_fit)
-                # new_qb_freq = old_qb_freq - (introduced_detuning - freq_fit)
-                new_qb_freq = old_qb_freq + introduced_detuning - freq_fit
-                self.new_qubit_parameters[qubit.uid] = {
-                    'resonance_frequency_ge': new_qb_freq,
-                    'T2_star': t2_star
-                }
-
-                # plot fit
-                swpts_fine = np.linspace(swpts_to_fit[0], swpts_to_fit[-1], 501)
-                ax.plot(swpts_fine * 1e6, fit_res.model.func(
-                    swpts_fine, **fit_res.best_values), 'r-', zorder=1)
-                textstr = (f'New qubit frequency: {new_qb_freq / 1e9:.6f} GHz '
-                           f'$\\pm$ {freq_fit_err / 1e6:.4f} MHz')
-                textstr += f'\nOld qubit frequency: {old_qb_freq / 1e9:.6f} GHz'
-                textstr += (f'\nDiff new-old qubit frequency: '
-                            f'{(new_qb_freq - old_qb_freq) / 1e6:.6f} MHz')
-                textstr += f'\nIntroduced detuning: {introduced_detuning / 1e6:.2f} MHz'
-                textstr += (f'\nFitted frequency: {freq_fit / 1e6:.6f} '
-                            f'$\\pm$ {freq_fit_err / 1e6:.4f} MHz')
-                textstr += (f'\n$T_2^*$: {t2_star * 1e6:.4f} $\\pm$ '
-                            f'{t2_star_err * 1e6:.4f} $\\mu$s')
-                ax.text(0, -0.15, textstr, ha='left', va='top',
-                        transform=ax.transAxes)
-            if self.save:
-                # Save the figure
-                self.save_figure(fig, qubit)
-                # Save fit results
-                self.save_fit_results()
-            if self.analysis_metainfo.get("show_figures", False):
-                plt.show()
-            plt.close(fig)
+            # plot fit
+            swpts_fine = np.linspace(swpts_to_fit[0], swpts_to_fit[-1], 501)
+            ax.plot(swpts_fine * 1e6, fit_res.model.func(
+                swpts_fine, **fit_res.best_values), 'r-', zorder=1)
+            textstr = (f'New qubit frequency: {new_qb_freq / 1e9:.6f} GHz '
+                       f'$\\pm$ {freq_fit_err / 1e6:.4f} MHz')
+            textstr += f'\nOld qubit frequency: {old_qb_freq / 1e9:.6f} GHz'
+            textstr += (f'\nDiff new-old qubit frequency: '
+                        f'{(new_qb_freq - old_qb_freq) / 1e6:.6f} MHz')
+            textstr += f'\nIntroduced detuning: {introduced_detuning / 1e6:.2f} MHz'
+            textstr += (f'\nFitted frequency: {freq_fit / 1e6:.6f} '
+                        f'$\\pm$ {freq_fit_err / 1e6:.4f} MHz')
+            textstr += (f'\n$T_2^*$: {t2_star * 1e6:.4f} $\\pm$ '
+                        f'{t2_star_err * 1e6:.4f} $\\mu$s')
+            ax.text(0, -0.15, textstr, ha='left', va='top',
+                    transform=ax.transAxes)
 
     def update_qubit_parameters(self):
         for qubit in self.qubits:
@@ -1749,61 +1741,38 @@ class T1(SingleQubitGateTuneup):
             sweep.add(measure_sections)
             self.add_cal_states_sections(qubit)
 
-    def analyse_experiment(self):
-        ts = self.timestamp if self.timestamp is not None else ''
-        self.new_qubit_parameters = {}
-        self.fit_results = {}
-        for qubit in self.qubits:
-            # extract data
-            handle = f"{self.experiment_name}_{qubit.uid}"
-            data_dict = ana_hlp.extract_and_rotate_data_1d(
-                self.results, handle, cal_states=self.cal_states)
-            num_cal_traces = data_dict["num_cal_traces"]
+    def analyse_experiment_qubit(self, qubit, data_dict, figure, ax):
+        # plot data with correct scaling
+        ax.plot(data_dict["sweep_points_w_cal_tr"] * 1e6,
+                data_dict["data_rotated_w_cal_tr"], 'o', zorder=2)
+        ax.set_xlabel("Pulse Delay, $\\tau$ ($\\mu$s)")
+        if self.analysis_metainfo.get('do_fitting', True):
+            swpts_to_fit = data_dict["sweep_points"]
+            data_to_fit = data_dict["data_rotated"]
+            # fit data
+            param_hints = self.analysis_metainfo.get(
+                'param_hints', {
+                    'decay_rate': {'value': 3 * max(swpts_to_fit) / 2},
+                    'amplitude': {'value': abs(max(data_to_fit) -
+                                               min(data_to_fit)) / 2,
+                                  'min': 0},
+                    'offset': {'value': 0, 'vary': False}
+                })
+            fit_res = ana_hlp.fit_data_lmfit(
+                fit_mods.exponential_decay, swpts_to_fit, data_to_fit,
+                param_hints=param_hints)
+            self.fit_results[qubit.uid] = fit_res
 
-            # plot data
-            fig, ax = plt.subplots()
-            ax.plot(data_dict["sweep_points_w_cal_tr"] * 1e6,
-                    data_dict["data_rotated_w_cal_tr"], 'o', zorder=2)
-            ax.set_xlabel("Pulse Delay ($\\mu$s)")
-            ax.set_ylabel("Principal Component (a.u)" if num_cal_traces == 0 else
-                          f"$|{self.cal_states[-1]}\\rangle$-State Population")
-            ax.set_title(f'{ts}_{handle}')
+            t1 = 1 / fit_res.best_values['decay_rate']
+            self.new_qubit_parameters[qubit.uid] = {'T1': t1}
 
-            if self.analysis_metainfo.get('do_fitting', True):
-                swpts_to_fit = data_dict["sweep_points"]
-                data_to_fit = data_dict["data_rotated"]
-                # fit data
-                param_hints = self.analysis_metainfo.get(
-                    'param_hints', {
-                        'decay_rate': {'value': 3 * max(swpts_to_fit) / 2},
-                        'amplitude': {'value': abs(max(data_to_fit) -
-                                                   min(data_to_fit)) / 2,
-                                      'min': 0},
-                        'offset': {'value': 0, 'vary': False}
-                    })
-                fit_res = ana_hlp.fit_data_lmfit(
-                    fit_mods.exponential_decay, swpts_to_fit, data_to_fit,
-                    param_hints=param_hints)
-                self.fit_results[qubit.uid] = fit_res
-
-                t1 = 1 / fit_res.best_values['decay_rate']
-                self.new_qubit_parameters[qubit.uid] = {'T1': t1}
-
-                # plot fit
-                swpts_fine = np.linspace(swpts_to_fit[0], swpts_to_fit[-1], 501)
-                ax.plot(swpts_fine * 1e6, fit_res.model.func(
-                    swpts_fine, **fit_res.best_values), 'r-', zorder=1)
-                textstr = f'$T_1$: {t1 * 1e6:.4f} $\\mu$s'
-                ax.text(0, -0.15, textstr, ha='left', va='top',
-                        transform=ax.transAxes)
-            if self.save:
-                # Save the figure
-                self.save_figure(fig, qubit)
-                # Save fit results
-                self.save_fit_results()
-            if self.analysis_metainfo.get("show_figures", False):
-                plt.show()
-            plt.close(fig)
+            # plot fit
+            swpts_fine = np.linspace(swpts_to_fit[0], swpts_to_fit[-1], 501)
+            ax.plot(swpts_fine * 1e6, fit_res.model.func(
+                swpts_fine, **fit_res.best_values), 'r-', zorder=1)
+            textstr = f'$T_1$: {t1 * 1e6:.4f} $\\mu$s'
+            ax.text(0, -0.15, textstr, ha='left', va='top',
+                    transform=ax.transAxes)
 
 
 class Echo(SingleQubitGateTuneup):
@@ -1882,65 +1851,43 @@ class Echo(SingleQubitGateTuneup):
             sweep.add(measure_sections)
             self.add_cal_states_sections(qubit)
 
-    def analyse_experiment(self):
-        ts = self.timestamp if self.timestamp is not None else ''
-        self.new_qubit_parameters = {}
-        self.fit_results = {}
-        for qubit in self.qubits:
-            # extract data
-            handle = f"{self.experiment_name}_{qubit.uid}"
-            data_dict = ana_hlp.extract_and_rotate_data_1d(
-                self.results, handle, cal_states=self.cal_states)
-            num_cal_traces = data_dict["num_cal_traces"]
+    def analyse_experiment_qubit(self, qubit, data_dict, figure, ax):
+        # plot data with correct scaling
+        ax.plot(data_dict["sweep_points_w_cal_tr"] * 1e6,
+                data_dict["data_rotated_w_cal_tr"], 'o', zorder=2)
+        ax.set_xlabel("Pulse Delay, $\\tau$ ($\\mu$s)")
 
-            # plot data
-            fig, ax = plt.subplots()
-            ax.plot(data_dict["sweep_points_w_cal_tr"] * 1e6,
-                    data_dict["data_rotated_w_cal_tr"], 'o', zorder=2)
-            ax.set_xlabel("Pulse Delay ($\\mu$s)")
-            ax.set_ylabel("Principal Component (a.u)" if num_cal_traces == 0 else
-                          f"$|{self.cal_states[-1]}\\rangle$-State Population")
-            ax.set_title(f'{ts}_{handle}')
+        if self.analysis_metainfo.get('do_fitting', True):
+            swpts_to_fit = data_dict["sweep_points"]
+            data_to_fit = data_dict["data_rotated"]
+            # fit data
+            freqs_guess, phase_guess = ana_hlp.find_oscillation_frequency_and_phase(
+                data_to_fit, swpts_to_fit)
+            param_hints = self.analysis_metainfo.get(
+                'param_hints', {
+                    'frequency': {'value': 2 * np.pi * freqs_guess},
+                    'phase': {'value': phase_guess},
+                    'decay_rate': {'value': 3 * max(swpts_to_fit) / 2,
+                                   'min': 0},
+                    'amplitude': {'value': 0.5,
+                                  'vary': False},
+                    'offset': {'value': np.mean(data_to_fit)}
+                })
+            fit_res = ana_hlp.fit_data_lmfit(
+                fit_mods.oscillatory_decay, swpts_to_fit, data_to_fit,
+                param_hints=param_hints)
+            self.fit_results[qubit.uid] = fit_res
 
-            if self.analysis_metainfo.get('do_fitting', True):
-                swpts_to_fit = data_dict["sweep_points"]
-                data_to_fit = data_dict["data_rotated"]
-                # fit data
-                freqs_guess, phase_guess = ana_hlp.find_oscillation_frequency_and_phase(
-                    data_to_fit, swpts_to_fit)
-                param_hints = self.analysis_metainfo.get(
-                    'param_hints', {
-                        'frequency': {'value': 2 * np.pi * freqs_guess},
-                        'phase': {'value': phase_guess},
-                        'decay_rate': {'value': 3 * max(swpts_to_fit) / 2,
-                                       'min': 0},
-                        'amplitude': {'value': 0.5,
-                                      'vary': False},
-                        'offset': {'value': np.mean(data_to_fit)}
-                    })
-                fit_res = ana_hlp.fit_data_lmfit(
-                    fit_mods.oscillatory_decay, swpts_to_fit, data_to_fit,
-                    param_hints=param_hints)
-                self.fit_results[qubit.uid] = fit_res
+            t2 = 1 / fit_res.best_values['decay_rate']
+            self.new_qubit_parameters[qubit.uid] = {'T2': t2}
 
-                t2 = 1 / fit_res.best_values['decay_rate']
-                self.new_qubit_parameters[qubit.uid] = {'T2': t2}
-
-                # plot fit
-                swpts_fine = np.linspace(swpts_to_fit[0], swpts_to_fit[-1], 501)
-                ax.plot(swpts_fine * 1e6, fit_res.model.func(
-                    swpts_fine, **fit_res.best_values), 'r-', zorder=1)
-                textstr = f'$T_2$: {t2 * 1e6:.4f} $\\mu$s'
-                ax.text(0, -0.15, textstr, ha='left', va='top',
-                        transform=ax.transAxes)
-            if self.save:
-                # Save the figure
-                self.save_figure(fig, qubit)
-                # Save fit results
-                self.save_fit_results()
-            if self.analysis_metainfo.get("show_figures", False):
-                plt.show()
-            plt.close(fig)
+            # plot fit
+            swpts_fine = np.linspace(swpts_to_fit[0], swpts_to_fit[-1], 501)
+            ax.plot(swpts_fine * 1e6, fit_res.model.func(
+                swpts_fine, **fit_res.best_values), 'r-', zorder=1)
+            textstr = f'$T_2$: {t2 * 1e6:.4f} $\\mu$s'
+            ax.text(0, -0.15, textstr, ha='left', va='top',
+                    transform=ax.transAxes)
 
 
 class RamseyDC(SingleQubitGateTuneup):
