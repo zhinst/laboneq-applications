@@ -4,6 +4,7 @@ import time
 import pickle
 import numpy as np
 from copy import deepcopy
+import uncertainties as unc
 import matplotlib.pyplot as plt
 from ruamel.yaml import YAML
 
@@ -1763,14 +1764,17 @@ class T1(SingleQubitGateTuneup):
                 param_hints=param_hints)
             self.fit_results[qubit.uid] = fit_res
 
-            t1 = 1 / fit_res.best_values['decay_rate']
-            self.new_qubit_parameters[qubit.uid] = {'T1': t1}
+            dec_rt = unc.ufloat(fit_res.params['decay_rate'].value,
+                                fit_res.params['decay_rate'].stderr)
+            t1 = 1 / dec_rt
+            self.new_qubit_parameters[qubit.uid] = {'T1': t1.nominal_value}
 
             # plot fit
             swpts_fine = np.linspace(swpts_to_fit[0], swpts_to_fit[-1], 501)
             ax.plot(swpts_fine * 1e6, fit_res.model.func(
                 swpts_fine, **fit_res.best_values), 'r-', zorder=1)
-            textstr = f'$T_1$: {t1 * 1e6:.4f} $\\mu$s'
+            textstr = (f'$T_1$: {t1.nominal_value * 1e6:.4f} $\\pm$ '
+                       f'{t1.std_dev * 1e6:.4f} $\\mu$s')
             ax.text(0, -0.15, textstr, ha='left', va='top',
                     transform=ax.transAxes)
 
@@ -1878,14 +1882,17 @@ class Echo(SingleQubitGateTuneup):
                 param_hints=param_hints)
             self.fit_results[qubit.uid] = fit_res
 
-            t2 = 1 / fit_res.best_values['decay_rate']
-            self.new_qubit_parameters[qubit.uid] = {'T2': t2}
+            dec_rt = unc.ufloat(fit_res.params['decay_rate'].value,
+                                fit_res.params['decay_rate'].stderr)
+            t2 = 1 / dec_rt
+            self.new_qubit_parameters[qubit.uid] = {'T2': t2.nominal_value}
 
             # plot fit
             swpts_fine = np.linspace(swpts_to_fit[0], swpts_to_fit[-1], 501)
             ax.plot(swpts_fine * 1e6, fit_res.model.func(
                 swpts_fine, **fit_res.best_values), 'r-', zorder=1)
-            textstr = f'$T_2$: {t2 * 1e6:.4f} $\\mu$s'
+            textstr = (f'$T_2$: {t2.nominal_value * 1e6:.4f} $\\pm$ '
+                       f'{t2.std_dev * 1e6:.4f} $\\mu$s')
             ax.text(0, -0.15, textstr, ha='left', va='top',
                     transform=ax.transAxes)
 
