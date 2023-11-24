@@ -923,9 +923,9 @@ class ResonatorSpectroscopy(ExperimentTemplate):
                 if len(self.fit_results) > 0:
                     # Save fit results
                     self.save_fit_results()
-        if self.analysis_metainfo.get("show_figures", False):
-            plt.show()
-        plt.close('all')
+            if self.analysis_metainfo.get("show_figures", False):
+                plt.show()
+            plt.close(fig)
 
     def update_qubit_parameters(self):
         for qubit in self.qubits:
@@ -1248,9 +1248,9 @@ class QubitSpectroscopy(ExperimentTemplate):
                 if len(self.fit_results) > 0:
                     # Save fit results
                     self.save_fit_results()
-        if self.analysis_metainfo.get("show_figures", False):
-            plt.show()
-        plt.close('all')
+            if self.analysis_metainfo.get("show_figures", False):
+                plt.show()
+            plt.close(fig)
 
     def update_qubit_parameters(self):
         for qubit in self.qubits:
@@ -1455,9 +1455,9 @@ class AmplitudeRabi(SingleQubitGateTuneup):
                 self.save_figure(fig, qubit)
                 # Save fit results
                 self.save_fit_results()
-        if self.analysis_metainfo.get("show_figures", False):
-            plt.show()
-        plt.close('all')
+            if self.analysis_metainfo.get("show_figures", False):
+                plt.show()
+            plt.close(fig)
 
     def update_qubit_parameters(self):
         for qubit in self.qubits:
@@ -1636,9 +1636,9 @@ class Ramsey(SingleQubitGateTuneup):
                 self.save_figure(fig, qubit)
                 # Save fit results
                 self.save_fit_results()
-        if self.analysis_metainfo.get("show_figures", False):
-            plt.show()
-        plt.close('all')
+            if self.analysis_metainfo.get("show_figures", False):
+                plt.show()
+            plt.close(fig)
 
     def update_qubit_parameters(self):
         for qubit in self.qubits:
@@ -1801,9 +1801,9 @@ class T1(SingleQubitGateTuneup):
                 self.save_figure(fig, qubit)
                 # Save fit results
                 self.save_fit_results()
-        if self.analysis_metainfo.get("show_figures", False):
-            plt.show()
-        plt.close('all')
+            if self.analysis_metainfo.get("show_figures", False):
+                plt.show()
+            plt.close(fig)
 
 
 class Echo(SingleQubitGateTuneup):
@@ -1938,9 +1938,9 @@ class Echo(SingleQubitGateTuneup):
                 self.save_figure(fig, qubit)
                 # Save fit results
                 self.save_fit_results()
-        if self.analysis_metainfo.get("show_figures", False):
-            plt.show()
-        plt.close('all')
+            if self.analysis_metainfo.get("show_figures", False):
+                plt.show()
+            plt.close(fig)
 
 
 class RamseyDC(SingleQubitGateTuneup):
