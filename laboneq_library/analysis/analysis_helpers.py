@@ -128,8 +128,7 @@ def get_pi_pi2_xvalues_on_cos(x, frequency, phase):
     cos(x * frequency + phase) at which x * frequency + phase = n * pi
     and x * frequency + phase = n * pi + pi/2.
 
-    Only the values that are inside the interval [min(x)-1e-2, max(x)+1e-2]
-    are returned. Here, the factor 1e-2 is a tolerance value.
+    Only the values that are inside the interval [min(x), max(x)] are returned.
 
     Args:
         x: array of x-values of the cosine function, corresponding for example
@@ -154,8 +153,8 @@ def get_pi_pi2_xvalues_on_cos(x, frequency, phase):
     pi_xvals_bottom = pi_xvals[1::2]
     pi2_xvals_rising = pi2_xvals[1::2]
     pi2_xvals_falling = pi2_xvals[0::2]
-    mask_func = lambda cos_xvals: np.logical_and(cos_xvals >= min(x) - 1e-2,
-                                                 cos_xvals <= max(x) + 1e-2)
+    mask_func = lambda cos_xvals: np.logical_and(cos_xvals >= min(x),
+                                                 cos_xvals <= max(x))
     pixv_top = pi_xvals_top[mask_func(pi_xvals_top)]
     pixv_bottom = pi_xvals_bottom[mask_func(pi_xvals_bottom)]
     pi2xv_rising = pi2_xvals_rising[mask_func(pi2_xvals_rising)]
