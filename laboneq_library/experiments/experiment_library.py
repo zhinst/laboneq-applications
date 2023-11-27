@@ -882,10 +882,16 @@ class ResonatorSpectroscopy(ExperimentTemplate):
                         self.fit_results[qubit.uid] = fit_res
 
                         # extract USS and LSS voltages and frequencies
-                        voltage_uss, voltage_lss, _, _ = ana_hlp.get_pi_pi2_xvalues_on_cos(
-                            swpts_to_fit, fit_res.best_values["frequency"], fit_res.best_values["phase"])
-                        freqs_uss = fit_res.model.func(voltage_uss, **fit_res.best_values)
-                        freqs_lss = fit_res.model.func(voltage_lss, **fit_res.best_values)
+                        freq_fit = unc.ufloat(fit_res.params['frequency'].value,
+                                              fit_res.params['frequency'].stderr)
+                        phase_fit = unc.ufloat(fit_res.params['phase'].value,
+                                               fit_res.params['phase'].stderr)
+                        voltages_uss, voltages_lss, _, _ = ana_hlp.get_pi_pi2_xvalues_on_cos(
+                            swpts_to_fit, freq_fit, phase_fit)
+                        v_uss_values = np.array([vuss.nominal_value for vuss in voltages_uss])
+                        v_lss_values = np.array([vlss.nominal_value for vlss in voltages_lss])
+                        freqs_uss = fit_res.model.func(v_uss_values, **fit_res.best_values)
+                        freqs_lss = fit_res.model.func(v_lss_values, **fit_res.best_values)
 
                         # plot fit
                         swpts_fine = np.linspace(swpts_to_fit[0],
@@ -893,8 +899,8 @@ class ResonatorSpectroscopy(ExperimentTemplate):
                         ax.plot(fit_res.model.func(
                             swpts_fine, **fit_res.best_values) / 1e9,
                                 swpts_fine, 'w-')
-                        line_uss, = ax.plot(freqs_uss / 1e9, voltage_uss, 'bo')
-                        line_lss, = ax.plot(freqs_lss / 1e9, voltage_lss, 'go')
+                        line_uss, = ax.plot(freqs_uss / 1e9, v_uss_values, 'bo')
+                        line_lss, = ax.plot(freqs_lss / 1e9, v_lss_values, 'go')
 
                         # extract parking values, show them on plot and save
                         # them in self.new_qubit_parameters
@@ -902,26 +908,28 @@ class ResonatorSpectroscopy(ExperimentTemplate):
                             "readout_resonator_frequency": {},
                             "dc_voltage_parking": {}
                         })
-                        if len(voltage_uss) > 0:
-                            uss_idx = np.argsort(abs(voltage_uss))[0]
-                            v_uss, f_uss = voltage_uss[uss_idx], freqs_uss[uss_idx]
-                            textstr = f"Smallest USS voltage: {v_uss:.4f} V"
-                            textstr += f"\nParking frequency: {f_uss / 1e9:.4f} GHz"
+                        if len(v_uss_values) > 0:
+                            uss_idx = np.argsort(abs(v_uss_values))[0]
+                            v_uss, f_uss = voltages_uss[uss_idx], freqs_uss[uss_idx]
+                            textstr = f"Smallest USS voltage:\n" + \
+                                      f"{v_uss.nominal_value:.4f} V $\\pm$ {v_uss.std_dev:.4f} V"
+                            textstr += f"\nParking frequency:\n{f_uss / 1e9:.4f} GHz"
                             ax.text(1, -0.15, textstr, ha='right', va='top',
                                     c=line_uss.get_c(), transform=ax.transAxes)
                             self.new_qubit_parameters[qubit.uid][
-                                "readout_resonator_frequency"]['uss'] = v_uss
+                                "readout_resonator_frequency"]['uss'] = v_uss.nominal_value
                             self.new_qubit_parameters[qubit.uid][
                                 "dc_voltage_parking"]['uss'] = f_uss
-                        if len(voltage_lss) > 0:
-                            lss_idx = np.argsort(abs(voltage_lss))[0]
-                            v_lss, f_lss = voltage_lss[lss_idx], freqs_lss[lss_idx]
-                            textstr = f"Smallest LSS voltage: {v_lss:.4f} V"
-                            textstr += f"\nParking frequency: {f_lss / 1e9:.4f} GHz"
+                        if len(v_lss_values) > 0:
+                            lss_idx = np.argsort(abs(v_lss_values))[0]
+                            v_lss, f_lss = voltages_lss[lss_idx], freqs_lss[lss_idx]
+                            textstr = f"Smallest LSS voltage:\n" + \
+                                      f"{v_lss.nominal_value:.4f} V $\\pm$ {v_lss.std_dev:.4f} V"
+                            textstr += f"\nParking frequency:\n{f_lss / 1e9:.4f} GHz"
                             ax.text(0, -0.15, textstr, ha='left', va='top',
                                     c=line_lss.get_c(), transform=ax.transAxes)
                             self.new_qubit_parameters[qubit.uid][
-                                "readout_resonator_frequency"]['lss'] = v_lss
+                                "readout_resonator_frequency"]['lss'] = v_lss.nominal_value
                             self.new_qubit_parameters[qubit.uid][
                                 "dc_voltage_parking"]['lss'] = f_lss
 
@@ -1159,7 +1167,8 @@ class QubitSpectroscopy(ExperimentTemplate):
                             fit_mods.lorentzian, freqs_to_fit, data_to_fit,
                             param_hints=param_hints)
                     self.fit_results[qubit.uid] = fit_res
-                    fqb = fit_res.best_values['position']
+                    fqb = fit_res.params['position'].value
+                    fqb_err = fit_res.params['position'].stderr
                     self.new_qubit_parameters[qubit.uid] = {
                         "resonance_frequency_ge": fqb}
 
@@ -1167,7 +1176,8 @@ class QubitSpectroscopy(ExperimentTemplate):
                     freqs_fine = np.linspace(freqs_to_fit[0], freqs_to_fit[-1], 501)
                     ax.plot(freqs_fine / 1e9, fit_res.model.func(
                         freqs_fine, **fit_res.best_values), 'r-')
-                    textstr = f'Extracted qubit frequency: {fqb / 1e9:.4f} GHz'
+                    textstr = (f'Extracted qubit frequency: {fqb / 1e9:.4f} GHz '
+                               f'$\\pm$ {fqb_err / 1e9:.4f} GHz')
                     textstr += (f'\nCurrent qubit frequency: '
                                 f'{qubit.parameters.resonance_frequency_ge / 1e9:.4f} GHz')
                     ax.text(0, -0.15, textstr, ha='left', va='top',
@@ -1478,8 +1488,10 @@ class AmplitudeRabi(SingleQubitGateTuneup):
                 param_hints=param_hints)
             self.fit_results[qubit.uid] = fit_res
 
-            freq_fit = fit_res.best_values['frequency']
-            phase_fit = fit_res.best_values['phase']
+            freq_fit = unc.ufloat(fit_res.params['frequency'].value,
+                                  fit_res.params['frequency'].stderr)
+            phase_fit = unc.ufloat(fit_res.params['phase'].value,
+                                  fit_res.params['phase'].stderr)
             pi_amps_top, pi_amps_bottom, pi2_amps_rise, pi2_amps_fall = \
                 ana_hlp.get_pi_pi2_xvalues_on_cos(
                     swpts_to_fit, freq_fit, phase_fit)
@@ -1489,32 +1501,39 @@ class AmplitudeRabi(SingleQubitGateTuneup):
             pi2_amps = np.sort(np.concatenate([pi2_amps_rise, pi2_amps_fall]))
             pi2_amp = pi2_amps[0]
             pi_amp = pi_amps[pi_amps > pi2_amp][0]
-            self.new_qubit_parameters[qubit.uid] = {'amplitude_pi': pi_amp,
-                                                    'amplitude_pi2': pi2_amp,
-                                                    'pi_amps': pi_amps,
-                                                    'pi2_amps': pi2_amps
-                                                    }
+            self.new_qubit_parameters[qubit.uid] = {
+                'amplitude_pi': pi_amp.nominal_value,
+                'amplitude_pi2': pi2_amp.nominal_value,
+                'pi_amps': [pia.nominal_value for pia in pi_amps],
+                'pi2_amps': [pi2a.nominal_value for pi2a in pi_amps]
+            }
 
             # plot fit
             swpts_fine = np.linspace(swpts_to_fit[0], swpts_to_fit[-1], 501)
             ax.plot(swpts_fine, fit_res.model.func(
                 swpts_fine, **fit_res.best_values), 'r-', zorder=1)
-            plt.plot(pi_amp, fit_res.model.func(
-                pi_amp, **fit_res.best_values), 'sk', zorder=3,
+            plt.plot(pi_amp.nominal_value, fit_res.model.func(
+                pi_amp.nominal_value, **fit_res.best_values), 'sk', zorder=3,
                      markersize=plt.rcParams['lines.markersize'] + 1)
-            plt.plot(pi2_amp, fit_res.model.func(
-                pi2_amp, **fit_res.best_values), 'sk', zorder=3,
+            plt.plot(pi2_amp.nominal_value, fit_res.model.func(
+                pi2_amp.nominal_value, **fit_res.best_values), 'sk', zorder=3,
                      markersize=plt.rcParams['lines.markersize'] + 1)
             # textbox
             old_pi_amp = qubit.parameters.drive_parameters_ef["amplitude_pi"] if \
-                'f' in self.transition_to_calib else qubit.parameters.drive_parameters_ge["amplitude_pi"]
+                'f' in self.transition_to_calib else \
+                qubit.parameters.drive_parameters_ge["amplitude_pi"]
             old_pi2_amp = qubit.parameters.drive_parameters_ef["amplitude_pi2"] if \
-                'f' in self.transition_to_calib else qubit.parameters.drive_parameters_ge["amplitude_pi2"]
-            textstr = f'$\\pi$-pulse amplitude: {pi_amp:.4f}'
-            textstr += f'\nOld $\\pi$-pulse amplitude: {old_pi_amp:.4f}'
-            textstr += f'\n$\\pi/2$-pulse amplitude: {pi2_amp:.4f}'
-            textstr += f'\nOld $\\pi/2$-pulse amplitude: {old_pi2_amp:.4f}'
+                'f' in self.transition_to_calib else \
+                qubit.parameters.drive_parameters_ge["amplitude_pi2"]
+            textstr = '$A_{\\pi}$: ' + \
+                      f'{pi_amp.nominal_value:.4f} $\\pm$ {pi_amp.std_dev:.4f}'
+            textstr += '\nCurrent $A_{\\pi}$: ' + f'{old_pi_amp:.4f}'
             ax.text(0, -0.15, textstr, ha='left', va='top',
+                    transform=ax.transAxes)
+            textstr = '$A_{\\pi/2}$: ' + \
+                      f'{pi2_amp.nominal_value:.4f} $\\pm$ {pi2_amp.std_dev:.4f}'
+            textstr += '\nCurrent $A_{\\pi/2}$: ' + f'{old_pi2_amp:.4f}'
+            ax.text(0.69, -0.15, textstr, ha='left', va='top',
                     transform=ax.transAxes)
 
     def update_qubit_parameters(self):
