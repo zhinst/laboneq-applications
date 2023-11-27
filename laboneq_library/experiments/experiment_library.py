@@ -1288,6 +1288,9 @@ class QubitSpectroscopy(ExperimentTemplate):
 class SingleQubitGateTuneup(ExperimentTemplate):
     def __init__(self, *args, signals=None, transition_to_calib="ge", **kwargs):
         self.transition_to_calib = transition_to_calib
+        # suffix of the drive signal
+        self.drive_signal_suffix = "_ef" if self.transition_to_calib == "ef" else ''
+
         cal_states = kwargs.get("cal_states", None)
         if cal_states is None:
             cal_states = "gef" if 'f' in self.transition_to_calib else "ge"
@@ -1308,30 +1311,6 @@ class SingleQubitGateTuneup(ExperimentTemplate):
         self.run = run
         if self.run:
             self.autorun()
-
-    def play_preparation_pulses(self, qubit):
-        if self.transition_to_calib == "ge":
-            return
-        elif self.transition_to_calib == "ef":
-            self.experiment.play(
-                signal=self.signal_name("drive", qubit),
-                pulse=qt_ops.quantum_gate(qubit, "X180_ge"),
-            )
-        elif self.transition_to_calib == "fh":
-            self.experiment.play(
-                signal=self.signal_name("drive", qubit),
-                pulse=qt_ops.quantum_gate(qubit, "X180_ge"),
-            )
-            self.experiment.play(
-                signal=self.signal_name("drive", qubit),
-                pulse=qt_ops.quantum_gate(qubit, "X180_ef"),
-            )
-        else:
-            raise ValueError(
-                f"Transitions name {self.transition_to_calib} "
-                f"not recognised. Please used one of "
-                f'["ge", "ef", "fh"].'
-            )
 
     def add_preparation_pulses_to_section(self, section, qubit):
         if self.transition_to_calib == "ge":
@@ -1414,7 +1393,6 @@ class AmplitudeRabi(SingleQubitGateTuneup):
         # outer loop - real-time, cyclic averaging
         self.create_acquire_rt_loop()
         self.experiment.add(self.acquire_loop)
-        drive_sig_suff = "_ef" if self.transition_to_calib == "ef" else ''
         for i, qubit in enumerate(self.qubits):
             # create sweep
             sweep = Sweep(uid=f"{qubit.uid}_{self.experiment_name}_sweep",
@@ -1443,7 +1421,8 @@ class AmplitudeRabi(SingleQubitGateTuneup):
             # amplitude is scaled w.r.t this value
             drive_pulse.amplitude = 1
             excitation_section.play(
-                signal=self.signal_name(f"drive{drive_sig_suff}", qubit),
+                signal=self.signal_name(
+                    f"drive{self.drive_signal_suffix}", qubit),
                 pulse=drive_pulse,
                 amplitude=self.sweep_parameters_dict[qubit.uid][0]
             )
@@ -1554,7 +1533,6 @@ class Ramsey(SingleQubitGateTuneup):
         self.experiment.sections = []
         self.create_acquire_rt_loop()
         self.experiment.add(self.acquire_loop)
-        drive_sig_suff = "_ef" if self.transition_to_calib == "ef" else ''
         # from the delays sweep parameters, create sweep parameters for
         # half the total delay time and for the phase of the second X90 pulse
         detuning = self.experiment_metainfo.get('detuning')
@@ -1603,14 +1581,17 @@ class Ramsey(SingleQubitGateTuneup):
                 play_after=f"{qubit.uid}_preparation",
             )
             excitation_section.play(
-                signal=self.signal_name(f"drive{drive_sig_suff}", qubit),
+                signal=self.signal_name(
+                    f"drive{self.drive_signal_suffix}", qubit),
                 pulse=ramsey_drive_pulse
             )
             excitation_section.delay(
-                signal=self.signal_name(f'drive{drive_sig_suff}', qubit),
+                signal=self.signal_name(
+                    f'drive{self.drive_signal_suffix}', qubit),
                 time=swp_pars_delays[i])
             excitation_section.play(
-                signal=self.signal_name(f"drive{drive_sig_suff}", qubit),
+                signal=self.signal_name(
+                    f"drive{self.drive_signal_suffix}", qubit),
                 pulse=ramsey_drive_pulse,
                 phase=swp_pars_phases[i]
             )
@@ -1771,7 +1752,6 @@ class T1(SingleQubitGateTuneup):
         self.experiment.sections = []
         self.create_acquire_rt_loop()
         self.experiment.add(self.acquire_loop)
-        drive_sig_suff = "_ef" if self.transition_to_calib == "ef" else ''
 
         # create joint sweep for all qubits
         sweep = Sweep(
@@ -1801,12 +1781,14 @@ class T1(SingleQubitGateTuneup):
             # add x180 pulse
             x180_pulse = qt_ops.quantum_gate(qubit, f"X180_{self.transition_to_calib}")
             excitation_section.play(
-                signal=self.signal_name(f"drive{drive_sig_suff}", qubit),
+                signal=self.signal_name(
+                    f"drive{self.drive_signal_suffix}", qubit),
                 pulse=x180_pulse,
             )
             # add delay
             excitation_section.delay(
-                signal=self.signal_name(f"drive{drive_sig_suff}", qubit),
+                signal=self.signal_name(
+                    f"drive{self.drive_signal_suffix}", qubit),
                 time=self.sweep_parameters_dict[qubit.uid][0]
             )
 
@@ -1867,7 +1849,6 @@ class Echo(SingleQubitGateTuneup):
         self.experiment.sections = []
         self.create_acquire_rt_loop()
         self.experiment.add(self.acquire_loop)
-        drive_sig_suff = "_ef" if self.transition_to_calib == "ef" else ''
         # from the delays sweep parameters, create sweep parameters for
         # half the total delay time and for the phase of the second X90 pulse
         detuning = self.experiment_metainfo.get('detuning')
@@ -1920,23 +1901,28 @@ class Echo(SingleQubitGateTuneup):
                 qubit, f"X180_{self.transition_to_calib}"
             )
             excitation_section.play(
-                signal=self.signal_name(f"drive{drive_sig_suff}", qubit),
+                signal=self.signal_name(
+                    f"drive{self.drive_signal_suffix}", qubit),
                 pulse=ramsey_drive_pulse
             )
             excitation_section.delay(
-                signal=self.signal_name(f"drive{drive_sig_suff}", qubit),
+                signal=self.signal_name(
+                    f"drive{self.drive_signal_suffix}", qubit),
                 time=swp_pars_half_delays[i]
             )
             excitation_section.play(
-                signal=self.signal_name(f"drive{drive_sig_suff}", qubit),
+                signal=self.signal_name(
+                    f"drive{self.drive_signal_suffix}", qubit),
                 pulse=echo_drive_pulse
             )
             excitation_section.delay(
-                signal=self.signal_name(f"drive{drive_sig_suff}", qubit),
+                signal=self.signal_name(
+                    f"drive{self.drive_signal_suffix}", qubit),
                 time=swp_pars_half_delays[i]
             )
             excitation_section.play(
-                signal=self.signal_name(f"drive{drive_sig_suff}", qubit),
+                signal=self.signal_name(
+                    f"drive{self.drive_signal_suffix}", qubit),
                 pulse=ramsey_drive_pulse,
                 phase=swp_pars_phases[i]
             )
