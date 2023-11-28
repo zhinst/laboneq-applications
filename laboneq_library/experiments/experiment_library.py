@@ -398,15 +398,19 @@ class ExperimentTemplate():
                 )]
 
     def configure_experiment(self):
-        # Set experiment calibration
-        # This method sets the experiment calibration from the
-        # qubit calibration of a signal line.
-        # To be overridden by children for overwriting settings.
+        """
+        Set experiment calibration.
+
+        This method sets the experiment calibration from the qubit
+        calibration of a signal line. To be overridden by children for
+        overwriting settings.
+
+        """
 
         expcal = Calibration()
         for qubit in self.qubits:
             qbcal = qubit.calibration()
-            for sig in self.signals:  # 'drive', 'flux', 'measure', 'acquire'
+            for sig in self.signals:  # 'drive', 'drive_ef', 'flux', 'measure', 'acquire'
                 expcal[self.signal_name(sig, qubit)] = qbcal[qubit.signals[sig]]
         self.experiment.set_calibration(expcal)
 
