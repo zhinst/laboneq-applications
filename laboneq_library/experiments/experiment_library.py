@@ -1427,13 +1427,15 @@ class SingleQubitGateTuneup(ExperimentTemplate):
             handle = f"{self.experiment_name}_{qubit.uid}"
             do_pca = self.analysis_metainfo.get("do_pca", False)
             data_dict = ana_hlp.extract_and_rotate_data_1d(
-                self.results, handle, cal_states=self.cal_states, do_pca=do_pca)
+                self.results, handle, cal_states=self.cal_states,
+                do_pca=do_pca)
             num_cal_traces = data_dict["num_cal_traces"]
 
             # configure plot: data is plotted in analyse_experiment_qubit
             fig, ax = plt.subplots()
             ax.set_xlabel(self.results.get_axis_name(handle)[0])
-            ax.set_ylabel("Principal Component (a.u)" if num_cal_traces == 0 else
+            ax.set_ylabel("Principal Component (a.u)" if
+                          (num_cal_traces == 0 or do_pca) else
                           f"$|{self.cal_states[-1]}\\rangle$-State Population")
             ax.set_title(f'{ts}_{handle}')
             # run the analysis from the children
