@@ -76,13 +76,23 @@ def update_qubit_parameters_and_calibration(
     return transmon_list
 
 
-def update_setup_calibration_from_qubits(qubits, measurement_setup):
+def update_measurement_setup_from_qubits(qubits, measurement_setup):
+    """
+    Overwrites measurement_setup.qubit with qubits, and the measurement-setup
+    calibration with the qubits calibration.
+
+    Args:
+        qubits: list of qubits
+        measurement_setup: instance of DeviceSetup
+    """
+
     msmt_setup_cal = measurement_setup.get_calibration()
     for qubit in qubits:
         cal = qubit.calibration()
         for sig_name, lsig_path in qubit.signals.items():
             msmt_setup_cal[lsig_path] = cal[lsig_path]
     measurement_setup.set_calibration(msmt_setup_cal)
+    measurement_setup.qubits = qubits
 
 
 # create a transmon qubit object from entries in a parameter dictionary
@@ -166,6 +176,20 @@ def save_results(results_database, results_object, key_name: str, user_note: str
 
 
 def create_qubits(qubit_parameters, measurement_setup):
+    """
+    Instantiates Transmons from the logical signals in measurement_setup and
+    the qubit_parameters.
+
+    Args:
+        qubit_parameters: dictionary containing qubit parameters expected by
+            TransmonParameters. Has the form:
+            {qubit_name: {parameter_name: parameter_value}}
+        measurement_setup: instance of DeviceSetup
+
+    Returns:
+        list of Transmon instances
+    """
+
     qubits = []
     parameters = qubit_parameters
     for q_name in qubit_parameters:
@@ -196,20 +220,95 @@ def create_qubits(qubit_parameters, measurement_setup):
     return qubits
 
 
-def reload_qubit_parameters(folder, measurement_setup):
+def load_measurement_setup_from_data_folder(data_folder):
+    """
+    Load a DeviceSetup from the data_folder.
+
+    Searched for a filename that contains "measurement_setup.json" inside
+    data_folder.
+
+    Args:
+        data_folder: path to the directory where the measurement data is saved
+
+    Returns:
+        instance of DeviceSetup
+    """
+
+    msmt_setup_fn = [f for f in os.listdir(data_folder)
+                     if "measurement_setup.json" in f]
+    if len(msmt_setup_fn) == 0:
+        raise ValueError(f"The data folder {data_folder} does not contain a "
+                         f"measurement_setup.json file.")
+    else:
+        msmt_setup_fn = msmt_setup_fn[0]
+    return DeviceSetup.load(data_folder + f'\\{msmt_setup_fn}')
+
+
+def load_qubits_from_data_folder(data_folder, measurement_setup):
+    """
+    Creates new instances of Transmon with the parameters loaded from a file
+    in data_folder.
+
+    Searched for filenames containing "qubit_parameters.yaml" or
+    "qubit_parameters.json" in data_folder.
+
+    Args:
+        data_folder: path to the directory where the measurement data is saved
+        measurement_setup: instance of DeviceSetup; passed to create_qubits
+
+    Returns:
+        list of Transmon instances (see create_qubits)
+    """
+
     try:
-        qubit_parameters = load_qubit_parameters(folder + '\\qubit_parameters.yaml')
+        qubit_parameters = load_qubit_parameters(
+            data_folder + '\\qubit_parameters.yaml')
     except FileNotFoundError:
-        qubit_parameters = load_qubit_parameters_json(folder)
-    return create_qubits(qubit_parameters, measurement_setup)
+        qubit_parameters = load_qubit_parameters_json(data_folder)
+    qubits = create_qubits(qubit_parameters, measurement_setup)
+    measurement_setup.qubits = qubits
+    return qubits
 
 
-def save_qubit_parameters(savedir, qubits, timestamp=''):
+def save_qubit_parameters(save_folder, qubits, timestamp=''):
+    """
+    Saves the parameters of qubits into a json file.
+
+    Args:
+        save_folder: folder in which to save the json file
+        qubits: list of qubit instances
+        timestamp: string with the timestamp with the format "YYYYMMDD_hhmmss."
+            The timestamp is prepended to the json filename.
+    """
+
     qubit_parameters = {qb.uid: qb.parameters.__dict__ for qb in qubits}
     # Save all qubit parameters in one json file
     qb_pars_file = os.path.abspath(os.path.join(
-        savedir, f'{timestamp}_qubit_parameters.json'))
+        save_folder, f'{timestamp}_qubit_parameters.json'))
     with open(qb_pars_file, "w") as file:
         json.dump(qubit_parameters, file, indent=2)
 
 
+def get_latest_data_folder(data_directory):
+    """
+    Returns the last data folder in data_directory.
+
+    Example: data_directory contains the following folders:
+    ["20231128", "20231127", "20231126"]. This function returns the most recent
+    folder inside data_directory/20231128, as sorted by the timestamp in the
+    names of the folders. 
+
+    Args:
+        data_directory: directory where the measurement data is saved
+
+    Returns:
+        the latest data folder
+    """
+    day_folders = os.listdir(data_directory)
+    day_folders.sort()
+    day_folder = day_folders[-1]
+    ts_folders = os.listdir(data_directory + f'\\{day_folder}')
+    ts_folders.sort()
+    ts_folder = ts_folders[-1]
+    latest_folder = data_directory + f'\\{day_folder}\\{ts_folder}'
+    return latest_folder

@@ -432,15 +432,14 @@ class ExperimentTemplate():
 
     @staticmethod
     def update_measurement_setup(qubits, measurement_setup):
-        calib_hlp.update_setup_calibration_from_qubits(qubits, measurement_setup)
+        calib_hlp.update_measurement_setup_from_qubits(qubits, measurement_setup)
 
     def update_qubit_parameters(self):
         pass
 
     def update_entire_setup(self):
         self.update_qubit_parameters()
-        self.update_measurement_setup(self.qubits,
-                                      self.measurement_setup)
+        self.update_measurement_setup(self.qubits, self.measurement_setup)
 
     def create_timestamp_savedir(self):
         # create experiment timestamp
