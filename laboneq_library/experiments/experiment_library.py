@@ -1304,7 +1304,7 @@ class SingleQubitGateTuneup(ExperimentTemplate):
         kwargs["cal_states"] = cal_states
 
         if signals is None:
-            signals = ["drive", "drive_ef", "measure", "acquire"]
+            signals = ["drive", "measure", "acquire"]
         if 'f' in self.transition_to_calib and "drive_ef" not in signals:
             signals += ["drive_ef"]
 
