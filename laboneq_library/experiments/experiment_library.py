@@ -1623,7 +1623,7 @@ class Ramsey(SingleQubitGateTuneup):
         # plot data with correct scaling
         ax.plot((data_dict["sweep_points_w_cal_tr"] + delays_offset) * 1e6,
                 data_dict["data_rotated_w_cal_tr"], 'o', zorder=2)
-        ax.set_xlabel("Pulse Delay, $\\tau$ ($\\mu$s)")
+        ax.set_xlabel("Pulse Separation, $\\tau$ ($\\mu$s)")
         if self.analysis_metainfo.get('do_fitting', True):
             swpts_to_fit = data_dict["sweep_points"] + delays_offset
             data_to_fit = data_dict["data_rotated"]
@@ -1865,15 +1865,18 @@ class Echo(SingleQubitGateTuneup):
         swp_pars_phases = []
         for qubit in self.qubits:
             delays = self.sweep_parameters_dict[qubit.uid][0].values
+            pl = qubit.parameters.drive_parameters_ef["length"] \
+                if 'f' in self.transition_to_calib else \
+                qubit.parameters.drive_parameters_ge["length"]
             swp_pars_half_delays += [
-                SweepParameter(uid=f"echo_delays_{qubit.uid}",
-                               values=0.5 * (delays - qubit.parameters.drive_parameters_ge["length"]))
+                SweepParameter(
+                    uid=f"echo_delays_{qubit.uid}",
+                    values=0.5 * (delays - pl))  # subtract the echo-pulse length
             ]
             swp_pars_phases += [
                 SweepParameter(
                     uid=f"echo_phases_{qubit.uid}",
-                    values=((delays - delays[0] +
-                             qubit.parameters.drive_parameters_ge["length"]) *
+                    values=((delays - delays[0] + pl) *
                             detuning[qubit.uid] * 2 * np.pi) % (2 * np.pi)
                 )
             ]
@@ -1951,7 +1954,7 @@ class Echo(SingleQubitGateTuneup):
         # plot data with correct scaling
         ax.plot(data_dict["sweep_points_w_cal_tr"] * 1e6,
                 data_dict["data_rotated_w_cal_tr"], 'o', zorder=2)
-        ax.set_xlabel("Pulse Delay, $\\tau$ ($\\mu$s)")
+        ax.set_xlabel("Pulse Separation, $\\tau$ ($\\mu$s)")
 
         if self.analysis_metainfo.get('do_fitting', True):
             swpts_to_fit = data_dict["sweep_points"]
