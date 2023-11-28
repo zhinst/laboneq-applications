@@ -792,7 +792,11 @@ class ResonatorSpectroscopy(ExperimentTemplate):
         self.new_qubit_parameters = {}
         self.fit_results = {}
         freq_filter = self.analysis_metainfo.get('frequency_filter_for_fit', {})
+        if not hasattr(freq_filter, '__iter__'):
+            freq_filter = {qubit.uid: freq_filter for qubit in self.qubits}
         find_peaks = self.analysis_metainfo.get('find_peaks', {})
+        if not hasattr(find_peaks, '__iter__'):
+            find_peaks = {qubit.uid: find_peaks for qubit in self.qubits}
         for qubit in self.qubits:
             self.new_qubit_parameters[qubit.uid] = {}
             # get frequency filter of qubit
@@ -1172,7 +1176,11 @@ class QubitSpectroscopy(ExperimentTemplate):
         self.new_qubit_parameters = {}
         self.fit_results = {}
         freq_filter = self.analysis_metainfo.get('frequency_filter_for_fit', {})
+        if not hasattr(freq_filter, '__iter__'):
+            freq_filter = {qubit.uid: freq_filter for qubit in self.qubits}
         find_peaks = self.analysis_metainfo.get('find_peaks', {})
+        if not hasattr(find_peaks, '__iter__'):
+            find_peaks = {qubit.uid: find_peaks for qubit in self.qubits}
         for qubit in self.qubits:
             # get frequency filter of qubit
             ff_qb = freq_filter.get(qubit.uid, None)
