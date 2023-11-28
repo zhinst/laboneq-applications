@@ -1019,6 +1019,9 @@ class QubitSpectroscopy(ExperimentTemplate):
             # 2D sweep
             nt_sweep_pars = [self.sweep_parameters_dict[qubit.uid][1]
                              for qubit in self.qubits]
+            nt_sweep = Sweep(
+                uid=f"neartime_{self.nt_swp_par}_sweep",
+                parameters=nt_sweep_pars)
             if self.nt_swp_par == 'voltage':
                 ntsf = self.experiment_metainfo.get(
                     'neartime_callback_function', None)
@@ -1044,10 +1047,9 @@ class QubitSpectroscopy(ExperimentTemplate):
                     uid=f"neartime_{self.nt_swp_par}_sweep",
                     parameters=[nt_sweep_par])
                 nt_sweep.call(ntsf, voltage=nt_sweep_par)
-            else:
-                nt_sweep = Sweep(
-                    uid=f"neartime_{self.nt_swp_par}_sweep",
-                    parameters=nt_sweep_pars)
+
+            # add real-time loop to nt_sweep
+            nt_sweep.add(self.acquire_loop)
             self.experiment.add(nt_sweep)
         else:
             self.experiment.add(self.acquire_loop)
@@ -1058,7 +1060,7 @@ class QubitSpectroscopy(ExperimentTemplate):
         sweep_freq = Sweep(
             uid=f"{self.experiment_name}_sweep",
             parameters=sweep_pars_freq)
-        self.acquire_loop.add(sweep_freq)
+
         for i, qubit in enumerate(self.qubits):
             spec_pulse_amp = qubit.parameters.user_defined["spec_amplitude"]
             if self.nt_swp_par == 'amplitude':
@@ -1091,6 +1093,7 @@ class QubitSpectroscopy(ExperimentTemplate):
                 play_after=f"{qubit.uid}_excitation" if self.pulsed else None)
             sweep_freq.add(measure_sections)
 
+        self.acquire_loop.add(sweep_freq)
 
         # for qubit in self.qubits:
         #     spec_pulse_amp = qubit.parameters.user_defined["spec_amplitude"]
