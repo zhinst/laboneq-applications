@@ -1733,8 +1733,6 @@ class Ramsey(SingleQubitGateTuneup):
                 if 'f' in self.transition_to_calib else \
                 qubit.parameters.resonance_frequency_ge
             introduced_detuning = self.experiment_metainfo["detuning"][qubit.uid]
-            print(old_qb_freq, introduced_detuning, freq_fit)
-            # new_qb_freq = old_qb_freq - (introduced_detuning - freq_fit)
             new_qb_freq = old_qb_freq + introduced_detuning - freq_fit
             self.new_qubit_parameters[qubit.uid] = {
                 'resonance_frequency': new_qb_freq,
@@ -2121,9 +2119,8 @@ class RamseyParking(Ramsey):
                     data_dict_tmp = deepcopy(data_dict)
                     data_dict_tmp["data_rotated"] = data_to_fit
                     data_dict_tmp["data_rotated_w_cal_tr"] = data_rotated_w_cal_tr_2d[i, :]
-
                     fig, ax = plt.subplots()
-                    ax.set_xlabel(self.results.get_axis_name(handle)[1])
+                    ax.set_xlabel("Pulse Separation, $\\tau$ ($\\mu$s)")
                     ax.set_ylabel("Principal Component (a.u)" if
                                   (num_cal_traces == 0 or do_pca) else
                                   f"$|{self.cal_states[-1]}\\rangle$-State Population")
@@ -2179,12 +2176,15 @@ class RamseyParking(Ramsey):
                 # plot fit
                 voltages_fine = np.linspace(voltages[0], voltages[-1], 501)
                 ax.plot(voltages_fine, fit_res.model.func(
-                    voltages_fine, **fit_res.best_values) / 1e9, 'r-')
+                    voltages_fine, **fit_res.best_values) / 1e9, 'r-', zorder=1)
                 if voltages[0] <= V0 <= voltages[-1]:
                     ax.plot(V0, f0 / 1e9, 'sk',
                             markersize=plt.rcParams['lines.markersize'] + 1)
-                textstr = f"Parking voltage: {V0:.4f} $\\pm$ {V0err:.4f} V"
-                textstr += f"\nParking frequency: {f0 / 1e9:.4f} $\\pm$ {f0err / 1e9:.4f} GHz"
+                V0_old = qubit.parameters.user_defined["dc_voltage_parking"]
+                f0_old = qubit.parameters.resonance_frequency_ge
+                textstr = f"Parking voltage: {V0:.4f} $\\pm$ {V0err:.4f} V (previous: {V0_old:.4f} V)"
+                textstr += (f"\nParking frequency: {f0 / 1e9:.6f} $\\pm$ {f0err / 1e9:.6f} GHz "
+                            f"(previous: {f0_old / 1e9:.6f} GHz)")
                 ax.text(0, -0.15, textstr, ha='left', va='top',
                         transform=ax.transAxes)
 
@@ -2204,6 +2204,5 @@ class RamseyParking(Ramsey):
             new_qb_pars = self.new_qubit_parameters[qubit.uid]
             qubit.parameters.resonance_frequency_ge = new_qb_pars["parking"][
                 "resonance_frequency"]
-            if "dc_voltage_parking" in new_qb_pars:
-                qubit.parameters.user_defined["dc_voltage_parking"] = \
-                    new_qb_pars["parking"]["dc_voltage_parking"]
+            qubit.parameters.user_defined["dc_voltage_parking"] = \
+                new_qb_pars["parking"]["dc_voltage_parking"]
