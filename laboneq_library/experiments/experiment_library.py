@@ -1017,115 +1017,61 @@ class QubitSpectroscopy(ExperimentTemplate):
         self.experiment.sections = []
         self.create_acquire_rt_loop()
 
-        if len(self.sweep_parameters_dict[self.qubits[0].uid]) > 1:
-            # 2D sweep
-            nt_sweep_pars = [self.sweep_parameters_dict[qubit.uid][1]
-                             for qubit in self.qubits]
-            nt_sweep = Sweep(
-                uid=f"neartime_{self.nt_swp_par}_sweep",
-                parameters=nt_sweep_pars)
-            if self.nt_swp_par == 'voltage':
-                ntsf = self.experiment_metainfo.get(
-                    'neartime_callback_function', None)
-                if ntsf is None:
-                    raise ValueError(
-                        "Please provide the neartime callback function for "
-                        "the voltage sweep in "
-                        "experiment_metainfo['neartime_sweep_prameter'].")
-                # all near-time callback functions have the format
-                # func(session, sweep_param_value)
-                voltages_array = np.array([ntsp.values for ntsp in nt_sweep_pars]).T
-                slots_array = np.array([qubit.parameters.user_defined['dc_slot'] - 1
-                                        for qubit in self.qubits])
-                slots_array = slots_array[np.newaxis, :]
-                slots_array = np.repeat(slots_array, voltages_array.shape[0], axis=0)
-                sweep_array = np.zeros((voltages_array.shape[0],
-                                        2 * voltages_array.shape[1]))
-                sweep_array[:, 0::2] = slots_array
-                sweep_array[:, 1::2] = voltages_array
-                nt_sweep_par = SweepParameter(uid=f"dc_voltage_sweep",
-                                              values=sweep_array)
-                nt_sweep = Sweep(
-                    uid=f"neartime_{self.nt_swp_par}_sweep",
-                    parameters=[nt_sweep_par])
-                nt_sweep.call(ntsf, voltage=nt_sweep_par)
-
-            # add real-time loop to nt_sweep
-            nt_sweep.add(self.acquire_loop)
-            self.experiment.add(nt_sweep)
-        else:
-            self.experiment.add(self.acquire_loop)
-
-        # create joint frequency sweep for all qubits
-        sweep_pars_freq = [self.sweep_parameters_dict[qubit.uid][0]
-                           for qubit in self.qubits]
-        sweep_freq = Sweep(
-            uid=f"{self.experiment_name}_sweep",
-            parameters=sweep_pars_freq)
-
-        for i, qubit in enumerate(self.qubits):
-            spec_pulse_amp = qubit.parameters.user_defined["spec_amplitude"]
-            if self.nt_swp_par == 'amplitude':
-                spec_pulse_amp = nt_sweep_pars[i]
-
-            integration_kernel = None
-            if self.pulsed:
-                excitation_section = Section(uid=f"{qubit.uid}_excitation")
-                spec_pulse = pulse_library.const(
-                    uid=f"spectroscopy_pulse_{qubit.uid}",
-                    length=qubit.parameters.user_defined["spec_length"],
-                    amplitude=spec_pulse_amp,
-                    can_compress=True  # fails without this!
-                )
-                integration_kernel = pulse_library.const(
-                    uid=f"integration_kernel_{qubit.uid}",
-                    length=qubit.parameters.readout_integration_length,
-                    amplitude=qubit.parameters.user_defined['readout_amplitude'],
-                )
-                excitation_section.play(
-                    signal=self.signal_name("drive", qubit),
-                    pulse=spec_pulse
-                )
-                sweep_freq.add(excitation_section)
-
-            measure_sections = self.create_measure_acquire_sections(
-                uid=f"{qubit.uid}_readout",
-                qubit=qubit,
-                integration_kernel=integration_kernel,
-                play_after=f"{qubit.uid}_excitation" if self.pulsed else None)
-            sweep_freq.add(measure_sections)
-
-        self.acquire_loop.add(sweep_freq)
-
-        # for qubit in self.qubits:
-        #     spec_pulse_amp = qubit.parameters.user_defined["spec_amplitude"]
-        #     qb_sweep_pars = self.sweep_parameters_dict[qubit.uid]
-        #     if len(qb_sweep_pars) > 1:
-        #         nt_sweep_par = qb_sweep_pars[1]
-        #         nt_sweep = Sweep(
-        #             uid=f"neartime_{self.nt_swp_par}_sweep_{qubit.uid}",
-        #             parameters=[nt_sweep_par])
-        #         self.experiment.add(nt_sweep)
-        #         if self.nt_swp_par == 'voltage':
-        #             ntsf = self.experiment_metainfo.get(
-        #                 'neartime_callback_function', None)
-        #             if ntsf is None:
-        #                 raise ValueError(
-        #                     "Please provide the neartime callback function for "
-        #                     "the voltage sweep in "
-        #                     "experiment_metainfo['neartime_sweep_prameter'].")
-        #             # all near-time callback functions have the format
-        #             # func(session, sweep_param_value, qubit)
-        #             nt_sweep.call(ntsf, voltage=nt_sweep_par, qubit=qubit)
-        #         elif self.nt_swp_par == 'amplitude':
-        #             spec_pulse_amp = nt_sweep_par
-        #         # add real-time loop to nt_sweep
-        #         nt_sweep.add(self.acquire_loop)
-        #     else:
-        #         self.experiment.add(self.acquire_loop)
+        # if len(self.sweep_parameters_dict[self.qubits[0].uid]) > 1:
+        #     # 2D sweep
+        #     nt_sweep_pars = [self.sweep_parameters_dict[qubit.uid][1]
+        #                      for qubit in self.qubits]
+        #     nt_sweep = Sweep(
+        #         uid=f"neartime_{self.nt_swp_par}_sweep",
+        #         parameters=nt_sweep_pars)
+        #     if self.nt_swp_par == 'voltage':
+        #         ntsf = self.experiment_metainfo.get(
+        #             'neartime_callback_function', None)
+        #         if ntsf is None:
+        #             raise ValueError(
+        #                 "Please provide the neartime callback function for "
+        #                 "the voltage sweep in "
+        #                 "experiment_metainfo['neartime_sweep_prameter'].")
+        #         # all near-time callback functions have the format
+        #         # func(session, sweep_param_value)
+        #         voltages_array = np.array([ntsp.values for ntsp in nt_sweep_pars]).T
+        #         slots_array = np.array([qubit.parameters.user_defined['dc_slot'] - 1
+        #                                 for qubit in self.qubits])
+        #         slots_array = slots_array[np.newaxis, :]
+        #         slots_array = np.repeat(slots_array, voltages_array.shape[0], axis=0)
+        #         sweep_array = np.zeros((voltages_array.shape[0],
+        #                                 2 * voltages_array.shape[1]))
+        #         sweep_array[:, 0::2] = slots_array
+        #         sweep_array[:, 1::2] = voltages_array
         #
-        #     freq_sweep = Sweep(uid=f"frequency_sweep_{qubit.uid}",
-        #                        parameters=[self.sweep_parameters_dict[qubit.uid][0]])
+        #         voltages_qb = np.concatenate([[slot-nr], voltages])
+        #         nt_sweep_par_lst = [SweepParameter(uid=f"dc_voltage_sweep",
+        #                                       values=voltages_qb) for qb in self.qubits]
+        #         nt_sweep_par = SweepParameter(uid=f"dc_voltage_sweep",
+        #                                       values=sweep_array)
+        #         nt_sweep = Sweep(
+        #             uid=f"neartime_{self.nt_swp_par}_sweep",
+        #             parameters=nt_sweep_par_lst)
+        #         nt_sweep.call(ntsf, voltage={slotnr:voltages})
+        #
+        #     # add real-time loop to nt_sweep
+        #     nt_sweep.add(self.acquire_loop)
+        #     self.experiment.add(nt_sweep)
+        # else:
+        #     self.experiment.add(self.acquire_loop)
+        #
+        # # create joint frequency sweep for all qubits
+        # sweep_pars_freq = [self.sweep_parameters_dict[qubit.uid][0]
+        #                    for qubit in self.qubits]
+        # sweep_freq = Sweep(
+        #     uid=f"{self.experiment_name}_sweep",
+        #     parameters=sweep_pars_freq)
+        #
+        # for i, qubit in enumerate(self.qubits):
+        #     spec_pulse_amp = qubit.parameters.user_defined["spec_amplitude"]
+        #     if self.nt_swp_par == 'amplitude':
+        #         spec_pulse_amp = nt_sweep_pars[i]
+        #
         #     integration_kernel = None
         #     if self.pulsed:
         #         excitation_section = Section(uid=f"{qubit.uid}_excitation")
@@ -1141,18 +1087,85 @@ class QubitSpectroscopy(ExperimentTemplate):
         #             amplitude=qubit.parameters.user_defined['readout_amplitude'],
         #         )
         #         excitation_section.play(
-        #             signal=self.signal_name("drive", qubit), pulse=spec_pulse
+        #             signal=self.signal_name("drive", qubit),
+        #             pulse=spec_pulse
         #         )
-        #         freq_sweep.add(excitation_section)
+        #         sweep_freq.add(excitation_section)
         #
         #     measure_sections = self.create_measure_acquire_sections(
         #         uid=f"{qubit.uid}_readout",
         #         qubit=qubit,
         #         integration_kernel=integration_kernel,
         #         play_after=f"{qubit.uid}_excitation" if self.pulsed else None)
+        #     sweep_freq.add(measure_sections)
         #
-        #     freq_sweep.add(measure_sections)
-        #     self.acquire_loop.add(freq_sweep)
+        # self.acquire_loop.add(sweep_freq)
+
+        for qubit in self.qubits:
+            freq_sweep = Sweep(uid=f"frequency_sweep_{qubit.uid}",
+                               parameters=[self.sweep_parameters_dict[qubit.uid][0]])
+
+            spec_pulse_amp = None
+            qb_sweep_pars = self.sweep_parameters_dict[qubit.uid]
+            if len(qb_sweep_pars) > 1:
+                if self.nt_swp_par == 'voltage':
+                    voltage_sweep_par = qb_sweep_pars[1]
+                    voltage_sweep = Sweep(
+                        uid=f"neartime_{self.nt_swp_par}_sweep_{qubit.uid}",
+                        parameters=[voltage_sweep_par])
+                    self.experiment.add(voltage_sweep)
+
+                    ntsf = self.experiment_metainfo.get(
+                        'neartime_callback_function', None)
+                    if ntsf is None:
+                        raise ValueError(
+                            "Please provide the neartime callback function for "
+                            "the voltage sweep in "
+                            "experiment_metainfo['neartime_sweep_prameter'].")
+                    # all near-time callback functions have the format
+                    # func(session, sweep_param_value, qubit)
+                    voltage_sweep.call(ntsf, voltage=voltage_sweep_par, qubit=qubit)
+                elif self.nt_swp_par == 'amplitude':
+                    spec_pulse_amp = self.sweep_parameters_dict[qubit.uid][1]
+                    # add real-time loop to nt_sweep
+                    self.experiment.add(self.acquire_loop)
+                    amp_sweep = Sweep(
+                        uid=f"neartime_{self.nt_swp_par}_sweep_{qubit.uid}",
+                        parameters=[spec_pulse_amp])
+                    amp_sweep.add(freq_sweep)
+                    self.acquire_loop.add(amp_sweep)
+            else:
+                self.experiment.add(self.acquire_loop)
+                self.acquire_loop.add(freq_sweep)
+
+            integration_kernel = None
+            if self.pulsed:
+                excitation_section = Section(uid=f"{qubit.uid}_excitation")
+                spec_pulse = pulse_library.const(
+                    uid=f"spectroscopy_pulse_{qubit.uid}",
+                    length=qubit.parameters.user_defined["spec_length"],
+                    amplitude=qubit.parameters.user_defined["spec_amplitude"],
+                    can_compress=True  # fails without this!
+                )
+                integration_kernel = pulse_library.const(
+                    uid=f"integration_kernel_{qubit.uid}",
+                    length=qubit.parameters.readout_integration_length,
+                    amplitude=1,
+                )
+                excitation_section.play(
+                    signal=self.signal_name("drive", qubit),
+                    pulse=spec_pulse,
+                    amplitude=spec_pulse_amp
+                )
+                freq_sweep.add(excitation_section)
+
+            measure_sections = self.create_measure_acquire_sections(
+                uid=f"{qubit.uid}_readout",
+                qubit=qubit,
+                integration_kernel=integration_kernel,
+                play_after=f"{qubit.uid}_excitation" if self.pulsed else None)
+
+            freq_sweep.add(measure_sections)
 
     def configure_experiment(self):
         super().configure_experiment()
