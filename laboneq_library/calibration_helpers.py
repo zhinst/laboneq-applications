@@ -91,8 +91,10 @@ def update_measurement_setup_from_qubits(qubits, measurement_setup):
         cal = qubit.calibration()
         for sig_name, lsig_path in qubit.signals.items():
             msmt_setup_cal[lsig_path] = cal[lsig_path]
+        if qubit in measurement_setup.qubits:
+            qb_idx = measurement_setup.qubits.index(qubit)
+            measurement_setup.qubits[qb_idx] = qubit
     measurement_setup.set_calibration(msmt_setup_cal)
-    measurement_setup.qubits = qubits
 
 
 # create a transmon qubit object from entries in a parameter dictionary
