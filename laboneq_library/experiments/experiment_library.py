@@ -668,7 +668,8 @@ class ResonatorSpectroscopy(ExperimentTemplate):
         # Add suffix to experiment name
         if self.nt_swp_par != "frequency":
             self.experiment_name += f"{self.nt_swp_par[0].upper()}{self.nt_swp_par[1:]}Sweep"
-            self.create_experiment_label()
+        self.experiment_name += "_Pulsed" if self.pulsed else "_CW"
+        self.create_experiment_label()
 
         for qubit in self.qubits:
             freq_swp = self.sweep_parameters_dict[qubit.uid][0]
@@ -993,7 +994,8 @@ class QubitSpectroscopy(ExperimentTemplate):
         # Add suffix to experiment name
         if self.nt_swp_par != "frequency":
             self.experiment_name += f"{self.nt_swp_par[0].upper()}{self.nt_swp_par[1:]}Sweep"
-            self.create_experiment_label()
+        self.experiment_name += "_Pulsed" if self.pulsed else "_CW"
+        self.create_experiment_label()
 
         for qubit in self.qubits:
             freq_swp = self.sweep_parameters_dict[qubit.uid][0]
