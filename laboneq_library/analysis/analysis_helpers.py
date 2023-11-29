@@ -107,7 +107,7 @@ def extract_and_rotate_data_1d(results, handle, cal_states='ge', do_pca=False):
 def extract_and_rotate_data_2d(results, handle, cal_states='ge', do_pca=False):
     # extract data
     swpts_nt = deepcopy(results.get_axis(handle)[0])
-    swpts_rt = deepcopy(results.get_axis(handle)[1])
+    swpts_rt = deepcopy(results.get_axis(handle)[1][0])
     data_raw = deepcopy(results.get_data(handle))
     cal_trace_handles = [e for e in list(results.acquired_results)
                          if f"{handle}_cal_trace" in e]
