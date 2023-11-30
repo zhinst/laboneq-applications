@@ -296,6 +296,7 @@ class ExperimentTemplate():
     savedir = None
     timestamp = None
     compiled_exp = None
+    results = None
     fit_results = None
     new_qubit_parameters = None
 
@@ -404,8 +405,7 @@ class ExperimentTemplate():
         To be overridden by children for setting the experiment calibration.
 
         """
-        calib_hlp.update_measurement_setup_from_qubits(
-            self.qubits, self.measurement_setup)
+        self.update_measurement_setup()
 
     def compile_experiment(self):
         if len(self.experiment.sections) == 0:
@@ -416,7 +416,7 @@ class ExperimentTemplate():
         self.compiled_exp = self.session.compile(self.experiment)
 
     def run_experiment(self):
-        if self.savedir is None:
+        if self.save and self.savedir is None:
             self.create_timestamp_savedir()
         if self.compiled_exp is None:
             self.compile_experiment()
@@ -427,16 +427,16 @@ class ExperimentTemplate():
         # to be overridden by children
         pass
 
-    @staticmethod
-    def update_measurement_setup(qubits, measurement_setup):
-        calib_hlp.update_measurement_setup_from_qubits(qubits, measurement_setup)
+    def update_measurement_setup(self):
+        calib_hlp.update_measurement_setup_from_qubits(
+            self.qubits, self.measurement_setup)
 
     def update_qubit_parameters(self):
         pass
 
     def update_entire_setup(self):
         self.update_qubit_parameters()
-        self.update_measurement_setup(self.qubits, self.measurement_setup)
+        self.update_measurement_setup()
 
     def create_timestamp_savedir(self):
         # create experiment timestamp
@@ -453,30 +453,42 @@ class ExperimentTemplate():
         if not os.path.exists(self.savedir):
             os.makedirs(self.savedir)
 
-    def save_experiment(self):
+    def save_measurement_setup(self, filename=None):
         if self.savedir is None:
             self.create_timestamp_savedir()
 
-        # Save Results
-        results_file = os.path.abspath(os.path.join(
-            self.savedir, f'{self.timestamp}_results.json'))
-        try:
-            self.results.save(results_file)
-        except Exception as e:
-            log.warning(f'Could not save all the results: {e}')
-
-            # Save only the acquired results as pickle
-            filename = os.path.abspath(os.path.join(
-                self.savedir, f"{self.timestamp}_acquired_results.p")
-            )
-            with open(filename, "wb") as f:
-                pickle.dump(self.results.acquired_results, f)
-
         # Save the measurement setup
-        filename = os.path.abspath(os.path.join(
-            self.savedir, f"{self.timestamp}_measurement_setup.json")
-        )
-        self.measurement_setup.save(filename)
+        if filename is None:
+            filename = f"measurement_setup_before_experiment.json"
+        filename = f"{self.timestamp}_{filename}"
+        filepath = os.path.abspath(os.path.join(self.savedir, filename))
+        if filename not in os.listdir(self.savedir):
+            # only save the setup if the file does not already exist
+            self.measurement_setup.save(filepath)
+
+    def save_results(self):
+        if self.results is not None:
+            if self.savedir is None:
+                self.create_timestamp_savedir()
+            # Save Results
+            results_file = os.path.abspath(os.path.join(
+                self.savedir, f'{self.timestamp}_results.json'))
+            try:
+                self.results.save(results_file)
+            except Exception as e:
+                log.warning(f'Could not save all the results: {e}')
+
+                # Save only the acquired results as pickle
+                filename = os.path.abspath(os.path.join(
+                    self.savedir, f"{self.timestamp}_acquired_results.p")
+                )
+                with open(filename, "wb") as f:
+                    pickle.dump(self.results.acquired_results, f)
+        if self.fit_results is not None and len(self.fit_results) > 0:
+            if self.savedir is None:
+                self.create_timestamp_savedir()
+            # Save fit results
+            self.save_fit_results()
 
     def save_figure(self, fig, qubit, figure_name=None):
         if self.savedir is None:
@@ -514,15 +526,18 @@ class ExperimentTemplate():
 
     def autorun(self):
         try:
+            if self.save:
+                # save the measurement setup configuration before the experiment
+                self.save_measurement_setup()
             if self.compiled_exp is None:
                 self.compile_experiment()
             self.run_experiment()
-            if self.save:
-                self.save_experiment()
             if self.do_analysis:
                 self.analyse_experiment()
             if self.update:
                 self.update_entire_setup()
+            if self.save:
+                self.save_results()
             return self.results
         except Exception:
             log.error("Unhandled error during experiment!")
@@ -954,9 +969,6 @@ class ResonatorSpectroscopy(ExperimentTemplate):
             if self.save:
                 # Save the figure
                 self.save_figure(fig, qubit)
-                if len(self.fit_results) > 0:
-                    # Save fit results
-                    self.save_fit_results()
             if self.analysis_metainfo.get("show_figures", False):
                 plt.show()
             plt.close(fig)
@@ -1361,9 +1373,6 @@ class QubitSpectroscopy(ExperimentTemplate):
             if self.save:
                 # Save the figure
                 self.save_figure(fig, qubit)
-                if len(self.fit_results) > 0:
-                    # Save fit results
-                    self.save_fit_results()
             if self.analysis_metainfo.get("show_figures", False):
                 plt.show()
             plt.close(fig)
@@ -1462,8 +1471,6 @@ class SingleQubitGateTuneup(ExperimentTemplate):
             if self.save:
                 # Save the figure
                 self.save_figure(fig, qubit)
-                # Save fit results
-                self.save_fit_results()
             if self.analysis_metainfo.get("show_figures", False):
                 plt.show()
             plt.close(fig)
@@ -2206,9 +2213,6 @@ class RamseyParking(Ramsey):
                 if self.save:
                     # Save the figure
                     self.save_figure(fig, qubit)
-                    if len(self.fit_results) > 0:
-                        # Save fit results
-                        self.save_fit_results()
                 if self.analysis_metainfo.get("show_figures", False):
                     plt.show()
                 plt.close(fig)

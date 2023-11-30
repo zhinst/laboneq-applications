@@ -222,7 +222,7 @@ def create_qubits(qubit_parameters, measurement_setup):
     return qubits
 
 
-def load_measurement_setup_from_data_folder(data_folder):
+def load_measurement_setup_from_data_folder(data_folder, before_experiment=False):
     """
     Load a DeviceSetup from the data_folder.
 
@@ -231,19 +231,52 @@ def load_measurement_setup_from_data_folder(data_folder):
 
     Args:
         data_folder: path to the directory where the measurement data is saved
+        before_experiment: whether to load the setup from the file saves before
+            (True) or after (False) running the experiment, which might update
+            the setup. If True, the setup is loaded from the file inside
+            data_folder which contains the name "measurement_setup". If False,
+            the setup is loaded from the results saved in the file inside
+            data_folder which contains the name "results"
 
     Returns:
         instance of DeviceSetup
     """
-
-    msmt_setup_fn = [f for f in os.listdir(data_folder)
-                     if "measurement_setup.json" in f]
-    if len(msmt_setup_fn) == 0:
-        raise ValueError(f"The data folder {data_folder} does not contain a "
-                         f"measurement_setup.json file.")
+    if before_experiment:
+        msmt_setup_fn = [f for f in os.listdir(data_folder)
+                         if "measurement_setup" in f]
+        if len(msmt_setup_fn) == 0:
+            raise ValueError(f"The data folder {data_folder} does not contain a "
+                             f"measurement_setup file.")
+        else:
+            msmt_setup_fn = msmt_setup_fn[0]
+        return DeviceSetup.load(data_folder + f'\\{msmt_setup_fn}')
     else:
-        msmt_setup_fn = msmt_setup_fn[0]
-    return DeviceSetup.load(data_folder + f'\\{msmt_setup_fn}')
+        results = load_results_from_data_folder(data_folder)
+        return results.device_setup
+
+
+def load_results_from_data_folder(data_folder):
+    """
+    Load a Results object from the data_folder.
+
+    Searched for a filename that contains "results.json" inside
+    data_folder.
+
+    Args:
+        data_folder: path to the directory where the measurement data is saved
+
+    Returns:
+        instance of Results
+    """
+
+    results_fn = [f for f in os.listdir(data_folder) if "results" in f and
+                  "fit" not in f]
+    if len(results_fn) == 0:
+        raise ValueError(f"The data folder {data_folder} does not contain a "
+                         f"results file.")
+    else:
+        results_fn = results_fn[0]
+    return Results.load(data_folder + f'\\{results_fn}')
 
 
 def load_qubits_from_data_folder(data_folder, measurement_setup):
