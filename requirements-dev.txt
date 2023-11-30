@@ -11,3 +11,4 @@ ruff==0.0.264
 
 # Tempopary for the notebooks
 xarray
+uncertainties
