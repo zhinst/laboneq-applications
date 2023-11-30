@@ -399,20 +399,13 @@ class ExperimentTemplate():
 
     def configure_experiment(self):
         """
-        Set experiment calibration.
+        Set the measurement_setup calibration from the qubits calibrations.
 
-        This method sets the experiment calibration from the qubit
-        calibration of a signal line. To be overridden by children for
-        overwriting settings.
+        To be overridden by children for setting the experiment calibration.
 
         """
-
-        expcal = Calibration()
-        for qubit in self.qubits:
-            qbcal = qubit.calibration()
-            for sig in self.signals:  # 'drive', 'drive_ef', 'flux', 'measure', 'acquire'
-                expcal[self.signal_name(sig, qubit)] = qbcal[qubit.signals[sig]]
-        self.experiment.set_calibration(expcal)
+        calib_hlp.update_measurement_setup_from_qubits(
+            self.qubits, self.measurement_setup)
 
     def compile_experiment(self):
         if len(self.experiment.sections) == 0:
@@ -472,12 +465,12 @@ class ExperimentTemplate():
         except Exception as e:
             log.warning(f'Could not save all the results: {e}')
 
-        # Save acquired results
-        filename = os.path.abspath(os.path.join(
-            self.savedir, f"{self.timestamp}_acquired_results.p")
-        )
-        with open(filename, "wb") as f:
-            pickle.dump(self.results.acquired_results, f)
+            # Save only the acquired results as pickle
+            filename = os.path.abspath(os.path.join(
+                self.savedir, f"{self.timestamp}_acquired_results.p")
+            )
+            with open(filename, "wb") as f:
+                pickle.dump(self.results.acquired_results, f)
 
         # Save the measurement setup
         filename = os.path.abspath(os.path.join(
@@ -765,6 +758,7 @@ class ResonatorSpectroscopy(ExperimentTemplate):
         super().configure_experiment()
 
         # configure sweep
+        cal = Calibration()
         for qubit in self.qubits:
             qb_sweep = self.sweep_parameters_dict[qubit.uid]
             local_oscillator = None
@@ -776,17 +770,20 @@ class ResonatorSpectroscopy(ExperimentTemplate):
                     local_oscillator = Oscillator(frequency=qb_sweep[1])
 
             freq_swp = qb_sweep[0]
-            cal_measure = self.experiment.signals[
-                self.signal_name("measure", qubit)].calibration
-            cal_measure.oscillator = Oscillator(
-                frequency=freq_swp, modulation_type=ModulationType.HARDWARE)
+            meas_sig_calib_kwargs = {}
             if local_oscillator is not None:
-                cal_measure.local_oscillator = local_oscillator
-            cal_acquire = self.experiment.signals[
-                self.signal_name("acquire", qubit)].calibration
-            cal_acquire.local_oscillator = local_oscillator
+                meas_sig_calib_kwargs["local_oscillator"] = local_oscillator
+                cal[self.signal_name("acquire", qubit)] = SignalCalibration(
+                    local_oscillator=local_oscillator,
+                )
             if ro_amplitude is not None:
-                cal_measure.amplitude = ro_amplitude
+                meas_sig_calib_kwargs["amplitude"] = ro_amplitude
+            cal[self.signal_name("measure", qubit)] = SignalCalibration(
+                oscillator=Oscillator(frequency=freq_swp,
+                                      modulation_type=ModulationType.HARDWARE),
+                **meas_sig_calib_kwargs
+            )
+        self.experiment.set_calibration(cal)
 
     def analyse_experiment(self):
         ts = self.timestamp if self.timestamp is not None else ''
@@ -1169,6 +1166,8 @@ class QubitSpectroscopy(ExperimentTemplate):
 
     def configure_experiment(self):
         super().configure_experiment()
+
+        cal = Calibration()
         for qubit in self.qubits:
             qb_sweep = self.sweep_parameters_dict[qubit.uid]
             local_oscillator = None
@@ -1180,14 +1179,16 @@ class QubitSpectroscopy(ExperimentTemplate):
                     local_oscillator = Oscillator(frequency=qb_sweep[1])
 
             freq_swp = self.sweep_parameters_dict[qubit.uid][0]
-            cal_drive = self.experiment.signals[
-                self.signal_name('drive', qubit)].calibration
-            cal_drive.oscillator = Oscillator(
-                frequency=freq_swp, modulation_type=ModulationType.HARDWARE)
+            sig_calib_kwargs = {}
             if local_oscillator is not None:
-                cal_drive.local_oscillator = local_oscillator
+                sig_calib_kwargs["local_oscillator"] = local_oscillator
             if drive_amplitude is not None:
-                cal_drive.amplitude = drive_amplitude
+                sig_calib_kwargs["amplitude"] = drive_amplitude
+            cal[self.signal_name('drive', qubit)] = SignalCalibration(
+                oscillator=Oscillator(frequency=freq_swp,
+                                      modulation_type=ModulationType.HARDWARE),
+                **sig_calib_kwargs)
+        self.experiment.set_calibration(cal)
 
     def analyse_experiment(self):
         ts = self.timestamp if self.timestamp is not None else ''
