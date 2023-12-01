@@ -5,6 +5,7 @@ import pickle
 import numpy as np
 from copy import deepcopy
 import uncertainties as unc
+from itertools import combinations
 import matplotlib.pyplot as plt
 from ruamel.yaml import YAML
 
@@ -473,14 +474,17 @@ class ExperimentTemplate():
         metainfo = {
             "experiment_metainfo": self.experiment_metainfo,
             "analysis_metainfo": self.analysis_metainfo,
-            "sweep_parameters_dict": self.sweep_parameters_dict,
+            # "sweep_parameters_dict": self.sweep_parameters_dict,
             "cal_states": self.cal_states,
         }
         metainfo_file = os.path.abspath(os.path.join(
             self.save_directory,
             f'{self.timestamp}_meta_information.json'))
-        with open(metainfo_file, "w") as file:
-            json.dump(metainfo, file, indent=2)
+        try:
+            with open(metainfo_file, "w") as file:
+                json.dump(metainfo, file, indent=2)
+        except Exception:
+            log.warning("Could not save the measurement meta-info.")
 
     def save_results(self, filename_suffix=''):
         if len(filename_suffix) > 0:
@@ -510,8 +514,6 @@ class ExperimentTemplate():
         if fig_name is None:
             fig_name = f"{self.timestamp}_{self.experiment_name}_{qubit.uid}"
         fig_name_final = fig_name
-        print(f"{fig_name_final}.png")
-        print(os.listdir(self.save_directory))
         if not self.analysis_metainfo.get("overwrite_figures", False):
             i = 1
             # check if filename exists in self.save_directory
@@ -939,15 +941,14 @@ class ResonatorSpectroscopy(ExperimentTemplate):
                             f'{qubit.parameters.readout_resonator_frequency / 1e9:.4f} GHz')
                 ax.text(0, -0.15, textstr, ha='left', va='top',
                         transform=ax.transAxes)
-                ax.set_xlabel(self.results.get_axis_name(handle)[0])
-                ax.set_ylabel("Signal Magnitude (a.u.)")
+                ax.set_xlabel("Readout Frequency, $f_{\\mathrm{RO}}$ (GHz)")
+                ax.set_ylabel("Signal Magnitude, $|S_{21}|$ (a.u.)")
             else:
                 # 2D plot of results
                 nt_sweep_par_vals = self.results.get_axis(handle)[0]
                 nt_sweep_par_name = self.results.get_axis_name(handle)[0]
                 freqs = self.results.get_axis(handle)[1] + \
                         qubit.parameters.readout_lo_frequency
-                freqs_axis_name = self.results.get_axis_name(handle)[1]
                 data_mag = abs(self.results.get_data(handle))
 
                 X, Y = np.meshgrid(freqs / 1e9, nt_sweep_par_vals)
@@ -955,10 +956,10 @@ class ResonatorSpectroscopy(ExperimentTemplate):
 
                 CS = ax.contourf(X, Y, data_mag, levels=100, cmap="magma")
                 ax.set_title(f"{handle}")
-                ax.set_xlabel(freqs_axis_name)
+                ax.set_xlabel("Readout Frequency, $f_{\\mathrm{RO}}$ (GHz)")
                 ax.set_ylabel(nt_sweep_par_name)
                 cbar = fig.colorbar(CS)
-                cbar.set_label("Signal Magnitude (a.u.)")
+                cbar.set_label("Signal Magnitude, $|S_{21}|$ (a.u.)")
 
                 if self.nt_swp_par == 'voltage':
                     # 1D plot of the qubit frequency vs voltage
@@ -1084,112 +1085,116 @@ class ResonatorSpectroscopy(ExperimentTemplate):
 class DispersiveShift(ResonatorSpectroscopy):
     fallback_experiment_name = 'DispersiveShift'
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, preparation_states=('g', 'e'), **kwargs):
+        self.preparation_states = preparation_states
         experiment_metainfo = kwargs.get("experiment_metainfo", dict())
         experiment_metainfo["pulsed"] = True
         kwargs["experiment_metainfo"] = experiment_metainfo
         run = kwargs.pop("run", False)  # instantiate base without running exp
         kwargs["run"] = False
+        save = kwargs.pop("save", True)  # instantiate base without saving exp
+        kwargs["save"] = save
 
         super().__init__(*args, **kwargs)
+        # remove the Pulsed suffix from the experiment name
+        exp_name_split = self.experiment_name.split('_')
+        exp_name_split.remove("Pulsed")
+        self.experiment_name = '_'.join(exp_name_split)
+        self.create_experiment_label()
+        self.generate_timestamp_save_directory()
 
-        kwargs["save"] = False
-        self.res_spec_g_experiment = ResonatorSpectroscopy(*args, **kwargs)
+        # create ResonatorSpectroscopy experiments for each prep state
+        self.experiments = dict()
+        self.experiments['g'] = ResonatorSpectroscopy(*args, **kwargs)
         kwargs["signals"] = ["measure", "acquire", "drive"]
-        self.res_spec_e_experiment = ResonatorSpectroscopy(*args, **kwargs)
+        self.experiments['e'] = ResonatorSpectroscopy(*args, **kwargs)
+        self.prepare_f = 'f' in self.preparation_states
+        if self.prepare_f:
+            kwargs["signals"] = ["measure", "acquire", "drive", "drive_ef"]
+            self.experiments['f'] = ResonatorSpectroscopy(*args, **kwargs)
 
-        # # remove the Pulsed suffix from the experiment name
-        # exp_name_split = self.experiment_name.split('_')
-        # exp_name_split.remove("Pulsed")
-        # self.experiment_name = '_'.join(exp_name_split)
-
+        self.save = save
         self.run = run
         if self.run:
             self.autorun()
 
     def define_experiment(self):
-        self.res_spec_g_experiment.define_experiment()
-        self.res_spec_e_experiment.define_experiment()
+        for exp in self.experiments.values():
+            exp.define_experiment()
 
-        experiment_e = self.res_spec_e_experiment.experiment
-        acq_rt_loop = experiment_e.sections[0]
-        for qubit in self.qubits:
-            freq_sweep_idx, freq_sweep = [
-                (i, chld) for i, chld in enumerate(acq_rt_loop.children)
-                if qubit.uid in chld.uid][0]
+        for prep_state in ['e', 'f']:
+            if prep_state not in self.experiments:
+                continue
+            exp = self.experiments[prep_state].experiment
+            acq_rt_loop = exp.sections[0]
+            for qubit in self.qubits:
+                freq_sweep_idx, freq_sweep = [
+                    (i, chld) for i, chld in enumerate(acq_rt_loop.children)
+                    if qubit.uid in chld.uid][0]
 
-            # create pulses section
-            excitation_section = Section(
-                uid=f"{qubit.uid}_excitation",
-                alignment=SectionAlignment.RIGHT,
-                on_system_grid=True,
-            )
-            # drive pulse
-            drive_pulse = qt_ops.quantum_gate(
-                qubit, f'X180_ge')
-            excitation_section.play(
-                signal=self.signal_name(f"drive", qubit),
-                pulse=drive_pulse,
-            )
-            freq_sweep_sections = freq_sweep.children
-            # add play after excitation to measure_acquire section
-            freq_sweep_sections[0].play_after = f"{qubit.uid}_excitation"
-            freq_sweep.children = [excitation_section] + freq_sweep_sections
-            acq_rt_loop.children[freq_sweep_idx] = freq_sweep
+                excitation_sections = []
+                # create ge-preparation section
+                excitation_ge_section = Section(
+                    uid=f"{qubit.uid}_ge_excitation",
+                    alignment=SectionAlignment.RIGHT,
+                    on_system_grid=self.prepare_f,
+                )
+                # ge-preparation drive pulse
+                drive_pulse_ge = qt_ops.quantum_gate(
+                    qubit, f'X180_ge')
+                excitation_ge_section.play(
+                    signal=self.signal_name(f"drive", qubit),
+                    pulse=drive_pulse_ge,
+                )
+                measure_play_after = f"{qubit.uid}_ge_excitation"
+                excitation_sections += [excitation_ge_section]
 
-        # # define experiment with qubit in g
-        # super().define_experiment()
-        # self.experiment_g = deepcopy(self.experiment)
-        #
-        # # define experiment with qubit in e
-        # super().define_experiment()
-        # self.experiment_e = deepcopy(self.experiment)
-        # acq_rt_loop = self.experiment_e.sections[0]
-        # for qubit in self.qubits:
-        #     freq_sweep = [chld for chld in acq_rt_loop.children
-        #                   if qubit.uid in chld.uid][0]
-        #
-        #     # create pulses section
-        #     excitation_section = Section(
-        #         uid=f"{qubit.uid}_excitation",
-        #         alignment=SectionAlignment.RIGHT,
-        #         on_system_grid=True,
-        #     )
-        #     # drive pulse
-        #     drive_pulse = qt_ops.quantum_gate(
-        #         qubit, f'X180_ge')
-        #     excitation_section.play(
-        #         signal=self.signal_name(f"drive", qubit),
-        #         pulse=drive_pulse,
-        #     )
-        #     freq_sweep_sections = freq_sweep.children
-        #     # add play after excitation to measure_acquire section
-        #     freq_sweep_sections[0].play_after = f"{qubit.uid}_excitation"
-        #     freq_sweep.children = [excitation_section] + freq_sweep_sections
+                if prep_state == 'f':
+                    # create ef-preparation section
+                    excitation_ef_section = Section(
+                        uid=f"{qubit.uid}_ef_excitation",
+                        alignment=SectionAlignment.RIGHT,
+                        on_system_grid=True,
+                        play_after=f"{qubit.uid}_ge_excitation",
+                    )
+                    # ef-preparation drive pulse
+                    drive_pulse_ef = qt_ops.quantum_gate(
+                        qubit, f'X180_ef')
+                    excitation_ef_section.play(
+                        signal=self.signal_name(f"drive_ef", qubit),
+                        pulse=drive_pulse_ef,
+                    )
+                    measure_play_after = f"{qubit.uid}_ef_excitation"
+                    excitation_sections += [excitation_ef_section]
+
+                freq_sweep_sections = freq_sweep.children
+                # add play after excitation to measure_acquire section
+                freq_sweep_sections[0].play_after = measure_play_after
+                freq_sweep.children = excitation_sections + freq_sweep_sections
+                acq_rt_loop.children[freq_sweep_idx] = freq_sweep
 
     def configure_experiment(self):
-        self.res_spec_g_experiment.configure_experiment()
-        self.res_spec_e_experiment.configure_experiment()
+        for exp in self.experiments.values():
+            exp.configure_experiment()
 
     def compile_experiment(self):
-        self.res_spec_g_experiment.compile_experiment()
-        self.res_spec_e_experiment.compile_experiment()
+        for exp in self.experiments.values():
+            exp.compile_experiment()
 
     def run_experiment(self):
-        self.res_spec_g_experiment.run_experiment()
-        self.res_spec_g_experiment.timestamp = self.timestamp
-        self.res_spec_g_experiment.save_directory = self.save_directory
-        self.res_spec_e_experiment.run_experiment()
-        self.res_spec_e_experiment.timestamp = self.timestamp
-        self.res_spec_e_experiment.save_directory = self.save_directory
+        for exp in self.experiments.values():
+            exp.run_experiment()
+            # save experiments to the same directory, under the same timestamp
+            exp.timestamp = self.timestamp
+            exp.save_directory = self.save_directory
 
     def save_results(self):
-        self.res_spec_g_experiment.save_results(filename_suffix='g')
-        self.res_spec_e_experiment.save_results(filename_suffix='e')
+        for state, exp in self.experiments.items():
+            exp.save_results(filename_suffix=state)
 
     def save_fit_results(self):
-        self.res_spec_g_experiment.save_fit_results(filename_suffix='g')
-        self.res_spec_e_experiment.save_fit_results(filename_suffix='e')
+        for state, exp in self.experiments.items():
+            exp.save_fit_results(filename_suffix=state)
 
     def analyse_experiment(self):
         ts = self.timestamp if self.timestamp is not None else ''
@@ -1197,33 +1202,75 @@ class DispersiveShift(ResonatorSpectroscopy):
         self.fit_results = {}
         for qubit in self.qubits:
             self.new_qubit_parameters[qubit.uid] = {}
-            fig, ax = plt.subplots()
-            for i, exp in enumerate([self.res_spec_g_experiment,
-                                     self.res_spec_e_experiment]):
-                # extract data
-                handle = f"{exp.experiment_name}_{qubit.uid}"
-                data_mag = abs(exp.results.get_data(handle))
-                res_axis = exp.results.get_axis(handle)
-                # if self.nt_swp_par == "frequency":
-                data_mag = np.array([data for data in data_mag]).flatten()
-                if len(res_axis) > 1:
-                    outer = exp.results.get_axis(handle)[0]
-                    inner = exp.results.get_axis(handle)[1]
-                    freqs = np.array([out + inner for out in outer]).flatten()
-                else:
-                    freqs = exp.results.get_axis(handle)[0] + \
-                            qubit.parameters.readout_lo_frequency
-                # plot data
-                ax.plot(freqs / 1e9, data_mag, c=f'C{i}')
+            # all experiments have the same frequency axis
+            exp = self.experiments['g']
+            handle = f"{exp.experiment_name}_{qubit.uid}"
+            freqs = exp.results.get_axis(handle)[0] + \
+                    qubit.parameters.readout_lo_frequency
+            all_state_combinations = combinations(list(self.experiments), 2)
+            s21_abs_distances = {''.join(sc): '' for sc in all_state_combinations}
+            for i, states in enumerate(s21_abs_distances):
+                s0, s1 = states
+                s21_dist = abs(
+                    self.experiments[s1].results.get_data(
+                        f"{self.experiments[s1].experiment_name}_{qubit.uid}") -
+                    self.experiments[s0].results.get_data(
+                        f"{self.experiments[s0].experiment_name}_{qubit.uid}")
+                )
+                s21_abs_distances[states] = (s21_dist, np.argmax(s21_dist))
 
-            ax.set_title(f'{ts}_{self.experiment_name}_{qubit.uid}')
+            s21_dist_sum = np.sum(
+                [s21_dict[0] for s21_dict in s21_abs_distances.values()],
+                axis=0)
+            s21_abs_distances["sum"] = (s21_dist_sum, np.argmax(s21_dist_sum))
+
+            # plot S21 for each prep state
+            fig_s21, ax_21 = plt.subplots()
+            ax_21.set_xlabel("Readout Frequency, $f_{\\mathrm{RO}}$ (GHz)")
+            ax_21.set_ylabel("Signal Magnitude, $|S_{21}|$ (a.u.)")
+            ax_21.set_title(f'{ts}_{self.experiment_name}_{qubit.uid}')
+            for state, exp in self.experiments.items():
+                handle = f"{exp.experiment_name}_{qubit.uid}"
+                freqs = exp.results.get_axis(handle)[0] + \
+                        qubit.parameters.readout_lo_frequency
+                data_mag = abs(exp.results.get_data(handle))
+                ax_21.plot(freqs / 1e9, data_mag, label=state)
+            ax_21.legend(frameon=False)
+
+            # plot the S21 distances
+            fig_s21_dist, ax_s21_dist = plt.subplots()
+            ax_s21_dist.set_xlabel("Readout Frequency, $f_{\\mathrm{RO}}$ (GHz)")
+            ax_s21_dist.set_ylabel("Magnitude Signal Difference, $|\\Delta S_{21}|$ (a.u.)")
+            ax_s21_dist.set_title(f'{ts}_{self.experiment_name}_{qubit.uid}')
+            for states, (s21_dist, idx_max) in s21_abs_distances.items():
+                max_s21_dist, max_freq = s21_dist[idx_max], freqs[idx_max]
+                self.new_qubit_parameters[qubit.uid][states] = max_freq
+                if states == "sum" and not self.prepare_f:
+                    continue
+                legend_label = f"{states}: $f_{{\\mathrm{{max}}}}$ = {max_freq / 1e9:.4f} GHz"
+                line, = ax_s21_dist.plot(freqs / 1e9, s21_dist, label=legend_label)
+                # add point at max
+                ax_s21_dist.plot(max_freq / 1e9, max_s21_dist, 'o', c=line.get_c())
+                # add vertical line at max
+                ax_s21_dist.vlines(max_freq / 1e9, min(s21_dist), max_s21_dist,
+                                   colors=line.get_c())
+            ax_s21_dist.legend(frameon=False)
+
             # save figures and results
             if self.save:
-                # Save the figure
-                self.save_figure(fig, qubit)
+                # Save the figures
+                self.save_figure(fig_s21, qubit)
+                fig_name = f"{self.timestamp}_{self.experiment_name}_S21_distances_{qubit.uid}"
+                self.save_figure(fig_s21_dist, qubit, figure_name=fig_name)
             if self.analysis_metainfo.get("show_figures", False):
                 plt.show()
-            plt.close(fig)
+            plt.close(fig_s21)
+            plt.close(fig_s21_dist)
+
+    def update_qubit_parameters(self):
+        for qubit in self.qubits:
+            new_qb_pars = self.new_qubit_parameters[qubit.uid]
+            qubit.parameters.readout_resonator_frequency = new_qb_pars["sum"]
 
 
 class QubitSpectroscopy(ExperimentTemplate):
@@ -1361,8 +1408,6 @@ class QubitSpectroscopy(ExperimentTemplate):
                     voltage_sweep = Sweep(
                         uid=f"neartime_{self.nt_swp_par}_sweep_{qubit.uid}",
                         parameters=[voltage_sweep_par])
-                    self.experiment.add(voltage_sweep)
-
                     ntsf = self.experiment_metainfo.get(
                         'neartime_callback_function', None)
                     if ntsf is None:
@@ -1373,6 +1418,9 @@ class QubitSpectroscopy(ExperimentTemplate):
                     # all near-time callback functions have the format
                     # func(session, sweep_param_value, qubit)
                     voltage_sweep.call(ntsf, voltage=voltage_sweep_par, qubit=qubit)
+                    self.acquire_loop.add(freq_sweep)
+                    voltage_sweep.add(self.acquire_loop)
+                    self.experiment.add(voltage_sweep)
                 elif self.nt_swp_par == 'amplitude':
                     spec_pulse_amp = self.sweep_parameters_dict[qubit.uid][1]
                     # add real-time loop to nt_sweep
@@ -1471,8 +1519,8 @@ class QubitSpectroscopy(ExperimentTemplate):
                 # plot data
                 fig, ax = plt.subplots()
                 ax.plot(freqs / 1e9, data_mag, 'o')
-                ax.set_xlabel(self.results.get_axis_name(handle)[0])
-                ax.set_ylabel("Signal Magnitude (a.u.)")
+                ax.set_xlabel("Qubit Frequency, $f_{\\mathrm{QB}}$ (GHz)")
+                ax.set_ylabel("Signal Magnitude, $|S_{21}|$ (a.u.)")
 
                 if self.analysis_metainfo.get('do_fitting', True):
                     data_to_fit = data_mag if ff_qb is None else data_mag[ff_qb(freqs)]
@@ -1535,7 +1583,6 @@ class QubitSpectroscopy(ExperimentTemplate):
                 nt_sweep_par_name = self.results.get_axis_name(handle)[0]
                 freqs = self.results.get_axis(handle)[1] + \
                         qubit.parameters.drive_lo_frequency
-                freqs_axis_name = self.results.get_axis_name(handle)[1]
                 data_mag = abs(self.results.get_data(handle))
 
                 X, Y = np.meshgrid(freqs / 1e9, nt_sweep_par_vals)
@@ -1543,10 +1590,10 @@ class QubitSpectroscopy(ExperimentTemplate):
 
                 CS = ax.contourf(X, Y, data_mag, levels=100, cmap="magma")
                 ax.set_title(f"{handle}")
-                ax.set_xlabel(freqs_axis_name)
+                ax.set_xlabel("Qubit Frequency, $f_{\\mathrm{QB}}$ (GHz)")
                 ax.set_ylabel(nt_sweep_par_name)
                 cbar = fig.colorbar(CS)
-                cbar.set_label("Signal Magnitude (a.u.)")
+                cbar.set_label("Signal Magnitude, $|S_{21}|$ (a.u.)")
 
                 if self.nt_swp_par == 'voltage':
                     # 1D plot of the qubit frequency vs voltage
@@ -2431,7 +2478,7 @@ class RamseyParking(Ramsey):
                 # plot data + fit
                 fig, ax = plt.subplots()
                 ax.set_xlabel(self.results.get_axis_name(handle)[0])
-                ax.set_ylabel("Qubit Frequency, $f_{qb}$ (GHz)")
+                ax.set_ylabel("Qubit Frequency, $f_{\\mathrm{QB}}$ (GHz)")
                 ax.set_title(f'{ts}_{handle}')
                 ax.plot(voltages, qubit_frequencies / 1e9, 'o', zorder=2)
                 # plot fit
