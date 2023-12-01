@@ -293,7 +293,7 @@ def ramsey_parallel(
 
 class ExperimentTemplate():
     fallback_experiment_name = "Experiment"
-    savedir = None
+    save_directory = None
     timestamp = None
     compiled_exp = None
     results = None
@@ -302,7 +302,7 @@ class ExperimentTemplate():
 
     def __init__(self, qubits, session, measurement_setup, experiment_name=None,
                  signals=None, sweep_parameters_dict=None, experiment_metainfo=None,
-                 acquisition_metainfo=None, cal_states=None, datadir=None,
+                 acquisition_metainfo=None, cal_states=None, data_directory=None,
                  do_analysis=True, analysis_metainfo=None, save=True,
                  update=False, run=False, **kwargs):
 
@@ -327,7 +327,7 @@ class ExperimentTemplate():
         # overwrite default with user-provided options
         self.acquisition_metainfo.update(acquisition_metainfo)
 
-        self.datadir = datadir
+        self.data_directory = data_directory
         self.do_analysis = do_analysis
         self.analysis_metainfo = analysis_metainfo
         if self.analysis_metainfo is None:
@@ -338,11 +338,16 @@ class ExperimentTemplate():
                         "analysis_metainfo['do_fitting'] is False. Qubit "
                         "parameters will not be updated.")
         self.save = save
+        if self.save and self.data_directory is None:
+            raise ValueError("save==True, but no data_directory was specified. "
+                             "Please provide data_directory or set save=False.")
 
         self.experiment_name = experiment_name
         if self.experiment_name is None:
             self.experiment_name = self.fallback_experiment_name
         self.create_experiment_label()
+        self.generate_timestamp_save_directory()
+
         self.signals = signals
         if self.signals is None:
             self.signals = ["drive", "measure", "acquire"]
@@ -387,16 +392,13 @@ class ExperimentTemplate():
         )
 
     def define_experiment(self):
-        # Define the experiment acquire loops, sweeps, sections, pulses
-        # To be overridden by children
-        self.sweeps_dict = {}
-        for qubit in self.qubits:
-            self.sweeps_dict[qubit.uid] = []
-            for i, swp in enumerate(self.sweep_parameters_dict[qubit.uid]):
-                self.sweeps_dict[qubit.uid] += [Sweep(
-                    uid=f'{qubit.uid}_{self.experiment_name}_sweep_{i}',
-                    parameters=[swp]
-                )]
+        """
+        Define the experiment acquire loops, sweeps, sections, pulses
+
+        To be overridden by children
+
+        """
+        pass
 
     def configure_experiment(self):
         """
@@ -408,20 +410,10 @@ class ExperimentTemplate():
         self.update_measurement_setup()
 
     def compile_experiment(self):
-        if len(self.experiment.sections) == 0:
-            self.define_experiment()
-        calib = self.experiment.get_calibration()
-        if all([cv is None for cv in calib.values()]):
-            self.configure_experiment()
         self.compiled_exp = self.session.compile(self.experiment)
 
     def run_experiment(self):
-        if self.save and self.savedir is None:
-            self.create_timestamp_savedir()
-        if self.compiled_exp is None:
-            self.compile_experiment()
         self.results = self.session.run(self.compiled_exp)
-        return self.results
 
     def analyse_experiment(self):
         # to be overridden by children
@@ -438,43 +430,67 @@ class ExperimentTemplate():
         self.update_qubit_parameters()
         self.update_measurement_setup()
 
-    def create_timestamp_savedir(self):
+    def generate_timestamp_save_directory(self):
         # create experiment timestamp
         self.timestamp = str(time.strftime("%Y%m%d_%H%M%S"))
-        # create experiment savedir
-        self.savedir = os.path.abspath(
-            os.path.join(
-                self.datadir,
-                f"{self.timestamp[:8]}",
-                f"{self.timestamp[-6:]}_{self.experiment_label}",
+        if self.data_directory is not None:
+            # create experiment save_directory
+            self.save_directory = os.path.abspath(
+                os.path.join(
+                    self.data_directory,
+                    f"{self.timestamp[:8]}",
+                    f"{self.timestamp[-6:]}_{self.experiment_label}",
+                )
             )
-        )
-        # create the savedir
-        if not os.path.exists(self.savedir):
-            os.makedirs(self.savedir)
 
-    def save_measurement_setup(self, filename=None):
-        if self.savedir is None:
-            self.create_timestamp_savedir()
+    def create_save_directory(self):
+        # create the save_directory inside self.data_directory
+        if (self.save_directory is not None and
+                not os.path.exists(self.save_directory)):
+            os.makedirs(self.save_directory)
+
+    def save_measurement_setup(self):
+        """
+        Saves the measurement_setup into a json file, and creates another json
+        file with the meta-information passed to this class: experiment_metainfo
+        and analysis_metainfo.
+
+        The saved measurement_setup contains the setup description before the
+        execution of the experiment.
+
+        """
+        self.create_save_directory()
 
         # Save the measurement setup
-        if filename is None:
-            filename = f"measurement_setup_before_experiment.json"
+        filename = f"measurement_setup_before_experiment.json"
         filename = f"{self.timestamp}_{filename}"
-        filepath = os.path.abspath(os.path.join(self.savedir, filename))
-        if filename not in os.listdir(self.savedir):
+        filepath = os.path.abspath(os.path.join(self.save_directory, filename))
+        if filename not in os.listdir(self.save_directory):
             # only save the setup if the file does not already exist
             self.measurement_setup.save(filepath)
+
+        # Save the meta-information
+        metainfo = {
+            "experiment_metainfo": self.experiment_metainfo,
+            "analysis_metainfo": self.analysis_metainfo,
+            "sweep_parameters_dict": self.sweep_parameters_dict,
+            "cal_states": self.cal_states,
+        }
+        metainfo_file = os.path.abspath(os.path.join(
+            self.save_directory,
+            f'{self.timestamp}_meta_information.json'))
+        with open(metainfo_file, "w") as file:
+            json.dump(metainfo, file, indent=2)
 
     def save_results(self, filename_suffix=''):
         if len(filename_suffix) > 0:
             filename_suffix = f"_{filename_suffix}"
         if self.results is not None:
-            if self.savedir is None:
-                self.create_timestamp_savedir()
+            self.create_save_directory()
             # Save Results
             results_file = os.path.abspath(os.path.join(
-                self.savedir, f'{self.timestamp}_results{filename_suffix}.json'))
+                self.save_directory,
+                f'{self.timestamp}_results{filename_suffix}.json'))
             try:
                 self.results.save(results_file)
             except Exception as e:
@@ -482,31 +498,41 @@ class ExperimentTemplate():
 
                 # Save only the acquired results as pickle
                 filename = os.path.abspath(os.path.join(
-                    self.savedir, f"{self.timestamp}_acquired_results{filename_suffix}.p")
+                    self.save_directory,
+                    f"{self.timestamp}_acquired_results{filename_suffix}.p")
                 )
                 with open(filename, "wb") as f:
                     pickle.dump(self.results.acquired_results, f)
 
     def save_figure(self, fig, qubit, figure_name=None):
-        if self.savedir is None:
-            self.create_timestamp_savedir()
+        self.create_save_directory()
         fig_name = self.analysis_metainfo.get("figure_name", figure_name)
         if fig_name is None:
             fig_name = f"{self.timestamp}_{self.experiment_name}_{qubit.uid}"
-        fig.savefig(self.savedir + f"\\{fig_name}.png",
+        fig_name_final = fig_name
+        print(f"{fig_name_final}.png")
+        print(os.listdir(self.save_directory))
+        if not self.analysis_metainfo.get("overwrite_figures", False):
+            i = 1
+            # check if filename exists in self.save_directory
+            while any([fn.endswith(f"{fig_name_final}.png") for
+                       fn in os.listdir(self.save_directory)]):
+                fig_name_final = f"{fig_name}_{i}"
+                i += 1
+        fig.savefig(self.save_directory + f"\\{fig_name_final}.png",
                     bbox_inches="tight", dpi=600)
 
     def save_fit_results(self, filename_suffix=''):
         if self.fit_results is not None and len(self.fit_results) > 0:
+            self.create_save_directory()
+
             if len(filename_suffix) > 0:
                 filename_suffix = f"_{filename_suffix}"
 
-            if self.savedir is None:
-                self.create_timestamp_savedir()
-
             # Save fit results into a json file
             fit_res_file = os.path.abspath(os.path.join(
-                self.savedir, f"{self.timestamp}_fit_results{filename_suffix}.json")
+                self.save_directory,
+                f"{self.timestamp}_fit_results{filename_suffix}.json")
             )
             fit_results_to_save = {}
             for qbuid, fit_res in self.fit_results.items():
@@ -522,7 +548,8 @@ class ExperimentTemplate():
                 json.dump(fit_results_to_save, file, indent=2)
             # Save fit results into a pickle file
             filename = os.path.abspath(os.path.join(
-                self.savedir, f"{self.timestamp}_fit_results{filename_suffix}.p")
+                self.save_directory,
+                f"{self.timestamp}_fit_results{filename_suffix}.p")
             )
             with open(filename, "wb") as f:
                 pickle.dump(self.fit_results, f)
@@ -531,7 +558,11 @@ class ExperimentTemplate():
         try:
             if self.save:
                 # save the measurement setup configuration before the experiment
+                # execution
                 self.save_measurement_setup()
+            self.define_experiment()
+            self.configure_experiment()
+            self.compile_experiment()
             self.run_experiment()
             if self.do_analysis:
                 self.analyse_experiment()
@@ -542,7 +573,6 @@ class ExperimentTemplate():
                 self.save_results()
                 # Save the fit results
                 self.save_fit_results()
-            return self.results
         except Exception:
             log.error("Unhandled error during experiment!")
             log.error(traceback.format_exc())
@@ -1142,31 +1172,16 @@ class DispersiveShift(ResonatorSpectroscopy):
         self.res_spec_e_experiment.configure_experiment()
 
     def compile_experiment(self):
-        # check if the experiments were defined
-        if (len(self.res_spec_g_experiment.experiment.sections) == 0 and
-                len(self.res_spec_e_experiment.experiment.sections) == 0):
-            self.define_experiment()
-
-        # check if the experiments were compiled
-        calib_g = self.res_spec_g_experiment.experiment.get_calibration()
-        calib_e = self.res_spec_e_experiment.experiment.get_calibration()
-        if all([cv is None for cv in calib_g.values()] +
-               [cv is None for cv in calib_e.values()]):
-            self.configure_experiment()
-
         self.res_spec_g_experiment.compile_experiment()
         self.res_spec_e_experiment.compile_experiment()
 
     def run_experiment(self):
-        if self.save and self.savedir is None:
-            self.create_timestamp_savedir()
-        self.compile_experiment()
         self.res_spec_g_experiment.run_experiment()
         self.res_spec_g_experiment.timestamp = self.timestamp
-        self.res_spec_g_experiment.savedir = self.savedir
+        self.res_spec_g_experiment.save_directory = self.save_directory
         self.res_spec_e_experiment.run_experiment()
         self.res_spec_e_experiment.timestamp = self.timestamp
-        self.res_spec_e_experiment.savedir = self.savedir
+        self.res_spec_e_experiment.save_directory = self.save_directory
 
     def save_results(self):
         self.res_spec_g_experiment.save_results(filename_suffix='g')
