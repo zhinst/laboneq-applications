@@ -270,7 +270,7 @@ def load_results_from_data_folder(data_folder):
     """
 
     results_fn = [f for f in os.listdir(data_folder) if "results" in f and
-                  "fit" not in f]
+                  "fit" not in f and "acquired" not in f]
     if len(results_fn) == 0:
         raise ValueError(f"The data folder {data_folder} does not contain a "
                          f"results file.")
