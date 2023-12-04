@@ -1,4 +1,3 @@
-import matplotlib.pyplot as plt
 import numpy as np
 
 
@@ -19,14 +18,16 @@ def principal_component_analysis(raw_data=None, results=None, handle=None):
 
     if raw_data is None:
         if results is None or handle is None:
-            raise ValueError('Please provide either the raw_data array, or '
-                             'a Results instance and the data handle.')
+            raise ValueError(
+                "Please provide either the raw_data array, or "
+                "a Results instance and the data handle."
+            )
         raw_data = results.get_data(handle)
     real, imag = np.real(raw_data), np.imag(raw_data)
 
     # translate each column in the data by its mean
     mean_real, mean_imag = np.mean(real), np.mean(imag)
-    trans_real, trans_imag = real - mean_real, imag-mean_imag
+    trans_real, trans_imag = real - mean_real, imag - mean_imag
     row_data_trans = np.array([trans_real, trans_imag])
 
     # compute the covariance 2x2 matrix
@@ -36,10 +37,12 @@ def principal_component_analysis(raw_data=None, results=None, handle=None):
     [eigvals, eigvecs] = np.linalg.eig(cov_matrix)
 
     # compute the transposed feature vector
-    row_feature_vector = np.array([(eigvecs[0, np.argmin(eigvals)],
-                                    eigvecs[1, np.argmin(eigvals)]),
-                                   (eigvecs[0, np.argmax(eigvals)],
-                                    eigvecs[1, np.argmax(eigvals)])])
+    row_feature_vector = np.array(
+        [
+            (eigvecs[0, np.argmin(eigvals)], eigvecs[1, np.argmin(eigvals)]),
+            (eigvecs[0, np.argmax(eigvals)], eigvecs[1, np.argmax(eigvals)]),
+        ]
+    )
 
     # compute final, projected data; only the first row is of interest (it is the
     # principal axis
@@ -66,15 +69,20 @@ def calculate_rotation_matrix(delta_I, delta_Q):
     """
     angle = np.arctan2(delta_Q, delta_I)
     rotation_matrix = np.transpose(
-        np.array([[np.cos(angle), -1*np.sin(angle)],
-                  [np.sin(angle), np.cos(angle)]]))
+        np.array([[np.cos(angle), -1 * np.sin(angle)], [np.sin(angle), np.cos(angle)]])
+    )
     return rotation_matrix
 
 
-def rotate_data_to_cal_trace_results(raw_data=None, raw_data_cal_pt_0=None,
-                                     raw_data_cal_pt_1=None,
-                                     results=None, handle_data=None,
-                                     handle_cal_pt_0=None, handle_cal_pt_1=None):
+def rotate_data_to_cal_trace_results(
+    raw_data=None,
+    raw_data_cal_pt_0=None,
+    raw_data_cal_pt_1=None,
+    results=None,
+    handle_data=None,
+    handle_cal_pt_0=None,
+    handle_cal_pt_1=None,
+):
     """
     Rotates and projects the raw data onto the line in the IQ plane between
     two calibration points, then normalises the rotated and projected data to
@@ -105,10 +113,12 @@ def rotate_data_to_cal_trace_results(raw_data=None, raw_data_cal_pt_0=None,
 
     def check_for_results_handle():
         if results is None or handle_data is None:
-            raise ValueError('Please provide either the raw_data array, '
-                             'raw_data_cal_pt_0 and raw_data_cal_pt_0, or '
-                             'a Results instance and the handles for the raw '
-                             'data and for the two calibration traces.')
+            raise ValueError(
+                "Please provide either the raw_data array, "
+                "raw_data_cal_pt_0 and raw_data_cal_pt_0, or "
+                "a Results instance and the handles for the raw "
+                "data and for the two calibration traces."
+            )
 
     if raw_data is None:
         check_for_results_handle()
@@ -123,10 +133,12 @@ def rotate_data_to_cal_trace_results(raw_data=None, raw_data_cal_pt_0=None,
         raw_data_cal_pt_1 = results.get_data(handle_cal_pt_1)
 
     data_iq = np.array([np.real(raw_data), np.imag(raw_data)])
-    data_cal0 = np.array([np.mean(np.real(raw_data_cal_pt_0)),
-                          np.mean(np.imag(raw_data_cal_pt_0))])
-    data_cal1 = np.array([np.mean(np.real(raw_data_cal_pt_1)),
-                          np.mean(np.imag(raw_data_cal_pt_1))])
+    data_cal0 = np.array(
+        [np.mean(np.real(raw_data_cal_pt_0)), np.mean(np.imag(raw_data_cal_pt_0))]
+    )
+    data_cal1 = np.array(
+        [np.mean(np.real(raw_data_cal_pt_1)), np.mean(np.imag(raw_data_cal_pt_1))]
+    )
 
     # Translate the data
     trans_data = data_iq - np.repeat(data_cal0[:, np.newaxis], data_iq.shape[1], axis=1)

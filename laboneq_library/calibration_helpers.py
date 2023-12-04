@@ -1,7 +1,7 @@
 import datetime
-import time
 import json
 import os
+import time
 from pathlib import Path
 
 from laboneq.simple import *  # noqa: F403
@@ -21,13 +21,15 @@ def load_qubit_parameters(filename="./qubit_parameters.yaml"):
 def load_qubit_parameters_json(folder=None, full_filepath=None):
     if full_filepath is None:
         if folder is None:
-            raise ValueError('Please provide either folder or full_filepath.')
-        full_filepath = [fn for fn in os.listdir(folder) if
-                         'qubit_parameters.json' in fn]
+            raise ValueError("Please provide either folder or full_filepath.")
+        full_filepath = [
+            fn for fn in os.listdir(folder) if "qubit_parameters.json" in fn
+        ]
         if len(full_filepath) == 0:
-            raise FileNotFoundError(f'There is no json file containing qubit '
-                                    f'parameters in {folder}.')
-        full_filepath = f'{folder}\\{full_filepath[0]}'
+            raise FileNotFoundError(
+                f"There is no json file containing qubit " f"parameters in {folder}."
+            )
+        full_filepath = f"{folder}\\{full_filepath[0]}"
     with open(full_filepath) as f:
         qubit_parameters = f.read()
     # convert to python dictionary
@@ -193,30 +195,31 @@ def create_qubits(qubit_parameters, measurement_setup):
     qubits = []
     parameters = qubit_parameters
     for q_name in qubit_parameters:
-        qubits += [Transmon.from_logical_signal_group(
-            q_name,
-            lsg=measurement_setup.logical_signal_groups[q_name],
-            parameters=TransmonParameters(
-                resonance_frequency_ge=parameters[q_name][
-                    "resonance_frequency_ge"],
-                resonance_frequency_ef=parameters[q_name][
-                    "resonance_frequency_ef"],
-                drive_lo_frequency=parameters[q_name]["drive_lo_frequency"],
-                readout_resonator_frequency=parameters[q_name][
-                    "readout_resonator_frequency"],
-                readout_lo_frequency=parameters[q_name][
-                    "readout_lo_frequency"],
-                readout_integration_delay=parameters[q_name][
-                    "readout_integration_delay"],
-                drive_range=parameters[q_name]["drive_range"],
-                drive_parameters_ge=parameters[q_name]["drive_parameters_ge"],
-                drive_parameters_ef=parameters[q_name]["drive_parameters_ef"],
-                readout_range_out=parameters[q_name]["readout_range_out"],
-                readout_range_in=parameters[q_name]["readout_range_in"],
-                flux_offset_voltage=parameters[q_name]["flux_offset_voltage"],
-                user_defined=parameters[q_name]['user_defined'],
-            ),
-        )]
+        qubits += [
+            Transmon.from_logical_signal_group(
+                q_name,
+                lsg=measurement_setup.logical_signal_groups[q_name],
+                parameters=TransmonParameters(
+                    resonance_frequency_ge=parameters[q_name]["resonance_frequency_ge"],
+                    resonance_frequency_ef=parameters[q_name]["resonance_frequency_ef"],
+                    drive_lo_frequency=parameters[q_name]["drive_lo_frequency"],
+                    readout_resonator_frequency=parameters[q_name][
+                        "readout_resonator_frequency"
+                    ],
+                    readout_lo_frequency=parameters[q_name]["readout_lo_frequency"],
+                    readout_integration_delay=parameters[q_name][
+                        "readout_integration_delay"
+                    ],
+                    drive_range=parameters[q_name]["drive_range"],
+                    drive_parameters_ge=parameters[q_name]["drive_parameters_ge"],
+                    drive_parameters_ef=parameters[q_name]["drive_parameters_ef"],
+                    readout_range_out=parameters[q_name]["readout_range_out"],
+                    readout_range_in=parameters[q_name]["readout_range_in"],
+                    flux_offset_voltage=parameters[q_name]["flux_offset_voltage"],
+                    user_defined=parameters[q_name]["user_defined"],
+                ),
+            )
+        ]
     return qubits
 
 
@@ -234,14 +237,17 @@ def load_measurement_setup_from_data_folder(data_folder):
         instance of DeviceSetup
     """
 
-    msmt_setup_fn = [f for f in os.listdir(data_folder)
-                     if "measurement_setup.json" in f]
+    msmt_setup_fn = [
+        f for f in os.listdir(data_folder) if "measurement_setup.json" in f
+    ]
     if len(msmt_setup_fn) == 0:
-        raise ValueError(f"The data folder {data_folder} does not contain a "
-                         f"measurement_setup.json file.")
+        raise ValueError(
+            f"The data folder {data_folder} does not contain a "
+            f"measurement_setup.json file."
+        )
     else:
         msmt_setup_fn = msmt_setup_fn[0]
-    return DeviceSetup.load(data_folder + f'\\{msmt_setup_fn}')
+    return DeviceSetup.load(data_folder + f"\\{msmt_setup_fn}")
 
 
 def load_qubits_from_data_folder(data_folder, measurement_setup):
@@ -262,7 +268,8 @@ def load_qubits_from_data_folder(data_folder, measurement_setup):
 
     try:
         qubit_parameters = load_qubit_parameters(
-            data_folder + '\\qubit_parameters.yaml')
+            data_folder + "\\qubit_parameters.yaml"
+        )
     except FileNotFoundError:
         qubit_parameters = load_qubit_parameters_json(data_folder)
     qubits = create_qubits(qubit_parameters, measurement_setup)
@@ -270,7 +277,7 @@ def load_qubits_from_data_folder(data_folder, measurement_setup):
     return qubits
 
 
-def save_qubit_parameters(save_folder, qubits, timestamp=''):
+def save_qubit_parameters(save_folder, qubits, timestamp=""):
     """
     Saves the parameters of qubits into a json file.
 
@@ -283,8 +290,9 @@ def save_qubit_parameters(save_folder, qubits, timestamp=''):
 
     qubit_parameters = {qb.uid: qb.parameters.__dict__ for qb in qubits}
     # Save all qubit parameters in one json file
-    qb_pars_file = os.path.abspath(os.path.join(
-        save_folder, f'{timestamp}_qubit_parameters.json'))
+    qb_pars_file = os.path.abspath(
+        os.path.join(save_folder, f"{timestamp}_qubit_parameters.json")
+    )
     with open(qb_pars_file, "w") as file:
         json.dump(qubit_parameters, file, indent=2)
 
@@ -296,7 +304,7 @@ def get_latest_data_folder(data_directory):
     Example: data_directory contains the following folders:
     ["20231128", "20231127", "20231126"]. This function returns the most recent
     folder inside data_directory/20231128, as sorted by the timestamp in the
-    names of the folders. 
+    names of the folders.
 
     Args:
         data_directory: directory where the measurement data is saved
@@ -307,8 +315,8 @@ def get_latest_data_folder(data_directory):
     day_folders = os.listdir(data_directory)
     day_folders.sort()
     day_folder = day_folders[-1]
-    ts_folders = os.listdir(data_directory + f'\\{day_folder}')
+    ts_folders = os.listdir(data_directory + f"\\{day_folder}")
     ts_folders.sort()
     ts_folder = ts_folders[-1]
-    latest_folder = data_directory + f'\\{day_folder}\\{ts_folder}'
+    latest_folder = data_directory + f"\\{day_folder}\\{ts_folder}"
     return latest_folder

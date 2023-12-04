@@ -3,12 +3,9 @@ name: Formatting
 on:
   push:
     branches: ["main"]
-    paths:
-      - 'laboneq_library/automatic_tuneup/**'
+    
   pull_request:
     branches: ["main"]
-    paths:
-      - 'laboneq_library/automatic_tuneup/**'
 
 jobs:
   lint:

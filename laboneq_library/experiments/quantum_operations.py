@@ -30,8 +30,11 @@ def quantum_gates(qubit):
 
 
 def quantum_gate(
-    qubit, gate_name, pulse_type=pulse_library.drag, uid=None,
-    additional_pulse_parameters=None
+    qubit,
+    gate_name,
+    pulse_type=pulse_library.drag,
+    uid=None,
+    additional_pulse_parameters=None,
 ):
     pulse_pars = (
         qubit.parameters.drive_parameters_ef
