@@ -280,7 +280,7 @@ class QubitSpectroscopy(ExperimentTemplate):
                             'position': {'value': freqs_to_fit[np.argmax(data_to_fit)]},
                             'width': {'value': width_guess},
                             'offset': {'value': 0}
-                         }
+                        }
                         fit_res_peak = ana_hlp.fit_data_lmfit(
                             fit_mods.lorentzian, freqs_to_fit, data_to_fit,
                             param_hints=param_hints)
@@ -370,12 +370,14 @@ class QubitSpectroscopy(ExperimentTemplate):
                     if self.analysis_metainfo.get('do_fitting', True):
                         # fit frequency vs voltage and take the optimal parking
                         # parameters from fit
-                        # fit_func = lambda x, V0, f0, fv: f0 - fv * (x - V0) ** 2
-                        param_hints = {
-                            'V0': {'value': V0},
-                            'f0': {'value': f0},
-                            'fv': {'value': scf * (max(freqs_peaks) - min(freqs_peaks))},
-                        }
+                        param_hints = self.analysis_metainfo.get(
+                            'param_hints', {
+                                'voltage_sweet_spot': {'value': V0},
+                                'frequency_sweet_spot': {'value': f0},
+                                'frequency_voltage_scaling': {
+                                    'value': scf * (max(freqs_peaks) -
+                                                    min(freqs_peaks))},
+                            })
                         fit_res = ana_hlp.fit_data_lmfit(
                             fit_mods.transmon_voltage_dependence_quadratic,
                             nt_sweep_par_vals, freqs_peaks, param_hints=param_hints)
@@ -390,8 +392,10 @@ class QubitSpectroscopy(ExperimentTemplate):
                         ax.plot(fit_res.model.func(
                             ntpval_fine, **fit_res.best_values) / 1e9,
                                 ntpval_fine, 'w-')
-                        f0, f0err = fit_res.best_values['f0'], fit_res.params['f0'].stderr
-                        V0, V0err = fit_res.best_values['V0'], fit_res.params['V0'].stderr
+                        f0 = fit_res.best_values["frequency_sweet_spot"]
+                        f0err = fit_res.params["frequency_sweet_spot"].stderr
+                        V0 = fit_res.best_values["voltage_sweet_spot"]
+                        V0err = fit_res.params["voltage_sweet_spot"].stderr
                         ax.plot(f0 / 1e9, V0, 'sC2',
                                 markersize=plt.rcParams['lines.markersize'] + 1)
                         textstr = f"Parking voltage: {V0:.4f} $\\pm$ {V0err:.4f} V"
@@ -1196,17 +1200,21 @@ class RamseyParking(Ramsey):
                 # voltages vs frequencies
                 f0 = qubit_frequencies[take_extremum_fit(qubit_frequencies)]
                 V0 = voltages[take_extremum_fit(qubit_frequencies)]
-                param_hints = {
-                    'V0': {'value': V0},
-                    'f0': {'value': f0},
-                    'fv': {'value': scf * (max(qubit_frequencies) -
-                                           min(qubit_frequencies))},
-                }
+                param_hints = self.analysis_metainfo.get(
+                    'param_hints', {
+                        'voltage_sweet_spot': {'value': V0},
+                        'frequency_sweet_spot': {'value': f0},
+                        'frequency_voltage_scaling': {
+                            'value': scf * (max(qubit_frequencies) -
+                                            min(qubit_frequencies))},
+                    })
                 fit_res = ana_hlp.fit_data_lmfit(
                     fit_mods.transmon_voltage_dependence_quadratic,
                     voltages, qubit_frequencies, param_hints=param_hints)
-                f0, f0err = fit_res.best_values['f0'], fit_res.params['f0'].stderr
-                V0, V0err = fit_res.best_values['V0'], fit_res.params['V0'].stderr
+                f0 = fit_res.best_values["frequency_sweet_spot"]
+                f0err = fit_res.params["frequency_sweet_spot"].stderr
+                V0 = fit_res.best_values["voltage_sweet_spot"]
+                V0err = fit_res.params["voltage_sweet_spot"].stderr
                 self.fit_results[qubit.uid]["parking"] = fit_res
                 self.new_qubit_parameters[qubit.uid]["parking"] = {
                     "resonance_frequency": f0,
