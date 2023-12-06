@@ -2022,7 +2022,7 @@ class Ramsey(SingleQubitGateTuneup):
                     'decay_exponent': {'value': 1, 'vary': False},
                 })
             fit_res = ana_hlp.fit_data_lmfit(
-                fit_mods.oscillatory_decay_new, swpts_to_fit, data_to_fit,
+                fit_mods.oscillatory_decay_flexible, swpts_to_fit, data_to_fit,
                 param_hints=param_hints)
             self.fit_results[qubit.uid] = fit_res
 
@@ -2337,30 +2337,32 @@ class Echo(SingleQubitGateTuneup):
                 data_to_fit, swpts_to_fit)
             param_hints = self.analysis_metainfo.get(
                 'param_hints', {
-                    'frequency': {'value': 2 * np.pi * freqs_guess},
+                    'frequency': {'value': freqs_guess},
                     'phase': {'value': phase_guess},
-                    'decay_rate': {'value': 3 * max(swpts_to_fit) / 2,
+                    'decay_time': {'value': 2 / 3 * max(swpts_to_fit),
                                    'min': 0},
                     'amplitude': {'value': 0.5,
                                   'vary': False},
-                    'offset': {'value': np.mean(data_to_fit)}
+                    'oscillation_offset': {'value': 0,
+                                           'vary': 'f' in self.cal_states},
+                    'exponential_offset': {'value': np.mean(data_to_fit)},
+                    'decay_exponent': {'value': 1, 'vary': False},
                 })
             fit_res = ana_hlp.fit_data_lmfit(
-                fit_mods.oscillatory_decay, swpts_to_fit, data_to_fit,
+                fit_mods.oscillatory_decay_flexible, swpts_to_fit, data_to_fit,
                 param_hints=param_hints)
             self.fit_results[qubit.uid] = fit_res
 
-            dec_rt = unc.ufloat(fit_res.params['decay_rate'].value,
-                                fit_res.params['decay_rate'].stderr)
-            t2 = 1 / dec_rt
-            self.new_qubit_parameters[qubit.uid] = {'T2': t2.nominal_value}
+            t2 = fit_res.best_values['decay_time']
+            t2_err = fit_res.params['decay_time'].stderr
+            self.new_qubit_parameters[qubit.uid] = {'T2': t2}
 
             # plot fit
             swpts_fine = np.linspace(swpts_to_fit[0], swpts_to_fit[-1], 501)
             ax.plot(swpts_fine * 1e6, fit_res.model.func(
                 swpts_fine, **fit_res.best_values), 'r-', zorder=1)
-            textstr = (f'$T_2$: {t2.nominal_value * 1e6:.4f} $\\pm$ '
-                       f'{t2.std_dev * 1e6:.4f} $\\mu$s')
+            textstr = (f'$T_2$: {t2 * 1e6:.4f} $\\pm$ '
+                       f'{t2_err * 1e6:.4f} $\\mu$s')
             ax.text(0, -0.15, textstr, ha='left', va='top',
                     transform=ax.transAxes)
 
@@ -2394,9 +2396,6 @@ class RamseyParking(Ramsey):
         self.new_qubit_parameters = {}
         self.fit_results = {}
         for qubit in self.qubits:
-            delays_offset = qubit.parameters.drive_parameters_ef["length"] \
-                if 'f' in self.transition_to_calib else \
-                qubit.parameters.drive_parameters_ge["length"]
             # extract data
             handle = f"{self.experiment_name}_{qubit.uid}"
             do_pca = self.analysis_metainfo.get("do_pca", False)
