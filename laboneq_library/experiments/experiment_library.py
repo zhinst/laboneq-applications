@@ -1277,6 +1277,9 @@ class QubitSpectroscopy(ExperimentTemplate):
         self.nt_swp_par = experiment_metainfo.get('neartime_sweep_parameter',
                                                   'frequency')
         self.pulsed = experiment_metainfo.get('pulsed', True)
+        if not self.pulsed:
+            raise NotImplementedError("Continuous-wave qubit spectroscopy is "
+                                      "currently not implemented.")
         # Add suffix to experiment name
         experiment_name = kwargs.get("experiment_name",
                                      self.fallback_experiment_name)
