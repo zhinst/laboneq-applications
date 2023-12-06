@@ -894,7 +894,6 @@ class ResonatorSpectroscopy(ExperimentTemplate):
         self.experiment.set_calibration(cal)
 
     def analyse_experiment(self):
-        ts = self.timestamp if self.timestamp is not None else ''
         self.new_qubit_parameters = {}
         self.fit_results = {}
         freq_filter = self.analysis_metainfo.get('frequency_filter_for_fit', {})
@@ -1056,7 +1055,7 @@ class ResonatorSpectroscopy(ExperimentTemplate):
                             self.new_qubit_parameters[qubit.uid][
                                 "dc_voltage_parking"]['lss'] = f_lss
 
-            ax.set_title(f'{ts}_{handle}')
+            ax.set_title(f'{self.timestamp}_{handle}')
             # save figures and results
             if self.save:
                 # Save the figure
@@ -1195,7 +1194,6 @@ class DispersiveShift(ResonatorSpectroscopy):
             exp.save_fit_results(filename_suffix=state)
 
     def analyse_experiment(self):
-        ts = self.timestamp if self.timestamp is not None else ''
         self.new_qubit_parameters = {}
         self.fit_results = {}
         for qubit in self.qubits:
@@ -1226,7 +1224,7 @@ class DispersiveShift(ResonatorSpectroscopy):
             fig_s21, ax_21 = plt.subplots()
             ax_21.set_xlabel("Readout Frequency, $f_{\\mathrm{RO}}$ (GHz)")
             ax_21.set_ylabel("Signal Magnitude, $|S_{21}|$ (a.u.)")
-            ax_21.set_title(f'{ts}_{self.experiment_name}_{qubit.uid}')
+            ax_21.set_title(f'{self.timestamp}_{self.experiment_name}_{qubit.uid}')
             for state, exp in self.experiments.items():
                 handle = f"{exp.experiment_name}_{qubit.uid}"
                 freqs = exp.results.get_axis(handle)[0] + \
@@ -1239,7 +1237,7 @@ class DispersiveShift(ResonatorSpectroscopy):
             fig_s21_dist, ax_s21_dist = plt.subplots()
             ax_s21_dist.set_xlabel("Readout Frequency, $f_{\\mathrm{RO}}$ (GHz)")
             ax_s21_dist.set_ylabel("Magnitude Signal Difference, $|\\Delta S_{21}|$ (a.u.)")
-            ax_s21_dist.set_title(f'{ts}_{self.experiment_name}_{qubit.uid}')
+            ax_s21_dist.set_title(f'{self.timestamp}_{self.experiment_name}_{qubit.uid}')
             for states, (s21_dist, idx_max) in s21_abs_distances.items():
                 max_s21_dist, max_freq = s21_dist[idx_max], freqs[idx_max]
                 self.new_qubit_parameters[qubit.uid][states] = max_freq
@@ -1486,7 +1484,6 @@ class QubitSpectroscopy(ExperimentTemplate):
         self.experiment.set_calibration(cal)
 
     def analyse_experiment(self):
-        ts = self.timestamp if self.timestamp is not None else ''
         self.new_qubit_parameters = {}
         self.fit_results = {}
         freq_filter = self.analysis_metainfo.get('frequency_filter_for_fit', {})
@@ -1650,7 +1647,7 @@ class QubitSpectroscopy(ExperimentTemplate):
                         ax.text(0, -0.15, textstr, ha='left', va='top',
                                 transform=ax.transAxes)
 
-            ax.set_title(f'{ts}_{handle}')
+            ax.set_title(f'{self.timestamp}_{handle}')
             # save figures and results
             if self.save:
                 # Save the figure
@@ -1732,7 +1729,6 @@ class SingleQubitGateTuneup(ExperimentTemplate):
     def analyse_experiment(self):
         self.new_qubit_parameters = {}
         self.fit_results = {}
-        ts = self.timestamp if self.timestamp is not None else ''
         for qubit in self.qubits:
             # extract data
             handle = f"{self.experiment_name}_{qubit.uid}"
@@ -1748,7 +1744,7 @@ class SingleQubitGateTuneup(ExperimentTemplate):
             ax.set_ylabel("Principal Component (a.u)" if
                           (num_cal_traces == 0 or do_pca) else
                           f"$|{self.cal_states[-1]}\\rangle$-State Population")
-            ax.set_title(f'{ts}_{handle}')
+            ax.set_title(f'{self.timestamp}_{handle}')
             # run the analysis from the children
             self.analyse_experiment_qubit(qubit, data_dict, fig, ax)
             if self.save:
@@ -2394,7 +2390,6 @@ class RamseyParking(Ramsey):
     def analyse_experiment(self):
         self.new_qubit_parameters = {}
         self.fit_results = {}
-        ts = self.timestamp if self.timestamp is not None else ''
         for qubit in self.qubits:
             delays_offset = qubit.parameters.drive_parameters_ef["length"] \
                 if 'f' in self.transition_to_calib else \
@@ -2423,7 +2418,7 @@ class RamseyParking(Ramsey):
                     ax.set_ylabel("Principal Component (a.u)" if
                                   (num_cal_traces == 0 or do_pca) else
                                   f"$|{self.cal_states[-1]}\\rangle$-State Population")
-                    ax.set_title(f'{ts}_{handle}')
+                    ax.set_title(f'{self.timestamp}_{handle}')
                     # run ramsey analysis
                     self.analyse_experiment_qubit(qubit, data_dict_tmp, fig, ax)
                     if self.save:
@@ -2470,7 +2465,7 @@ class RamseyParking(Ramsey):
                 fig, ax = plt.subplots()
                 ax.set_xlabel(self.results.get_axis_name(handle)[0])
                 ax.set_ylabel("Qubit Frequency, $f_{\\mathrm{QB}}$ (GHz)")
-                ax.set_title(f'{ts}_{handle}')
+                ax.set_title(f'{self.timestamp}_{handle}')
                 ax.plot(voltages, qubit_frequencies / 1e9, 'o', zorder=2)
                 # plot fit
                 voltages_fine = np.linspace(voltages[0], voltages[-1], 501)
