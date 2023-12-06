@@ -177,7 +177,64 @@ def save_results(results_database, results_object, key_name: str, user_note: str
     )
 
 
-def create_qubits(qubit_parameters, measurement_setup):
+def create_qubits_from_measurement_setup(measurement_setup):
+    """
+    Instantiates Transmons from the logical signals in measurement_setup and
+    dome default values for the parameters.
+
+    Args:
+        measurement_setup: instance of DeviceSetup
+
+    Returns:
+        list of Transmon instances
+    """
+
+    qubits = []
+    for qb_name in measurement_setup.logical_signal_groups:
+        qubits += [Transmon.from_logical_signal_group(
+            uid=qb_name,
+            lsg=measurement_setup.logical_signal_groups[qb_name],
+            parameters=TransmonParameters(
+                resonance_frequency_ge=6.00e9,
+                resonance_frequency_ef=5.83e9,
+                drive_lo_frequency=5.90e9,
+                readout_resonator_frequency=7.00e9,
+                readout_lo_frequency=7.30e9,
+                readout_integration_length=2e-06,
+                readout_integration_delay=2.4e-07,
+                drive_range=10,
+                readout_range_out=-25,
+                readout_range_in=-5,
+                flux_offset_voltage=0,
+                drive_parameters_ge={
+                    'amplitude_pi': 0.30,
+                    'amplitude_pi2': 0.15,
+                    'beta': 0,
+                    'length': 5e-08,
+                    'sigma': 0.2
+                },
+                drive_parameters_ef={
+                    'amplitude_pi': 0.30,
+                    'amplitude_pi2': 0.15,
+                    'beta': 0,
+                    'length': 5e-08,
+                    'sigma': 0.2
+                },
+                user_defined={
+                    'dc_slot': 0,
+                    'dc_voltage_parking': 0,
+                    'readout_amplitude': 0.5,
+                    'readout_length': 2e-06,
+                    'reset_delay_length': 1e-06,
+                    'spec_amplitude': 1,
+                    'spec_length': 5e-06
+                }
+            ),
+        )]
+    return qubits
+
+
+def create_qubits_from_parameters(qubit_parameters, measurement_setup):
     """
     Instantiates Transmons from the logical signals in measurement_setup and
     the qubit_parameters.
@@ -289,10 +346,11 @@ def load_qubits_from_data_folder(data_folder, measurement_setup):
 
     Args:
         data_folder: path to the directory where the measurement data is saved
-        measurement_setup: instance of DeviceSetup; passed to create_qubits
+        measurement_setup: instance of DeviceSetup; passed to
+        create_qubits_from_parameters
 
     Returns:
-        list of Transmon instances (see create_qubits)
+        list of Transmon instances (see create_qubits_from_parameters)
     """
 
     try:
@@ -300,7 +358,7 @@ def load_qubits_from_data_folder(data_folder, measurement_setup):
             data_folder + '\\qubit_parameters.yaml')
     except FileNotFoundError:
         qubit_parameters = load_qubit_parameters_json(data_folder)
-    qubits = create_qubits(qubit_parameters, measurement_setup)
+    qubits = create_qubits_from_parameters(qubit_parameters, measurement_setup)
     measurement_setup.qubits = qubits
     return qubits
 
