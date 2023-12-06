@@ -1189,13 +1189,8 @@ class DispersiveShift(ResonatorSpectroscopy):
         for state, exp in self.experiments.items():
             exp.save_results(filename_suffix=state)
 
-    def save_fit_results(self):
-        for state, exp in self.experiments.items():
-            exp.save_fit_results(filename_suffix=state)
-
     def analyse_experiment(self):
         self.new_qubit_parameters = {}
-        self.fit_results = {}
         for qubit in self.qubits:
             self.new_qubit_parameters[qubit.uid] = {}
             # all experiments have the same frequency axis
