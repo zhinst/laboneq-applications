@@ -580,9 +580,7 @@ class ExperimentTemplate():
             log.error(traceback.format_exc())
 
     def create_acquire_rt_loop(self):
-        self.acquire_loop = AcquireLoopRt(
-            uid="RT_Acquire_Loop", **self.acquisition_metainfo
-        )
+        self.acquire_loop = AcquireLoopRt(**self.acquisition_metainfo)
 
     def create_measure_acquire_sections(self, qubit, uid=None, play_after=None,
                                         handle_suffix='',
