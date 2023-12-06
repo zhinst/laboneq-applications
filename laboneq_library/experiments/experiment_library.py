@@ -296,7 +296,7 @@ class ExperimentTemplate():
     fallback_experiment_name = "Experiment"
     save_directory = None
     timestamp = None
-    compiled_exp = None
+    compiled_experiment = None
     results = None
     fit_results = None
     new_qubit_parameters = None
@@ -411,10 +411,10 @@ class ExperimentTemplate():
         self.update_measurement_setup()
 
     def compile_experiment(self):
-        self.compiled_exp = self.session.compile(self.experiment)
+        self.compiled_experiment = self.session.compile(self.experiment)
 
     def run_experiment(self):
-        self.results = self.session.run(self.compiled_exp)
+        self.results = self.session.run(self.compiled_experiment)
 
     def analyse_experiment(self):
         # to be overridden by children
