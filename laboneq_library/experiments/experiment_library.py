@@ -584,8 +584,9 @@ class ExperimentTemplate():
             uid="RT_Acquire_Loop", **self.acquisition_metainfo
         )
 
-    def create_measure_acquire_sections(self, uid, qubit, play_after=None,
-                                        handle_suffix='', integration_kernel=None):
+    def create_measure_acquire_sections(self, qubit, uid=None, play_after=None,
+                                        handle_suffix='',
+                                        integration_kernel="default"):
         handle = f"{self.experiment_name}_{qubit.uid}"
         if len(handle_suffix) > 0:
             handle += f"_{handle_suffix}"
@@ -599,7 +600,7 @@ class ExperimentTemplate():
                 length=qubit.parameters.readout_integration_length,
                 amplitude=1,
             )
-        if integration_kernel is None:
+        if integration_kernel == "default":
             integration_kernel = self.integration_kernel
         measure_acquire_section = Section(uid=uid)
         measure_acquire_section.play_after = play_after
@@ -623,7 +624,6 @@ class ExperimentTemplate():
         if "g" in self.cal_states:
             # Ground state - just a msmt
             g_measure_section = self.create_measure_acquire_sections(
-                uid=f"{qubit.uid}_cal_trace_g_meas",
                 qubit=qubit,
                 handle_suffix="cal_trace_g",
             )
@@ -642,7 +642,6 @@ class ExperimentTemplate():
                                           ),
             )
             e_measure_section = self.create_measure_acquire_sections(
-                uid=f"{qubit.uid}_cal_trace_e_meas",
                 qubit=qubit,
                 play_after=f"{qubit.uid}_cal_trace_e",
                 handle_suffix="cal_trace_e",
@@ -677,7 +676,6 @@ class ExperimentTemplate():
                                           uid=f"{qubit.uid}_cal_trace_f_f"),
             )
             measure_section = self.create_measure_acquire_sections(
-                uid=f"{qubit.uid}_cal_trace_f_meas",
                 qubit=qubit,
                 play_after=f"{qubit.uid}_cal_trace_f_f",
                 handle_suffix="cal_trace_f",
@@ -1388,7 +1386,6 @@ class QubitSpectroscopy(ExperimentTemplate):
         #         sweep_freq.add(excitation_section)
         #
         #     measure_sections = self.create_measure_acquire_sections(
-        #         uid=f"{qubit.uid}_readout",
         #         qubit=qubit,
         #         integration_kernel=integration_kernel,
         #         play_after=f"{qubit.uid}_excitation" if self.pulsed else None)
@@ -1456,7 +1453,6 @@ class QubitSpectroscopy(ExperimentTemplate):
                 freq_sweep.add(excitation_section)
 
             measure_sections = self.create_measure_acquire_sections(
-                uid=f"{qubit.uid}_readout",
                 qubit=qubit,
                 integration_kernel=integration_kernel,
                 play_after=f"{qubit.uid}_excitation" if self.pulsed else None)
@@ -1822,7 +1818,6 @@ class AmplitudeRabi(SingleQubitGateTuneup):
             # excitation_section.delay(signal=f"drive_{qubit.uid}", time=10e-9)
             # create readout + acquire sections
             measure_sections = self.create_measure_acquire_sections(
-                uid=f"{qubit.uid}_readout",
                 qubit=qubit,
                 play_after=f"{qubit.uid}_excitation",
             )
@@ -1990,7 +1985,6 @@ class Ramsey(SingleQubitGateTuneup):
 
             # create readout + acquire sections
             measure_sections = self.create_measure_acquire_sections(
-                uid=f"{qubit.uid}_readout",
                 qubit=qubit,
                 play_after=f"{qubit.uid}_excitation",
             )
@@ -2123,7 +2117,6 @@ class QScale(SingleQubitGateTuneup):
 
                 # create readout + acquire sections
                 measure_sections = self.create_measure_acquire_sections(
-                    uid=f"{qubit.uid}_{id}_section_meas",
                     qubit=qubit,
                     play_after=f"{qubit.uid}_{id}_section",
                 )
@@ -2184,7 +2177,6 @@ class T1(SingleQubitGateTuneup):
 
             # create readout + acquire sections
             measure_sections = self.create_measure_acquire_sections(
-                uid=f"{qubit.uid}_readout",
                 qubit=qubit,
                 play_after=f"{qubit.uid}_excitation",
             )
@@ -2322,7 +2314,6 @@ class Echo(SingleQubitGateTuneup):
 
             # create readout + acquire sections
             measure_sections = self.create_measure_acquire_sections(
-                uid=f"{qubit.uid}_readout",
                 qubit=qubit,
                 play_after=f"{qubit.uid}_excitation",
             )
