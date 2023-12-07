@@ -32,6 +32,12 @@ class OptimalIntegrationKernels(ExperimentTemplate):
         acquisition_metainfo.update(acquisition_metainfo_user)
         kwargs["acquisition_metainfo"] = acquisition_metainfo
 
+        # Add suffix to experiment name
+        experiment_name = kwargs.get("experiment_name",
+                                     self.fallback_experiment_name)
+        experiment_name += f"_{''.join(self.preparation_states)}"
+        kwargs["experiment_name"] = experiment_name
+
         run = kwargs.pop("run", False)  # instantiate base without running exp
         kwargs["run"] = False
         save = kwargs.pop("save", True)  # instantiate base without saving exp
@@ -549,6 +555,7 @@ class DispersiveShift(ResonatorSpectroscopy):
         exp_name_split = self.experiment_name.split('_')
         exp_name_split.remove("Pulsed")
         self.experiment_name = '_'.join(exp_name_split)
+        self.experiment_name += f"_{''.join(preparation_states)}"
         self.create_experiment_label()
         self.generate_timestamp_save_directory()
 
