@@ -463,6 +463,10 @@ class SingleQubitGateTuneup(ExperimentTemplate):
 
         super().__init__(*args, signals=signals, **kwargs)
 
+    def create_transition_preparation_sections(self, qubit):
+        return self.create_preparation(
+            qubit, state_to_prepare=self.transition_to_calib[0])
+
     def add_preparation_pulses_to_section(self, section, qubit):
         if self.transition_to_calib == "ge":
             return
@@ -548,22 +552,16 @@ class AmplitudeRabi(SingleQubitGateTuneup):
             sweep = Sweep(uid=f"{qubit.uid}_{self.experiment_name}_sweep",
                           parameters=[self.sweep_parameters_dict[qubit.uid][0]])
 
-            # create preparation pulses section
-            preparation_section = Section(
-                uid=f"{qubit.uid}_preparation",
-                alignment=SectionAlignment.RIGHT,
-                on_system_grid=True,
-            )
-            # preparation pulses: ge if calibrating ef
-            self.add_preparation_pulses_to_section(
-                preparation_section, qubit)
+            # create preparation pulses sections
+            prep_sections = self.create_transition_preparation_sections(qubit)
 
             # create pulses section
+            play_after = prep_sections[-1].uid if len(prep_sections) else None
             excitation_section = Section(
                 uid=f"{qubit.uid}_excitation",
                 alignment=SectionAlignment.LEFT,
                 on_system_grid=True,
-                play_after=f"{qubit.uid}_preparation",
+                play_after=play_after,
             )
             # pulse to calibrate
             drive_pulse = qt_ops.quantum_gate(
@@ -586,7 +584,8 @@ class AmplitudeRabi(SingleQubitGateTuneup):
 
             # add sweep and sections to acquire loop rt
             self.acquire_loop.add(sweep)
-            sweep.add(preparation_section)
+            for prep_sec in prep_sections:
+                sweep.add(prep_sec)
             sweep.add(excitation_section)
             sweep.add(measure_sections)
             self.add_cal_states_sections(qubit)
