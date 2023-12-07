@@ -165,10 +165,10 @@ class OptimalIntegrationKernels(ExperimentTemplate):
                 axs[i].set_ylabel("Voltage, $V$ (a.u.)")
                 axs[i].legend(frameon=False)
 
-            kernel = calculate_integration_kernels(raw_traces)
+            kernels = calculate_integration_kernels(raw_traces)
             self.new_qubit_parameters[qubit.uid] = {
-                "integration_kernel": kernel}
-            for i, krn in enumerate(kernel):
+                "integration_kernels": kernels}
+            for i, krn in enumerate(kernels):
                 ax = axs[len(self.preparation_states) + i]
                 krn_vals = krn.samples
                 ax.plot(np.real(krn_vals), label=f"w{i+1}: I")
@@ -188,9 +188,10 @@ class OptimalIntegrationKernels(ExperimentTemplate):
                 plt.show()
             plt.close(fig)
 
-    # def update_qubit_parameters(self):
-    #     for qubit in self.qubits:
-    #         qubit.
+    def update_qubit_parameters(self):
+        for qubit in self.qubits:
+            qubit.parameters.readout_integration_kernels = \
+                self.new_qubit_parameters[qubit.uid]["integration_kernels"]
 
 
 
@@ -713,8 +714,6 @@ class DispersiveShift(ResonatorSpectroscopy):
         for qubit in self.qubits:
             new_qb_pars = self.new_qubit_parameters[qubit.uid]
             qubit.parameters.readout_resonator_frequency = new_qb_pars["sum"]
-
-
 
 
 
