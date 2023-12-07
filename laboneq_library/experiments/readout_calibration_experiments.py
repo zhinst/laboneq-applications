@@ -158,7 +158,6 @@ class OptimalIntegrationKernels(ExperimentTemplate):
             raw_traces = []
             for i, ps in enumerate(self.preparation_states):
                 handle = f"{self.experiment_name}_{ps}_{qubit.uid}"
-                handle = f"raw_{qubit.uid}"
                 trace = self.experiments[ps].results.get_data(handle)
                 raw_traces += [trace[: (len(trace) // 16) * 16]]
                 axs[i].plot(np.real(raw_traces[-1]), label=f"{ps}: I")
@@ -714,4 +713,23 @@ class DispersiveShift(ResonatorSpectroscopy):
         for qubit in self.qubits:
             new_qb_pars = self.new_qubit_parameters[qubit.uid]
             qubit.parameters.readout_resonator_frequency = new_qb_pars["sum"]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
