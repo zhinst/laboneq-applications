@@ -732,19 +732,66 @@ class DispersiveShift(ResonatorSpectroscopy):
             qubit.parameters.readout_resonator_frequency = new_qb_pars["sum"]
 
 
+class StateDiscrimination(ExperimentTemplate):
+    fallback_experiment_name = 'StateDiscrimination'
 
+    def __init__(self, *args, preparation_states=('g', 'e'), **kwargs):
+        self.preparation_states = preparation_states
+        cal_states = kwargs.pop("cal_states", self.preparation_states)
+        kwargs["cal_states"] = cal_states
+        # Add suffix to experiment name
+        experiment_name = kwargs.get("experiment_name",
+                                     self.fallback_experiment_name)
+        experiment_name += f"_{''.join(self.preparation_states)}"
+        kwargs["experiment_name"] = experiment_name
 
+        # Set AveragingMode to SINGLE_SHOT
+        acquisition_metainfo_user = kwargs.pop("acquisition_metainfo", dict())
+        acquisition_metainfo = dict(averaging_mode=AveragingMode.SINGLE_SHOT)
+        acquisition_metainfo.update(acquisition_metainfo_user)
+        kwargs["acquisition_metainfo"] = acquisition_metainfo
 
+        super().__init__(*args, **kwargs)
 
+    def define_experiment(self):
+        self.experiment.sections = []
+        self.create_acquire_rt_loop()
+        self.experiment.add(self.acquire_loop)
+        for qubit in self.qubits:
+            self.add_cal_states_sections(qubit)
 
+    def analyse_experiment(self):
+        for qubit in self.qubits:
+            fig, ax = plt.subplots()
+            shots = {}
+            for i, ps in enumerate(self.preparation_states):
+                handle = f"{self.experiment_name}_{qubit.uid}_cal_trace_{ps}"
+                shots[ps] = self.results.get_data(handle)
+                ax.scatter(np.real(shots[ps]), np.imag(shots[ps]),
+                           c=f"C{i}", label=ps)
+                # plot mean point
+                mean_state = np.mean(shots[ps])
+                ax.plot(np.real(mean_state), np.imag(mean_state),
+                        'o', mfc=f"C{i}", mec='k')
 
-
-
-
-
-
-
-
-
-
-
+            # compute the distanced between the mean of the points for each state
+            all_state_combinations = combinations(self.preparation_states, 2)
+            distances_means = {''.join(sc): '' for sc in all_state_combinations}
+            textstr = ''
+            for i, states in enumerate(distances_means):
+                s0, s1 = states
+                distances_means[states] = abs(np.mean(shots[s0]) - np.mean(shots[s1]))
+                textstr += f"dist({s0},{s1}): {distances_means[states]:.2f}\n"
+            distances_means["sum"] = np.sum(list(distances_means.values()))
+            textstr += f"sum: {distances_means['sum']:.2f}"
+            ax.text(1.025, 0.5, textstr, ha='left', va='center', transform=ax.transAxes)
+            ax.set_xlabel("Real Signal Component, $V_I$ (a.u.)")
+            ax.set_ylabel("Imaginary Signal Component, $V_Q$ (a.u.)")
+            ax.set_title(f'{self.timestamp}_{self.experiment_name}_{qubit.uid}')
+            ax.legend(frameon=False)
+            if self.save:
+                # Save the figures
+                self.save_figure(fig, qubit)
+            if self.analysis_metainfo.get("show_figures", False):
+                plt.show()
+            plt.close(fig)
