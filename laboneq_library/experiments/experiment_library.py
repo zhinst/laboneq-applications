@@ -521,8 +521,10 @@ class ExperimentTemplate():
                        fn in os.listdir(self.save_directory)]):
                 fig_name_final = f"{fig_name}_{i}"
                 i += 1
-        fig.savefig(self.save_directory + f"\\{fig_name_final}.png",
-                    bbox_inches="tight", dpi=600)
+        fig_fmts = self.analysis_metainfo.get("figure_formats", ["png"])
+        for fmt in fig_fmts:
+            fig.savefig(self.save_directory + f"\\{fig_name_final}.{fmt}",
+                        bbox_inches="tight", dpi=600)
 
     def save_fit_results(self, filename_suffix=''):
         if self.fit_results is not None and len(self.fit_results) > 0:
