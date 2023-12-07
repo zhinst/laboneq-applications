@@ -213,12 +213,12 @@ class ResonatorSpectroscopy(ExperimentTemplate):
 
         experiment_metainfo = kwargs.get("experiment_metainfo", dict())
         self.nt_swp_par = experiment_metainfo.get("neartime_sweep_parameter",
-                                                  "frequency")
+                                                  None)
         self.pulsed = experiment_metainfo.get("pulsed", False)
         # Add suffix to experiment name
         experiment_name = kwargs.get("experiment_name",
                                      self.fallback_experiment_name)
-        if self.nt_swp_par != "frequency":
+        if self.nt_swp_par is not None:
             experiment_name += f"{self.nt_swp_par[0].upper()}{self.nt_swp_par[1:]}Sweep"
         experiment_name += "_Pulsed" if self.pulsed else "_CW"
         kwargs["experiment_name"] = experiment_name
@@ -324,11 +324,10 @@ class ResonatorSpectroscopy(ExperimentTemplate):
             qb_sweep = self.sweep_parameters_dict[qubit.uid]
             local_oscillator = None
             ro_amplitude = None
-            if len(qb_sweep) > 1:
-                if self.nt_swp_par == 'amplitude':  # and not self.pulsed:
-                    ro_amplitude = qb_sweep[1]
-                elif self.nt_swp_par == "frequency":
-                    local_oscillator = Oscillator(frequency=qb_sweep[1])
+            if self.nt_swp_par == 'amplitude':  # and not self.pulsed:
+                ro_amplitude = qb_sweep[1]
+            elif self.nt_swp_par == "frequency":
+                local_oscillator = Oscillator(frequency=qb_sweep[1])
 
             freq_swp = qb_sweep[0]
             meas_sig_calib_kwargs = {}
@@ -366,7 +365,7 @@ class ResonatorSpectroscopy(ExperimentTemplate):
             handle = f"{self.experiment_name}_{qubit.uid}"
             data_mag = abs(self.results.get_data(handle))
             res_axis = self.results.get_axis(handle)
-            if self.nt_swp_par == "frequency":
+            if self.nt_swp_par is None or self.nt_swp_par == 'frequency':
                 data_mag = np.array([data for data in data_mag]).flatten()
                 if len(res_axis) > 1:
                     outer = self.results.get_axis(handle)[0]
