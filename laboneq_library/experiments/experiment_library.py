@@ -478,7 +478,31 @@ class ExperimentTemplate(StatePreparationMixin):
         """
         self.update_measurement_setup()
 
+    def create_unique_uids(self):
+        from laboneq.dsl.experiment.play_pulse import PlayPulse
+        uids = set()
+        def rename_uid_sweep_section(sec, suffix):
+            if isinstance(sec, (Sweep, Section)):
+                if sec.uid in uids:
+                    print(f'Renaming {type(sec)} uid {sec.uid} to {sec.uid}_{suffix}')
+                    sec.uid += f"_{suffix}"
+                    suffix += 1
+                uids.add(sec.uid)
+                for ch in sec.children:
+                    suffix = rename_uid_sweep_section(ch, suffix=suffix)
+            elif isinstance(sec, PlayPulse):
+                if sec.pulse.uid in uids:
+                    print(f'Renaming Pulse with uid {sec.pulse.uid} to {sec.pulse.uid}_{suffix}')
+                    sec.pulse.uid += f"_{suffix}"
+                    suffix += 1
+                uids.add(sec.pulse.uid)
+            return suffix
+
+        for i, sec in enumerate(self.experiment.sections):
+            rename_uid_sweep_section(sec, suffix=0)
+
     def compile_experiment(self):
+        self.create_unique_uids()
         self.compiled_experiment = self.session.compile(self.experiment)
 
     def run_experiment(self):
@@ -542,7 +566,6 @@ class ExperimentTemplate(StatePreparationMixin):
         metainfo = {
             "experiment_metainfo": self.experiment_metainfo,
             "analysis_metainfo": self.analysis_metainfo,
-            # "sweep_parameters_dict": self.sweep_parameters_dict,
             "cal_states": self.cal_states,
         }
         metainfo_file = os.path.abspath(os.path.join(
