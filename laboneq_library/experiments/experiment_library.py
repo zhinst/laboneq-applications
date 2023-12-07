@@ -375,7 +375,6 @@ class ExperimentTemplate(StatePreparationMixin):
                  acquisition_metainfo=None, cal_states=None, data_directory=None,
                  do_analysis=True, analysis_metainfo=None, save=True,
                  update=False, run=False, **kwargs):
-
         self.qubits = qubits
         self.session = session
         self.measurement_setup = measurement_setup
@@ -700,56 +699,32 @@ class ExperimentTemplate(StatePreparationMixin):
             cal_trace_sections += [g_measure_section]
         if "e" in self.cal_states:
             # Excited state - prep pulse + msmt
-            e_section = Section(
-                uid=f"{qubit.uid}_cal_trace_e",
-                play_after=play_after_sections,
-            )
-            e_section.play(
-                signal=self.signal_name("drive", qubit),
-                pulse=qt_ops.quantum_gate(qubit, "X180_ge",
-                                          uid=f"{qubit.uid}_cal_trace_e"
-                                          ),
+            e_prep_sections = self.create_preparation(
+                qubit, state_to_prepare='e',
+                play_after_sections=play_after_sections,
+                section_uid_suffix="cal_traces"
             )
             e_measure_section = self.create_measure_acquire_sections(
                 qubit=qubit,
-                play_after=f"{qubit.uid}_cal_trace_e",
+                play_after=e_prep_sections,
                 handle_suffix="cal_trace_e",
             )
-            play_after_sections = [s for s in play_after_sections] + [
-                e_section,
-                e_measure_section,
-            ]
-            cal_trace_sections += [e_section, e_measure_section]
+            play_after_sections = [s for s in play_after_sections] + \
+                                  e_prep_sections + [e_measure_section]
+            cal_trace_sections += e_prep_sections + [e_measure_section]
         if "f" in self.cal_states:
-            # Excited state - prep pulse + msmt
-            # prepare e state
-            e_section = Section(
-                uid=f"{qubit.uid}_cal_trace_f_e",
-                play_after=play_after_sections,
-                on_system_grid=True,
+            # 2nd-excited-state - prep pulse + msmt
+            f_prep_sections = self.create_preparation(
+                qubit, state_to_prepare='f',
+                play_after_sections=play_after_sections,
+                section_uid_suffix="cal_traces"
             )
-            e_section.play(
-                signal=self.signal_name("drive", qubit),
-                pulse=qt_ops.quantum_gate(qubit, "X180_ge",
-                                          uid=f"{qubit.uid}_cal_trace_f_e"),
-            )
-            # prepare f state
-            f_section = Section(
-                uid=f"{qubit.uid}_cal_trace_f_f",
-                play_after=play_after_sections + [e_section],
-                on_system_grid=True,
-            )
-            f_section.play(
-                signal=self.signal_name("drive_ef", qubit),
-                pulse=qt_ops.quantum_gate(qubit, "X180_ef",
-                                          uid=f"{qubit.uid}_cal_trace_f_f"),
-            )
-            measure_section = self.create_measure_acquire_sections(
+            f_measure_section = self.create_measure_acquire_sections(
                 qubit=qubit,
-                play_after=f"{qubit.uid}_cal_trace_f_f",
+                play_after=f_prep_sections,
                 handle_suffix="cal_trace_f",
             )
-            cal_trace_sections += [e_section, f_section, measure_section]
+            cal_trace_sections += f_prep_sections + [f_measure_section]
         for cal_tr_sec in cal_trace_sections:
             if section_container is None:
                 self.acquire_loop.add(cal_tr_sec)
