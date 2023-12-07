@@ -442,6 +442,12 @@ class QubitSpectroscopy(ExperimentTemplate):
 class SingleQubitGateTuneup(ExperimentTemplate):
     def __init__(self, *args, signals=None, transition_to_calib="ge", **kwargs):
         self.transition_to_calib = transition_to_calib
+        # Add suffix to experiment name
+        experiment_name = kwargs.get("experiment_name",
+                                     self.fallback_experiment_name)
+        experiment_name += f"_{self.transition_to_calib}"
+        kwargs["experiment_name"] = experiment_name
+
         # suffix of the drive signal
         self.drive_signal_suffix = "_ef" if self.transition_to_calib == "ef" else ''
 
@@ -455,16 +461,7 @@ class SingleQubitGateTuneup(ExperimentTemplate):
         if 'f' in self.transition_to_calib and "drive_ef" not in signals:
             signals += ["drive_ef"]
 
-        run = kwargs.pop("run", False)  # instantiate base without running exp
-        kwargs["run"] = False
         super().__init__(*args, signals=signals, **kwargs)
-
-        self.experiment_name += f"_{self.transition_to_calib}"
-        self.create_experiment_label()
-
-        self.run = run
-        if self.run:
-            self.autorun()
 
     def add_preparation_pulses_to_section(self, section, qubit):
         if self.transition_to_calib == "ge":
