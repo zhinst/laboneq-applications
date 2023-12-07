@@ -2,11 +2,7 @@ import json
 import os
 import time
 import pickle
-import numpy as np
 from copy import deepcopy
-import uncertainties as unc
-from itertools import combinations
-import matplotlib.pyplot as plt
 from ruamel.yaml import YAML
 
 ryaml = YAML()
@@ -18,8 +14,6 @@ logging.basicConfig(level=logging.WARNING)
 log = logging.getLogger("experiment_library")
 
 from . import quantum_operations as qt_ops
-from laboneq.analysis import fitting as fit_mods
-from laboneq.analysis import calculate_integration_kernels
 from laboneq.dsl.experiment.builtins import *  # noqa: F403
 from laboneq.simple import *  # noqa: F403
 from laboneq_library import calibration_helpers as calib_hlp
@@ -292,7 +286,82 @@ def ramsey_parallel(
 ###### Class - based  ######
 ##### Added by Steph   #####
 
-class ExperimentTemplate():
+
+class StatePreparationMixin:
+
+    def create_preparation(self, qubit, state_to_prepare='e',
+                           section_uid_suffix='',
+                           play_after_sections=None,
+                           add_measure_acquire_sections=False,
+                           acquire_handle_name_suffix=''
+                           ):
+
+        if len(section_uid_suffix) > 0:
+            section_uid_suffix = f"_{section_uid_suffix}"
+        if state_to_prepare == 'g':
+            preparation_sections = []
+            if add_measure_acquire_sections:
+                g_measure_section = self.create_measure_acquire_sections(
+                    qubit=qubit,
+                    handle_suffix=f"{acquire_handle_name_suffix}_g",
+                )
+                preparation_sections = [g_measure_section]
+        elif state_to_prepare == 'e':
+            e_section = Section(
+                uid=f"{qubit.uid}_prep_e{section_uid_suffix}",
+                play_after=play_after_sections,
+            )
+            e_section.play(
+                signal=self.signal_name("drive", qubit),
+                pulse=qt_ops.quantum_gate(qubit, "X180_ge",
+                                          uid=f"{qubit.uid}_prep_e"
+                                          )
+            )
+            preparation_sections = [e_section]
+            if add_measure_acquire_sections:
+                e_measure_section = self.create_measure_acquire_sections(
+                    qubit=qubit,
+                    play_after=f"{qubit.uid}_prep_e{section_uid_suffix}",
+                    handle_suffix=f"{acquire_handle_name_suffix}_e",
+                )
+                preparation_sections += [e_measure_section]
+        elif state_to_prepare == 'f':
+            # prepare e state
+            e_section = Section(
+                uid=f"{qubit.uid}_prep_f_pulse_e{section_uid_suffix}",
+                play_after=play_after_sections,
+                on_system_grid=True,
+            )
+            e_section.play(
+                signal=self.signal_name("drive", qubit),
+                pulse=qt_ops.quantum_gate(qubit, "X180_ge",
+                                          uid=f"{qubit.uid}_prep_f_pulse_e"),
+            )
+            # prepare f state
+            f_section = Section(
+                uid=f"{qubit.uid}_prep_f_pulse_f{section_uid_suffix}",
+                play_after=play_after_sections + [e_section],
+                on_system_grid=True,
+            )
+            f_section.play(
+                signal=self.signal_name("drive_ef", qubit),
+                pulse=qt_ops.quantum_gate(qubit, "X180_ef",
+                                          uid=f"{qubit.uid}_prep_f_pulse_f"),
+            )
+            preparation_sections = [e_section, f_section]
+            if add_measure_acquire_sections:
+                f_measure_section = self.create_measure_acquire_sections(
+                    qubit=qubit,
+                    play_after=f"{qubit.uid}_prep_f_pulse_f{section_uid_suffix}",
+                    handle_suffix=f"{acquire_handle_name_suffix}_f",
+                )
+                preparation_sections += [f_measure_section]
+        else:
+            raise NotImplementedError("Currently, only state g, e and f "
+                                      "can be prepared.")
+        return preparation_sections
+
+class ExperimentTemplate(StatePreparationMixin):
     fallback_experiment_name = "Experiment"
     save_directory = None
     timestamp = None
