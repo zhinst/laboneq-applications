@@ -1,4 +1,5 @@
 import numpy as np
+from copy import deepcopy
 import uncertainties as unc
 from itertools import combinations
 import matplotlib.pyplot as plt
@@ -46,19 +47,20 @@ class OptimalIntegrationKernels(ExperimentTemplate):
 
         # create experiment for each prep state
         self.experiments = {}
-        exp_g = ExperimentTemplate(*args, **kwargs)
-        exp_g.experiment_name = "OptimalIntegrationKernels_g"
-        self.experiments['g'] = exp_g
-        kwargs["signals"] = ["measure", "acquire", "drive"]
-        exp_e = ExperimentTemplate(*args, **kwargs)
-        exp_e.experiment_name = "OptimalIntegrationKernels_e"
-        self.experiments['e'] = exp_e
-        self.prepare_f = 'f' in self.preparation_states
-        if self.prepare_f:
-            kwargs["signals"] = ["measure", "acquire", "drive", "drive_ef"]
-            exp_f = ExperimentTemplate(*args, **kwargs)
-            exp_f.experiment_name = "OptimalIntegrationKernels_f"
-            self.experiments['f'] = exp_f
+        kwargs_exp = deepcopy(kwargs)
+        kwargs_exp.pop("signals", None)
+        if 'g' in self.preparation_states:
+            self.experiments['g'] = ExperimentTemplate(*args, **kwargs_exp)
+            self.experiments['g'].experiment_name = f"{self.experiment_name}_g"
+        if 'e' in self.preparation_states:
+            self.experiments['e'] = ExperimentTemplate(
+                *args, signals=["measure", "acquire", "drive"], **kwargs_exp)
+            self.experiments['e'].experiment_name = f"{self.experiment_name}_e"
+        if 'f' in self.preparation_states:
+            self.experiments['f'] = ExperimentTemplate(
+                *args, signals=["measure", "acquire", "drive", "drive_ef"],
+                **kwargs_exp)
+            self.experiments['f'].experiment_name = f"{self.experiment_name}_f"
 
         self.save = save
         self.run = run
@@ -83,7 +85,7 @@ class OptimalIntegrationKernels(ExperimentTemplate):
                     excitation_ge_section = Section(
                         uid=f"{qubit.uid}_ge_excitation",
                         alignment=SectionAlignment.RIGHT,
-                        on_system_grid=self.prepare_f,
+                        on_system_grid='f' in self.preparation_states,
                     )
                     # ge-preparation drive pulse
                     drive_pulse_ge = qt_ops.quantum_gate(
@@ -156,7 +158,7 @@ class OptimalIntegrationKernels(ExperimentTemplate):
             # plot traces and kernel
             fig_size = plt.rcParams['figure.figsize']
             fig, axs = plt.subplots(
-                nrows=len(self.preparation_states) + 1 + self.prepare_f,
+                nrows=len(self.preparation_states) + 1 + ('f' in self.preparation_states),
                 sharex=True,
                 figsize=(fig_size[0], fig_size[1]*2)
             )
@@ -561,13 +563,20 @@ class DispersiveShift(ResonatorSpectroscopy):
 
         # create ResonatorSpectroscopy experiments for each prep state
         self.experiments = dict()
-        self.experiments['g'] = ResonatorSpectroscopy(*args, **kwargs)
-        kwargs["signals"] = ["measure", "acquire", "drive"]
-        self.experiments['e'] = ResonatorSpectroscopy(*args, **kwargs)
-        self.prepare_f = 'f' in self.preparation_states
-        if self.prepare_f:
-            kwargs["signals"] = ["measure", "acquire", "drive", "drive_ef"]
-            self.experiments['f'] = ResonatorSpectroscopy(*args, **kwargs)
+        kwargs_exp = deepcopy(kwargs)
+        kwargs_exp.pop("signals", None)
+        if 'g' in self.preparation_states:
+            self.experiments['g'] = ResonatorSpectroscopy(*args, **kwargs_exp)
+            self.experiments['g'].experiment_name = f"{self.experiment_name}_g"
+        if 'e' in self.preparation_states:
+            self.experiments['e'] = ResonatorSpectroscopy(
+                *args, signals=["measure", "acquire", "drive"], **kwargs_exp)
+            self.experiments['e'].experiment_name = f"{self.experiment_name}_e"
+        if 'f' in self.preparation_states:
+            self.experiments['f'] = ResonatorSpectroscopy(
+                *args, signals=["measure", "acquire", "drive", "drive_ef"],
+                **kwargs_exp)
+            self.experiments['f'].experiment_name = f"{self.experiment_name}_f"
 
         self.save = save
         self.run = run
@@ -593,7 +602,7 @@ class DispersiveShift(ResonatorSpectroscopy):
                 excitation_ge_section = Section(
                     uid=f"{qubit.uid}_ge_excitation",
                     alignment=SectionAlignment.RIGHT,
-                    on_system_grid=self.prepare_f,
+                    on_system_grid='f' in self.preparation_states,
                 )
                 # ge-preparation drive pulse
                 drive_pulse_ge = qt_ops.quantum_gate(
@@ -695,7 +704,7 @@ class DispersiveShift(ResonatorSpectroscopy):
             for states, (s21_dist, idx_max) in s21_abs_distances.items():
                 max_s21_dist, max_freq = s21_dist[idx_max], freqs[idx_max]
                 self.new_qubit_parameters[qubit.uid][states] = max_freq
-                if states == "sum" and not self.prepare_f:
+                if states == "sum" and 'f' not in self.preparation_states:
                     continue
                 legend_label = f"{states}: $f_{{\\mathrm{{max}}}}$ = {max_freq / 1e9:.4f} GHz"
                 line, = ax_s21_dist.plot(freqs / 1e9, s21_dist, label=legend_label)
