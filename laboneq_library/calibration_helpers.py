@@ -397,11 +397,19 @@ def get_latest_data_folder(data_directory):
     Returns:
         the latest data folder
     """
+    latest_folder = None
     day_folders = os.listdir(data_directory)
     day_folders.sort()
-    day_folder = day_folders[-1]
-    ts_folders = os.listdir(data_directory + f'\\{day_folder}')
-    ts_folders.sort()
-    ts_folder = ts_folders[-1]
-    latest_folder = data_directory + f'\\{day_folder}\\{ts_folder}'
+    for day_folder in day_folders[::-1]:
+        ts_folders = os.listdir(data_directory + f'\\{day_folder}')
+        if len(ts_folders) == 0:
+            continue
+        else:
+            ts_folders.sort()
+            ts_folder = ts_folders[-1]
+            latest_folder = data_directory + f'\\{day_folder}\\{ts_folder}'
+            break
+    if latest_folder is None:
+        raise ValueError(
+            f"Did not find any measurement folders in {data_directory}.")
     return latest_folder
