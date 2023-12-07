@@ -686,11 +686,10 @@ class ExperimentTemplate(StatePreparationMixin):
         if not hasattr(self, 'integration_kernel'):
             # ensure the integration_kernel is created only once to avoid
             # serialisation errors
-            self.integration_kernel = pulse_library.const(
-                uid=f"integration_kernel_{qubit.uid}",
-                length=qubit.parameters.readout_integration_length,
-                amplitude=1,
-            )
+            self.integration_kernel = qubit.get_integration_kernels()
+            for int_krn in self.integration_kernel:
+                if hasattr(int_krn, "uid"):
+                    int_krn.uid = f"integration_kernel_{qubit.uid}"
         if integration_kernel == "default":
             integration_kernel = self.integration_kernel
         measure_acquire_section = Section(uid=uid)
