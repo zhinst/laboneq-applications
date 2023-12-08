@@ -562,6 +562,7 @@ class ExperimentTemplate(StatePreparationMixin):
             # only save the setup if the file does not already exist
             self.measurement_setup.save(filepath)
 
+    def save_experiment_metainfo(self):
         # Save the meta-information
         metainfo = {
             "experiment_metainfo": self.experiment_metainfo,
@@ -655,6 +656,8 @@ class ExperimentTemplate(StatePreparationMixin):
                 # save the measurement setup configuration before the experiment
                 # execution
                 self.save_measurement_setup()
+                # save the meta-information
+                self.save_experiment_metainfo()
             self.define_experiment()
             self.configure_experiment()
             self.compile_experiment()
