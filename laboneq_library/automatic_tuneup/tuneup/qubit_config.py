@@ -17,7 +17,7 @@ class QubitConfig:
         qubit: L1Q Qubit.
         need_to_verify: Whether the qubit needs to be verified. If False, the qubit will not be verified and updated.
         update_key: The parameter of the qubit that needs to be updated.
-        pulses: The pulses used in the scan.
+        pulses: Pulses used in the scan.
         analyzer: Analyzer used to analyze the results of the scan.
     """
 

@@ -89,7 +89,7 @@ session.connect(do_emulation=True)
 # Setting up scans
 
 We set up two basic spectroscopy measurements: one to obtain the resonance of the resonator (`scan_pulsed_resonator`) and the other (`scan_pulsed_qubit`) to obtain the resonance of the qubit.
-`scan_pulsed_qubit` depends on `scan_pulsed_resonator`.
+`scan_pulsed_qubit` requires the resonance of the readout resonator. Hence, we will set `scan_pulsed_resonator` as one of the dependencies of `scan_pulsed_qubit`.
 
 The qubit resonant frequency obtained by `scan_pulsed_qubit` will be used in `scan_amp_rabi` to find the optimal amplitude for $\pi$ pulses.
 
@@ -100,32 +100,27 @@ To simulate the workflow, we will use `MockAnalyzer` which returns a fixed value
 
 ```python
 freq_sweep = LinearSweepParameter(start=35e6, stop=45e6, count=210)
-spec_analyzer = ta.MockAnalyzer()
+spec_analyzer = ta.MockAnalyzer(handles=["res_spec"])
 exp_settings = {"integration_time": 10e-6, "num_averages": 2**10}
 readout_pulse = pulse_library.const(
     uid="readout_pulse", length=2e-6, amplitude=0.05
 )
 kernel_pulse = pulse_library.const(uid="kernel_pulse", length=2e-6, amplitude=1.0)
 pulse_storage = {"readout_pulse": readout_pulse, "kernel_pulse": kernel_pulse}
-scan_pulsed_resonator = Scan(
+
+param0 = SweepParams(frequency=freq_sweep)
+qconfig0 = QubitConfig(param0,q0,update_key="readout_resonator_frequency", pulses=pulse_storage, analyzer=spec_analyzer)
+qconfigs = QubitConfigs([qconfig0])
+
+scan_prs = Scan(
     uid="pulsed_resonator_spec",
     session=session,
-    qubit=q0,
-    params=[freq_sweep],
-    update_key="readout_resonator_frequency",
-    exp_fac=ReadoutSpectroscopyPulsed,
+    qubit_configs=qconfigs,
+    exp_fac=ResonatorPulsedSpec,
     exp_settings=exp_settings,
-    analyzer=spec_analyzer,
-    pulse_storage=pulse_storage,
-    analyzing_parameters={
-        "f0": 0.4e8,
-        "a": 1e-5,
-        "gamma": 0.05e8,
-        "frequency_offset": 0,
-    },
 )
 
-scan_pulsed_resonator.set_extra_calibration(measure_range=-30)
+scan_prs.set_extra_calibration(measure_range=-30)
 ```
 
 ## Pulsed qubit spectroscopy
@@ -149,23 +144,17 @@ pulse_storage = {
     "drive_pulse": drive_pulse,
     "kernel_pulse": kernel_pulse,
 }
+
+param0 = SweepParams(frequency=freq_sweep)
+qconfig0 = QubitConfig(param0,q0,update_key="readout_resonator_frequency", pulses=pulse_storage, analyzer=spec_analyzer)
+qconfigs = QubitConfigs([qconfig0])
+
 scan_pulsed_qubit = Scan(
     uid="pulsed_qspec",
     session=session,
-    qubit=q0,
-    params=[freq_sweep],
-    update_key="resonance_frequency_ge",
+    qubit_configs=qconfigs,
     exp_fac=PulsedQubitSpectroscopy,
     exp_settings=exp_settings,
-    analyzer=spec_analyzer,
-    pulse_storage=pulse_storage,
-    analyzing_parameters={
-        "f0": 1.85e7,
-        "a": 0.02,
-        "gamma": 0.05e8,
-        "offset": 0.04,
-        "flip_sign": True,
-    },
 )
 scan_pulsed_qubit.set_extra_calibration(drive_range=-25)
 ```
@@ -187,17 +176,18 @@ pulse_storage = {
     "drive_pulse": drive_pulse,
     "kernel_pulse": kernel_pulse,
 }
+rabi_analyzer = ta.RabiAnalyzer()
+
+param0 = SweepParams(amplitude=amp_sweep)
+qconfig0 = QubitConfig(param0,q0,update_key="pi_pulse_amplitude", pulses=pulse_storage, analyzer=rabi_analyzer)
+qconfigs = QubitConfigs([qconfig0])
+
 scan_amp_rabi = Scan(
     uid="amplitude_rabi",
     session=session,
-    qubit=q0,
-    params=[amp_sweep],
-    update_key="pi_pulse_amplitude",
+    qubit_configs=qconfigs,
     exp_fac=AmplitudeRabi,
     exp_settings=exp_settings,
-    analyzer=ta.MockAnalyzer(),
-    pulse_storage=pulse_storage,
-    analyzing_parameters={"amp_pi": 0.2},
 )
 
 ```
@@ -218,7 +208,7 @@ A list of scans used in the tuneup must be specified. The order of the scans in 
 
 
 ```python
-tuneup = TuneUp(uid="tuneupPSI", scans=[scan_prs,scan_qspec,scan_amp_rabi])
+tuneup = TuneUp(uid="tuneupPSI", scans=[scan_prs,scan_pulsed_qubit,scan_amp_rabi])
 ```
 
 Alternatively, the highest level scan can be specified. In this case, the tuneup object will automatically find all the scans that are used in the workflow.

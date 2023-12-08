@@ -49,15 +49,16 @@ class MockExp(TuneUpExperiment):
         exp_settings=None,
         ext_calls: Callable = None,
     ):
-        super().__init__(parameters, qubit, exp_settings, ext_calls)
+        super().__init__(qubit_configs, exp_settings, ext_calls)
 
-    def _gen_experiment(self, parameters):
+    def _gen_experiment(self):
         """
         Return a complete experiment object, that can be run by the Scan object
         """
+        qubit = self.qubits[0]
         exp = Experiment(
             uid="Mock exp",
-            signals=self.qubit.experiment_signals(with_calibration=True),
+            signals=qubit.experiment_signals(with_calibration=True),
         )
         return exp
 
