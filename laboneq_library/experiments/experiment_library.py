@@ -367,8 +367,7 @@ class ExperimentTemplate(StatePreparationMixin):
     timestamp = None
     compiled_experiment = None
     results = None
-    fit_results = None
-    new_qubit_parameters = None
+    analysis_results = None
 
     def __init__(self, qubits, session, measurement_setup, experiment_name=None,
                  signals=None, sweep_parameters_dict=None, experiment_metainfo=None,
@@ -510,7 +509,12 @@ class ExperimentTemplate(StatePreparationMixin):
 
     def analyse_experiment(self):
         # to be overridden by children
-        pass
+        self.analysis_results = {qubit.uid: dict(
+            new_parameter_values=dict(),
+            fit_results=None
+        )
+            for qubit in self.qubits
+        }
 
     def update_measurement_setup(self):
         calib_hlp.update_measurement_setup_from_qubits(
@@ -618,37 +622,84 @@ class ExperimentTemplate(StatePreparationMixin):
             fig.savefig(self.save_directory + f"\\{fig_name_final}.{fmt}",
                         bbox_inches="tight", dpi=600)
 
-    def save_fit_results(self, filename_suffix=''):
-        if self.fit_results is not None and len(self.fit_results) > 0:
+    def save_analysis_results(self, filename_suffix=''):
+        if self.analysis_results is None:
+            return
+
+        new_qb_params_exist = any(
+            [len(self.analysis_results[qubit.uid]["new_parameter_values"]) > 0
+             for qubit in self.qubits]
+        )
+        fit_results_exist = any(
+            [self.analysis_results[qubit.uid]["fit_results"] is not None
+             for qubit in self.qubits]
+        )
+        other_ana_res_exist = any(
+            [len(self.analysis_results[qubit.uid]) > 2
+             for qubit in self.qubits])
+
+        if new_qb_params_exist or fit_results_exist or other_ana_res_exist:
             self.create_save_directory()
 
             if len(filename_suffix) > 0:
                 filename_suffix = f"_{filename_suffix}"
 
-            # Save fit results into a json file
-            fit_res_file = os.path.abspath(os.path.join(
+            # Save fit results as json for easier readability
+            if fit_results_exist:
+                fit_results_to_save_json = dict()
+                for qbuid, ana_res in self.analysis_results.items():
+                        fit_results = self.analysis_results[qbuid]["fit_results"]
+                        # Convert lmfit results into a dictionary that can be saved
+                        # as json
+                        if isinstance(fit_results, dict):
+                            fit_results_to_save_json[qbuid] = {}
+                            for k, fr in fit_results.items():
+                                fit_results_to_save_json[qbuid][k] = \
+                                    ana_hlp.flatten_lmfit_modelresult(fr)
+                        else:
+                            fit_results_to_save_json[qbuid] = \
+                                ana_hlp.flatten_lmfit_modelresult(fit_results)
+                # Save fit results into a json file
+                fit_res_file = os.path.abspath(os.path.join(
+                    self.save_directory,
+                    f"{self.timestamp}_fit_results{filename_suffix}.json")
+                )
+                with open(fit_res_file, "w") as file:
+                    json.dump(fit_results_to_save_json, file, indent=2)
+
+            # ana_results_to_save = deepcopy(self.analysis_results)
+            # fit_results_to_pickle = dict()
+            # if fit_results_exist:
+            #     for qbuid, ana_res in self.analysis_results.items():
+            #         fit_results = self.analysis_results[qbuid]["fit_results"]
+            #         fit_results_to_pickle[qbuid] = fit_results
+            #
+            #         # Convert lmfit results into a dictionary that can be saved
+            #         # as json
+            #         if isinstance(fit_results, dict):
+            #             ana_results_to_save[qbuid]["fit_results"] = {}
+            #             for k, fr in fit_results.items():
+            #                 ana_results_to_save["fit_results"][qbuid][k] = \
+            #                     ana_hlp.flatten_lmfit_modelresult(fr)
+            #         else:
+            #             ana_results_to_save[qbuid]["fit_results"] = \
+            #                 ana_hlp.flatten_lmfit_modelresult(fit_results)
+            #
+            #     # Save fit results into a pickle file
+            #     filename = os.path.abspath(os.path.join(
+            #         self.save_directory,
+            #         f"{self.timestamp}_fit_results{filename_suffix}.p")
+            #     )
+            #     with open(filename, "wb") as f:
+            #         pickle.dump(fit_results_to_pickle, f)
+
+            # Save analysis_results pickle file
+            ana_res_file = os.path.abspath(os.path.join(
                 self.save_directory,
-                f"{self.timestamp}_fit_results{filename_suffix}.json")
+                f"{self.timestamp}_analysis_results{filename_suffix}.p")
             )
-            fit_results_to_save = {}
-            for qbuid, fit_res in self.fit_results.items():
-                if isinstance(fit_res, dict):
-                    fit_results_to_save[qbuid] = {}
-                    for k, fr in fit_res.items():
-                        fit_results_to_save[qbuid][k] = \
-                            ana_hlp.flatten_lmfit_modelresult(fr)
-                else:
-                    fit_results_to_save[qbuid] = \
-                        ana_hlp.flatten_lmfit_modelresult(fit_res)
-            with open(fit_res_file, "w") as file:
-                json.dump(fit_results_to_save, file, indent=2)
-            # Save fit results into a pickle file
-            filename = os.path.abspath(os.path.join(
-                self.save_directory,
-                f"{self.timestamp}_fit_results{filename_suffix}.p")
-            )
-            with open(filename, "wb") as f:
-                pickle.dump(self.fit_results, f)
+            with open(ana_res_file, "wb") as f:
+                pickle.dump(self.analysis_results, f)
 
     def autorun(self):
         try:
@@ -670,7 +721,7 @@ class ExperimentTemplate(StatePreparationMixin):
                 # Save Results object
                 self.save_results()
                 # Save the fit results
-                self.save_fit_results()
+                self.save_analysis_results()
         except Exception:
             log.error("Unhandled error during experiment!")
             log.error(traceback.format_exc())

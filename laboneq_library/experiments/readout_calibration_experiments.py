@@ -153,7 +153,7 @@ class OptimalIntegrationKernels(ExperimentTemplate):
             exp.save_results(filename_suffix=state)
 
     def analyse_experiment(self):
-        self.new_qubit_parameters = {}
+        super().analyse_experiment()
         for qubit in self.qubits:
             # plot traces and kernel
             fig_size = plt.rcParams['figure.figsize']
@@ -172,10 +172,13 @@ class OptimalIntegrationKernels(ExperimentTemplate):
                 axs[i].plot(np.imag(raw_traces[-1]), label=f"{ps}: Q")
                 axs[i].set_ylabel("Voltage, $V$ (a.u.)")
                 axs[i].legend(frameon=False)
+            self.analysis_results[qubit.uid]["raw_traces"] = {
+                ps: raw_traces[i] for i, ps in enumerate(self.preparation_states)
+            }
 
             kernels = calculate_integration_kernels(raw_traces)
-            self.new_qubit_parameters[qubit.uid] = {
-                "integration_kernels": kernels}
+            self.analysis_results[qubit.uid]["new_parameter_values"].update({
+                "integration_kernels": kernels})
             for i, krn in enumerate(kernels):
                 ax = axs[len(self.preparation_states) + i]
                 krn_vals = krn.samples
@@ -198,8 +201,8 @@ class OptimalIntegrationKernels(ExperimentTemplate):
 
     def update_qubit_parameters(self):
         for qubit in self.qubits:
-            qubit.parameters.readout_integration_kernels = \
-                self.new_qubit_parameters[qubit.uid]["integration_kernels"]
+            new_qb_pars = self.analysis_results[qubit.uid]["new_parameter_values"]
+            qubit.parameters.readout_integration_kernels = new_qb_pars["integration_kernels"]
 
 
 
@@ -354,8 +357,7 @@ class ResonatorSpectroscopy(ExperimentTemplate):
         self.experiment.set_calibration(cal)
 
     def analyse_experiment(self):
-        self.new_qubit_parameters = {}
-        self.fit_results = {}
+        super().analyse_experiment()
         freq_filter = self.analysis_metainfo.get('frequency_filter_for_fit', {})
         if not hasattr(freq_filter, '__iter__'):
             freq_filter = {qubit.uid: freq_filter for qubit in self.qubits}
@@ -363,7 +365,8 @@ class ResonatorSpectroscopy(ExperimentTemplate):
         if not hasattr(find_peaks, '__iter__'):
             find_peaks = {qubit.uid: find_peaks for qubit in self.qubits}
         for qubit in self.qubits:
-            self.new_qubit_parameters[qubit.uid] = {}
+            new_parameter_values = self.analysis_results[qubit.uid]["new_parameter_values"]
+
             # get frequency filter of qubit
             ff_qb = freq_filter.get(qubit.uid, None)
             # decide whether to extract peaks or dips for qubit
@@ -387,7 +390,7 @@ class ResonatorSpectroscopy(ExperimentTemplate):
                 freqs_to_search = freqs if ff_qb is None else freqs[ff_qb(freqs)]
                 f0 = freqs_to_search[take_extremum(data_to_search)]
                 d0 = data_to_search[take_extremum(data_to_search)]
-                self.new_qubit_parameters[qubit.uid]["readout_resonator_frequency"] = f0
+                new_parameter_values["readout_resonator_frequency"] = f0
 
                 # plot data
                 fig, ax = plt.subplots()
@@ -436,7 +439,7 @@ class ResonatorSpectroscopy(ExperimentTemplate):
                     # voltages vs frequencies
                     f0 = freqs_dips[take_extremum_fit(freqs_dips)]
                     V0 = nt_sweep_par_vals[take_extremum_fit(freqs_dips)]
-                    self.new_qubit_parameters[qubit.uid].update({
+                    new_parameter_values.update({
                         "readout_resonator_frequency": f0,
                         "dc_voltage_parking": V0
                     })
@@ -461,7 +464,7 @@ class ResonatorSpectroscopy(ExperimentTemplate):
                         fit_res = ana_hlp.fit_data_lmfit(
                             fit_mods.oscillatory, swpts_to_fit, data_to_fit,
                             param_hints=param_hints)
-                        self.fit_results[qubit.uid] = fit_res
+                        self.analysis_results[qubit.uid]["fit_results"] = fit_res
 
                         # extract USS and LSS voltages and frequencies
                         freq_fit = unc.ufloat(fit_res.params['frequency'].value,
@@ -486,7 +489,7 @@ class ResonatorSpectroscopy(ExperimentTemplate):
 
                         # extract parking values, show them on plot and save
                         # them in self.new_qubit_parameters
-                        self.new_qubit_parameters[qubit.uid].update({
+                        new_parameter_values.update({
                             "readout_resonator_frequency": {},
                             "dc_voltage_parking": {}
                         })
@@ -498,9 +501,9 @@ class ResonatorSpectroscopy(ExperimentTemplate):
                             textstr += f"\nParking frequency:\n{f_uss / 1e9:.4f} GHz"
                             ax.text(1, -0.15, textstr, ha='right', va='top',
                                     c=line_uss.get_c(), transform=ax.transAxes)
-                            self.new_qubit_parameters[qubit.uid][
+                            new_parameter_values[
                                 "readout_resonator_frequency"]['uss'] = v_uss.nominal_value
-                            self.new_qubit_parameters[qubit.uid][
+                            new_parameter_values[
                                 "dc_voltage_parking"]['uss'] = f_uss
                         if len(v_lss_values) > 0:
                             lss_idx = np.argsort(abs(v_lss_values))[0]
@@ -510,9 +513,9 @@ class ResonatorSpectroscopy(ExperimentTemplate):
                             textstr += f"\nParking frequency:\n{f_lss / 1e9:.4f} GHz"
                             ax.text(0, -0.15, textstr, ha='left', va='top',
                                     c=line_lss.get_c(), transform=ax.transAxes)
-                            self.new_qubit_parameters[qubit.uid][
+                            new_parameter_values[
                                 "readout_resonator_frequency"]['lss'] = v_lss.nominal_value
-                            self.new_qubit_parameters[qubit.uid][
+                            new_parameter_values[
                                 "dc_voltage_parking"]['lss'] = f_lss
 
             ax.set_title(f'{self.timestamp}_{handle}')
@@ -526,7 +529,7 @@ class ResonatorSpectroscopy(ExperimentTemplate):
 
     def update_qubit_parameters(self):
         for qubit in self.qubits:
-            new_qb_pars = self.new_qubit_parameters[qubit.uid]
+            new_qb_pars = self.analysis_results[qubit.uid]["new_parameter_values"]
             if len(new_qb_pars) == 4:
                 # both uss and lss found
                 raise ValueError('Both upper and lower sweep spots were found. '
@@ -658,9 +661,8 @@ class DispersiveShift(ResonatorSpectroscopy):
             exp.save_results(filename_suffix=state)
 
     def analyse_experiment(self):
-        self.new_qubit_parameters = {}
+        ExperimentTemplate.analyse_experiment(self)
         for qubit in self.qubits:
-            self.new_qubit_parameters[qubit.uid] = {}
             # all experiments have the same frequency axis
             exp = self.experiments['g']
             handle = f"{exp.experiment_name}_{qubit.uid}"
@@ -682,6 +684,7 @@ class DispersiveShift(ResonatorSpectroscopy):
                 [s21_dict[0] for s21_dict in s21_abs_distances.values()],
                 axis=0)
             s21_abs_distances["sum"] = (s21_dist_sum, np.argmax(s21_dist_sum))
+            self.analysis_results[qubit.uid]["s21_abs_distances"] = s21_abs_distances
 
             # plot S21 for each prep state
             fig_s21, ax_21 = plt.subplots()
@@ -703,7 +706,7 @@ class DispersiveShift(ResonatorSpectroscopy):
             ax_s21_dist.set_title(f'{self.timestamp}_{self.experiment_name}_{qubit.uid}')
             for states, (s21_dist, idx_max) in s21_abs_distances.items():
                 max_s21_dist, max_freq = s21_dist[idx_max], freqs[idx_max]
-                self.new_qubit_parameters[qubit.uid][states] = max_freq
+                self.analysis_results[qubit.uid]["new_parameter_values"][states] = max_freq
                 if states == "sum" and 'f' not in self.preparation_states:
                     continue
                 legend_label = f"{states}: $f_{{\\mathrm{{max}}}}$ = {max_freq / 1e9:.4f} GHz"
@@ -728,7 +731,7 @@ class DispersiveShift(ResonatorSpectroscopy):
 
     def update_qubit_parameters(self):
         for qubit in self.qubits:
-            new_qb_pars = self.new_qubit_parameters[qubit.uid]
+            new_qb_pars = self.analysis_results[qubit.uid]["new_parameter_values"]
             qubit.parameters.readout_resonator_frequency = new_qb_pars["sum"]
 
 
@@ -761,6 +764,7 @@ class StateDiscrimination(ExperimentTemplate):
             self.add_cal_states_sections(qubit)
 
     def analyse_experiment(self):
+        super().analyse_experiment()
         for qubit in self.qubits:
             fig, ax = plt.subplots()
             shots = {}
@@ -774,7 +778,7 @@ class StateDiscrimination(ExperimentTemplate):
                 ax.plot(np.real(mean_state), np.imag(mean_state),
                         'o', mfc=f"C{i}", mec='k')
 
-            # compute the distanced between the mean of the points for each state
+            # compute the distances between the mean of the points for each state
             all_state_combinations = combinations(self.preparation_states, 2)
             distances_means = {''.join(sc): '' for sc in all_state_combinations}
             textstr = ''
@@ -783,6 +787,7 @@ class StateDiscrimination(ExperimentTemplate):
                 distances_means[states] = abs(np.mean(shots[s0]) - np.mean(shots[s1]))
                 textstr += f"dist({s0},{s1}): {distances_means[states]:.2f}\n"
             distances_means["sum"] = np.sum(list(distances_means.values()))
+            self.analysis_results[qubit.uid]["distances_means"] = distances_means
             textstr += f"sum: {distances_means['sum']:.2f}"
             ax.text(1.025, 0.5, textstr, ha='left', va='center', transform=ax.transAxes)
             ax.set_xlabel("Real Signal Component, $V_I$ (a.u.)")

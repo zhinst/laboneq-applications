@@ -246,8 +246,7 @@ class QubitSpectroscopy(ExperimentTemplate):
         self.experiment.set_calibration(cal)
 
     def analyse_experiment(self):
-        self.new_qubit_parameters = {}
-        self.fit_results = {}
+        super().analyse_experiment()
         freq_filter = self.analysis_metainfo.get('frequency_filter_for_fit', {})
         if not hasattr(freq_filter, '__iter__'):
             freq_filter = {qubit.uid: freq_filter for qubit in self.qubits}
@@ -255,6 +254,7 @@ class QubitSpectroscopy(ExperimentTemplate):
         if not hasattr(find_peaks, '__iter__'):
             find_peaks = {qubit.uid: find_peaks for qubit in self.qubits}
         for qubit in self.qubits:
+            new_parameter_values = self.analysis_results[qubit.uid]["new_parameter_values"]
             # get frequency filter of qubit
             ff_qb = freq_filter.get(qubit.uid, None)
             # extract data
@@ -319,11 +319,10 @@ class QubitSpectroscopy(ExperimentTemplate):
                         fit_res = ana_hlp.fit_data_lmfit(
                             fit_mods.lorentzian, freqs_to_fit, data_to_fit,
                             param_hints=param_hints)
-                    self.fit_results[qubit.uid] = fit_res
+                    self.analysis_results[qubit.uid]["fit_results"] = fit_res
                     fqb = fit_res.params['position'].value
                     fqb_err = fit_res.params['position'].stderr
-                    self.new_qubit_parameters[qubit.uid] = {
-                        "resonance_frequency_ge": fqb}
+                    new_parameter_values.update({"resonance_frequency_ge": fqb})
 
                     # plot fit
                     freqs_fine = np.linspace(freqs_to_fit[0], freqs_to_fit[-1], 501)
@@ -375,10 +374,10 @@ class QubitSpectroscopy(ExperimentTemplate):
                     # voltages vs frequencies
                     f0 = freqs_peaks[take_extremum_fit(freqs_peaks)]
                     V0 = nt_sweep_par_vals[take_extremum_fit(freqs_peaks)]
-                    self.new_qubit_parameters[qubit.uid] = {
+                    new_parameter_values.update({
                         "readout_resonator_frequency": f0,
                         "dc_voltage_parking": V0
-                    }
+                    })
 
                     if self.analysis_metainfo.get('do_fitting', True):
                         # fit frequency vs voltage and take the optimal parking
@@ -394,11 +393,11 @@ class QubitSpectroscopy(ExperimentTemplate):
                         fit_res = ana_hlp.fit_data_lmfit(
                             fit_mods.transmon_voltage_dependence_quadratic,
                             nt_sweep_par_vals, freqs_peaks, param_hints=param_hints)
-                        self.fit_results[qubit.uid] = fit_res
-                        self.new_qubit_parameters[qubit.uid] = {
+                        self.analysis_results[qubit.uid]["fit_results"] = fit_res
+                        new_parameter_values.update({
                             "resonance_frequency_ge": fit_res.best_values['frequency_sweet_spot'],
                             "dc_voltage_parking": fit_res.best_values['voltage_sweet_spot']
-                        }
+                        })
                         # plot fit
                         ntpval_fine = np.linspace(nt_sweep_par_vals[0],
                                                   nt_sweep_par_vals[-1], 501)
@@ -427,7 +426,7 @@ class QubitSpectroscopy(ExperimentTemplate):
 
     def update_qubit_parameters(self):
         for qubit in self.qubits:
-            new_qb_pars = self.new_qubit_parameters[qubit.uid]
+            new_qb_pars = self.analysis_results[qubit.uid]["new_parameter_values"]
             qubit.parameters.resonance_frequency_ge = new_qb_pars[
                 "resonance_frequency_ge"]
             if "dc_voltage_parking" in new_qb_pars:
@@ -497,8 +496,7 @@ class SingleQubitGateTuneup(ExperimentTemplate):
             )
 
     def analyse_experiment(self):
-        self.new_qubit_parameters = {}
-        self.fit_results = {}
+        super().analyse_experiment()
         for qubit in self.qubits:
             # extract data
             handle = f"{self.experiment_name}_{qubit.uid}"
@@ -507,6 +505,7 @@ class SingleQubitGateTuneup(ExperimentTemplate):
                 self.results, handle, cal_states=self.cal_states,
                 do_pca=do_pca)
             num_cal_traces = data_dict["num_cal_traces"]
+            self.analysis_results[qubit.uid]["rotated_data"] = data_dict
 
             # configure plot: data is plotted in analyse_experiment_qubit
             fig, ax = plt.subplots()
@@ -613,7 +612,7 @@ class AmplitudeRabi(SingleQubitGateTuneup):
             fit_res = ana_hlp.fit_data_lmfit(
                 fit_mods.oscillatory, swpts_to_fit, data_to_fit,
                 param_hints=param_hints)
-            self.fit_results[qubit.uid] = fit_res
+            self.analysis_results[qubit.uid]["fit_results"] = fit_res
 
             freq_fit = unc.ufloat(fit_res.params['frequency'].value,
                                   fit_res.params['frequency'].stderr)
@@ -628,12 +627,12 @@ class AmplitudeRabi(SingleQubitGateTuneup):
             pi2_amps = np.sort(np.concatenate([pi2_amps_rise, pi2_amps_fall]))
             pi2_amp = pi2_amps[0]
             pi_amp = pi_amps[pi_amps > pi2_amp][0]
-            self.new_qubit_parameters[qubit.uid] = {
+            self.analysis_results[qubit.uid]["new_parameter_values"].update({
                 'amplitude_pi': pi_amp.nominal_value,
                 'amplitude_pi2': pi2_amp.nominal_value,
                 'pi_amps': [pia.nominal_value for pia in pi_amps],
                 'pi2_amps': [pi2a.nominal_value for pi2a in pi_amps]
-            }
+            })
 
             # plot fit
             swpts_fine = np.linspace(swpts_to_fit[0], swpts_to_fit[-1], 501)
@@ -665,13 +664,12 @@ class AmplitudeRabi(SingleQubitGateTuneup):
 
     def update_qubit_parameters(self):
         for qubit in self.qubits:
+            new_qb_pars = self.analysis_results[qubit.uid]["new_parameter_values"]
             dr_pars = qubit.parameters.drive_parameters_ef if \
                 'f' in self.transition_to_calib else \
                 qubit.parameters.drive_parameters_ge
-            dr_pars['amplitude_pi'] = \
-                self.new_qubit_parameters[qubit.uid]['amplitude_pi']
-            dr_pars['amplitude_pi2'] = \
-                self.new_qubit_parameters[qubit.uid]['amplitude_pi2']
+            dr_pars['amplitude_pi'] = new_qb_pars['amplitude_pi']
+            dr_pars['amplitude_pi2'] = new_qb_pars['amplitude_pi2']
 
 
 class Ramsey(SingleQubitGateTuneup):
@@ -786,7 +784,7 @@ class Ramsey(SingleQubitGateTuneup):
             fit_res = ana_hlp.fit_data_lmfit(
                 fit_mods.oscillatory_decay_flexible, swpts_to_fit, data_to_fit,
                 param_hints=param_hints)
-            self.fit_results[qubit.uid] = fit_res
+            self.analysis_results[qubit.uid]["fit_results"] = fit_res
 
             t2_star = fit_res.best_values['decay_time']
             t2_star_err = fit_res.params['decay_time'].stderr
@@ -797,10 +795,10 @@ class Ramsey(SingleQubitGateTuneup):
                 qubit.parameters.resonance_frequency_ge
             introduced_detuning = self.experiment_metainfo["detuning"][qubit.uid]
             new_qb_freq = old_qb_freq + introduced_detuning - freq_fit
-            self.new_qubit_parameters[qubit.uid] = {
+            self.analysis_results[qubit.uid]["new_parameter_values"].update({
                 'resonance_frequency': new_qb_freq,
                 'T2_star': t2_star
-            }
+            })
 
             # plot fit
             swpts_fine = np.linspace(swpts_to_fit[0], swpts_to_fit[-1], 501)
@@ -821,7 +819,8 @@ class Ramsey(SingleQubitGateTuneup):
 
     def update_qubit_parameters(self):
         for qubit in self.qubits:
-            new_freq = self.new_qubit_parameters[qubit.uid]['resonance_frequency']
+            new_freq = self.analysis_results[qubit.uid][
+                "new_parameter_values"]['resonance_frequency']
             if 'f' in self.transition_to_calib:
                 qubit.parameters.resonance_frequency_ef = new_freq
             else:
@@ -968,12 +967,14 @@ class T1(SingleQubitGateTuneup):
             fit_res = ana_hlp.fit_data_lmfit(
                 fit_mods.exponential_decay, swpts_to_fit, data_to_fit,
                 param_hints=param_hints)
-            self.fit_results[qubit.uid] = fit_res
+            self.analysis_results[qubit.uid]["fit_results"] = fit_res
 
             dec_rt = unc.ufloat(fit_res.params['decay_rate'].value,
                                 fit_res.params['decay_rate'].stderr)
             t1 = 1 / dec_rt
-            self.new_qubit_parameters[qubit.uid] = {'T1': t1.nominal_value}
+            self.analysis_results[qubit.uid]["new_parameter_values"].update(
+                {'T1': t1.nominal_value}
+            )
 
             # plot fit
             swpts_fine = np.linspace(swpts_to_fit[0], swpts_to_fit[-1], 501)
@@ -1113,11 +1114,13 @@ class Echo(SingleQubitGateTuneup):
             fit_res = ana_hlp.fit_data_lmfit(
                 fit_mods.oscillatory_decay_flexible, swpts_to_fit, data_to_fit,
                 param_hints=param_hints)
-            self.fit_results[qubit.uid] = fit_res
+            self.analysis_results[qubit.uid]["fit_results"] = fit_res
 
             t2 = fit_res.best_values['decay_time']
             t2_err = fit_res.params['decay_time'].stderr
-            self.new_qubit_parameters[qubit.uid] = {'T2': t2}
+            self.analysis_results[qubit.uid]["new_parameter_values"].update(
+                {'T2': t2}
+            )
 
             # plot fit
             swpts_fine = np.linspace(swpts_to_fit[0], swpts_to_fit[-1], 501)
@@ -1155,8 +1158,7 @@ class RamseyParking(Ramsey):
         nt_sweep.add(self.acquire_loop)
 
     def analyse_experiment(self):
-        self.new_qubit_parameters = {}
-        self.fit_results = {}
+        ExperimentTemplate.analyse_experiment(self)
         for qubit in self.qubits:
             # extract data
             handle = f"{self.experiment_name}_{qubit.uid}"
@@ -1167,8 +1169,7 @@ class RamseyParking(Ramsey):
 
             if self.analysis_metainfo.get("do_fitting", True):
                 voltages = data_dict["sweep_points_nt"]
-                all_fit_results = {}
-                all_new_qb_pars = {}
+                ramsey_analysis_results = {}
                 # run Ramsey analysis
                 data_to_fit_2d = data_dict["data_rotated"]
                 data_rotated_w_cal_tr_2d = data_dict["data_rotated_w_cal_tr"]
@@ -1177,6 +1178,8 @@ class RamseyParking(Ramsey):
                     data_dict_tmp = deepcopy(data_dict)
                     data_dict_tmp["data_rotated"] = data_to_fit
                     data_dict_tmp["data_rotated_w_cal_tr"] = data_rotated_w_cal_tr_2d[i, :]
+                    self.analysis_results[qubit.uid]["rotated_data"] = data_dict
+
                     fig, ax = plt.subplots()
                     ax.set_xlabel("Pulse Separation, $\\tau$ ($\\mu$s)")
                     ax.set_ylabel("Principal Component (a.u)" if
@@ -1191,15 +1194,17 @@ class RamseyParking(Ramsey):
                                     f"_{qubit.uid}_{voltages[i]:.3f}V")
                         self.save_figure(fig, qubit, fig_name)
                     plt.close(fig)
-                    all_fit_results[i] = self.fit_results[qubit.uid]
-                    all_new_qb_pars[i] = self.new_qubit_parameters[qubit.uid]
+                    ramsey_analysis_results[f"Ramsey_{i}"] = self.analysis_results[qubit.uid]
 
-                self.new_qubit_parameters[qubit.uid] = all_new_qb_pars
-                self.fit_results[qubit.uid] = all_fit_results
+                # recreate empty self.analysis_results
+                ExperimentTemplate.analyse_experiment(self)
+                self.analysis_results[qubit.uid].update(ramsey_analysis_results)
                 # fit qubit frequencies vs voltage
                 qubit_frequencies = np.array([
-                    self.new_qubit_parameters[qubit.uid][i]['resonance_frequency']
+                    self.analysis_results[qubit.uid][f"Ramsey_{i}"][
+                        "new_parameter_values"]["resonance_frequency"]
                     for i in range(len(voltages))])
+                self.analysis_results[qubit.uid]["qubit_frequencies"] = qubit_frequencies
 
                 # figure out whether voltages vs freqs is convex or concave
                 take_extremum_fit, scf = (np.argmax, 1) if (
@@ -1224,8 +1229,8 @@ class RamseyParking(Ramsey):
                 f0err = fit_res.params["frequency_sweet_spot"].stderr
                 V0 = fit_res.best_values["voltage_sweet_spot"]
                 V0err = fit_res.params["voltage_sweet_spot"].stderr
-                self.fit_results[qubit.uid]["parking"] = fit_res
-                self.new_qubit_parameters[qubit.uid]["parking"] = {
+                self.analysis_results[qubit.uid]["fit_results"] = fit_res
+                self.analysis_results[qubit.uid]["new_parameter_values"] = {
                     "resonance_frequency": f0,
                     "dc_voltage_parking": V0
                 }
@@ -1260,8 +1265,8 @@ class RamseyParking(Ramsey):
 
     def update_qubit_parameters(self):
         for qubit in self.qubits:
-            new_qb_pars = self.new_qubit_parameters[qubit.uid]
-            qubit.parameters.resonance_frequency_ge = new_qb_pars["parking"][
+            new_qb_pars = self.analysis_results[qubit.uid]["new_parameter_values"]
+            qubit.parameters.resonance_frequency_ge = new_qb_pars[
                 "resonance_frequency"]
             qubit.parameters.user_defined["dc_voltage_parking"] = \
-                new_qb_pars["parking"]["dc_voltage_parking"]
+                new_qb_pars["dc_voltage_parking"]
