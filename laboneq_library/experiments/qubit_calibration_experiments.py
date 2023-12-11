@@ -1194,7 +1194,8 @@ class RamseyParking(Ramsey):
                                     f"_{qubit.uid}_{voltages[i]:.3f}V")
                         self.save_figure(fig, qubit, fig_name)
                     plt.close(fig)
-                    ramsey_analysis_results[f"Ramsey_{i}"] = self.analysis_results[qubit.uid]
+                    ramsey_analysis_results[f"Ramsey_{i}"] = deepcopy(
+                        self.analysis_results[qubit.uid])
 
                 # recreate empty self.analysis_results
                 ExperimentTemplate.analyse_experiment(self)
