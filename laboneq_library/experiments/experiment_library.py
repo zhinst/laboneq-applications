@@ -596,13 +596,14 @@ class ExperimentTemplate(StatePreparationMixin):
             except Exception as e:
                 log.warning(f'Could not save all the results: {e}')
 
-                # Save only the acquired results as pickle
-                filename = os.path.abspath(os.path.join(
-                    self.save_directory,
-                    f"{self.timestamp}_acquired_results{filename_suffix}.p")
-                )
-                with open(filename, "wb") as f:
-                    pickle.dump(self.results.acquired_results, f)
+            # Save only the acquired results as pickle: fallback in case
+            # something goes wrong with the serialisation
+            filename = os.path.abspath(os.path.join(
+                self.save_directory,
+                f"{self.timestamp}_acquired_results{filename_suffix}.p")
+            )
+            with open(filename, "wb") as f:
+                pickle.dump(self.results.acquired_results, f)
 
     def save_figure(self, fig, qubit, figure_name=None):
         self.create_save_directory()
@@ -746,6 +747,8 @@ class ExperimentTemplate(StatePreparationMixin):
                     int_krn.uid = f"integration_kernel_{qubit.uid}"
         if integration_kernel == "default":
             integration_kernel = self.integration_kernel
+        if isinstance(integration_kernel, list) and len(integration_kernel) == 1:
+            integration_kernel = integration_kernel[0]
         measure_acquire_section = Section(uid=uid)
         measure_acquire_section.play_after = play_after
         measure_acquire_section.measure(
