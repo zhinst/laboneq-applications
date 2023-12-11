@@ -365,6 +365,92 @@ class PulsedQubitSpectroscopy(ResonatorCWSpec):
         return exp_qspec
 
 
+class XtalkPulsedQubitSpectroscopy(ResonatorCWSpec):
+    def __init__(
+        self,
+        qubit_configs: QubitConfigs,
+        exp_settings={"integration_time": 10e-6, "num_averages": 2**5},
+        ext_calls=None,
+    ):
+        pulse_storage = qubit_configs[0].pulses
+        if pulse_storage is None:
+            readout_pulse = pulse_library.const(
+                uid="readout_pulse", length=2e-6, amplitude=1.0
+            )
+            kernel_pulse = pulse_library.const(
+                uid="kernel_pulse", length=2e-6, amplitude=1.0
+            )
+
+            drive_pulse = pulse_library.gaussian(
+                uid="drive_pulse", length=100e-9, amplitude=1.0
+            )
+            self.pulse_storage = {
+                "readout_pulse": readout_pulse,
+                "kernel_pulse": kernel_pulse,
+                "drive_pulse": drive_pulse,
+            }
+            logger.info(
+                f"Default pulses (const, length: {readout_pulse.length}) are usedfor readout and kernel"
+            )
+        else:
+            self.pulse_storage = pulse_storage
+        super().__init__(qubit_configs, exp_settings, ext_calls)
+
+    def _gen_experiment(self):
+        freq_sweep = self.qubit_configs[0].parameter.frequency[0]
+        exp_settings = self.exp_settings
+        qubit = self.qubits[0]
+        qubit1 = self.qubits[1]
+
+        signals = []
+        for qubit in self.qubits:
+            signals += qubit.experiment_signals(with_calibration=True)
+        print(signals)
+        exp_qspec = Experiment(
+            uid="Qubit Pulsed Spectroscopy",
+            signals=signals,
+        )
+
+        exp_qspec.signals[qubit.signals["drive"]].oscillator = Oscillator(
+            "drive_osc",
+            frequency=freq_sweep,
+            modulation_type=ModulationType.HARDWARE,
+        )
+
+        with exp_qspec.acquire_loop_rt(
+            uid="freq_shots",
+            count=exp_settings["num_averages"],
+            acquisition_type=AcquisitionType.INTEGRATION,
+        ):
+            with exp_qspec.sweep(uid="qfreq_sweep", parameter=freq_sweep):
+                with exp_qspec.section(uid="qubit_excitation"):
+                    exp_qspec.play(
+                        signal=qubit.signals["drive"],
+                        pulse=self.pulse_storage["drive_pulse"],
+                    )
+                    exp_qspec.play(
+                        signal=qubit1.signals["drive"],
+                        pulse=self.pulse_storage["drive_pulse"],
+                    )
+                with exp_qspec.section(
+                    uid="readout_section", play_after="qubit_excitation"
+                ):
+                    exp_qspec.play(
+                        signal=qubit.signals["measure"],
+                        pulse=self.pulse_storage["readout_pulse"],
+                    )
+                    exp_qspec.acquire(
+                        signal=qubit.signals["acquire"],
+                        handle="res_spec",
+                        kernel=self.pulse_storage["kernel_pulse"],
+                    )
+                with exp_qspec.section(uid="delay"):
+                    exp_qspec.delay(signal=qubit.signals["measure"], time=10e-6)
+                    exp_qspec.reserve(signal=qubit.signals["drive"])
+
+        return exp_qspec
+
+
 class PulsedQubitSpecBiasSweep(PulsedQubitSpectroscopy):
     def __init__(
         self,

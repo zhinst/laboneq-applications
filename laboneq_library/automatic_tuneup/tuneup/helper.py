@@ -21,25 +21,57 @@ config = get_config()
 
 
 def get_device_setup_sherloq():
+    # sherloq_descriptor = """\
+    #   instruments:
+    #     SHFQC:
+    #     - address: dev12250
+    #       uid: shfqc_psi
+    #   connections:
+    #     shfqc_psi:
+    #       - iq_signal: q0/drive_line
+    #         ports: SGCHANNELS/0/OUTPUT
+    #       - iq_signal: q0/measure_line
+    #         ports: [QACHANNELS/0/OUTPUT]
+    #       - acquire_signal: q0/acquire_line
+    #         ports: [QACHANNELS/0/INPUT]
+    #       - iq_signal: q1/drive_line
+    #         ports: SGCHANNELS/1/OUTPUT
+    #       - iq_signal: q1/measure_line
+    #         ports: [QACHANNELS/0/OUTPUT]
+    #       - acquire_signal: q1/acquire_line
+    #         ports: [QACHANNELS/0/INPUT]
+    # """
     sherloq_descriptor = """\
       instruments:
+        PQSC:
+        - address: dev10001
+          uid: pqsc
         SHFQC:
         - address: dev12250
-          uid: shfqc_psi
+          uid: shfqc1
+        - address: dev12251
+          uid: shfqc2
       connections:
-        shfqc_psi:
+        shfqc1:
           - iq_signal: q0/drive_line
             ports: SGCHANNELS/0/OUTPUT
           - iq_signal: q0/measure_line
             ports: [QACHANNELS/0/OUTPUT]
           - acquire_signal: q0/acquire_line
             ports: [QACHANNELS/0/INPUT]
+        shfqc2:
           - iq_signal: q1/drive_line
-            ports: SGCHANNELS/1/OUTPUT
+            ports: SGCHANNELS/0/OUTPUT
           - iq_signal: q1/measure_line
             ports: [QACHANNELS/0/OUTPUT]
           - acquire_signal: q1/acquire_line
             ports: [QACHANNELS/0/INPUT]
+        pqsc:
+          - to: shfqc1
+            port: ZSYNCS/0
+          - to: shfqc2
+            port: ZSYNCS/1
+
     """
     device_setup = DeviceSetup.from_descriptor(
         sherloq_descriptor,
