@@ -502,9 +502,9 @@ class ResonatorSpectroscopy(ExperimentTemplate):
                             ax.text(1, -0.15, textstr, ha='right', va='top',
                                     c=line_uss.get_c(), transform=ax.transAxes)
                             new_parameter_values[
-                                "readout_resonator_frequency"]['uss'] = v_uss.nominal_value
+                                "readout_resonator_frequency"]['uss'] = f_uss
                             new_parameter_values[
-                                "dc_voltage_parking"]['uss'] = f_uss
+                                "dc_voltage_parking"]['uss'] = v_uss.nominal_value
                         if len(v_lss_values) > 0:
                             lss_idx = np.argsort(abs(v_lss_values))[0]
                             v_lss, f_lss = voltages_lss[lss_idx], freqs_lss[lss_idx]
@@ -514,9 +514,9 @@ class ResonatorSpectroscopy(ExperimentTemplate):
                             ax.text(0, -0.15, textstr, ha='left', va='top',
                                     c=line_lss.get_c(), transform=ax.transAxes)
                             new_parameter_values[
-                                "readout_resonator_frequency"]['lss'] = v_lss.nominal_value
+                                "readout_resonator_frequency"]['lss'] = f_lss
                             new_parameter_values[
-                                "dc_voltage_parking"]['lss'] = f_lss
+                                "dc_voltage_parking"]['lss'] = v_lss.nominal_value
 
             ax.set_title(f'{self.timestamp}_{handle}')
             # save figures and results
@@ -530,16 +530,26 @@ class ResonatorSpectroscopy(ExperimentTemplate):
     def update_qubit_parameters(self):
         for qubit in self.qubits:
             new_qb_pars = self.analysis_results[qubit.uid]["new_parameter_values"]
-            if len(new_qb_pars) == 4:
+            new_rr_freq = new_qb_pars["readout_resonator_frequency"]
+            if isinstance(new_rr_freq, dict):
                 # both uss and lss found
-                raise ValueError('Both upper and lower sweep spots were found. '
-                                 'Unclear which one to set. Please update '
-                                 'qubit parameters manually.')
-            qubit.parameters.readout_resonator_frequency = new_qb_pars[
-                "readout_resonator_frequency"]
-            if "dc_voltage_parking" in new_qb_pars:
-                qubit.parameters.user_defined["dc_voltage_parking"] = new_qb_pars[
-                    "dc_voltage_parking"]
+                ss_to_update = self.analysis_metainfo.get("sweet_spot_to_update",
+                                                          None)
+                if ss_to_update is None:
+                    raise ValueError('Both upper and lower sweep spots were found. '
+                                     'Unclear which one to set. Please update '
+                                     'specify "sweet_spot_to_update" in '
+                                     'analysis_metainfo.')
+                qubit.parameters.readout_resonator_frequency = \
+                    new_rr_freq[ss_to_update]
+                qubit.parameters.user_defined["dc_voltage_parking"] = \
+                    new_qb_pars["dc_voltage_parking"][ss_to_update]
+            else:
+                qubit.parameters.readout_resonator_frequency = new_rr_freq
+                if "dc_voltage_parking" in new_qb_pars:
+                    qubit.parameters.user_defined["dc_voltage_parking"] = \
+                        new_qb_pars["dc_voltage_parking"]
+
 
 
 class DispersiveShift(ResonatorSpectroscopy):
