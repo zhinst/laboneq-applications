@@ -22,14 +22,14 @@ from laboneq_library.analysis import analysis_helpers as ana_hlp
 
 @experiment(signals=["measure", "acquire"], uid="Full range CW resonator sweep")
 def resonator_spectroscopy_full_range(
-        qubit,
-        lo_frequencies,
-        inner_start,
-        inner_stop,
-        inner_count,
-        cw=True,
-        integration_time=10e-3,
-        num_averages=1,
+    qubit,
+    lo_frequencies,
+    inner_start,
+    inner_stop,
+    inner_count,
+    cw=True,
+    integration_time=10e-3,
+    num_averages=1,
 ):
     map_signal("measure", qubit.signals["measure"])
     map_signal("acquire", qubit.signals["acquire"])
@@ -53,15 +53,15 @@ def resonator_spectroscopy_full_range(
         local_oscillator.frequency = lo_freq
 
         with acquire_loop_rt(
-                uid="shots",
-                count=num_averages,
-                acquisition_type=AcquisitionType.SPECTROSCOPY,
+            uid="shots",
+            count=num_averages,
+            acquisition_type=AcquisitionType.SPECTROSCOPY,
         ):
             with sweep_range(
-                    start=inner_start,
-                    stop=inner_stop,
-                    count=inner_count,
-                    axis_name="inner_sweep",
+                start=inner_start,
+                stop=inner_stop,
+                count=inner_count,
+                axis_name="inner_sweep",
             ) as inner_freq:
                 inner_oscillator.frequency = inner_freq
 
@@ -85,17 +85,17 @@ def resonator_spectroscopy_full_range(
                             length=kernel_length,
                         )
                 with section(
-                        uid="delay", length=1e-6, play_after="resonator_spectroscopy"
+                    uid="delay", length=1e-6, play_after="resonator_spectroscopy"
                 ):
                     pass
 
 
 @experiment(signals=["drive", "measure", "acquire"], uid="Amplitude Rabi Experiment")
 def amplitude_rabi_single(
-        qubit,
-        amplitude_sweep,
-        num_averages=2 ** 10,
-        cal_trace=False,
+    qubit,
+    amplitude_sweep,
+    num_averages=2**10,
+    cal_trace=False,
 ):
     map_signal("drive", qubit.signals["drive"])
     map_signal("measure", qubit.signals["measure"])
@@ -104,10 +104,10 @@ def amplitude_rabi_single(
     ## define Rabi experiment pulse sequence
     # outer loop - real-time, cyclic averaging
     with acquire_loop_rt(
-            uid="rabi_shots",
-            count=num_averages,
-            averaging_mode=AveragingMode.CYCLIC,
-            acquisition_type=AcquisitionType.INTEGRATION,
+        uid="rabi_shots",
+        count=num_averages,
+        averaging_mode=AveragingMode.CYCLIC,
+        acquisition_type=AcquisitionType.INTEGRATION,
     ):
         # inner loop - real time sweep of Rabi amplitudes
         with sweep(uid="rabi_sweep", parameter=amplitude_sweep):
@@ -163,11 +163,11 @@ def amplitude_rabi_single(
 
 
 def ramsey_parallel(
-        qubits,
-        delay_sweep,
-        num_averages=2 ** 10,
-        detuning=0,
-        cal_trace=False,
+    qubits,
+    delay_sweep,
+    num_averages=2**10,
+    detuning=0,
+    cal_trace=False,
 ):
     signal_list = []
     signal_types = ["drive", "measure", "acquire"]
@@ -206,20 +206,20 @@ def ramsey_parallel(
         ## define Ramsey experiment pulse sequence
         # outer loop - real-time, cyclic averaging
         with acquire_loop_rt(
-                uid="ramsey_shots",
-                count=num_averages,
-                averaging_mode=AveragingMode.CYCLIC,
-                acquisition_type=AcquisitionType.INTEGRATION,
+            uid="ramsey_shots",
+            count=num_averages,
+            averaging_mode=AveragingMode.CYCLIC,
+            acquisition_type=AcquisitionType.INTEGRATION,
         ):
             for qubit in qubits:
                 # inner loop - real time sweep of Ramsey time delays
                 with sweep(
-                        uid=f"ramsey_sweep_{qubit.uid}",
-                        parameter=delay_sweep,
-                        alignment=SectionAlignment.RIGHT,
+                    uid=f"ramsey_sweep_{qubit.uid}",
+                    parameter=delay_sweep,
+                    alignment=SectionAlignment.RIGHT,
                 ):
                     with section(
-                            uid=f"{qubit.uid}_excitation", alignment=SectionAlignment.RIGHT
+                        uid=f"{qubit.uid}_excitation", alignment=SectionAlignment.RIGHT
                     ):
                         ramsey_drive_pulse = qt_ops.drive_ge_pi2(qubit)
                         play(signal=f"drive_{qubit.uid}", pulse=ramsey_drive_pulse)
@@ -229,7 +229,7 @@ def ramsey_parallel(
                     # readout pulse and data acquisition
                     # measurement
                     with section(
-                            uid=f"readout_{qubit.uid}", play_after=f"{qubit.uid}_excitation"
+                        uid=f"readout_{qubit.uid}", play_after=f"{qubit.uid}_excitation"
                     ):
                         measure(
                             measure_signal=f"measure_{qubit.uid}",
@@ -242,8 +242,8 @@ def ramsey_parallel(
 
                 if cal_trace:
                     with section(
-                            uid=f"cal_trace_gnd_{qubit.uid}",
-                            play_after=f"ramsey_sweep_{qubit.uid}",
+                        uid=f"cal_trace_gnd_{qubit.uid}",
+                        play_after=f"ramsey_sweep_{qubit.uid}",
                     ):
                         measure(
                             measure_signal=f"measure_{qubit.uid}",
@@ -255,8 +255,8 @@ def ramsey_parallel(
                         )
 
                     with section(
-                            uid=f"cal_trace_exc_{qubit.uid}",
-                            play_after=f"cal_trace_gnd_{qubit.uid}",
+                        uid=f"cal_trace_exc_{qubit.uid}",
+                        play_after=f"cal_trace_gnd_{qubit.uid}",
                     ):
                         play(
                             signal=f"drive_{qubit.uid}",
@@ -264,8 +264,8 @@ def ramsey_parallel(
                         )
 
                     with section(
-                            uid=f"cal_trace_exc_meas_{qubit.uid}",
-                            play_after=f"cal_trace_exc_{qubit.uid}",
+                        uid=f"cal_trace_exc_meas_{qubit.uid}",
+                        play_after=f"cal_trace_exc_{qubit.uid}",
                     ):
                         measure(
                             measure_signal=f"measure_{qubit.uid}",
@@ -284,17 +284,18 @@ def ramsey_parallel(
 
 
 class StatePreparationMixin:
-
-    def create_preparation(self, qubit, state_to_prepare='e',
-                           section_uid_suffix='',
-                           play_after_sections=None,
-                           add_measure_acquire_sections=False,
-                           acquire_handle_name_suffix=''
-                           ):
-
+    def create_preparation(
+        self,
+        qubit,
+        state_to_prepare="e",
+        section_uid_suffix="",
+        play_after_sections=None,
+        add_measure_acquire_sections=False,
+        acquire_handle_name_suffix="",
+    ):
         if len(section_uid_suffix) > 0:
             section_uid_suffix = f"_{section_uid_suffix}"
-        if state_to_prepare == 'g':
+        if state_to_prepare == "g":
             preparation_sections = []
             if add_measure_acquire_sections:
                 g_measure_section = self.create_measure_acquire_sections(
@@ -302,16 +303,14 @@ class StatePreparationMixin:
                     handle_suffix=f"{acquire_handle_name_suffix}_g",
                 )
                 preparation_sections = [g_measure_section]
-        elif state_to_prepare == 'e':
+        elif state_to_prepare == "e":
             e_section = Section(
                 uid=f"{qubit.uid}_prep_e{section_uid_suffix}",
                 play_after=play_after_sections,
             )
             e_section.play(
                 signal=self.signal_name("drive", qubit),
-                pulse=qt_ops.quantum_gate(qubit, "X180_ge",
-                                          uid=f"{qubit.uid}_prep_e"
-                                          )
+                pulse=qt_ops.quantum_gate(qubit, "X180_ge", uid=f"{qubit.uid}_prep_e"),
             )
             preparation_sections = [e_section]
             if add_measure_acquire_sections:
@@ -321,7 +320,7 @@ class StatePreparationMixin:
                     handle_suffix=f"{acquire_handle_name_suffix}_e",
                 )
                 preparation_sections += [e_measure_section]
-        elif state_to_prepare == 'f':
+        elif state_to_prepare == "f":
             # prepare e state
             e_section = Section(
                 uid=f"{qubit.uid}_prep_f_pulse_e{section_uid_suffix}",
@@ -330,8 +329,9 @@ class StatePreparationMixin:
             )
             e_section.play(
                 signal=self.signal_name("drive", qubit),
-                pulse=qt_ops.quantum_gate(qubit, "X180_ge",
-                                          uid=f"{qubit.uid}_prep_f_pulse_e"),
+                pulse=qt_ops.quantum_gate(
+                    qubit, "X180_ge", uid=f"{qubit.uid}_prep_f_pulse_e"
+                ),
             )
             # prepare f state
             f_section = Section(
@@ -341,8 +341,9 @@ class StatePreparationMixin:
             )
             f_section.play(
                 signal=self.signal_name("drive_ef", qubit),
-                pulse=qt_ops.quantum_gate(qubit, "X180_ef",
-                                          uid=f"{qubit.uid}_prep_f_pulse_f"),
+                pulse=qt_ops.quantum_gate(
+                    qubit, "X180_ef", uid=f"{qubit.uid}_prep_f_pulse_f"
+                ),
             )
             preparation_sections = [e_section, f_section]
             if add_measure_acquire_sections:
@@ -353,8 +354,9 @@ class StatePreparationMixin:
                 )
                 preparation_sections += [f_measure_section]
         else:
-            raise NotImplementedError("Currently, only state g, e and f "
-                                      "can be prepared.")
+            raise NotImplementedError(
+                "Currently, only state g, e and f " "can be prepared."
+            )
         return preparation_sections
 
 
@@ -366,12 +368,25 @@ class ExperimentTemplate(StatePreparationMixin):
     results = None
     analysis_results = None
 
-    def __init__(self, qubits, session, measurement_setup, experiment_name=None,
-                 signals=None, sweep_parameters_dict=None, experiment_metainfo=None,
-                 acquisition_metainfo=None, qubit_temporary_values=None,
-                 do_analysis=True, analysis_metainfo=None,
-                 save=True, data_directory=None,
-                 update=False, run=False, **kwargs):
+    def __init__(
+        self,
+        qubits,
+        session,
+        measurement_setup,
+        experiment_name=None,
+        signals=None,
+        sweep_parameters_dict=None,
+        experiment_metainfo=None,
+        acquisition_metainfo=None,
+        qubit_temporary_values=None,
+        do_analysis=True,
+        analysis_metainfo=None,
+        save=True,
+        data_directory=None,
+        update=False,
+        run=False,
+        **kwargs,
+    ):
         self.qubits = qubits
         self.session = session
         self.measurement_setup = measurement_setup
@@ -389,7 +404,7 @@ class ExperimentTemplate(StatePreparationMixin):
         self.cal_states = self.experiment_metainfo.get("cal_states", None)
         if acquisition_metainfo is None:
             acquisition_metainfo = {}
-        self.acquisition_metainfo = dict(count=2 ** 12)
+        self.acquisition_metainfo = dict(count=2**12)
         # overwrite default with user-provided options
         self.acquisition_metainfo.update(acquisition_metainfo)
         if qubit_temporary_values is None:
@@ -402,14 +417,18 @@ class ExperimentTemplate(StatePreparationMixin):
         if self.analysis_metainfo is None:
             self.analysis_metainfo = {}
         self.update = update
-        if self.update and self.analysis_metainfo.get('do_fitting', False):
-            log.warning("update is True but "
-                        "analysis_metainfo['do_fitting'] is False. Qubit "
-                        "parameters will not be updated.")
+        if self.update and self.analysis_metainfo.get("do_fitting", False):
+            log.warning(
+                "update is True but "
+                "analysis_metainfo['do_fitting'] is False. Qubit "
+                "parameters will not be updated."
+            )
         self.save = save
         if self.save and self.data_directory is None:
-            raise ValueError("save==True, but no data_directory was specified. "
-                             "Please provide data_directory or set save=False.")
+            raise ValueError(
+                "save==True, but no data_directory was specified. "
+                "Please provide data_directory or set save=False."
+            )
 
         self.experiment_name = experiment_name
         if self.experiment_name is None:
@@ -420,8 +439,10 @@ class ExperimentTemplate(StatePreparationMixin):
         self.signals = signals
         if self.signals is None:
             self.signals = ["drive", "measure", "acquire"]
-        self.experiment_signals, self.experiment_signal_uids_qubit_map = \
-            self.create_experiment_signals(self.qubits, self.signals)
+        (
+            self.experiment_signals,
+            self.experiment_signal_uids_qubit_map,
+        ) = self.create_experiment_signals(self.qubits, self.signals)
         self.create_experiment()
 
         self.run = run
@@ -480,12 +501,13 @@ class ExperimentTemplate(StatePreparationMixin):
 
     def create_unique_uids(self):
         from laboneq.dsl.experiment.play_pulse import PlayPulse
+
         uids = set()
 
         def rename_uid_sweep_section(sec, suffix):
             if isinstance(sec, (Sweep, Section)):
                 if sec.uid in uids:
-                    print(f'Renaming {type(sec)} uid {sec.uid} to {sec.uid}_{suffix}')
+                    print(f"Renaming {type(sec)} uid {sec.uid} to {sec.uid}_{suffix}")
                     sec.uid += f"_{suffix}"
                     suffix += 1
                 uids.add(sec.uid)
@@ -493,7 +515,9 @@ class ExperimentTemplate(StatePreparationMixin):
                     suffix = rename_uid_sweep_section(ch, suffix=suffix)
             elif isinstance(sec, PlayPulse):
                 if sec.pulse.uid in uids:
-                    print(f'Renaming Pulse with uid {sec.pulse.uid} to {sec.pulse.uid}_{suffix}')
+                    print(
+                        f"Renaming Pulse with uid {sec.pulse.uid} to {sec.pulse.uid}_{suffix}"
+                    )
                     sec.pulse.uid += f"_{suffix}"
                     suffix += 1
                 uids.add(sec.pulse.uid)
@@ -511,16 +535,15 @@ class ExperimentTemplate(StatePreparationMixin):
 
     def analyse_experiment(self):
         # to be overridden by children
-        self.analysis_results = {qubit.uid: dict(
-            new_parameter_values=dict(),
-            fit_results=None
-        )
+        self.analysis_results = {
+            qubit.uid: dict(new_parameter_values=dict(), fit_results=None)
             for qubit in self.qubits
         }
 
     def update_measurement_setup(self):
         calib_hlp.update_measurement_setup_from_qubits(
-            self.qubits, self.measurement_setup)
+            self.qubits, self.measurement_setup
+        )
 
     def update_qubit_parameters(self):
         pass
@@ -544,8 +567,7 @@ class ExperimentTemplate(StatePreparationMixin):
 
     def create_save_directory(self):
         # create the save_directory inside self.data_directory
-        if (self.save_directory is not None and
-                not os.path.exists(self.save_directory)):
+        if self.save_directory is not None and not os.path.exists(self.save_directory):
             os.makedirs(self.save_directory)
 
     def save_measurement_setup(self):
@@ -574,34 +596,39 @@ class ExperimentTemplate(StatePreparationMixin):
             "experiment_metainfo": self.experiment_metainfo,
             "analysis_metainfo": self.analysis_metainfo,
         }
-        metainfo_file = os.path.abspath(os.path.join(
-            self.save_directory,
-            f'{self.timestamp}_meta_information.json'))
+        metainfo_file = os.path.abspath(
+            os.path.join(self.save_directory, f"{self.timestamp}_meta_information.json")
+        )
         try:
             with open(metainfo_file, "w") as file:
                 json.dump(metainfo, file, indent=2)
         except Exception:
             log.warning("Could not save the measurement meta-info.")
 
-    def save_results(self, filename_suffix=''):
+    def save_results(self, filename_suffix=""):
         if len(filename_suffix) > 0:
             filename_suffix = f"_{filename_suffix}"
         if self.results is not None:
             self.create_save_directory()
             # Save Results
-            results_file = os.path.abspath(os.path.join(
-                self.save_directory,
-                f'{self.timestamp}_results{filename_suffix}.json'))
+            results_file = os.path.abspath(
+                os.path.join(
+                    self.save_directory,
+                    f"{self.timestamp}_results{filename_suffix}.json",
+                )
+            )
             try:
                 self.results.save(results_file)
             except Exception as e:
-                log.warning(f'Could not save all the results: {e}')
+                log.warning(f"Could not save all the results: {e}")
 
             # Save only the acquired results as pickle: fallback in case
             # something goes wrong with the serialisation
-            filename = os.path.abspath(os.path.join(
-                self.save_directory,
-                f"{self.timestamp}_acquired_results{filename_suffix}.p")
+            filename = os.path.abspath(
+                os.path.join(
+                    self.save_directory,
+                    f"{self.timestamp}_acquired_results{filename_suffix}.p",
+                )
             )
             with open(filename, "wb") as f:
                 pickle.dump(self.results.acquired_results, f)
@@ -615,30 +642,41 @@ class ExperimentTemplate(StatePreparationMixin):
         if not self.analysis_metainfo.get("overwrite_figures", False):
             i = 1
             # check if filename exists in self.save_directory
-            while any([fn.endswith(f"{fig_name_final}.png") for
-                       fn in os.listdir(self.save_directory)]):
+            while any(
+                [
+                    fn.endswith(f"{fig_name_final}.png")
+                    for fn in os.listdir(self.save_directory)
+                ]
+            ):
                 fig_name_final = f"{fig_name}_{i}"
                 i += 1
         fig_fmts = self.analysis_metainfo.get("figure_formats", ["png"])
         for fmt in fig_fmts:
-            fig.savefig(self.save_directory + f"\\{fig_name_final}.{fmt}",
-                        bbox_inches="tight", dpi=600)
+            fig.savefig(
+                self.save_directory + f"\\{fig_name_final}.{fmt}",
+                bbox_inches="tight",
+                dpi=600,
+            )
 
-    def save_analysis_results(self, filename_suffix=''):
+    def save_analysis_results(self, filename_suffix=""):
         if self.analysis_results is None:
             return
 
         new_qb_params_exist = any(
-            [len(self.analysis_results[qubit.uid]["new_parameter_values"]) > 0
-             for qubit in self.qubits]
+            [
+                len(self.analysis_results[qubit.uid]["new_parameter_values"]) > 0
+                for qubit in self.qubits
+            ]
         )
         fit_results_exist = any(
-            [self.analysis_results[qubit.uid]["fit_results"] is not None
-             for qubit in self.qubits]
+            [
+                self.analysis_results[qubit.uid]["fit_results"] is not None
+                for qubit in self.qubits
+            ]
         )
         other_ana_res_exist = any(
-            [len(self.analysis_results[qubit.uid]) > 2
-             for qubit in self.qubits])
+            [len(self.analysis_results[qubit.uid]) > 2 for qubit in self.qubits]
+        )
 
         if new_qb_params_exist or fit_results_exist or other_ana_res_exist:
             self.create_save_directory()
@@ -650,21 +688,25 @@ class ExperimentTemplate(StatePreparationMixin):
             if fit_results_exist:
                 fit_results_to_save_json = dict()
                 for qbuid, ana_res in self.analysis_results.items():
-                        fit_results = self.analysis_results[qbuid]["fit_results"]
-                        # Convert lmfit results into a dictionary that can be saved
-                        # as json
-                        if isinstance(fit_results, dict):
-                            fit_results_to_save_json[qbuid] = {}
-                            for k, fr in fit_results.items():
-                                fit_results_to_save_json[qbuid][k] = \
-                                    ana_hlp.flatten_lmfit_modelresult(fr)
-                        else:
-                            fit_results_to_save_json[qbuid] = \
-                                ana_hlp.flatten_lmfit_modelresult(fit_results)
+                    fit_results = self.analysis_results[qbuid]["fit_results"]
+                    # Convert lmfit results into a dictionary that can be saved
+                    # as json
+                    if isinstance(fit_results, dict):
+                        fit_results_to_save_json[qbuid] = {}
+                        for k, fr in fit_results.items():
+                            fit_results_to_save_json[qbuid][
+                                k
+                            ] = ana_hlp.flatten_lmfit_modelresult(fr)
+                    else:
+                        fit_results_to_save_json[
+                            qbuid
+                        ] = ana_hlp.flatten_lmfit_modelresult(fit_results)
                 # Save fit results into a json file
-                fit_res_file = os.path.abspath(os.path.join(
-                    self.save_directory,
-                    f"{self.timestamp}_fit_results{filename_suffix}.json")
+                fit_res_file = os.path.abspath(
+                    os.path.join(
+                        self.save_directory,
+                        f"{self.timestamp}_fit_results{filename_suffix}.json",
+                    )
                 )
                 with open(fit_res_file, "w") as file:
                     json.dump(fit_results_to_save_json, file, indent=2)
@@ -696,9 +738,11 @@ class ExperimentTemplate(StatePreparationMixin):
             #         pickle.dump(fit_results_to_pickle, f)
 
             # Save analysis_results pickle file
-            ana_res_file = os.path.abspath(os.path.join(
-                self.save_directory,
-                f"{self.timestamp}_analysis_results{filename_suffix}.p")
+            ana_res_file = os.path.abspath(
+                os.path.join(
+                    self.save_directory,
+                    f"{self.timestamp}_analysis_results{filename_suffix}.p",
+                )
             )
             with open(ana_res_file, "wb") as f:
                 pickle.dump(self.analysis_results, f)
@@ -711,8 +755,7 @@ class ExperimentTemplate(StatePreparationMixin):
                 self.save_measurement_setup()
                 # save the meta-information
                 self.save_experiment_metainfo()
-            with calib_hlp.QubitTemporaryValuesContext(
-                    *self.qubit_temporary_values):
+            with calib_hlp.QubitTemporaryValuesContext(*self.qubit_temporary_values):
                 self.define_experiment()
                 self.configure_experiment()
                 self.compile_experiment()
@@ -733,15 +776,20 @@ class ExperimentTemplate(StatePreparationMixin):
     def create_acquire_rt_loop(self):
         self.acquire_loop = AcquireLoopRt(**self.acquisition_metainfo)
 
-    def create_measure_acquire_sections(self, qubit, uid=None, play_after=None,
-                                        handle_suffix='',
-                                        integration_kernel="default"):
+    def create_measure_acquire_sections(
+        self,
+        qubit,
+        uid=None,
+        play_after=None,
+        handle_suffix="",
+        integration_kernel="default",
+    ):
         handle = f"{self.experiment_name}_{qubit.uid}"
         if len(handle_suffix) > 0:
             handle += f"_{handle_suffix}"
 
         ro_pulse = qt_ops.readout_pulse(qubit)
-        if not hasattr(self, 'integration_kernel'):
+        if not hasattr(self, "integration_kernel"):
             # ensure the integration_kernel is created only once to avoid
             # serialisation errors
             self.integration_kernel = qubit.get_integration_kernels()
@@ -782,24 +830,27 @@ class ExperimentTemplate(StatePreparationMixin):
         if "e" in self.cal_states:
             # Excited state - prep pulse + msmt
             e_prep_sections = self.create_preparation(
-                qubit, state_to_prepare='e',
+                qubit,
+                state_to_prepare="e",
                 play_after_sections=play_after_sections,
-                section_uid_suffix="cal_traces"
+                section_uid_suffix="cal_traces",
             )
             e_measure_section = self.create_measure_acquire_sections(
                 qubit=qubit,
                 play_after=e_prep_sections,
                 handle_suffix="cal_trace_e",
             )
-            play_after_sections = [s for s in play_after_sections] + \
-                                  e_prep_sections + [e_measure_section]
+            play_after_sections = (
+                [s for s in play_after_sections] + e_prep_sections + [e_measure_section]
+            )
             cal_trace_sections += e_prep_sections + [e_measure_section]
         if "f" in self.cal_states:
             # 2nd-excited-state - prep pulse + msmt
             f_prep_sections = self.create_preparation(
-                qubit, state_to_prepare='f',
+                qubit,
+                state_to_prepare="f",
                 play_after_sections=play_after_sections,
-                section_uid_suffix="cal_traces"
+                section_uid_suffix="cal_traces",
             )
             f_measure_section = self.create_measure_acquire_sections(
                 qubit=qubit,
@@ -812,4 +863,3 @@ class ExperimentTemplate(StatePreparationMixin):
                 self.acquire_loop.add(cal_tr_sec)
             else:
                 section_container.add(cal_tr_sec)
-

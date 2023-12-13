@@ -6,9 +6,11 @@ from pathlib import Path
 
 from laboneq.simple import *  # noqa: F403
 from ruamel.yaml import YAML
+
 ryaml = YAML()
 
 import logging
+
 logging.basicConfig(level=logging.WARNING)
 log = logging.getLogger("calibration_helpers")
 
@@ -24,13 +26,15 @@ def load_qubit_parameters(filename="./qubit_parameters.yaml"):
 def load_qubit_parameters_json(folder=None, full_filepath=None):
     if full_filepath is None:
         if folder is None:
-            raise ValueError('Please provide either folder or full_filepath.')
-        full_filepath = [fn for fn in os.listdir(folder) if
-                         'qubit_parameters.json' in fn]
+            raise ValueError("Please provide either folder or full_filepath.")
+        full_filepath = [
+            fn for fn in os.listdir(folder) if "qubit_parameters.json" in fn
+        ]
         if len(full_filepath) == 0:
-            raise FileNotFoundError(f'There is no json file containing qubit '
-                                    f'parameters in {folder}.')
-        full_filepath = f'{folder}\\{full_filepath[0]}'
+            raise FileNotFoundError(
+                f"There is no json file containing qubit " f"parameters in {folder}."
+            )
+        full_filepath = f"{folder}\\{full_filepath[0]}"
     with open(full_filepath) as f:
         qubit_parameters = f.read()
     # convert to python dictionary
@@ -194,46 +198,48 @@ def create_qubits_from_measurement_setup(measurement_setup):
 
     qubits = []
     for qb_name in measurement_setup.logical_signal_groups:
-        qubits += [Transmon.from_logical_signal_group(
-            uid=qb_name,
-            lsg=measurement_setup.logical_signal_groups[qb_name],
-            parameters=TransmonParameters(
-                resonance_frequency_ge=6.00e9,
-                resonance_frequency_ef=5.83e9,
-                drive_lo_frequency=5.90e9,
-                readout_resonator_frequency=7.00e9,
-                readout_lo_frequency=7.30e9,
-                readout_integration_length=2e-06,
-                readout_integration_delay=2.4e-07,
-                drive_range=10,
-                readout_range_out=-25,
-                readout_range_in=-5,
-                flux_offset_voltage=0,
-                drive_parameters_ge={
-                    'amplitude_pi': 0.30,
-                    'amplitude_pi2': 0.15,
-                    'beta': 0,
-                    'length': 5e-08,
-                    'sigma': 0.2
-                },
-                drive_parameters_ef={
-                    'amplitude_pi': 0.30,
-                    'amplitude_pi2': 0.15,
-                    'beta': 0,
-                    'length': 5e-08,
-                    'sigma': 0.2
-                },
-                user_defined={
-                    'dc_slot': 0,
-                    'dc_voltage_parking': 0,
-                    'readout_amplitude': 0.5,
-                    'readout_length': 2e-06,
-                    'reset_delay_length': 1e-06,
-                    'spec_amplitude': 1,
-                    'spec_length': 5e-06
-                }
-            ),
-        )]
+        qubits += [
+            Transmon.from_logical_signal_group(
+                uid=qb_name,
+                lsg=measurement_setup.logical_signal_groups[qb_name],
+                parameters=TransmonParameters(
+                    resonance_frequency_ge=6.00e9,
+                    resonance_frequency_ef=5.83e9,
+                    drive_lo_frequency=5.90e9,
+                    readout_resonator_frequency=7.00e9,
+                    readout_lo_frequency=7.30e9,
+                    readout_integration_length=2e-06,
+                    readout_integration_delay=2.4e-07,
+                    drive_range=10,
+                    readout_range_out=-25,
+                    readout_range_in=-5,
+                    flux_offset_voltage=0,
+                    drive_parameters_ge={
+                        "amplitude_pi": 0.30,
+                        "amplitude_pi2": 0.15,
+                        "beta": 0,
+                        "length": 5e-08,
+                        "sigma": 0.2,
+                    },
+                    drive_parameters_ef={
+                        "amplitude_pi": 0.30,
+                        "amplitude_pi2": 0.15,
+                        "beta": 0,
+                        "length": 5e-08,
+                        "sigma": 0.2,
+                    },
+                    user_defined={
+                        "dc_slot": 0,
+                        "dc_voltage_parking": 0,
+                        "readout_amplitude": 0.5,
+                        "readout_length": 2e-06,
+                        "reset_delay_length": 1e-06,
+                        "spec_amplitude": 1,
+                        "spec_length": 5e-06,
+                    },
+                ),
+            )
+        ]
     return qubits
 
 
@@ -255,30 +261,31 @@ def create_qubits_from_parameters(qubit_parameters, measurement_setup):
     qubits = []
     parameters = qubit_parameters
     for q_name in qubit_parameters:
-        qubits += [Transmon.from_logical_signal_group(
-            q_name,
-            lsg=measurement_setup.logical_signal_groups[q_name],
-            parameters=TransmonParameters(
-                resonance_frequency_ge=parameters[q_name][
-                    "resonance_frequency_ge"],
-                resonance_frequency_ef=parameters[q_name][
-                    "resonance_frequency_ef"],
-                drive_lo_frequency=parameters[q_name]["drive_lo_frequency"],
-                readout_resonator_frequency=parameters[q_name][
-                    "readout_resonator_frequency"],
-                readout_lo_frequency=parameters[q_name][
-                    "readout_lo_frequency"],
-                readout_integration_delay=parameters[q_name][
-                    "readout_integration_delay"],
-                drive_range=parameters[q_name]["drive_range"],
-                drive_parameters_ge=parameters[q_name]["drive_parameters_ge"],
-                drive_parameters_ef=parameters[q_name]["drive_parameters_ef"],
-                readout_range_out=parameters[q_name]["readout_range_out"],
-                readout_range_in=parameters[q_name]["readout_range_in"],
-                flux_offset_voltage=parameters[q_name]["flux_offset_voltage"],
-                user_defined=parameters[q_name]['user_defined'],
-            ),
-        )]
+        qubits += [
+            Transmon.from_logical_signal_group(
+                q_name,
+                lsg=measurement_setup.logical_signal_groups[q_name],
+                parameters=TransmonParameters(
+                    resonance_frequency_ge=parameters[q_name]["resonance_frequency_ge"],
+                    resonance_frequency_ef=parameters[q_name]["resonance_frequency_ef"],
+                    drive_lo_frequency=parameters[q_name]["drive_lo_frequency"],
+                    readout_resonator_frequency=parameters[q_name][
+                        "readout_resonator_frequency"
+                    ],
+                    readout_lo_frequency=parameters[q_name]["readout_lo_frequency"],
+                    readout_integration_delay=parameters[q_name][
+                        "readout_integration_delay"
+                    ],
+                    drive_range=parameters[q_name]["drive_range"],
+                    drive_parameters_ge=parameters[q_name]["drive_parameters_ge"],
+                    drive_parameters_ef=parameters[q_name]["drive_parameters_ef"],
+                    readout_range_out=parameters[q_name]["readout_range_out"],
+                    readout_range_in=parameters[q_name]["readout_range_in"],
+                    flux_offset_voltage=parameters[q_name]["flux_offset_voltage"],
+                    user_defined=parameters[q_name]["user_defined"],
+                ),
+            )
+        ]
     return qubits
 
 
@@ -302,14 +309,15 @@ def load_measurement_setup_from_data_folder(data_folder, before_experiment=False
         instance of DeviceSetup
     """
     if before_experiment:
-        msmt_setup_fn = [f for f in os.listdir(data_folder)
-                         if "measurement_setup" in f]
+        msmt_setup_fn = [f for f in os.listdir(data_folder) if "measurement_setup" in f]
         if len(msmt_setup_fn) == 0:
-            raise ValueError(f"The data folder {data_folder} does not contain a "
-                             f"measurement_setup file.")
+            raise ValueError(
+                f"The data folder {data_folder} does not contain a "
+                f"measurement_setup file."
+            )
         else:
             msmt_setup_fn = msmt_setup_fn[0]
-        return DeviceSetup.load(data_folder + f'\\{msmt_setup_fn}')
+        return DeviceSetup.load(data_folder + f"\\{msmt_setup_fn}")
     else:
         results = load_results_from_data_folder(data_folder)
         return results.device_setup
@@ -329,14 +337,21 @@ def load_results_from_data_folder(data_folder):
         instance of Results
     """
 
-    results_fn = [f for f in os.listdir(data_folder) if "results" in f and
-                  "fit" not in f and "acquired" not in f and "analysis" not in f]
+    results_fn = [
+        f
+        for f in os.listdir(data_folder)
+        if "results" in f
+        and "fit" not in f
+        and "acquired" not in f
+        and "analysis" not in f
+    ]
     if len(results_fn) == 0:
-        raise ValueError(f"The data folder {data_folder} does not contain a "
-                         f"results file.")
+        raise ValueError(
+            f"The data folder {data_folder} does not contain a " f"results file."
+        )
     else:
         results_fn = results_fn[0]
-    return Results.load(data_folder + f'\\{results_fn}')
+    return Results.load(data_folder + f"\\{results_fn}")
 
 
 def load_qubits_from_data_folder(data_folder, measurement_setup):
@@ -358,7 +373,8 @@ def load_qubits_from_data_folder(data_folder, measurement_setup):
 
     try:
         qubit_parameters = load_qubit_parameters(
-            data_folder + '\\qubit_parameters.yaml')
+            data_folder + "\\qubit_parameters.yaml"
+        )
     except FileNotFoundError:
         qubit_parameters = load_qubit_parameters_json(data_folder)
     qubits = create_qubits_from_parameters(qubit_parameters, measurement_setup)
@@ -366,7 +382,7 @@ def load_qubits_from_data_folder(data_folder, measurement_setup):
     return qubits
 
 
-def save_qubit_parameters(save_folder, qubits, timestamp=''):
+def save_qubit_parameters(save_folder, qubits, timestamp=""):
     """
     Saves the parameters of qubits into a json file.
 
@@ -379,8 +395,9 @@ def save_qubit_parameters(save_folder, qubits, timestamp=''):
 
     qubit_parameters = {qb.uid: qb.parameters.__dict__ for qb in qubits}
     # Save all qubit parameters in one json file
-    qb_pars_file = os.path.abspath(os.path.join(
-        save_folder, f'{timestamp}_qubit_parameters.json'))
+    qb_pars_file = os.path.abspath(
+        os.path.join(save_folder, f"{timestamp}_qubit_parameters.json")
+    )
     with open(qb_pars_file, "w") as file:
         json.dump(qubit_parameters, file, indent=2)
 
@@ -392,7 +409,7 @@ def get_latest_data_folder(data_directory):
     Example: data_directory contains the following folders:
     ["20231128", "20231127", "20231126"]. This function returns the most recent
     folder inside data_directory/20231128, as sorted by the timestamp in the
-    names of the folders. 
+    names of the folders.
 
     Args:
         data_directory: directory where the measurement data is saved
@@ -404,17 +421,16 @@ def get_latest_data_folder(data_directory):
     day_folders = os.listdir(data_directory)
     day_folders.sort()
     for day_folder in day_folders[::-1]:
-        ts_folders = os.listdir(data_directory + f'\\{day_folder}')
+        ts_folders = os.listdir(data_directory + f"\\{day_folder}")
         if len(ts_folders) == 0:
             continue
         else:
             ts_folders.sort()
             ts_folder = ts_folders[-1]
-            latest_folder = data_directory + f'\\{day_folder}\\{ts_folder}'
+            latest_folder = data_directory + f"\\{day_folder}\\{ts_folder}"
             break
     if latest_folder is None:
-        raise ValueError(
-            f"Did not find any measurement folders in {data_directory}.")
+        raise ValueError(f"Did not find any measurement folders in {data_directory}.")
     return latest_folder
 
 
@@ -438,18 +454,20 @@ class QubitTemporaryValuesContext:
     """
 
     def __init__(self, *param_value_pairs):
-        if len(param_value_pairs) > 0 and \
-                not isinstance(param_value_pairs[0], (tuple, list)):
+        if len(param_value_pairs) > 0 and not isinstance(
+            param_value_pairs[0], (tuple, list)
+        ):
             param_value_pairs = (param_value_pairs,)
         self.param_value_pairs = param_value_pairs
         self.old_value_pairs = []
 
     def __enter__(self):
-        log.debug('Entered QubitTemporaryValuesContext')
+        log.debug("Entered QubitTemporaryValuesContext")
         try:
-            self.old_value_pairs = \
-                [(qubit, param_name, qubit.parameters.__dict__[param_name])
-                 for qubit, param_name, _ in self.param_value_pairs]
+            self.old_value_pairs = [
+                (qubit, param_name, qubit.parameters.__dict__[param_name])
+                for qubit, param_name, _ in self.param_value_pairs
+            ]
             for qubit, param_name, value in self.param_value_pairs:
                 qubit.parameters.__dict__[param_name] = value
         except Exception:
@@ -459,4 +477,4 @@ class QubitTemporaryValuesContext:
     def __exit__(self, type, value, traceback):
         for qubit, param_name, value in self.old_value_pairs:
             qubit.parameters.__dict__[param_name] = value
-        log.debug('Exited QubitTemporaryValuesContext')
+        log.debug("Exited QubitTemporaryValuesContext")
