@@ -1,5 +1,6 @@
 import json
 import os
+import sys
 import time
 import pickle
 from copy import deepcopy
@@ -370,6 +371,14 @@ class ExperimentTemplate(StatePreparationMixin):
     compiled_experiment = None
     results = None
     analysis_results = None
+    valid_user_parameters = dict(
+        experiment_metainfo=[],
+        analysis_metainfo=[
+            "figure_name",
+            "overwrite_figures",
+            "figure_formats",
+        ],
+    )
 
     def __init__(
         self,
@@ -409,7 +418,6 @@ class ExperimentTemplate(StatePreparationMixin):
             acquisition_metainfo = {}
         self.acquisition_metainfo = dict(count=2**12)
         # overwrite default with user-provided options
-        self.acquisition_metainfo.update(acquisition_metainfo)
         if qubit_temporary_values is None:
             qubit_temporary_values = {}
         self.qubit_temporary_values = qubit_temporary_values
@@ -446,11 +454,31 @@ class ExperimentTemplate(StatePreparationMixin):
             self.experiment_signals,
             self.experiment_signal_uids_qubit_map,
         ) = self.create_experiment_signals(self.qubits, self.signals)
+
+        self.check_user_parameters_validity()
         self.create_experiment()
 
         self.run = run
         if self.run:
             self.autorun()
+
+    def check_user_parameters_validity(self):
+        for par in self.experiment_metainfo:
+            if par not in self.valid_user_parameters["experiment_metainfo"]:
+                log.warning(
+                    f"Parameter '{par}' passed to experiment_metainfo "
+                    f"is not recognised and will probably not have an effect. "
+                    f"The valid parameters are "
+                    f"{self.valid_user_parameters['experiment_metainfo']}"
+                )
+        for par in self.analysis_metainfo:
+            if par not in self.valid_user_parameters["analysis_metainfo"]:
+                log.warning(
+                    f"Parameter '{par}' passed to analysis_metainfo "
+                    f"is not recognised and will probably not have an effect. "
+                    f"The valid parameters are "
+                    f"{self.valid_user_parameters['analysis_metainfo']}"
+                )
 
     def create_experiment_label(self):
         if len(self.qubits) <= 5:
@@ -866,3 +894,20 @@ class ExperimentTemplate(StatePreparationMixin):
                 self.acquire_loop.add(cal_tr_sec)
             else:
                 section_container.add(cal_tr_sec)
+
+
+def merge_valid_user_parameters(user_parameters_list):
+    valid_user_parameters = dict(
+        experiment_metainfo=[],
+        analysis_metainfo=[],
+    )
+    for user_parameters in user_parameters_list:
+        if "experiment_metainfo" in user_parameters:
+            valid_user_parameters["experiment_metainfo"].extend(
+                user_parameters["experiment_metainfo"]
+            )
+        if "analysis_metainfo" in user_parameters:
+            valid_user_parameters["analysis_metainfo"].extend(
+                user_parameters["analysis_metainfo"]
+            )
+    return valid_user_parameters

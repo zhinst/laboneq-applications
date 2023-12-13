@@ -14,11 +14,33 @@ from . import quantum_operations as qt_ops
 from laboneq.analysis import fitting as fit_mods
 from laboneq.simple import *  # noqa: F403
 from laboneq_library.analysis import analysis_helpers as ana_hlp
-from laboneq_library.experiments.experiment_library import ExperimentTemplate
+from laboneq_library.experiments.experiment_library import (
+    ExperimentTemplate,
+    merge_valid_user_parameters,
+)
 
 
 class QubitSpectroscopy(ExperimentTemplate):
     fallback_experiment_name = "QubitSpectroscopy"
+    valid_user_parameters = merge_valid_user_parameters(
+        [
+            dict(
+                experiment_metainfo=[
+                    "neartime_sweep_parameter",
+                    "neartime_callback_function",
+                    "pulsed",
+                ],
+                analysis_metainfo=[
+                    "frequency_filter_for_fit",
+                    "find_peaks",
+                    "do_fitting",
+                    "param_hints",
+                    "show_figures",
+                ],
+            ),
+            ExperimentTemplate.valid_user_parameters,
+        ]
+    )
 
     def __init__(self, *args, **kwargs):
         experiment_metainfo = kwargs.get("experiment_metainfo", dict())
@@ -26,7 +48,7 @@ class QubitSpectroscopy(ExperimentTemplate):
         self.pulsed = experiment_metainfo.get("pulsed", True)
         if not self.pulsed:
             raise NotImplementedError(
-                "Continuous-wave qubit spectroscopy is " "currently not implemented."
+                "Continuous-wave qubit spectroscopy is currently not implemented."
             )
         # Add suffix to experiment name
         experiment_name = kwargs.get("experiment_name", self.fallback_experiment_name)
@@ -181,7 +203,7 @@ class QubitSpectroscopy(ExperimentTemplate):
                     raise ValueError(
                         "Please provide the neartime callback function for "
                         "the voltage sweep in "
-                        "experiment_metainfo['neartime_sweep_prameter']."
+                        "experiment_metainfo['neartime_callback_function']."
                     )
                 # all near-time callback functions have the format
                 # func(session, sweep_param_value, qubit)
@@ -510,6 +532,19 @@ class QubitSpectroscopy(ExperimentTemplate):
 
 
 class SingleQubitGateTuneup(ExperimentTemplate):
+    valid_user_parameters = merge_valid_user_parameters(
+        [
+            dict(
+                experiment_metainfo=["cal_states"],
+                analysis_metainfo=[
+                    "do_pca",
+                    "show_figures",
+                ],
+            ),
+            ExperimentTemplate.valid_user_parameters,
+        ]
+    )
+
     def __init__(self, *args, signals=None, transition_to_calib="ge", **kwargs):
         self.transition_to_calib = transition_to_calib
         # Add suffix to experiment name
@@ -611,6 +646,17 @@ class SingleQubitGateTuneup(ExperimentTemplate):
 
 class AmplitudeRabi(SingleQubitGateTuneup):
     fallback_experiment_name = "Rabi"
+    valid_user_parameters = merge_valid_user_parameters(
+        [
+            dict(
+                analysis_metainfo=[
+                    "do_fitting",
+                    "param_hints",
+                ],
+            ),
+            SingleQubitGateTuneup.valid_user_parameters,
+        ]
+    )
 
     def define_experiment(self):
         self.experiment.sections = []
@@ -783,6 +829,18 @@ class AmplitudeRabi(SingleQubitGateTuneup):
 
 class Ramsey(SingleQubitGateTuneup):
     fallback_experiment_name = "Ramsey"
+    valid_user_parameters = merge_valid_user_parameters(
+        [
+            dict(
+                experiment_metainfo=["detuning"],
+                analysis_metainfo=[
+                    "do_fitting",
+                    "param_hints",
+                ],
+            ),
+            SingleQubitGateTuneup.valid_user_parameters,
+        ]
+    )
 
     def define_experiment(self):
         self.experiment.sections = []
@@ -1025,6 +1083,17 @@ class QScale(SingleQubitGateTuneup):
 
 class T1(SingleQubitGateTuneup):
     fallback_experiment_name = "T1"
+    valid_user_parameters = merge_valid_user_parameters(
+        [
+            dict(
+                analysis_metainfo=[
+                    "do_fitting",
+                    "param_hints",
+                ],
+            ),
+            SingleQubitGateTuneup.valid_user_parameters,
+        ]
+    )
 
     def define_experiment(self):
         self.experiment.sections = []
@@ -1137,6 +1206,18 @@ class T1(SingleQubitGateTuneup):
 
 class Echo(SingleQubitGateTuneup):
     fallback_experiment_name = "Echo"
+    valid_user_parameters = merge_valid_user_parameters(
+        [
+            dict(
+                experiment_metainfo=["detuning"],
+                analysis_metainfo=[
+                    "do_fitting",
+                    "param_hints",
+                ],
+            ),
+            SingleQubitGateTuneup.valid_user_parameters,
+        ]
+    )
 
     def define_experiment(self):
         self.experiment.sections = []
@@ -1288,6 +1369,15 @@ class Echo(SingleQubitGateTuneup):
 
 class RamseyParking(Ramsey):
     fallback_experiment_name = "RamseyParking"
+    valid_user_parameters = merge_valid_user_parameters(
+        [
+            dict(
+                experiment_metainfo=["neartime_callback_function"],
+                analysis_metainfo=["param_hints_parking_fit"],
+            ),
+            Ramsey.valid_user_parameters,
+        ]
+    )
 
     def define_experiment(self):
         super().define_experiment()
@@ -1304,7 +1394,7 @@ class RamseyParking(Ramsey):
         if ntsf is None:
             raise ValueError(
                 "Please provide the neartime callback function for the voltage"
-                "sweep in experiment_metainfo['neartime_sweep_prameter']."
+                "sweep in experiment_metainfo['neartime_callback_function']."
             )
         # all near-time callback functions have the format
         # func(session, sweep_param_value, qubit)

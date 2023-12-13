@@ -16,8 +16,10 @@ from laboneq.analysis import fitting as fit_mods
 from laboneq.analysis import calculate_integration_kernels
 from laboneq.simple import *  # noqa: F403
 from laboneq_library.analysis import analysis_helpers as ana_hlp
-from laboneq_library.experiments.experiment_library import ExperimentTemplate
-
+from laboneq_library.experiments.experiment_library import (
+    ExperimentTemplate,
+    merge_valid_user_parameters,
+)
 
 #### RAW traces Experiments ####
 
@@ -215,6 +217,25 @@ class OptimalIntegrationKernels(ExperimentTemplate):
 
 class ResonatorSpectroscopy(ExperimentTemplate):
     fallback_experiment_name = "ResonatorSpectroscopy"
+    valid_user_parameters = merge_valid_user_parameters(
+        [
+            dict(
+                experiment_metainfo=[
+                    "neartime_sweep_parameter",
+                    "neartime_callback_function",
+                    "pulsed",
+                ],
+                analysis_metainfo=[
+                    "frequency_filter_for_fit",
+                    "find_peaks",
+                    "do_fitting",
+                    "param_hints",
+                    "show_figures",
+                ],
+            ),
+            ExperimentTemplate.valid_user_parameters,
+        ]
+    )
 
     def __init__(self, *args, **kwargs):
         kwargs["signals"] = kwargs.pop("signals", ["measure", "acquire"])
@@ -275,7 +296,7 @@ class ResonatorSpectroscopy(ExperimentTemplate):
                         raise ValueError(
                             "Please provide the neartime callback function for "
                             "the voltage sweep in "
-                            "experiment_metainfo['neartime_sweep_prameter']."
+                            "experiment_metainfo['neartime_callback_function']."
                         )
                     # all near-time callback functions have the format
                     # func(session, sweep_param_value, qubit)
@@ -629,6 +650,16 @@ class ResonatorSpectroscopy(ExperimentTemplate):
 
 class DispersiveShift(ResonatorSpectroscopy):
     fallback_experiment_name = "DispersiveShift"
+    valid_user_parameters = merge_valid_user_parameters(
+        [
+            dict(
+                analysis_metainfo=[
+                    "show_figures",
+                ],
+            ),
+            ExperimentTemplate.valid_user_parameters,
+        ]
+    )
 
     def __init__(self, *args, preparation_states=("g", "e"), **kwargs):
         self.preparation_states = preparation_states
