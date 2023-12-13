@@ -78,7 +78,7 @@ class QubitSpectroscopy(ExperimentTemplate):
         #         # all near-time callback functions have the format
         #         # func(session, sweep_param_value)
         #         voltages_array = np.array([ntsp.values for ntsp in nt_sweep_pars]).T
-        #         slots_array = np.array([qubit.parameters.user_defined['dc_slot'] - 1
+        #         slots_array = np.array([qubit.parameters.dc_slot - 1
         #                                 for qubit in self.qubits])
         #         slots_array = slots_array[np.newaxis, :]
         #         slots_array = np.repeat(slots_array, voltages_array.shape[0], axis=0)
@@ -111,7 +111,7 @@ class QubitSpectroscopy(ExperimentTemplate):
         #     parameters=sweep_pars_freq)
         #
         # for i, qubit in enumerate(self.qubits):
-        #     spec_pulse_amp = qubit.parameters.user_defined["spec_amplitude"]
+        #     spec_pulse_amp = qubit.parameters.spectroscopy_amplitude
         #     if self.nt_swp_par == 'amplitude':
         #         spec_pulse_amp = nt_sweep_pars[i]
         #
@@ -120,14 +120,14 @@ class QubitSpectroscopy(ExperimentTemplate):
         #         excitation_section = Section(uid=f"{qubit.uid}_excitation")
         #         spec_pulse = pulse_library.const(
         #             uid=f"spectroscopy_pulse_{qubit.uid}",
-        #             length=qubit.parameters.user_defined["spec_length"],
+        #             length=qubit.parameters.spectroscopy_length,
         #             amplitude=spec_pulse_amp,
         #             can_compress=True  # fails without this!
         #         )
         #         integration_kernel = pulse_library.const(
         #             uid=f"integration_kernel_{qubit.uid}",
         #             length=qubit.parameters.readout_integration_length,
-        #             amplitude=qubit.parameters.user_defined['readout_amplitude'],
+        #             amplitude=qubit.parameters.readout_amplitude,
         #         )
         #         excitation_section.play(
         #             signal=self.signal_name("drive", qubit),
@@ -197,8 +197,8 @@ class QubitSpectroscopy(ExperimentTemplate):
                 excitation_section = Section(uid=f"{qubit.uid}_excitation")
                 spec_pulse = pulse_library.const(
                     uid=f"spectroscopy_pulse_{qubit.uid}",
-                    length=qubit.parameters.user_defined["spec_length"],
-                    amplitude=qubit.parameters.user_defined["spec_amplitude"],
+                    length=qubit.parameters.spectroscopy_pulse_length,
+                    amplitude=qubit.parameters.spectroscopy_amplitude,
                     can_compress=True  # fails without this!
                 )
                 integration_kernel = pulse_library.const(
@@ -433,7 +433,7 @@ class QubitSpectroscopy(ExperimentTemplate):
             qubit.parameters.resonance_frequency_ge = new_qb_pars[
                 "resonance_frequency_ge"]
             if "dc_voltage_parking" in new_qb_pars:
-                qubit.parameters.user_defined["dc_voltage_parking"] = new_qb_pars[
+                qubit.parameters.dc_voltage_parking = new_qb_pars[
                     "dc_voltage_parking"]
 
 
@@ -1260,7 +1260,7 @@ class RamseyParking(Ramsey):
                 if voltages[0] <= V0 <= voltages[-1]:
                     ax.plot(V0, f0 / 1e9, 'sk',
                             markersize=plt.rcParams['lines.markersize'] + 1)
-                V0_old = qubit.parameters.user_defined["dc_voltage_parking"]
+                V0_old = qubit.parameters.dc_voltage_parking
                 f0_old = qubit.parameters.resonance_frequency_ge
                 textstr = f"Parking voltage: {V0:.4f} $\\pm$ {V0err:.4f} V (previous: {V0_old:.4f} V)"
                 textstr += (f"\nParking frequency: {f0 / 1e9:.6f} $\\pm$ {f0err / 1e9:.6f} GHz "
@@ -1284,5 +1284,4 @@ class RamseyParking(Ramsey):
 
             qubit.parameters.resonance_frequency_ge = new_qb_pars[
                 "resonance_frequency"]
-            qubit.parameters.user_defined["dc_voltage_parking"] = \
-                new_qb_pars["dc_voltage_parking"]
+            qubit.parameters.dc_voltage_parking = new_qb_pars["dc_voltage_parking"]

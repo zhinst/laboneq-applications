@@ -136,7 +136,7 @@ def amplitude_rabi_single(
                     handle="rabi",
                     acquire_signal="acquire",
                     integration_kernel=integration_kernel,
-                    reset_delay=qubit.parameters.user_defined["reset_delay_length"],
+                    reset_delay=qubit.parameters.reset_delay_length,
                 )
         if cal_trace:
             with section(uid="cal_trace_gnd_meas"):
@@ -158,7 +158,7 @@ def amplitude_rabi_single(
                     handle="rabi_cal_trace",
                     acquire_signal="acquire",
                     integration_kernel=integration_kernel,
-                    reset_delay=qubit.parameters.user_defined["reset_delay_length"],
+                    reset_delay=qubit.parameters.reset_delay_length,
                 )
 
 
@@ -237,9 +237,7 @@ def ramsey_parallel(
                             handle=f"{qubit.uid}_ramsey",
                             acquire_signal=f"acquire_{qubit.uid}",
                             integration_kernel=qt_ops.integration_kernel(qubit),
-                            reset_delay=qubit.parameters.user_defined[
-                                "reset_delay_length"
-                            ],
+                            reset_delay=qubit.parameters.reset_delay_length,
                         )
 
                 if cal_trace:
@@ -253,7 +251,7 @@ def ramsey_parallel(
                             handle=f"{qubit.uid}_ramsey_cal_trace",
                             acquire_signal=f"acquire_{qubit.uid}",
                             integration_kernel=qt_ops.integration_kernel(qubit),
-                            reset_delay=1e-6,  # qubit.parameters.user_defined["reset_delay_length"],
+                            reset_delay=1e-6,
                         )
 
                     with section(
@@ -275,9 +273,7 @@ def ramsey_parallel(
                             handle=f"{qubit.uid}_ramsey_cal_trace",
                             acquire_signal=f"acquire_{qubit.uid}",
                             integration_kernel=qt_ops.integration_kernel(qubit),
-                            reset_delay=qubit.parameters.user_defined[
-                                "reset_delay_length"
-                            ],
+                            reset_delay=qubit.parameters.reset_delay_length,
                         )
 
     return exp_ramsey()
@@ -765,7 +761,7 @@ class ExperimentTemplate(StatePreparationMixin):
             acquire_signal=self.signal_name("acquire", qubit),
             integration_kernel=integration_kernel,
             integration_length=qubit.parameters.readout_integration_length,
-            reset_delay=qubit.parameters.user_defined["reset_delay_length"],
+            reset_delay=qubit.parameters.reset_delay_length,
         )
         return measure_acquire_section
 

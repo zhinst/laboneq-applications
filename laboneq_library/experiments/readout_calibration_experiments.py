@@ -260,7 +260,7 @@ class ResonatorSpectroscopy(ExperimentTemplate):
         self.experiment.sections = []
         self.create_acquire_rt_loop()
         for qubit in self.qubits:
-            ro_pulse_amp = qubit.parameters.user_defined['readout_amplitude']
+            ro_pulse_amp = qubit.parameters.readout_amplitude
             qb_sweep_pars = self.sweep_parameters_dict[qubit.uid]
             if len(qb_sweep_pars) > 1:
                 nt_sweep_par = qb_sweep_pars[1]
@@ -292,7 +292,7 @@ class ResonatorSpectroscopy(ExperimentTemplate):
             measure_acquire_section = Section(uid=f'measure_acquire_{qubit.uid}')
             if self.pulsed:
                 ro_pulse = pulse_library.const(
-                    length=qubit.parameters.user_defined["readout_length"],
+                    length=qubit.parameters.readout_pulse_length,
                     amplitude=ro_pulse_amp)
                 integration_kernel = pulse_library.const(
                     uid=f"integration_kernel_{qubit.uid}",
@@ -306,7 +306,7 @@ class ResonatorSpectroscopy(ExperimentTemplate):
                     acquire_signal=self.signal_name("acquire", qubit),
                     integration_kernel=integration_kernel,
                     integration_length=qubit.parameters.readout_integration_length,
-                    reset_delay=qubit.parameters.user_defined["reset_delay_length"],
+                    reset_delay=qubit.parameters.reset_delay_length,
                 )
                 sweep_inner.add(measure_acquire_section)
             else:
@@ -315,7 +315,7 @@ class ResonatorSpectroscopy(ExperimentTemplate):
                     handle=f"{self.experiment_name}_{qubit.uid}",
                     acquire_signal=self.signal_name("acquire", qubit),
                     integration_length=qubit.parameters.readout_integration_length,
-                    reset_delay=qubit.parameters.user_defined["reset_delay_length"],
+                    reset_delay=qubit.parameters.reset_delay_length,
                 )
                 # why is the reserve_sec needed for cw but not for pulsed?
                 reserve_sec = Section(uid=f"delay_{qubit.uid}", length=1e-6)
@@ -547,12 +547,12 @@ class ResonatorSpectroscopy(ExperimentTemplate):
                                      'analysis_metainfo.')
                 qubit.parameters.readout_resonator_frequency = \
                     new_rr_freq[ss_to_update]
-                qubit.parameters.user_defined["dc_voltage_parking"] = \
+                qubit.parameters.dc_voltage_parking = \
                     new_qb_pars["dc_voltage_parking"][ss_to_update]
             else:
                 qubit.parameters.readout_resonator_frequency = new_rr_freq
                 if "dc_voltage_parking" in new_qb_pars:
-                    qubit.parameters.user_defined["dc_voltage_parking"] = \
+                    qubit.parameters.dc_voltage_parking = \
                         new_qb_pars["dc_voltage_parking"]
 
 
