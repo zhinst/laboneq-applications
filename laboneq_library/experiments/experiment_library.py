@@ -372,8 +372,9 @@ class ExperimentTemplate(StatePreparationMixin):
 
     def __init__(self, qubits, session, measurement_setup, experiment_name=None,
                  signals=None, sweep_parameters_dict=None, experiment_metainfo=None,
-                 acquisition_metainfo=None, data_directory=None,
-                 do_analysis=True, analysis_metainfo=None, save=True,
+                 acquisition_metainfo=None, qubit_temporary_values=None,
+                 do_analysis=True, analysis_metainfo=None,
+                 save=True, data_directory=None,
                  update=False, run=False, **kwargs):
         self.qubits = qubits
         self.session = session
@@ -395,6 +396,9 @@ class ExperimentTemplate(StatePreparationMixin):
         self.acquisition_metainfo = dict(count=2 ** 12)
         # overwrite default with user-provided options
         self.acquisition_metainfo.update(acquisition_metainfo)
+        if qubit_temporary_values is None:
+            qubit_temporary_values = {}
+        self.qubit_temporary_values = qubit_temporary_values
 
         self.data_directory = data_directory
         self.do_analysis = do_analysis
@@ -711,12 +715,14 @@ class ExperimentTemplate(StatePreparationMixin):
                 self.save_measurement_setup()
                 # save the meta-information
                 self.save_experiment_metainfo()
-            self.define_experiment()
-            self.configure_experiment()
-            self.compile_experiment()
-            self.run_experiment()
-            if self.do_analysis:
-                self.analyse_experiment()
+            with calib_hlp.QubitTemporaryValuesContext(
+                    *self.qubit_temporary_values):
+                self.define_experiment()
+                self.configure_experiment()
+                self.compile_experiment()
+                self.run_experiment()
+                if self.do_analysis:
+                    self.analyse_experiment()
             if self.update:
                 self.update_entire_setup()
             if self.save:

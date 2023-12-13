@@ -6,8 +6,11 @@ from pathlib import Path
 
 from laboneq.simple import *  # noqa: F403
 from ruamel.yaml import YAML
-
 ryaml = YAML()
+
+import logging
+logging.basicConfig(level=logging.WARNING)
+log = logging.getLogger("calibration_helpers")
 
 
 # saving and loading
@@ -413,3 +416,47 @@ def get_latest_data_folder(data_directory):
         raise ValueError(
             f"Did not find any measurement folders in {data_directory}.")
     return latest_folder
+
+
+class QubitTemporaryValuesContext:
+    """
+    This context manager allows to change a given qubit parameter
+    to a new value, and the original value is reverted upon exit of the context
+    manager.
+
+    Args:
+        *param_value_pairs: 3-tuples of qubit instance, qubits parameter name
+            and its temporary value
+
+    Example:
+        # measure qubit spectroscopy at a different readout power without
+        # setting the parameter value
+        with QubitTemporaryValuesContext(
+            (qb1, "readout_range_out", -5)
+        ):
+            ResonatorSpectroscopy(...)
+    """
+
+    def __init__(self, *param_value_pairs):
+        if len(param_value_pairs) > 0 and \
+                not isinstance(param_value_pairs[0], (tuple, list)):
+            param_value_pairs = (param_value_pairs,)
+        self.param_value_pairs = param_value_pairs
+        self.old_value_pairs = []
+
+    def __enter__(self):
+        log.debug('Entered QubitTemporaryValuesContext')
+        try:
+            self.old_value_pairs = \
+                [(qubit, param_name, qubit.parameters.__dict__[param_name])
+                 for qubit, param_name, _ in self.param_value_pairs]
+            for qubit, param_name, value in self.param_value_pairs:
+                qubit.parameters.__dict__[param_name] = value
+        except Exception:
+            self.__exit__(None, None, None)
+            raise
+
+    def __exit__(self, type, value, traceback):
+        for qubit, param_name, value in self.old_value_pairs:
+            qubit.parameters.__dict__[param_name] = value
+        log.debug('Exited QubitTemporaryValuesContext')
