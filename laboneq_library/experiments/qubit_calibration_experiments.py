@@ -8,8 +8,7 @@ ryaml = YAML()
 
 import logging
 
-logging.basicConfig(level=logging.WARNING)
-log = logging.getLogger("experiment_library")
+log = logging.getLogger(__name__)
 
 from . import quantum_operations as qt_ops
 from laboneq.analysis import fitting as fit_mods

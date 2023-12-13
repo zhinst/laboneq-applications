@@ -3,6 +3,8 @@ import os
 import time
 import pickle
 from copy import deepcopy
+from logging import StreamHandler
+
 from ruamel.yaml import YAML
 
 ryaml = YAML()
@@ -10,14 +12,15 @@ ryaml = YAML()
 import traceback
 import logging
 
-logging.basicConfig(level=logging.WARNING)
-log = logging.getLogger("experiment_library")
-
 from . import quantum_operations as qt_ops
 from laboneq.dsl.experiment.builtins import *  # noqa: F403
 from laboneq.simple import *  # noqa: F403
 from laboneq_library import calibration_helpers as calib_hlp
 from laboneq_library.analysis import analysis_helpers as ana_hlp
+
+log = logging.getLogger(__name__)
+log.addHandler(StreamHandler(stream=sys.stderr))
+log.setLevel(logging.WARNING)
 
 
 @experiment(signals=["measure", "acquire"], uid="Full range CW resonator sweep")
