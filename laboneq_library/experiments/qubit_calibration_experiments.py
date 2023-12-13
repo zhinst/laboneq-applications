@@ -453,10 +453,12 @@ class SingleQubitGateTuneup(ExperimentTemplate):
         # suffix of the drive signal
         self.drive_signal_suffix = "_ef" if self.transition_to_calib == "ef" else ''
 
-        cal_states = kwargs.get("cal_states", None)
+        exp_metainfo = kwargs.get("experiment_metainfo", {})
+        cal_states = exp_metainfo.get("cal_states", None)
         if cal_states is None:
             cal_states = "gef" if 'f' in self.transition_to_calib else "ge"
-        kwargs["cal_states"] = cal_states
+        exp_metainfo["cal_states"] = cal_states
+        kwargs["experiment_metainfo"] = exp_metainfo
 
         if signals is None:
             signals = ["drive", "measure", "acquire"]

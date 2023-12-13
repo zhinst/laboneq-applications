@@ -756,8 +756,11 @@ class StateDiscrimination(ExperimentTemplate):
 
     def __init__(self, *args, preparation_states=('g', 'e'), **kwargs):
         self.preparation_states = preparation_states
-        cal_states = kwargs.pop("cal_states", self.preparation_states)
-        kwargs["cal_states"] = cal_states
+        # Pass the preparation_states as the cal_states to the base class
+        exp_metainfo = kwargs.get("experiment_metainfo", {})
+        exp_metainfo.pop("cal_states", None)
+        exp_metainfo["cal_states"] = self.preparation_states
+        kwargs["experiment_metainfo"] = exp_metainfo
         # Add suffix to experiment name
         experiment_name = kwargs.get("experiment_name",
                                      self.fallback_experiment_name)

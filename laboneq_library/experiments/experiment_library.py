@@ -361,6 +361,7 @@ class StatePreparationMixin:
                                       "can be prepared.")
         return preparation_sections
 
+
 class ExperimentTemplate(StatePreparationMixin):
     fallback_experiment_name = "Experiment"
     save_directory = None
@@ -371,7 +372,7 @@ class ExperimentTemplate(StatePreparationMixin):
 
     def __init__(self, qubits, session, measurement_setup, experiment_name=None,
                  signals=None, sweep_parameters_dict=None, experiment_metainfo=None,
-                 acquisition_metainfo=None, cal_states=None, data_directory=None,
+                 acquisition_metainfo=None, data_directory=None,
                  do_analysis=True, analysis_metainfo=None, save=True,
                  update=False, run=False, **kwargs):
         self.qubits = qubits
@@ -384,11 +385,11 @@ class ExperimentTemplate(StatePreparationMixin):
         for key, sd in self.sweep_parameters_dict.items():
             if not hasattr(sd, "__iter__"):
                 self.sweep_parameters_dict[key] = [sd]
-        self.cal_states = cal_states
 
         self.experiment_metainfo = experiment_metainfo
         if self.experiment_metainfo is None:
             self.experiment_metainfo = {}
+        self.cal_states = self.experiment_metainfo.get("cal_states", None)
         if acquisition_metainfo is None:
             acquisition_metainfo = {}
         self.acquisition_metainfo = dict(count=2 ** 12)
@@ -480,6 +481,7 @@ class ExperimentTemplate(StatePreparationMixin):
     def create_unique_uids(self):
         from laboneq.dsl.experiment.play_pulse import PlayPulse
         uids = set()
+
         def rename_uid_sweep_section(sec, suffix):
             if isinstance(sec, (Sweep, Section)):
                 if sec.uid in uids:
@@ -571,7 +573,6 @@ class ExperimentTemplate(StatePreparationMixin):
         metainfo = {
             "experiment_metainfo": self.experiment_metainfo,
             "analysis_metainfo": self.analysis_metainfo,
-            "cal_states": self.cal_states,
         }
         metainfo_file = os.path.abspath(os.path.join(
             self.save_directory,
