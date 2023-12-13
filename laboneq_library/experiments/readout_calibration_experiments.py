@@ -202,6 +202,8 @@ class OptimalIntegrationKernels(ExperimentTemplate):
     def update_qubit_parameters(self):
         for qubit in self.qubits:
             new_qb_pars = self.analysis_results[qubit.uid]["new_parameter_values"]
+            if len(new_qb_pars) == 0:
+                return
             qubit.parameters.readout_integration_kernels = new_qb_pars["integration_kernels"]
 
 
@@ -530,6 +532,9 @@ class ResonatorSpectroscopy(ExperimentTemplate):
     def update_qubit_parameters(self):
         for qubit in self.qubits:
             new_qb_pars = self.analysis_results[qubit.uid]["new_parameter_values"]
+            if len(new_qb_pars) == 0:
+                return
+
             new_rr_freq = new_qb_pars["readout_resonator_frequency"]
             if isinstance(new_rr_freq, dict):
                 # both uss and lss found
@@ -549,7 +554,6 @@ class ResonatorSpectroscopy(ExperimentTemplate):
                 if "dc_voltage_parking" in new_qb_pars:
                     qubit.parameters.user_defined["dc_voltage_parking"] = \
                         new_qb_pars["dc_voltage_parking"]
-
 
 
 class DispersiveShift(ResonatorSpectroscopy):
@@ -742,6 +746,8 @@ class DispersiveShift(ResonatorSpectroscopy):
     def update_qubit_parameters(self):
         for qubit in self.qubits:
             new_qb_pars = self.analysis_results[qubit.uid]["new_parameter_values"]
+            if len(new_qb_pars) == 0:
+                return
             qubit.parameters.readout_resonator_frequency = new_qb_pars["sum"]
 
 

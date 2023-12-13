@@ -427,6 +427,9 @@ class QubitSpectroscopy(ExperimentTemplate):
     def update_qubit_parameters(self):
         for qubit in self.qubits:
             new_qb_pars = self.analysis_results[qubit.uid]["new_parameter_values"]
+            if len(new_qb_pars) == 0:
+                return
+
             qubit.parameters.resonance_frequency_ge = new_qb_pars[
                 "resonance_frequency_ge"]
             if "dc_voltage_parking" in new_qb_pars:
@@ -665,6 +668,9 @@ class AmplitudeRabi(SingleQubitGateTuneup):
     def update_qubit_parameters(self):
         for qubit in self.qubits:
             new_qb_pars = self.analysis_results[qubit.uid]["new_parameter_values"]
+            if len(new_qb_pars) == 0:
+                return
+
             dr_pars = qubit.parameters.drive_parameters_ef if \
                 'f' in self.transition_to_calib else \
                 qubit.parameters.drive_parameters_ge
@@ -819,8 +825,12 @@ class Ramsey(SingleQubitGateTuneup):
 
     def update_qubit_parameters(self):
         for qubit in self.qubits:
-            new_freq = self.analysis_results[qubit.uid][
-                "new_parameter_values"]['resonance_frequency']
+            new_qb_pars = self.analysis_results[qubit.uid][
+                "new_parameter_values"]
+            if len(new_qb_pars) == 0:
+                return
+
+            new_freq = new_qb_pars['resonance_frequency']
             if 'f' in self.transition_to_calib:
                 qubit.parameters.resonance_frequency_ef = new_freq
             else:
@@ -1267,6 +1277,9 @@ class RamseyParking(Ramsey):
     def update_qubit_parameters(self):
         for qubit in self.qubits:
             new_qb_pars = self.analysis_results[qubit.uid]["new_parameter_values"]
+            if len(new_qb_pars) == 0:
+                return
+
             qubit.parameters.resonance_frequency_ge = new_qb_pars[
                 "resonance_frequency"]
             qubit.parameters.user_defined["dc_voltage_parking"] = \
