@@ -289,7 +289,7 @@ def create_qubits_from_parameters(qubit_parameters, measurement_setup):
     return qubits
 
 
-def load_measurement_setup_from_data_folder(data_folder, before_experiment=False):
+def load_measurement_setup_from_data_folder(data_folder, before_experiment=True):
     """
     Load a DeviceSetup from the data_folder.
 
