@@ -621,17 +621,15 @@ class ExperimentTemplate(StatePreparationMixin):
     def save_experiment_metainfo(self):
         # Save the meta-information
         metainfo = {
+            "sweep_parameters_dict": self.sweep_parameters_dict,
             "experiment_metainfo": self.experiment_metainfo,
             "analysis_metainfo": self.analysis_metainfo,
         }
         metainfo_file = os.path.abspath(
-            os.path.join(self.save_directory, f"{self.timestamp}_meta_information.json")
+            os.path.join(self.save_directory, f"{self.timestamp}_meta_information.p")
         )
-        try:
-            with open(metainfo_file, "w") as file:
-                json.dump(metainfo, file, indent=2)
-        except Exception:
-            log.warning("Could not save the measurement meta-info.")
+        with open(metainfo_file, "wb") as f:
+            pickle.dump(metainfo, f)
 
     def save_results(self, filename_suffix=""):
         if len(filename_suffix) > 0:
