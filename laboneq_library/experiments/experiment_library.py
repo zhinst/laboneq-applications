@@ -419,6 +419,7 @@ class ExperimentTemplate(StatePreparationMixin):
             acquisition_metainfo = {}
         self.acquisition_metainfo = dict(count=2**12)
         # overwrite default with user-provided options
+        self.acquisition_metainfo.update(acquisition_metainfo)
         if qubit_temporary_values is None:
             qubit_temporary_values = {}
         self.qubit_temporary_values = qubit_temporary_values
