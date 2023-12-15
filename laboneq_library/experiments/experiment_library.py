@@ -397,6 +397,7 @@ class ExperimentTemplate(StatePreparationMixin):
         data_directory=None,
         update=False,
         run=False,
+        check_valid_user_parameters=True,
         **kwargs,
     ):
         self.qubits = qubits
@@ -455,7 +456,8 @@ class ExperimentTemplate(StatePreparationMixin):
             self.experiment_signal_uids_qubit_map,
         ) = self.create_experiment_signals(self.qubits, self.signals)
 
-        self.check_user_parameters_validity()
+        if check_valid_user_parameters:
+            self.check_user_parameters_validity()
         self.create_experiment()
 
         self.run = run
