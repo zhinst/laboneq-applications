@@ -470,6 +470,11 @@ class QubitTemporaryValuesContext:
             ]
             for qubit, param_name, value in self.param_value_pairs:
                 qubit.parameters.__dict__[param_name] = value
+        except KeyError as e:
+            self.__exit__(None, None, None)
+            raise KeyError(f"Trying to set temporary value to the qubit "
+                           f"parameter {e}, but this parameter does not "
+                           f"exist.")
         except Exception:
             self.__exit__(None, None, None)
             raise
