@@ -900,7 +900,7 @@ class StateDiscrimination(ExperimentTemplate):
         ]
     )
 
-    def __init__(self, *args, preparation_states=("g", "e"), **kwargs):
+    def __init__(self, *args, signals=None, preparation_states=("g", "e"), **kwargs):
         self.preparation_states = preparation_states
         # Pass the preparation_states as the cal_states to the base class
         exp_metainfo = kwargs.get("experiment_metainfo", {})
@@ -918,7 +918,14 @@ class StateDiscrimination(ExperimentTemplate):
         acquisition_metainfo.update(acquisition_metainfo_user)
         kwargs["acquisition_metainfo"] = acquisition_metainfo
 
-        super().__init__(*args, **kwargs)
+        if signals is None:
+            signals = ["drive", "measure", "acquire"]
+        if "f" in self.preparation_states and "drive_ef" not in signals:
+            signals += ["drive_ef"]
+
+        super().__init__(
+            *args, signals=signals, check_valid_user_parameters=False, **kwargs
+        )
 
     def define_experiment(self):
         self.experiment.sections = []
