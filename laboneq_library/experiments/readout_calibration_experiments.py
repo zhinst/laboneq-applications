@@ -427,24 +427,31 @@ class ResonatorSpectroscopy(ExperimentTemplate):
                         + qubit.parameters.readout_lo_frequency
                     )
 
-                data_to_search = data_mag if ff_qb is None else data_mag[ff_qb(freqs)]
-                freqs_to_search = freqs if ff_qb is None else freqs[ff_qb(freqs)]
-                f0 = freqs_to_search[take_extremum(data_to_search)]
-                d0 = data_to_search[take_extremum(data_to_search)]
-                new_parameter_values["readout_resonator_frequency"] = f0
-
                 # plot data
                 fig, ax = plt.subplots()
                 ax.plot(freqs / 1e9, data_mag)
-                ax.plot(f0 / 1e9, d0, "ro")
-                textstr = f"Extracted readout-resonator frequency: {f0 / 1e9:.4f} GHz"
-                textstr += (
-                    f"\nCurrent readout-resonator frequency: "
-                    f"{qubit.parameters.readout_resonator_frequency / 1e9:.4f} GHz"
-                )
-                ax.text(0, -0.15, textstr, ha="left", va="top", transform=ax.transAxes)
                 ax.set_xlabel("Readout Frequency, $f_{\\mathrm{RO}}$ (GHz)")
                 ax.set_ylabel("Signal Magnitude, $|S_{21}|$ (a.u.)")
+
+                if self.analysis_metainfo.get("do_fitting", True):
+                    data_to_search = (
+                        data_mag if ff_qb is None else data_mag[ff_qb(freqs)]
+                    )
+                    freqs_to_search = freqs if ff_qb is None else freqs[ff_qb(freqs)]
+                    f0 = freqs_to_search[take_extremum(data_to_search)]
+                    d0 = data_to_search[take_extremum(data_to_search)]
+                    new_parameter_values["readout_resonator_frequency"] = f0
+                    ax.plot(f0 / 1e9, d0, "ro")
+                    textstr = (
+                        f"Extracted readout-resonator frequency: {f0 / 1e9:.4f} GHz"
+                    )
+                    textstr += (
+                        f"\nCurrent readout-resonator frequency: "
+                        f"{qubit.parameters.readout_resonator_frequency / 1e9:.4f} GHz"
+                    )
+                    ax.text(
+                        0, -0.15, textstr, ha="left", va="top", transform=ax.transAxes
+                    )
             else:
                 # 2D plot of results
                 nt_sweep_par_vals = self.results.get_axis(handle)[0]
