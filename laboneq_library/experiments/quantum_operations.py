@@ -74,14 +74,14 @@ def drive_ge_pi2(qubit, amplitude=None):
 
 def readout_pulse(qubit):
     return pulse_library.const(
-        length=qubit.parameters.user_defined["readout_length"],
-        amplitude=qubit.parameters.user_defined["readout_amplitude"],
+        length=qubit.parameters.readout_pulse_length,
+        amplitude=qubit.parameters.readout_amplitude,
     )
 
 
 def integration_kernel(qubit):
     return pulse_library.const(
-        length=qubit.parameters.user_defined["readout_length"],
+        length=qubit.parameters.readout_pulse_length,
         amplitude=1,
     )
 
