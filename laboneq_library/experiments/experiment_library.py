@@ -430,12 +430,6 @@ class ExperimentTemplate(StatePreparationMixin):
         if self.analysis_metainfo is None:
             self.analysis_metainfo = {}
         self.update = update
-        if self.update and self.analysis_metainfo.get("do_fitting", False):
-            log.warning(
-                "update is True but "
-                "analysis_metainfo['do_fitting'] is False. Qubit "
-                "parameters will not be updated."
-            )
         self.save = save
         if self.save and self.data_directory is None:
             raise ValueError(
