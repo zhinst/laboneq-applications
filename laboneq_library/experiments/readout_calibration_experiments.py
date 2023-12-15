@@ -26,6 +26,16 @@ from laboneq_library.experiments.experiment_library import (
 
 class OptimalIntegrationKernels(ExperimentTemplate):
     fallback_experiment_name = "OptimalIntegrationKernels"
+    valid_user_parameters = merge_valid_user_parameters(
+        [
+            dict(
+                analysis_metainfo=[
+                    "show_figures",
+                ],
+            ),
+            ExperimentTemplate.valid_user_parameters,
+        ]
+    )
 
     def __init__(self, *args, preparation_states=("g", "e"), **kwargs):
         self.preparation_states = preparation_states
@@ -657,7 +667,7 @@ class DispersiveShift(ResonatorSpectroscopy):
                     "show_figures",
                 ],
             ),
-            ExperimentTemplate.valid_user_parameters,
+            ResonatorSpectroscopy.valid_user_parameters,
         ]
     )
 
@@ -872,6 +882,16 @@ class DispersiveShift(ResonatorSpectroscopy):
 
 class StateDiscrimination(ExperimentTemplate):
     fallback_experiment_name = "StateDiscrimination"
+    valid_user_parameters = merge_valid_user_parameters(
+        [
+            dict(
+                analysis_metainfo=[
+                    "show_figures",
+                ],
+            ),
+            ExperimentTemplate.valid_user_parameters,
+        ]
+    )
 
     def __init__(self, *args, preparation_states=("g", "e"), **kwargs):
         self.preparation_states = preparation_states
