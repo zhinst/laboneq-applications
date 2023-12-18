@@ -687,7 +687,7 @@ class AmplitudeRabi(SingleQubitGateTuneup):
             prep_sections = self.create_transition_preparation_sections(qubit)
 
             # create pulses section
-            play_after = prep_sections[-1].uid if len(prep_sections) else None
+            play_after = prep_sections if len(prep_sections) else None
             excitation_section = Section(
                 uid=f"{qubit.uid}_excitation",
                 alignment=SectionAlignment.LEFT,
