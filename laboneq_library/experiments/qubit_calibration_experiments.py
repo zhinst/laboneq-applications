@@ -544,7 +544,7 @@ class SingleQubitGateTuneup(ExperimentTemplate):
     valid_user_parameters = merge_valid_user_parameters(
         [
             dict(
-                experiment_metainfo=["cal_states"],
+                experiment_metainfo=["cal_states", "transition_to_calib"],
                 analysis_metainfo=[
                     "do_pca",
                     "show_figures",
@@ -554,27 +554,30 @@ class SingleQubitGateTuneup(ExperimentTemplate):
         ]
     )
 
-    def __init__(self, *args, signals=None, transition_to_calib="ge", **kwargs):
-        self.transition_to_calib = transition_to_calib
-        # Add suffix to experiment name
-        experiment_name = kwargs.get("experiment_name", self.fallback_experiment_name)
-        experiment_name += f"_{self.transition_to_calib}"
-        kwargs["experiment_name"] = experiment_name
-
-        # suffix of the drive signal
-        self.drive_signal_suffix = "_ef" if self.transition_to_calib == "ef" else ""
-
+    def __init__(self, *args, signals=None, **kwargs):
         exp_metainfo = kwargs.get("experiment_metainfo", {})
+        self.transition_to_calib = exp_metainfo.get("transition_to_calib", "ge")
+
+        # Add "f" to cal states if transition_to_calib contains f
         cal_states = exp_metainfo.get("cal_states", None)
         if cal_states is None:
             cal_states = "gef" if "f" in self.transition_to_calib else "ge"
         exp_metainfo["cal_states"] = cal_states
         kwargs["experiment_metainfo"] = exp_metainfo
 
+        # Add drive_ef to signals if not there
         if signals is None:
             signals = ["drive", "measure", "acquire"]
         if "f" in self.transition_to_calib and "drive_ef" not in signals:
             signals += ["drive_ef"]
+
+        # Suffix of the drive signal
+        self.drive_signal_suffix = "_ef" if self.transition_to_calib == "ef" else ""
+
+        # Add suffix to experiment name
+        experiment_name = kwargs.get("experiment_name", self.fallback_experiment_name)
+        experiment_name += f"_{self.transition_to_calib}"
+        kwargs["experiment_name"] = experiment_name
 
         super().__init__(*args, signals=signals, **kwargs)
 
