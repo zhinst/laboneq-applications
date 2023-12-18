@@ -19,9 +19,15 @@ def find_oscillation_frequency_and_phase(data, time):
     return freq, phase
 
 
-def fit_data_lmfit(function, x, y, param_hints):
+def fit_data_lmfit(model, x, y, param_hints):
     import lmfit
-    model = lmfit.Model(function)
+    if isinstance(model, str):
+        # string with the name of an lmfit model
+        model = lmfit.models.lmfit_models[model]()
+    elif not isinstance(model, lmfit.model.Model):
+        # a fitting function: needs to be converted to an lmfit model
+        model = lmfit.Model(model)
+
     model.param_hints = param_hints
     fit_res = model.fit(x=x, data=y, params=model.make_params())
     for par in fit_res.params:
