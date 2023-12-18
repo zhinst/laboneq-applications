@@ -586,32 +586,6 @@ class SingleQubitGateTuneup(ExperimentTemplate):
             qubit, state_to_prepare=self.transition_to_calib[0], **kwargs
         )
 
-    def add_preparation_pulses_to_section(self, section, qubit):
-        if self.transition_to_calib == "ge":
-            return
-        elif self.transition_to_calib == "ef":
-            uid = f"{qubit.uid}_prep_e"
-            section.play(
-                signal=self.signal_name("drive", qubit),
-                pulse=qt_ops.quantum_gate(qubit, "X180_ge", uid=uid),
-            )
-        elif self.transition_to_calib == "fh":
-            section.play(
-                signal=self.signal_name("drive", qubit),
-                pulse=qt_ops.quantum_gate(qubit, "X180_ge", uid=f"{qubit.uid}_prep_e"),
-            )
-            uid = f"{qubit.uid}_prep_f"
-            section.play(
-                signal=self.signal_name("drive_ef", qubit),
-                pulse=qt_ops.quantum_gate(qubit, "X180_ef", uid=uid),
-            )
-        else:
-            raise ValueError(
-                f"Transitions name {self.transition_to_calib} "
-                f"not recognised. Please used one of "
-                f'["ge", "ef", "fh"].'
-            )
-
     def analyse_experiment(self):
         super().analyse_experiment()
         for qubit in self.qubits:
@@ -890,25 +864,20 @@ class Ramsey(SingleQubitGateTuneup):
         )
         self.acquire_loop.add(sweep)
         for i, qubit in enumerate(self.qubits):
-            # create preparation pulses section
-            preparation_section = Section(
-                uid=f"{qubit.uid}_preparation",
-                alignment=SectionAlignment.RIGHT,
-                on_system_grid=True,
-            )
-            # preparation pulses: ge if calibrating ef
-            self.add_preparation_pulses_to_section(preparation_section, qubit)
-            # Ramsey pulses
-            ramsey_drive_pulse = qt_ops.quantum_gate(
-                qubit, f"X90_{self.transition_to_calib}"
-            )
+            # create preparation pulses sections
+            prep_sections = self.create_transition_preparation_sections(qubit)
 
             # create ramsey-pulses section
+            play_after = prep_sections if len(prep_sections) else None
             excitation_section = Section(
                 uid=f"{qubit.uid}_excitation",
                 alignment=SectionAlignment.RIGHT,
                 on_system_grid=True,
-                play_after=f"{qubit.uid}_preparation",
+                play_after=play_after,
+            )
+            # Ramsey pulses
+            ramsey_drive_pulse = qt_ops.quantum_gate(
+                qubit, f"X90_{self.transition_to_calib}"
             )
             excitation_section.play(
                 signal=self.signal_name(f"drive{self.drive_signal_suffix}", qubit),
@@ -931,7 +900,8 @@ class Ramsey(SingleQubitGateTuneup):
             )
 
             # add sweep and sections to acquire loop rt
-            sweep.add(preparation_section)
+            for prep_sec in prep_sections:
+                sweep.add(prep_sec)
             sweep.add(excitation_section)
             sweep.add(measure_sections)
             self.add_cal_states_sections(qubit)
@@ -1072,9 +1042,6 @@ class QScale(SingleQubitGateTuneup):
                     alignment=SectionAlignment.RIGHT,
                     on_system_grid=True,
                 )
-                # # preparation pulses: ge if calibrating ef
-                # self.add_preparation_pulses_to_section(excitation_section, qubit)
-
                 excitation_section.play(
                     signal=self.signal_name(f"drive{self.drive_signal_suffix}", qubit),
                     pulse=X90_pulse,
@@ -1268,21 +1235,16 @@ class T1(SingleQubitGateTuneup):
         )
         self.acquire_loop.add(sweep)
         for i, qubit in enumerate(self.qubits):
-            # create preparation-pulses section
-            preparation_section = Section(
-                uid=f"{qubit.uid}_preparation",
-                alignment=SectionAlignment.RIGHT,
-                on_system_grid=True,
-            )
-            # preparation pulses: ge if calibrating ef
-            self.add_preparation_pulses_to_section(preparation_section, qubit)
+            # create preparation pulses sections
+            prep_sections = self.create_transition_preparation_sections(qubit)
 
             # create excitation-pulses section
+            play_after = prep_sections if len(prep_sections) else None
             excitation_section = Section(
                 uid=f"{qubit.uid}_excitation",
                 alignment=SectionAlignment.RIGHT,
                 on_system_grid=True,
-                play_after=f"{qubit.uid}_preparation",
+                play_after=play_after,
             )
             # add x180 pulse
             x180_pulse = qt_ops.quantum_gate(qubit, f"X180_{self.transition_to_calib}")
@@ -1303,7 +1265,8 @@ class T1(SingleQubitGateTuneup):
             )
 
             # add sweep and sections to acquire loop rt
-            sweep.add(preparation_section)
+            for prep_sec in prep_sections:
+                sweep.add(prep_sec)
             sweep.add(excitation_section)
             sweep.add(measure_sections)
             self.add_cal_states_sections(qubit)
@@ -1416,21 +1379,16 @@ class Echo(SingleQubitGateTuneup):
         )
         self.acquire_loop.add(sweep)
         for i, qubit in enumerate(self.qubits):
-            # create preparation pulses section
-            preparation_section = Section(
-                uid=f"{qubit.uid}_preparation",
-                alignment=SectionAlignment.RIGHT,
-                on_system_grid=True,
-            )
-            # preparation pulses: ge if calibrating ef
-            self.add_preparation_pulses_to_section(preparation_section, qubit)
+            # create preparation pulses sections
+            prep_sections = self.create_transition_preparation_sections(qubit)
 
             # create excitation section
+            play_after = prep_sections if len(prep_sections) else None
             excitation_section = Section(
                 uid=f"{qubit.uid}_excitation",
                 alignment=SectionAlignment.RIGHT,
                 on_system_grid=True,
-                play_after=f"{qubit.uid}_preparation",
+                play_after=play_after,
             )
             # Echo pulses and delays
             ramsey_drive_pulse = qt_ops.quantum_gate(
@@ -1468,7 +1426,8 @@ class Echo(SingleQubitGateTuneup):
             )
 
             # add sweep and sections to acquire loop rt
-            sweep.add(preparation_section)
+            for prep_sec in prep_sections:
+                sweep.add(prep_sec)
             sweep.add(excitation_section)
             sweep.add(measure_sections)
             self.add_cal_states_sections(qubit)
