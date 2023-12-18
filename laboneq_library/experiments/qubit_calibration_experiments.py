@@ -872,15 +872,10 @@ class Ramsey(SingleQubitGateTuneup):
         swp_pars_phases = []
         for qubit in self.qubits:
             delays = deepcopy(self.sweep_parameters_dict[qubit.uid][0].values)
-            pl = (
-                qubit.parameters.drive_parameters_ef["length"]
-                if "f" in self.transition_to_calib
-                else qubit.parameters.drive_parameters_ge["length"]
-            )
             swp_pars_phases += [
                 SweepParameter(
                     uid=f"x90_phases_{qubit.uid}",
-                    values=((delays - delays[0] + pl) * detuning[qubit.uid] * 2 * np.pi)
+                    values=((delays - delays[0]) * detuning[qubit.uid] * 2 * np.pi)
                     % (2 * np.pi),
                 )
             ]
@@ -942,11 +937,6 @@ class Ramsey(SingleQubitGateTuneup):
             self.add_cal_states_sections(qubit)
 
     def analyse_experiment_qubit(self, qubit, data_dict, figure, ax):
-        delays_offset = (
-            qubit.parameters.drive_parameters_ef["length"]
-            if "f" in self.transition_to_calib
-            else qubit.parameters.drive_parameters_ge["length"]
-        )
         # plot data with correct scaling
         ax.plot(
             (data_dict["sweep_points_w_cal_traces"]) * 1e6,
@@ -956,7 +946,7 @@ class Ramsey(SingleQubitGateTuneup):
         )
         ax.set_xlabel("Pulse Separation, $\\tau$ ($\\mu$s)")
         if self.analysis_metainfo.get("do_fitting", True):
-            swpts_to_fit = data_dict["sweep_points"] + delays_offset
+            swpts_to_fit = data_dict["sweep_points"]
             data_to_fit = data_dict["data_rotated"]
             # fit data
             freqs_guess, phase_guess = ana_hlp.find_oscillation_frequency_and_phase(
@@ -1260,8 +1250,8 @@ class Echo(SingleQubitGateTuneup):
             )
             swp_pars_half_delays += [
                 SweepParameter(
-                    uid=f"echo_delays_{qubit.uid}", values=0.5 * (delays - pl)
-                )  # subtract the echo-pulse length
+                    uid=f"echo_delays_{qubit.uid}", values=0.5 * delays
+                )
             ]
             swp_pars_phases += [
                 SweepParameter(
@@ -1336,9 +1326,14 @@ class Echo(SingleQubitGateTuneup):
             self.add_cal_states_sections(qubit)
 
     def analyse_experiment_qubit(self, qubit, data_dict, figure, ax):
+        delays_offset = (
+            qubit.parameters.drive_parameters_ef["length"]
+            if "f" in self.transition_to_calib
+            else qubit.parameters.drive_parameters_ge["length"]
+        )
         # plot data with correct scaling
         ax.plot(
-            data_dict["sweep_points_w_cal_traces"] * 1e6,
+            (data_dict["sweep_points_w_cal_traces"] + delays_offset) * 1e6,
             data_dict["data_rotated_w_cal_traces"],
             "o",
             zorder=2,
@@ -1346,7 +1341,7 @@ class Echo(SingleQubitGateTuneup):
         ax.set_xlabel("Pulse Separation, $\\tau$ ($\\mu$s)")
 
         if self.analysis_metainfo.get("do_fitting", True):
-            swpts_to_fit = data_dict["sweep_points"]
+            swpts_to_fit = data_dict["sweep_points"] + delays_offset
             data_to_fit = data_dict["data_rotated"]
             # fit data
             freqs_guess, phase_guess = ana_hlp.find_oscillation_frequency_and_phase(
