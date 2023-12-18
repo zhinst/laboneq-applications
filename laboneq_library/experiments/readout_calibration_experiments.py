@@ -190,6 +190,9 @@ class OptimalIntegrationKernels(ExperimentTemplate):
             self.analysis_results[qubit.uid]["new_parameter_values"].update(
                 {"integration_kernels": kernels}
             )
+            self.analysis_results[qubit.uid]["old_parameter_values"].update(
+                {"integration_kernels": qubit.get_integration_kernels()}
+            )
             for i, krn in enumerate(kernels):
                 ax = axs[len(self.preparation_states) + i]
                 krn_vals = krn.samples
@@ -405,6 +408,9 @@ class ResonatorSpectroscopy(ExperimentTemplate):
             new_parameter_values = self.analysis_results[qubit.uid][
                 "new_parameter_values"
             ]
+            old_parameter_values = self.analysis_results[qubit.uid][
+                "old_parameter_values"
+            ]
 
             # get frequency filter of qubit
             ff_qb = freq_filter.get(qubit.uid, None)
@@ -440,15 +446,14 @@ class ResonatorSpectroscopy(ExperimentTemplate):
                     freqs_to_search = freqs if ff_qb is None else freqs[ff_qb(freqs)]
                     f0 = freqs_to_search[take_extremum(data_to_search)]
                     d0 = data_to_search[take_extremum(data_to_search)]
+                    f0_old = qubit.parameters.readout_resonator_frequency
                     new_parameter_values["readout_resonator_frequency"] = f0
+                    old_parameter_values["readout_resonator_frequency"] = f0_old
                     ax.plot(f0 / 1e9, d0, "ro")
                     textstr = (
                         f"Extracted readout-resonator frequency: {f0 / 1e9:.4f} GHz"
                     )
-                    textstr += (
-                        f"\nCurrent readout-resonator frequency: "
-                        f"{qubit.parameters.readout_resonator_frequency / 1e9:.4f} GHz"
-                    )
+                    textstr += f"\nOld value: {f0_old / 1e9:.4f} GHz"
                     ax.text(
                         0, -0.15, textstr, ha="left", va="top", transform=ax.transAxes
                     )
@@ -495,6 +500,12 @@ class ResonatorSpectroscopy(ExperimentTemplate):
                     V0 = nt_sweep_par_vals[take_extremum_fit(freqs_dips)]
                     new_parameter_values.update(
                         {"readout_resonator_frequency": f0, "dc_voltage_parking": V0}
+                    )
+                    f0_old = qubit.parameters.readout_resonator_frequency
+                    V0_old = qubit.parameters.dc_voltage_parking
+                    old_parameter_values.update(
+                        {"readout_resonator_frequency": f0_old,
+                         "dc_voltage_parking": V0_old}
                     )
 
                     if self.analysis_metainfo.get("do_fitting", True):
@@ -846,6 +857,9 @@ class DispersiveShift(ResonatorSpectroscopy):
             )
             ax_s21_dist.set_title(
                 f"{self.timestamp}_{self.experiment_name}_{qubit.uid}"
+            )
+            self.analysis_results[qubit.uid]["old_parameter_values"].update(
+                {"readout_resonator_frequency": qubit.parameters.readout_resonator_frequency}
             )
             for states, (s21_dist, idx_max) in s21_abs_distances.items():
                 max_s21_dist, max_freq = s21_dist[idx_max], freqs[idx_max]

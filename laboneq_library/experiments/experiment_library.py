@@ -566,7 +566,10 @@ class ExperimentTemplate(StatePreparationMixin):
     def analyse_experiment(self):
         # to be overridden by children
         self.analysis_results = {
-            qubit.uid: dict(new_parameter_values=dict(), fit_results=None)
+            qubit.uid: dict(
+                new_parameter_values=dict(),
+                old_parameter_values=dict(),
+                fit_results=None)
             for qubit in self.qubits
         }
 
@@ -581,6 +584,30 @@ class ExperimentTemplate(StatePreparationMixin):
     def update_entire_setup(self):
         self.update_qubit_parameters()
         self.update_measurement_setup()
+
+    def reset_setup(self):
+        old_qb_params_exist = any(
+            [
+                len(self.analysis_results[qubit.uid]["old_parameter_values"]) > 0
+                for qubit in self.qubits
+            ]
+        )
+        if old_qb_params_exist:
+            for qubit in self.qubits:
+                old_qb_pars = self.analysis_results[qubit.uid]["old_parameter_values"]
+                for qb_par, par_value in old_qb_pars.items():
+                    if qb_par in qubit.parameters.__dict__:
+                        qubit.parameters.__dict__[qb_par] = par_value
+                    elif qb_par.startswith("ge"):
+                        par_name = qb_par.split('_')[-1]
+                        qubit.parameters.drive_parameters_ge[par_name] = par_value
+                    elif qb_par.startswith("ef"):
+                        par_name = qb_par.split('_')[-1]
+                        qubit.parameters.drive_parameters_ef[par_name] = par_value
+                    else:
+                        log.warning(f"Parameter {qb_par} was not found for "
+                                    f"{qubit.uid}. This parameter was not reset.")
+            self.update_measurement_setup()
 
     def generate_timestamp_save_directory(self):
         # create experiment timestamp
@@ -696,6 +723,12 @@ class ExperimentTemplate(StatePreparationMixin):
                 for qubit in self.qubits
             ]
         )
+        old_qb_params_exist = any(
+            [
+                len(self.analysis_results[qubit.uid]["old_parameter_values"]) > 0
+                for qubit in self.qubits
+            ]
+        )
         fit_results_exist = any(
             [
                 self.analysis_results[qubit.uid]["fit_results"] is not None
@@ -706,7 +739,7 @@ class ExperimentTemplate(StatePreparationMixin):
             [len(self.analysis_results[qubit.uid]) > 2 for qubit in self.qubits]
         )
 
-        if new_qb_params_exist or fit_results_exist or other_ana_res_exist:
+        if new_qb_params_exist or old_qb_params_exist or fit_results_exist or other_ana_res_exist:
             self.create_save_directory()
 
             if len(filename_suffix) > 0:

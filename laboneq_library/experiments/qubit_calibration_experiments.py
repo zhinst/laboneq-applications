@@ -286,6 +286,9 @@ class QubitSpectroscopy(ExperimentTemplate):
             new_parameter_values = self.analysis_results[qubit.uid][
                 "new_parameter_values"
             ]
+            old_parameter_values = self.analysis_results[qubit.uid][
+                "old_parameter_values"
+            ]
             # get frequency filter of qubit
             ff_qb = freq_filter.get(qubit.uid, None)
             # extract data
@@ -375,6 +378,8 @@ class QubitSpectroscopy(ExperimentTemplate):
                     fqb = fit_res.params["position"].value
                     fqb_err = fit_res.params["position"].stderr
                     new_parameter_values.update({"resonance_frequency_ge": fqb})
+                    old_parameter_values.update(
+                        {"resonance_frequency_ge": qubit.parameters.resonance_frequency_ge})
 
                     # plot fit
                     freqs_fine = np.linspace(freqs_to_fit[0], freqs_to_fit[-1], 501)
@@ -388,7 +393,7 @@ class QubitSpectroscopy(ExperimentTemplate):
                         f"$\\pm$ {fqb_err / 1e9:.4f} GHz"
                     )
                     textstr += (
-                        f"\nCurrent qubit frequency: "
+                        f"\nOld qubit frequency: "
                         f"{qubit.parameters.resonance_frequency_ge / 1e9:.4f} GHz"
                     )
                     ax.text(
@@ -440,7 +445,11 @@ class QubitSpectroscopy(ExperimentTemplate):
                     f0 = freqs_peaks[take_extremum_fit(freqs_peaks)]
                     V0 = nt_sweep_par_vals[take_extremum_fit(freqs_peaks)]
                     new_parameter_values.update(
-                        {"readout_resonator_frequency": f0, "dc_voltage_parking": V0}
+                        {"resonance_frequency_ge": f0, "dc_voltage_parking": V0}
+                    )
+                    old_parameter_values.update(
+                        {"resonance_frequency_ge": qubit.parameters.readout_resonator_frequency,
+                         "dc_voltage_parking": qubit.parameters.dc_voltage_parking}
                     )
 
                     if self.analysis_metainfo.get("do_fitting", True):
@@ -759,10 +768,10 @@ class AmplitudeRabi(SingleQubitGateTuneup):
             pi_amp = pi_amps[pi_amps > pi2_amp][0]
             self.analysis_results[qubit.uid]["new_parameter_values"].update(
                 {
-                    "amplitude_pi": pi_amp.nominal_value,
-                    "amplitude_pi2": pi2_amp.nominal_value,
-                    "pi_amps": [pia.nominal_value for pia in pi_amps],
-                    "pi2_amps": [pi2a.nominal_value for pi2a in pi_amps],
+                    f"{self.transition_to_calib}_amplitude_pi": pi_amp.nominal_value,
+                    f"{self.transition_to_calib}_amplitude_pi2": pi2_amp.nominal_value,
+                    f"{self.transition_to_calib}_pi_amps": [pia.nominal_value for pia in pi_amps],
+                    f"{self.transition_to_calib}_pi2_amps": [pi2a.nominal_value for pi2a in pi_amps],
                 }
             )
 
@@ -799,17 +808,23 @@ class AmplitudeRabi(SingleQubitGateTuneup):
                 if "f" in self.transition_to_calib
                 else qubit.parameters.drive_parameters_ge["amplitude_pi2"]
             )
+            self.analysis_results[qubit.uid]["old_parameter_values"].update(
+                {
+                    f"{self.transition_to_calib}_amplitude_pi": old_pi_amp,
+                    f"{self.transition_to_calib}_amplitude_pi2": old_pi2_amp,
+                }
+            )
             textstr = (
                 "$A_{\\pi}$: "
                 + f"{pi_amp.nominal_value:.4f} $\\pm$ {pi_amp.std_dev:.4f}"
             )
-            textstr += "\nCurrent $A_{\\pi}$: " + f"{old_pi_amp:.4f}"
+            textstr += "\nOld $A_{\\pi}$: " + f"{old_pi_amp:.4f}"
             ax.text(0, -0.15, textstr, ha="left", va="top", transform=ax.transAxes)
             textstr = (
                 "$A_{\\pi/2}$: "
                 + f"{pi2_amp.nominal_value:.4f} $\\pm$ {pi2_amp.std_dev:.4f}"
             )
-            textstr += "\nCurrent $A_{\\pi/2}$: " + f"{old_pi2_amp:.4f}"
+            textstr += "\nOld $A_{\\pi/2}$: " + f"{old_pi2_amp:.4f}"
             ax.text(0.69, -0.15, textstr, ha="left", va="top", transform=ax.transAxes)
 
     def update_qubit_parameters(self):
@@ -823,8 +838,8 @@ class AmplitudeRabi(SingleQubitGateTuneup):
                 if "f" in self.transition_to_calib
                 else qubit.parameters.drive_parameters_ge
             )
-            dr_pars["amplitude_pi"] = new_qb_pars["amplitude_pi"]
-            dr_pars["amplitude_pi2"] = new_qb_pars["amplitude_pi2"]
+            dr_pars["amplitude_pi"] = new_qb_pars[f"{self.transition_to_calib}_amplitude_pi"]
+            dr_pars["amplitude_pi2"] = new_qb_pars[f"{self.transition_to_calib}_amplitude_pi2"]
 
 
 class Ramsey(SingleQubitGateTuneup):
@@ -977,6 +992,9 @@ class Ramsey(SingleQubitGateTuneup):
             new_qb_freq = old_qb_freq + introduced_detuning - freq_fit
             self.analysis_results[qubit.uid]["new_parameter_values"].update(
                 {"resonance_frequency": new_qb_freq, "T2_star": t2_star}
+            )
+            self.analysis_results[qubit.uid]["old_parameter_values"].update(
+                {"resonance_frequency": old_qb_freq}
             )
 
             # plot fit
@@ -1502,6 +1520,12 @@ class RamseyParking(Ramsey):
                     "resonance_frequency": f0,
                     "dc_voltage_parking": V0,
                 }
+                V0_old = qubit.parameters.dc_voltage_parking
+                f0_old = qubit.parameters.resonance_frequency_ge
+                self.analysis_results[qubit.uid]["new_parameter_values"] = {
+                    "resonance_frequency": f0_old,
+                    "dc_voltage_parking": V0_old,
+                }
                 # plot data + fit
                 fig, ax = plt.subplots()
                 ax.set_xlabel(self.results.get_axis_name(handle)[0])
@@ -1523,12 +1547,10 @@ class RamseyParking(Ramsey):
                         "sk",
                         markersize=plt.rcParams["lines.markersize"] + 1,
                     )
-                V0_old = qubit.parameters.dc_voltage_parking
-                f0_old = qubit.parameters.resonance_frequency_ge
-                textstr = f"Parking voltage: {V0:.4f} $\\pm$ {V0err:.4f} V (previous: {V0_old:.4f} V)"
+                textstr = f"Parking voltage: {V0:.4f} $\\pm$ {V0err:.4f} V (Old value: {V0_old:.4f} V)"
                 textstr += (
                     f"\nParking frequency: {f0 / 1e9:.6f} $\\pm$ {f0err / 1e9:.6f} GHz "
-                    f"(previous: {f0_old / 1e9:.6f} GHz)"
+                    f"(Old value: {f0_old / 1e9:.6f} GHz)"
                 )
                 ax.text(0, -0.15, textstr, ha="left", va="top", transform=ax.transAxes)
 
