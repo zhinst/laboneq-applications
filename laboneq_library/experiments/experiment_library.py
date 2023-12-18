@@ -311,6 +311,7 @@ class StatePreparationMixin:
             e_section = Section(
                 uid=f"{qubit.uid}_prep_e{section_uid_suffix}",
                 play_after=play_after_sections,
+                on_system_grid=True,
             )
             e_section.play(
                 signal=self.signal_name("drive", qubit),
