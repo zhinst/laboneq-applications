@@ -581,9 +581,9 @@ class SingleQubitGateTuneup(ExperimentTemplate):
 
         super().__init__(*args, signals=signals, **kwargs)
 
-    def create_transition_preparation_sections(self, qubit):
+    def create_transition_preparation_sections(self, qubit, **kwargs):
         return self.create_preparation(
-            qubit, state_to_prepare=self.transition_to_calib[0]
+            qubit, state_to_prepare=self.transition_to_calib[0], **kwargs
         )
 
     def add_preparation_pulses_to_section(self, section, qubit):
