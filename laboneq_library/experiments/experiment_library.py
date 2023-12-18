@@ -535,7 +535,8 @@ class ExperimentTemplate(StatePreparationMixin):
         def rename_uid_sweep_section(sec, suffix):
             if isinstance(sec, (Sweep, Section)):
                 if sec.uid in uids:
-                    print(f"Renaming {type(sec)} uid {sec.uid} to {sec.uid}_{suffix}")
+                    sec_type = "Sweep" if isinstance(sec, type(Sweep)) else "Section"
+                    print(f"Renaming {sec_type} uid {sec.uid} to {sec.uid}_{suffix}")
                     sec.uid += f"_{suffix}"
                     suffix += 1
                 uids.add(sec.uid)
