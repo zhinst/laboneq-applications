@@ -719,8 +719,8 @@ class AmplitudeRabi(SingleQubitGateTuneup):
     def analyse_experiment_qubit(self, qubit, data_dict, figure, ax):
         # plot data
         ax.plot(
-            data_dict["sweep_points_w_cal_tr"],
-            data_dict["data_rotated_w_cal_tr"],
+            data_dict["sweep_points_w_cal_traces"],
+            data_dict["data_rotated_w_cal_traces"],
             "o",
             zorder=2,
         )
@@ -946,8 +946,8 @@ class Ramsey(SingleQubitGateTuneup):
         )
         # plot data with correct scaling
         ax.plot(
-            (data_dict["sweep_points_w_cal_tr"] + delays_offset) * 1e6,
-            data_dict["data_rotated_w_cal_tr"],
+            (data_dict["sweep_points_w_cal_traces"]) * 1e6,
+            data_dict["data_rotated_w_cal_traces"],
             "o",
             zorder=2,
         )
@@ -1170,8 +1170,8 @@ class T1(SingleQubitGateTuneup):
     def analyse_experiment_qubit(self, qubit, data_dict, figure, ax):
         # plot data with correct scaling
         ax.plot(
-            data_dict["sweep_points_w_cal_tr"] * 1e6,
-            data_dict["data_rotated_w_cal_tr"],
+            data_dict["sweep_points_w_cal_traces"] * 1e6,
+            data_dict["data_rotated_w_cal_traces"],
             "o",
             zorder=2,
         )
@@ -1335,8 +1335,8 @@ class Echo(SingleQubitGateTuneup):
     def analyse_experiment_qubit(self, qubit, data_dict, figure, ax):
         # plot data with correct scaling
         ax.plot(
-            data_dict["sweep_points_w_cal_tr"] * 1e6,
-            data_dict["data_rotated_w_cal_tr"],
+            data_dict["sweep_points_w_cal_traces"] * 1e6,
+            data_dict["data_rotated_w_cal_traces"],
             "o",
             zorder=2,
         )
@@ -1436,12 +1436,12 @@ class RamseyParking(Ramsey):
                 ramsey_analysis_results = {}
                 # run Ramsey analysis
                 data_to_fit_2d = data_dict["data_rotated"]
-                data_rotated_w_cal_tr_2d = data_dict["data_rotated_w_cal_tr"]
+                data_rotated_w_cal_tr_2d = data_dict["data_rotated_w_cal_traces"]
                 for i in range(data_to_fit_2d.shape[0]):
                     data_to_fit = data_to_fit_2d[i, :]
                     data_dict_tmp = deepcopy(data_dict)
                     data_dict_tmp["data_rotated"] = data_to_fit
-                    data_dict_tmp["data_rotated_w_cal_tr"] = data_rotated_w_cal_tr_2d[
+                    data_dict_tmp["data_rotated_w_cal_traces"] = data_rotated_w_cal_tr_2d[
                         i, :
                     ]
                     self.analysis_results[qubit.uid]["rotated_data"] = data_dict
