@@ -99,9 +99,9 @@ class OptimalIntegrationKernels(ExperimentTemplate):
                         on_system_grid="f" in self.preparation_states,
                     )
                     # ge-preparation drive pulse
-                    drive_pulse_ge = qt_ops.quantum_gate(qubit, f"X180_ge")
+                    drive_pulse_ge = qt_ops.quantum_gate(qubit, "X180_ge")
                     excitation_ge_section.play(
-                        signal=self.signal_name(f"drive", qubit),
+                        signal=self.signal_name("drive", qubit),
                         pulse=drive_pulse_ge,
                     )
                     measure_play_after = f"{qubit.uid}_ge_excitation"
@@ -116,9 +116,9 @@ class OptimalIntegrationKernels(ExperimentTemplate):
                         play_after=f"{qubit.uid}_ge_excitation",
                     )
                     # ef-preparation drive pulse
-                    drive_pulse_ef = qt_ops.quantum_gate(qubit, f"X180_ef")
+                    drive_pulse_ef = qt_ops.quantum_gate(qubit, "X180_ef")
                     excitation_ef_section.play(
-                        signal=self.signal_name(f"drive_ef", qubit),
+                        signal=self.signal_name("drive_ef", qubit),
                         pulse=drive_pulse_ef,
                     )
                     measure_play_after = f"{qubit.uid}_ef_excitation"
@@ -504,8 +504,10 @@ class ResonatorSpectroscopy(ExperimentTemplate):
                     f0_old = qubit.parameters.readout_resonator_frequency
                     V0_old = qubit.parameters.dc_voltage_parking
                     old_parameter_values.update(
-                        {"readout_resonator_frequency": f0_old,
-                         "dc_voltage_parking": V0_old}
+                        {
+                            "readout_resonator_frequency": f0_old,
+                            "dc_voltage_parking": V0_old,
+                        }
                     )
 
                     if self.analysis_metainfo.get("do_fitting", True):
@@ -595,7 +597,7 @@ class ResonatorSpectroscopy(ExperimentTemplate):
                             uss_idx = np.argsort(abs(v_uss_values))[0]
                             v_uss, f_uss = voltages_uss[uss_idx], freqs_uss[uss_idx]
                             textstr = (
-                                f"Smallest USS voltage:\n"
+                                "Smallest USS voltage:\n"
                                 + f"{v_uss.nominal_value:.4f} V $\\pm$ {v_uss.std_dev:.4f} V"
                             )
                             textstr += f"\nParking frequency:\n{f_uss / 1e9:.4f} GHz"
@@ -618,7 +620,7 @@ class ResonatorSpectroscopy(ExperimentTemplate):
                             lss_idx = np.argsort(abs(v_lss_values))[0]
                             v_lss, f_lss = voltages_lss[lss_idx], freqs_lss[lss_idx]
                             textstr = (
-                                f"Smallest LSS voltage:\n"
+                                "Smallest LSS voltage:\n"
                                 + f"{v_lss.nominal_value:.4f} V $\\pm$ {v_lss.std_dev:.4f} V"
                             )
                             textstr += f"\nParking frequency:\n{f_lss / 1e9:.4f} GHz"
@@ -755,9 +757,9 @@ class DispersiveShift(ResonatorSpectroscopy):
                     on_system_grid="f" in self.preparation_states,
                 )
                 # ge-preparation drive pulse
-                drive_pulse_ge = qt_ops.quantum_gate(qubit, f"X180_ge")
+                drive_pulse_ge = qt_ops.quantum_gate(qubit, "X180_ge")
                 excitation_ge_section.play(
-                    signal=self.signal_name(f"drive", qubit),
+                    signal=self.signal_name("drive", qubit),
                     pulse=drive_pulse_ge,
                 )
                 measure_play_after = f"{qubit.uid}_ge_excitation"
@@ -772,9 +774,9 @@ class DispersiveShift(ResonatorSpectroscopy):
                         play_after=f"{qubit.uid}_ge_excitation",
                     )
                     # ef-preparation drive pulse
-                    drive_pulse_ef = qt_ops.quantum_gate(qubit, f"X180_ef")
+                    drive_pulse_ef = qt_ops.quantum_gate(qubit, "X180_ef")
                     excitation_ef_section.play(
-                        signal=self.signal_name(f"drive_ef", qubit),
+                        signal=self.signal_name("drive_ef", qubit),
                         pulse=drive_pulse_ef,
                     )
                     measure_play_after = f"{qubit.uid}_ef_excitation"
@@ -859,7 +861,9 @@ class DispersiveShift(ResonatorSpectroscopy):
                 f"{self.timestamp}_{self.experiment_name}_{qubit.uid}"
             )
             self.analysis_results[qubit.uid]["old_parameter_values"].update(
-                {"readout_resonator_frequency": qubit.parameters.readout_resonator_frequency}
+                {
+                    "readout_resonator_frequency": qubit.parameters.readout_resonator_frequency
+                }
             )
             for states, (s21_dist, idx_max) in s21_abs_distances.items():
                 max_s21_dist, max_freq = s21_dist[idx_max], freqs[idx_max]

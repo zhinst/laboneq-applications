@@ -166,7 +166,7 @@ class QubitSpectroscopy(ExperimentTemplate):
 
         if self.nt_swp_par == "frequency":
             nt_freq_sweep = Sweep(
-                uid=f"neartime_frequency_sweep",
+                uid="neartime_frequency_sweep",
                 parameters=[
                     self.sweep_parameters_dict[qubit.uid][1] for qubit in self.qubits
                 ],
@@ -379,7 +379,10 @@ class QubitSpectroscopy(ExperimentTemplate):
                     fqb_err = fit_res.params["position"].stderr
                     new_parameter_values.update({"resonance_frequency_ge": fqb})
                     old_parameter_values.update(
-                        {"resonance_frequency_ge": qubit.parameters.resonance_frequency_ge})
+                        {
+                            "resonance_frequency_ge": qubit.parameters.resonance_frequency_ge
+                        }
+                    )
 
                     # plot fit
                     freqs_fine = np.linspace(freqs_to_fit[0], freqs_to_fit[-1], 501)
@@ -448,8 +451,10 @@ class QubitSpectroscopy(ExperimentTemplate):
                         {"resonance_frequency_ge": f0, "dc_voltage_parking": V0}
                     )
                     old_parameter_values.update(
-                        {"resonance_frequency_ge": qubit.parameters.readout_resonator_frequency,
-                         "dc_voltage_parking": qubit.parameters.dc_voltage_parking}
+                        {
+                            "resonance_frequency_ge": qubit.parameters.readout_resonator_frequency,
+                            "dc_voltage_parking": qubit.parameters.dc_voltage_parking,
+                        }
                     )
 
                     if self.analysis_metainfo.get("do_fitting", True):
@@ -747,8 +752,12 @@ class AmplitudeRabi(SingleQubitGateTuneup):
                 {
                     f"{self.transition_to_calib}_amplitude_pi": pi_amp.nominal_value,
                     f"{self.transition_to_calib}_amplitude_pi2": pi2_amp.nominal_value,
-                    f"{self.transition_to_calib}_pi_amps": [pia.nominal_value for pia in pi_amps],
-                    f"{self.transition_to_calib}_pi2_amps": [pi2a.nominal_value for pi2a in pi_amps],
+                    f"{self.transition_to_calib}_pi_amps": [
+                        pia.nominal_value for pia in pi_amps
+                    ],
+                    f"{self.transition_to_calib}_pi2_amps": [
+                        pi2a.nominal_value for pi2a in pi_amps
+                    ],
                 }
             )
 
@@ -815,8 +824,12 @@ class AmplitudeRabi(SingleQubitGateTuneup):
                 if "f" in self.transition_to_calib
                 else qubit.parameters.drive_parameters_ge
             )
-            dr_pars["amplitude_pi"] = new_qb_pars[f"{self.transition_to_calib}_amplitude_pi"]
-            dr_pars["amplitude_pi2"] = new_qb_pars[f"{self.transition_to_calib}_amplitude_pi2"]
+            dr_pars["amplitude_pi"] = new_qb_pars[
+                f"{self.transition_to_calib}_amplitude_pi"
+            ]
+            dr_pars["amplitude_pi2"] = new_qb_pars[
+                f"{self.transition_to_calib}_amplitude_pi2"
+            ]
 
 
 class Ramsey(SingleQubitGateTuneup):
@@ -1026,13 +1039,12 @@ class QScale(SingleQubitGateTuneup):
             pulses_2nd = [X180_pulse, Y180_pulse, Ym180_pulse]
             for i, pulse_2nd in enumerate(pulses_2nd):
                 id = pulse_ids[i]
-                play_after = (
-                    measure_section.uid if i > 0 else None
-                )
+                play_after = measure_section.uid if i > 0 else None
 
                 # create preparation pulses sections: ge if calibrating ef
                 prep_sections = self.create_transition_preparation_sections(
-                    qubit, play_after_sections=play_after)
+                    qubit, play_after_sections=play_after
+                )
 
                 # qscale pulses
                 play_after_for_exc = prep_sections if len(prep_sections) else play_after
@@ -1084,78 +1096,91 @@ class QScale(SingleQubitGateTuneup):
                 handle = f"{self.experiment_name}_{qubit.uid}_{exp_id}"
                 cal_trace_root_handle = f"{self.experiment_name}_{qubit.uid}"
                 data_dict = ana_hlp.extract_and_rotate_data_1d(
-                    self.results, handle, cal_trace_root_handle,
-                    cal_states=self.cal_states, do_pca=do_pca
+                    self.results,
+                    handle,
+                    cal_trace_root_handle,
+                    cal_states=self.cal_states,
+                    do_pca=do_pca,
                 )
                 num_cal_traces = data_dict["num_cal_traces"]
-                self.analysis_results[qubit.uid]["rotated_data"][f"{exp_id}"] = data_dict
+                self.analysis_results[qubit.uid]["rotated_data"][
+                    f"{exp_id}"
+                ] = data_dict
                 # plot data
-                line, = ax.plot(data_dict["sweep_points"],
-                                data_dict["data_rotated"],
-                                'o', label=exp_id, zorder=2)
+                (line,) = ax.plot(
+                    data_dict["sweep_points"],
+                    data_dict["data_rotated"],
+                    "o",
+                    label=exp_id,
+                    zorder=2,
+                )
                 # plot cal traces
-                ax.plot(data_dict["sweep_points_cal_traces"],
-                        data_dict["data_rotated_cal_traces"],
-                        'ok', zorder=2)
+                ax.plot(
+                    data_dict["sweep_points_cal_traces"],
+                    data_dict["data_rotated_cal_traces"],
+                    "ok",
+                    zorder=2,
+                )
                 # fit data
                 if do_fitting:
                     swpts_to_fit = data_dict["sweep_points"]
                     data_to_fit = data_dict["data_rotated"]
 
-                    if exp_id == 'xx':
+                    if exp_id == "xx":
                         # xx - line at 0.5
                         param_hints = dict(
                             slope=dict(value=0, vary=False),
-                            intercept=dict(value=np.mean(data_to_fit))
+                            intercept=dict(value=np.mean(data_to_fit)),
                         )
-                    elif exp_id == 'xy':
+                    elif exp_id == "xy":
                         # fit xy line
-                        slope = ((data_to_fit[-1] - data_to_fit[0]) /
-                                 (swpts_to_fit[-1] - swpts_to_fit[0]))
+                        slope = (data_to_fit[-1] - data_to_fit[0]) / (
+                            swpts_to_fit[-1] - swpts_to_fit[0]
+                        )
                         intercept = data_to_fit[-1] - slope * swpts_to_fit[-1]
                         param_hints = dict(
-                            slope=dict(value=slope),
-                            intercept=dict(value=intercept)
+                            slope=dict(value=slope), intercept=dict(value=intercept)
                         )
-                    elif exp_id == 'xmy':
+                    elif exp_id == "xmy":
                         # fit xy line
-                        slope = ((data_to_fit[-1] - data_to_fit[0]) /
-                                 (swpts_to_fit[-1] - swpts_to_fit[0]))
+                        slope = (data_to_fit[-1] - data_to_fit[0]) / (
+                            swpts_to_fit[-1] - swpts_to_fit[0]
+                        )
                         intercept = data_to_fit[-1] - slope * swpts_to_fit[-1]
                         param_hints = dict(
-                            slope=dict(value=slope),
-                            intercept=dict(value=intercept)
+                            slope=dict(value=slope), intercept=dict(value=intercept)
                         )
                     fit_res = ana_hlp.fit_data_lmfit(
                         fit_mods.linear_dependence,
-                        swpts_to_fit, data_to_fit,
-                        param_hints=param_hints
+                        swpts_to_fit,
+                        data_to_fit,
+                        param_hints=param_hints,
                     )
                     self.analysis_results[qubit.uid]["fit_results"][exp_id] = fit_res
                     # plot fit
                     swpts_fine = np.linspace(swpts_to_fit[0], swpts_to_fit[-1], 501)
                     fit_line = fit_res.model.func(swpts_fine, **fit_res.best_values)
-                    if not hasattr(fit_line, '__iter__'):  # for xx
+                    if not hasattr(fit_line, "__iter__"):  # for xx
                         fit_line = np.repeat(fit_line, len(swpts_fine))
                     ax.plot(swpts_fine, fit_line, c=line.get_color(), zorder=1)
 
             # calculate optimal qscale
             fit_results = self.analysis_results[qubit.uid]["fit_results"]
             intercept_xy = unc.ufloat(
-                fit_results['xy'].params["intercept"].value,
-                fit_results['xy'].params["intercept"].stderr
+                fit_results["xy"].params["intercept"].value,
+                fit_results["xy"].params["intercept"].stderr,
             )
             slope_xy = unc.ufloat(
-                fit_results['xy'].params["slope"].value,
-                fit_results['xy'].params["slope"].stderr
+                fit_results["xy"].params["slope"].value,
+                fit_results["xy"].params["slope"].stderr,
             )
             intercept_xmy = unc.ufloat(
-                fit_results['xmy'].params["intercept"].value,
-                fit_results['xmy'].params["intercept"].stderr
+                fit_results["xmy"].params["intercept"].value,
+                fit_results["xmy"].params["intercept"].stderr,
             )
             slope_xmy = unc.ufloat(
-                fit_results['xmy'].params["slope"].value,
-                fit_results['xmy'].params["slope"].stderr
+                fit_results["xmy"].params["slope"].value,
+                fit_results["xmy"].params["slope"].stderr,
             )
             intercept_diff_mean = intercept_xy - intercept_xmy
             slope_diff_mean = slope_xmy - slope_xy
@@ -1178,7 +1203,7 @@ class QScale(SingleQubitGateTuneup):
             )
             textstr += f"\nOld value: {old_qscale:.4f}"
             ax.text(0, -0.15, textstr, ha="left", va="top", transform=ax.transAxes)
-            ax.legend(frameon=False, loc='center left', bbox_to_anchor=(1, 0.5))
+            ax.legend(frameon=False, loc="center left", bbox_to_anchor=(1, 0.5))
             ax.set_ylabel(
                 "Principal Component (a.u)"
                 if (num_cal_traces == 0 or do_pca)
@@ -1360,9 +1385,7 @@ class Echo(SingleQubitGateTuneup):
                 else qubit.parameters.drive_parameters_ge["length"]
             )
             swp_pars_half_delays += [
-                SweepParameter(
-                    uid=f"echo_delays_{qubit.uid}", values=0.5 * delays
-                )
+                SweepParameter(uid=f"echo_delays_{qubit.uid}", values=0.5 * delays)
             ]
             swp_pars_phases += [
                 SweepParameter(
@@ -1546,9 +1569,9 @@ class RamseyParking(Ramsey):
                     data_to_fit = data_to_fit_2d[i, :]
                     data_dict_tmp = deepcopy(data_dict)
                     data_dict_tmp["data_rotated"] = data_to_fit
-                    data_dict_tmp["data_rotated_w_cal_traces"] = data_rotated_w_cal_tr_2d[
-                        i, :
-                    ]
+                    data_dict_tmp[
+                        "data_rotated_w_cal_traces"
+                    ] = data_rotated_w_cal_tr_2d[i, :]
                     self.analysis_results[qubit.uid]["rotated_data"] = data_dict
 
                     fig, ax = plt.subplots()

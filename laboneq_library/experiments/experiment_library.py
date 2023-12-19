@@ -569,7 +569,8 @@ class ExperimentTemplate(StatePreparationMixin):
             qubit.uid: dict(
                 new_parameter_values=dict(),
                 old_parameter_values=dict(),
-                fit_results=None)
+                fit_results=None,
+            )
             for qubit in self.qubits
         }
 
@@ -599,14 +600,16 @@ class ExperimentTemplate(StatePreparationMixin):
                     if qb_par in qubit.parameters.__dict__:
                         qubit.parameters.__dict__[qb_par] = par_value
                     elif qb_par.startswith("ge"):
-                        par_name = qb_par.split('_')[-1]
+                        par_name = qb_par.split("_")[-1]
                         qubit.parameters.drive_parameters_ge[par_name] = par_value
                     elif qb_par.startswith("ef"):
-                        par_name = qb_par.split('_')[-1]
+                        par_name = qb_par.split("_")[-1]
                         qubit.parameters.drive_parameters_ef[par_name] = par_value
                     else:
-                        log.warning(f"Parameter {qb_par} was not found for "
-                                    f"{qubit.uid}. This parameter was not reset.")
+                        log.warning(
+                            f"Parameter {qb_par} was not found for "
+                            f"{qubit.uid}. This parameter was not reset."
+                        )
             self.update_measurement_setup()
 
     def generate_timestamp_save_directory(self):
@@ -640,7 +643,7 @@ class ExperimentTemplate(StatePreparationMixin):
         self.create_save_directory()
 
         # Save the measurement setup
-        filename = f"measurement_setup_before_experiment.json"
+        filename = "measurement_setup_before_experiment.json"
         filename = f"{self.timestamp}_{filename}"
         filepath = os.path.abspath(os.path.join(self.save_directory, filename))
         if filename not in os.listdir(self.save_directory):
@@ -739,7 +742,12 @@ class ExperimentTemplate(StatePreparationMixin):
             [len(self.analysis_results[qubit.uid]) > 2 for qubit in self.qubits]
         )
 
-        if new_qb_params_exist or old_qb_params_exist or fit_results_exist or other_ana_res_exist:
+        if (
+            new_qb_params_exist
+            or old_qb_params_exist
+            or fit_results_exist
+            or other_ana_res_exist
+        ):
             self.create_save_directory()
 
             if len(filename_suffix) > 0:
