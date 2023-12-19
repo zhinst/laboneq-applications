@@ -607,16 +607,19 @@ class ExperimentTemplate(StatePreparationMixin):
                         qubit.parameters.__dict__[qb_par] = par_value
                         if qb_par == "dc_voltage_parking":
                             nt_cb_func = self.experiment_metainfo.get(
-                                "neartime_callback_function", None)
+                                "neartime_callback_function", None
+                            )
                             if nt_cb_func is None:
                                 raise ValueError(
                                     "Please provide the neartime callback function "
                                     "for setting the dc voltage in "
                                     "experiment_metainfo['neartime_callback_function']."
                                 )
-                            log.info(f"Updating DC voltage source slot "
-                                     f"{qubit.parameters.dc_slot} ({qubit.uid}) to the "
-                                     f"new value of {par_value:.4f}.")
+                            log.info(
+                                f"Updating DC voltage source slot "
+                                f"{qubit.parameters.dc_slot} ({qubit.uid}) to the "
+                                f"new value of {par_value:.4f}."
+                            )
                             nt_cb_func(self.session, par_value, qubit)
                     elif qb_par.startswith("ge"):
                         par_name = qb_par.split("_")[-1]

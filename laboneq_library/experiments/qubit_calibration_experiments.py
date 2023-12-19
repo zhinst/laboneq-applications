@@ -538,9 +538,11 @@ class QubitSpectroscopy(ExperimentTemplate):
                     "sweep in experiment_metainfo['neartime_callback_function']."
                 )
             for qubit in self.qubits:
-                log.info(f"Setting DC voltage source slot "
-                         f"{qubit.parameters.dc_slot} ({qubit.uid}) back to the "
-                         f"original value of {qubit.parameters.dc_voltage_parking:.4f}.")
+                log.info(
+                    f"Setting DC voltage source slot "
+                    f"{qubit.parameters.dc_slot} ({qubit.uid}) back to the "
+                    f"original value of {qubit.parameters.dc_voltage_parking:.4f}."
+                )
                 ntsf(self.session, qubit.parameters.dc_voltage_parking, qubit)
 
     def update_qubit_parameters(self):
@@ -560,7 +562,8 @@ class QubitSpectroscopy(ExperimentTemplate):
         if self.nt_swp_par == "voltage":
             # set the dc voltage source to the new voltage value
             nt_cb_func = self.experiment_metainfo.get(
-                "neartime_callback_function", None)
+                "neartime_callback_function", None
+            )
             if nt_cb_func is None:
                 raise ValueError(
                     "Please provide the neartime callback function for setting the "
@@ -1681,7 +1684,7 @@ class RamseyParking(Ramsey):
                 self.analysis_results[qubit.uid]["fit_results"] = fit_res
                 self.analysis_results[qubit.uid]["new_parameter_values"] = {
                     f"resonance_frequency_{self.transition_to_calib}": f0,
-                    f"dc_voltage_parking": V0,
+                    "dc_voltage_parking": V0,
                 }
                 V0_old = qubit.parameters.dc_voltage_parking
                 f0_old = qubit.parameters.resonance_frequency_ge
@@ -1735,9 +1738,11 @@ class RamseyParking(Ramsey):
                 "dc voltage in experiment_metainfo['neartime_callback_function']."
             )
         for qubit in self.qubits:
-            log.info(f"Setting DC voltage source slot "
-                     f"{qubit.parameters.dc_slot} ({qubit.uid}) back to the "
-                     f"original value of {qubit.parameters.dc_voltage_parking:.4f}.")
+            log.info(
+                f"Setting DC voltage source slot "
+                f"{qubit.parameters.dc_slot} ({qubit.uid}) back to the "
+                f"original value of {qubit.parameters.dc_voltage_parking:.4f}."
+            )
             nt_cb_func(self.session, qubit.parameters.dc_voltage_parking, qubit)
 
     def update_qubit_parameters(self):
@@ -1763,7 +1768,9 @@ class RamseyParking(Ramsey):
                 "dc voltage in experiment_metainfo['neartime_callback_function']."
             )
         for qubit in self.qubits:
-            log.info(f"Updating DC voltage source slot "
-                     f"{qubit.parameters.dc_slot} ({qubit.uid}) to the "
-                     f"new value of {qubit.parameters.dc_voltage_parking:.4f}.")
+            log.info(
+                f"Updating DC voltage source slot "
+                f"{qubit.parameters.dc_slot} ({qubit.uid}) to the "
+                f"new value of {qubit.parameters.dc_voltage_parking:.4f}."
+            )
             nt_cb_func(self.session, qubit.parameters.dc_voltage_parking, qubit)
