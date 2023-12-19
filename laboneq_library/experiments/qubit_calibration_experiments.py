@@ -452,7 +452,7 @@ class QubitSpectroscopy(ExperimentTemplate):
                     )
                     old_parameter_values.update(
                         {
-                            "resonance_frequency_ge": qubit.parameters.readout_resonator_frequency,
+                            "resonance_frequency_ge": qubit.parameters.resonance_frequency_ge,
                             "dc_voltage_parking": qubit.parameters.dc_voltage_parking,
                         }
                     )
@@ -527,6 +527,22 @@ class QubitSpectroscopy(ExperimentTemplate):
                 plt.show()
             plt.close(fig)
 
+    def execute_exit_condition(self):
+        if self.nt_swp_par == "voltage":
+            # set the dc voltage source to the original voltage value stored in the
+            # qubit parameters
+            ntsf = self.experiment_metainfo.get("neartime_callback_function", None)
+            if ntsf is None:
+                raise ValueError(
+                    "Please provide the neartime callback function for the voltage"
+                    "sweep in experiment_metainfo['neartime_callback_function']."
+                )
+            for qubit in self.qubits:
+                log.info(f"Setting DC voltage source slot "
+                         f"{qubit.parameters.dc_slot} ({qubit.uid}) back to the "
+                         f"original value of {qubit.parameters.dc_voltage_parking:.4f}.")
+                ntsf(self.session, qubit.parameters.dc_voltage_parking, qubit)
+
     def update_qubit_parameters(self):
         for qubit in self.qubits:
             new_qb_pars = self.analysis_results[qubit.uid]["new_parameter_values"]
@@ -538,6 +554,20 @@ class QubitSpectroscopy(ExperimentTemplate):
             ]
             if "dc_voltage_parking" in new_qb_pars:
                 qubit.parameters.dc_voltage_parking = new_qb_pars["dc_voltage_parking"]
+
+    def update_entire_setup(self):
+        super().update_entire_setup()
+        if self.nt_swp_par == "voltage":
+            # set the dc voltage source to the new voltage value
+            nt_cb_func = self.experiment_metainfo.get(
+                "neartime_callback_function", None)
+            if nt_cb_func is None:
+                raise ValueError(
+                    "Please provide the neartime callback function for setting the "
+                    "dc voltage in experiment_metainfo['neartime_callback_function']."
+                )
+            for qubit in self.qubits:
+                nt_cb_func(self.session, qubit.parameters.dc_voltage_parking, qubit)
 
 
 ######################################################
@@ -1525,6 +1555,11 @@ class RamseyParking(Ramsey):
         ]
     )
 
+    def __init__(self, *args, **kwargs):
+        apply_exit_condition = kwargs.get("apply_exit_condition", True)
+        kwargs["apply_exit_condition"] = apply_exit_condition
+        super().__init__(*args, **kwargs)
+
     def define_experiment(self):
         super().define_experiment()
         self.experiment.sections = []
@@ -1645,13 +1680,13 @@ class RamseyParking(Ramsey):
                 V0err = fit_res.params["voltage_sweet_spot"].stderr
                 self.analysis_results[qubit.uid]["fit_results"] = fit_res
                 self.analysis_results[qubit.uid]["new_parameter_values"] = {
-                    "resonance_frequency": f0,
-                    "dc_voltage_parking": V0,
+                    f"resonance_frequency_{self.transition_to_calib}": f0,
+                    f"dc_voltage_parking": V0,
                 }
                 V0_old = qubit.parameters.dc_voltage_parking
                 f0_old = qubit.parameters.resonance_frequency_ge
-                self.analysis_results[qubit.uid]["new_parameter_values"] = {
-                    "resonance_frequency": f0_old,
+                self.analysis_results[qubit.uid]["old_parameter_values"] = {
+                    f"resonance_frequency_{self.transition_to_calib}": f0_old,
                     "dc_voltage_parking": V0_old,
                 }
                 # plot data + fit
@@ -1690,11 +1725,45 @@ class RamseyParking(Ramsey):
                     plt.show()
                 plt.close(fig)
 
+    def execute_exit_condition(self):
+        # set the dc voltage source to the original voltage value stored in the
+        # qubit parameters
+        nt_cb_func = self.experiment_metainfo.get("neartime_callback_function", None)
+        if nt_cb_func is None:
+            raise ValueError(
+                "Please provide the neartime callback function for setting the "
+                "dc voltage in experiment_metainfo['neartime_callback_function']."
+            )
+        for qubit in self.qubits:
+            log.info(f"Setting DC voltage source slot "
+                     f"{qubit.parameters.dc_slot} ({qubit.uid}) back to the "
+                     f"original value of {qubit.parameters.dc_voltage_parking:.4f}.")
+            nt_cb_func(self.session, qubit.parameters.dc_voltage_parking, qubit)
+
     def update_qubit_parameters(self):
         for qubit in self.qubits:
             new_qb_pars = self.analysis_results[qubit.uid]["new_parameter_values"]
             if len(new_qb_pars) == 0:
                 return
 
-            qubit.parameters.resonance_frequency_ge = new_qb_pars["resonance_frequency"]
+            new_freq = new_qb_pars[f"resonance_frequency_{self.transition_to_calib}"]
+            if "f" in self.transition_to_calib:
+                qubit.parameters.resonance_frequency_ef = new_freq
+            else:
+                qubit.parameters.resonance_frequency_ge = new_freq
             qubit.parameters.dc_voltage_parking = new_qb_pars["dc_voltage_parking"]
+
+    def update_entire_setup(self):
+        super().update_entire_setup()
+        # set the dc voltage source to the new voltage value
+        nt_cb_func = self.experiment_metainfo.get("neartime_callback_function", None)
+        if nt_cb_func is None:
+            raise ValueError(
+                "Please provide the neartime callback function for setting the "
+                "dc voltage in experiment_metainfo['neartime_callback_function']."
+            )
+        for qubit in self.qubits:
+            log.info(f"Updating DC voltage source slot "
+                     f"{qubit.parameters.dc_slot} ({qubit.uid}) to the "
+                     f"new value of {qubit.parameters.dc_voltage_parking:.4f}.")
+            nt_cb_func(self.session, qubit.parameters.dc_voltage_parking, qubit)

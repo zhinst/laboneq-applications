@@ -392,6 +392,7 @@ class ExperimentTemplate(StatePreparationMixin):
         experiment_metainfo=None,
         acquisition_metainfo=None,
         qubit_temporary_values=None,
+        apply_exit_condition=False,
         do_analysis=True,
         analysis_metainfo=None,
         save=True,
@@ -452,6 +453,7 @@ class ExperimentTemplate(StatePreparationMixin):
             self.experiment_signal_uids_qubit_map,
         ) = self.create_experiment_signals(self.qubits, self.signals)
 
+        self.apply_exit_condition = apply_exit_condition
         if check_valid_user_parameters:
             self.check_user_parameters_validity()
         self.create_experiment()
@@ -563,6 +565,10 @@ class ExperimentTemplate(StatePreparationMixin):
     def run_experiment(self):
         self.results = self.session.run(self.compiled_experiment)
 
+    def execute_exit_condition(self):
+        # to be overridden by children
+        pass
+
     def analyse_experiment(self):
         # to be overridden by children
         self.analysis_results = {
@@ -599,6 +605,19 @@ class ExperimentTemplate(StatePreparationMixin):
                 for qb_par, par_value in old_qb_pars.items():
                     if qb_par in qubit.parameters.__dict__:
                         qubit.parameters.__dict__[qb_par] = par_value
+                        if qb_par == "dc_voltage_parking":
+                            nt_cb_func = self.experiment_metainfo.get(
+                                "neartime_callback_function", None)
+                            if nt_cb_func is None:
+                                raise ValueError(
+                                    "Please provide the neartime callback function "
+                                    "for setting the dc voltage in "
+                                    "experiment_metainfo['neartime_callback_function']."
+                                )
+                            log.info(f"Updating DC voltage source slot "
+                                     f"{qubit.parameters.dc_slot} ({qubit.uid}) to the "
+                                     f"new value of {par_value:.4f}.")
+                            nt_cb_func(self.session, par_value, qubit)
                     elif qb_par.startswith("ge"):
                         par_name = qb_par.split("_")[-1]
                         qubit.parameters.drive_parameters_ge[par_name] = par_value
@@ -829,6 +848,8 @@ class ExperimentTemplate(StatePreparationMixin):
                 self.configure_experiment()
                 self.compile_experiment()
                 self.run_experiment()
+                if self.apply_exit_condition:
+                    self.execute_exit_condition()
                 if self.do_analysis:
                     self.analyse_experiment()
             if self.update:

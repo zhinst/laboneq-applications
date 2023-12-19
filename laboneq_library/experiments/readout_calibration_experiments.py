@@ -244,6 +244,7 @@ class ResonatorSpectroscopy(ExperimentTemplate):
                     "do_fitting",
                     "param_hints",
                     "show_figures",
+                    "sweet_spot_to_update",
                 ],
             ),
             ExperimentTemplate.valid_user_parameters,
@@ -649,6 +650,22 @@ class ResonatorSpectroscopy(ExperimentTemplate):
                 plt.show()
             plt.close(fig)
 
+    def execute_exit_condition(self):
+        if self.nt_swp_par == "voltage":
+            # set the dc voltage source to the original voltage value stored in the
+            # qubit parameters
+            nt_cb_func = self.experiment_metainfo.get("neartime_callback_function", None)
+            if nt_cb_func is None:
+                raise ValueError(
+                    "Please provide the neartime callback function for setting the "
+                    "dc voltage in experiment_metainfo['neartime_callback_function']."
+                )
+            for qubit in self.qubits:
+                log.info(f"Setting DC voltage source slot "
+                         f"{qubit.parameters.dc_slot} ({qubit.uid}) back to the "
+                         f"original value of {qubit.parameters.dc_voltage_parking:.4f}.")
+                nt_cb_func(self.session, qubit.parameters.dc_voltage_parking, qubit)
+
     def update_qubit_parameters(self):
         for qubit in self.qubits:
             new_qb_pars = self.analysis_results[qubit.uid]["new_parameter_values"]
@@ -676,6 +693,20 @@ class ResonatorSpectroscopy(ExperimentTemplate):
                     qubit.parameters.dc_voltage_parking = new_qb_pars[
                         "dc_voltage_parking"
                     ]
+
+    def update_entire_setup(self):
+        super().update_entire_setup()
+        if self.nt_swp_par == "voltage":
+            # set the dc voltage source to the new voltage value
+            nt_cb_func = self.experiment_metainfo.get(
+                "neartime_callback_function", None)
+            if nt_cb_func is None:
+                raise ValueError(
+                    "Please provide the neartime callback function for setting the "
+                    "dc voltage in experiment_metainfo['neartime_callback_function']."
+                )
+            for qubit in self.qubits:
+                nt_cb_func(self.session, qubit.parameters.dc_voltage_parking, qubit)
 
 
 class DispersiveShift(ResonatorSpectroscopy):
