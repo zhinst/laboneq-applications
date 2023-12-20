@@ -3,12 +3,9 @@ name: Tests
 on:
   push:
     branches: ["main"]
-    paths:
-      - 'automatic_tuneup/**'
+
   pull_request:
     branches: ["main"]
-    paths:
-      - 'automatic_tuneup/**'
 
 jobs:
   tests:

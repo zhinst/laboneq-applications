@@ -3,6 +3,7 @@ name: Notebook Tests
 on:
   push:
     branches: ["main"]
+    
   pull_request:
     branches: ["main"]
 

@@ -29,7 +29,6 @@ class QubitConfig:
     analyzer: Optional[Analyzer] = None
 
     def __post_init__(self):
-        self._update_key_in_user_defined = False
         self._analyzed_result = None
         self._update_value = None
         self._verified = False
@@ -40,15 +39,16 @@ class QubitConfig:
         super().__setattr__(prop, val)
 
     def _check_key(self, update_key):
+        self._update_key_in_user_defined = False
         if hasattr(self.qubit.parameters, update_key):
             self._update_key = update_key
         elif update_key in self.qubit.parameters.user_defined:
-            self._update_key = update_key
             self._update_key_in_user_defined = True
         else:
             raise ValueError("The update key must be a valid parameter of the qubit")
 
     def update_qubit(self):
+        """Update the qubit with the analyzed result."""
         if self._update_key_in_user_defined:
             self._update_value = self._analyzed_result
             self.qubit.parameters.user_defined[self.update_key] = self._update_value
@@ -84,18 +84,23 @@ class QubitConfigs(UserList[QubitConfig]):
     def __init__(self, *args):
         super().__init__(*args)
 
-    def get_qubits(self):
+    def get_qubits(self) -> List[Qubit]:
+        """Get the qubits in the QubitConfigs."""
         return [qubit_config.qubit for qubit_config in self.data]
 
     def get_parameters(self) -> List[SweepParams]:
+        """Get the parameters in the QubitConfigs."""
         return [qubit_config.parameter for qubit_config in self.data]
 
     def all_verified(self) -> bool:
+        """Check if all the qubits have been verified. If all qubits need not to be verified,
+        return True."""
         return all(
             [qubit_config._verified for qubit_config in self.get_need_to_verify()]
         )
 
     def get_need_to_verify(self) -> List[QubitConfig]:
+        """Get the qubits that need to be verified."""
         return [
             qubit_config for qubit_config in self.data if qubit_config.need_to_verify
         ]
