@@ -15,9 +15,6 @@ A library that holds basic experiment definitions. In the beginning, focused on 
 ### Quantum operations
 A library that defines quantum operations (such as pulses or gates) on a specific qubit.
 
-### An automation library
-The library of experiments and quantum operations will be used in an automation framework. With this, (tune-up) experiment workflows can be defined and run automatically.
-
 ### More elements
 - Pulse functionals
 
