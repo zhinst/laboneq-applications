@@ -961,10 +961,10 @@ class OptimalIntegrationKernels(ExperimentTemplate):
                     excitation_sections += [excitation_ef_section]
                     exp.acquire_loop.add(excitation_ef_section)
 
-                measure_sections = exp.create_measure_acquire_sections(
+                measure_section = exp.create_measure_acquire_sections(
                     qubit=qubit, integration_kernel=None, play_after=measure_play_after
                 )
-                exp.acquire_loop.add(measure_sections)
+                exp.acquire_loop.add(measure_section)
 
     def configure_experiment(self):
         for exp in self.experiments.values():

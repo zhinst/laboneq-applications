@@ -156,11 +156,11 @@ class QubitSpectroscopy(ExperimentTemplate):
         #         )
         #         sweep_freq.add(excitation_section)
         #
-        #     measure_sections = self.create_measure_acquire_sections(
+        #     measure_section = self.create_measure_acquire_sections(
         #         qubit=qubit,
         #         integration_kernel=integration_kernel,
         #         play_after=f"{qubit.uid}_excitation" if self.pulsed else None)
-        #     sweep_freq.add(measure_sections)
+        #     sweep_freq.add(measure_section)
         #
         # self.acquire_loop.add(sweep_freq)
 
@@ -239,13 +239,13 @@ class QubitSpectroscopy(ExperimentTemplate):
                 )
                 freq_sweep.add(excitation_section)
 
-            measure_sections = self.create_measure_acquire_sections(
+            measure_section = self.create_measure_acquire_sections(
                 qubit=qubit,
                 integration_kernel=integration_kernel,
                 play_after=f"{qubit.uid}_excitation" if self.pulsed else None,
             )
 
-            freq_sweep.add(measure_sections)
+            freq_sweep.add(measure_section)
 
     def configure_experiment(self):
         super().configure_experiment()
@@ -716,9 +716,8 @@ class AmplitudeRabi(SingleQubitGateTuneup):
                 amplitude=self.sweep_parameters_dict[qubit.uid][0],
             )
 
-            # excitation_section.delay(signal=f"drive_{qubit.uid}", time=10e-9)
             # create readout + acquire sections
-            measure_sections = self.create_measure_acquire_sections(
+            measure_section = self.create_measure_acquire_sections(
                 qubit=qubit,
                 play_after=f"{qubit.uid}_excitation",
             )
@@ -728,7 +727,7 @@ class AmplitudeRabi(SingleQubitGateTuneup):
             for prep_sec in prep_sections:
                 sweep.add(prep_sec)
             sweep.add(excitation_section)
-            sweep.add(measure_sections)
+            sweep.add(measure_section)
             self.add_cal_states_sections(qubit)
 
     def analyse_experiment_qubit(self, qubit, data_dict, figure, ax):
@@ -940,7 +939,7 @@ class Ramsey(SingleQubitGateTuneup):
             )
 
             # create readout + acquire sections
-            measure_sections = self.create_measure_acquire_sections(
+            measure_section = self.create_measure_acquire_sections(
                 qubit=qubit,
                 play_after=f"{qubit.uid}_excitation",
             )
@@ -949,7 +948,7 @@ class Ramsey(SingleQubitGateTuneup):
             for prep_sec in prep_sections:
                 sweep.add(prep_sec)
             sweep.add(excitation_section)
-            sweep.add(measure_sections)
+            sweep.add(measure_section)
             self.add_cal_states_sections(qubit)
 
     def analyse_experiment_qubit(self, qubit, data_dict, figure, ax):
@@ -1317,7 +1316,7 @@ class T1(SingleQubitGateTuneup):
             )
 
             # create readout + acquire sections
-            measure_sections = self.create_measure_acquire_sections(
+            measure_section = self.create_measure_acquire_sections(
                 qubit=qubit,
                 play_after=f"{qubit.uid}_excitation",
             )
@@ -1326,7 +1325,7 @@ class T1(SingleQubitGateTuneup):
             for prep_sec in prep_sections:
                 sweep.add(prep_sec)
             sweep.add(excitation_section)
-            sweep.add(measure_sections)
+            sweep.add(measure_section)
             self.add_cal_states_sections(qubit)
 
     def analyse_experiment_qubit(self, qubit, data_dict, figure, ax):
@@ -1476,7 +1475,7 @@ class Echo(SingleQubitGateTuneup):
             )
 
             # create readout + acquire sections
-            measure_sections = self.create_measure_acquire_sections(
+            measure_section = self.create_measure_acquire_sections(
                 qubit=qubit,
                 play_after=f"{qubit.uid}_excitation",
             )
@@ -1485,7 +1484,7 @@ class Echo(SingleQubitGateTuneup):
             for prep_sec in prep_sections:
                 sweep.add(prep_sec)
             sweep.add(excitation_section)
-            sweep.add(measure_sections)
+            sweep.add(measure_section)
             self.add_cal_states_sections(qubit)
 
     def analyse_experiment_qubit(self, qubit, data_dict, figure, ax):
