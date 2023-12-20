@@ -29,8 +29,8 @@ classifiers = [
     "Topic :: Scientific/Engineering",
 ]
 dependencies = [
-    "laboneq>=2.16.0",
     "ruamel.yaml>=0.17",
+    "uncertainties",
 ]
 
 [tool.setuptools.packages.find]
