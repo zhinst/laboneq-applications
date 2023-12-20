@@ -1,30 +1,27 @@
 import json
 import os
-import pickle
+import sys
 import time
+import pickle
 from copy import deepcopy
+from logging import StreamHandler
 
-import matplotlib.pyplot as plt
-import numpy as np
-import uncertainties as unc
 from ruamel.yaml import YAML
 
 ryaml = YAML()
 
-import logging
 import traceback
+import logging
 
-logging.basicConfig(level=logging.WARNING)
-log = logging.getLogger("experiment_library")
-
-from laboneq.analysis import fitting as fit_mods
+from . import quantum_operations as qt_ops
 from laboneq.dsl.experiment.builtins import *  # noqa: F403
 from laboneq.simple import *  # noqa: F403
-
 from laboneq_library import calibration_helpers as calib_hlp
 from laboneq_library.analysis import analysis_helpers as ana_hlp
 
-from . import quantum_operations as qt_ops
+log = logging.getLogger(__name__)
+log.addHandler(StreamHandler(stream=sys.stderr))
+log.setLevel(logging.WARNING)
 
 
 @experiment(signals=["measure", "acquire"], uid="Full range CW resonator sweep")
@@ -143,7 +140,7 @@ def amplitude_rabi_single(
                     handle="rabi",
                     acquire_signal="acquire",
                     integration_kernel=integration_kernel,
-                    reset_delay=qubit.parameters.user_defined["reset_delay_length"],
+                    reset_delay=qubit.parameters.reset_delay_length,
                 )
         if cal_trace:
             with section(uid="cal_trace_gnd_meas"):
@@ -165,7 +162,7 @@ def amplitude_rabi_single(
                     handle="rabi_cal_trace",
                     acquire_signal="acquire",
                     integration_kernel=integration_kernel,
-                    reset_delay=qubit.parameters.user_defined["reset_delay_length"],
+                    reset_delay=qubit.parameters.reset_delay_length,
                 )
 
 
@@ -244,9 +241,7 @@ def ramsey_parallel(
                             handle=f"{qubit.uid}_ramsey",
                             acquire_signal=f"acquire_{qubit.uid}",
                             integration_kernel=qt_ops.integration_kernel(qubit),
-                            reset_delay=qubit.parameters.user_defined[
-                                "reset_delay_length"
-                            ],
+                            reset_delay=qubit.parameters.reset_delay_length,
                         )
 
                 if cal_trace:
@@ -260,7 +255,7 @@ def ramsey_parallel(
                             handle=f"{qubit.uid}_ramsey_cal_trace",
                             acquire_signal=f"acquire_{qubit.uid}",
                             integration_kernel=qt_ops.integration_kernel(qubit),
-                            reset_delay=1e-6,  # qubit.parameters.user_defined["reset_delay_length"],
+                            reset_delay=1e-6,
                         )
 
                     with section(
@@ -282,9 +277,7 @@ def ramsey_parallel(
                             handle=f"{qubit.uid}_ramsey_cal_trace",
                             acquire_signal=f"acquire_{qubit.uid}",
                             integration_kernel=qt_ops.integration_kernel(qubit),
-                            reset_delay=qubit.parameters.user_defined[
-                                "reset_delay_length"
-                            ],
+                            reset_delay=qubit.parameters.reset_delay_length,
                         )
 
     return exp_ramsey()
@@ -294,13 +287,99 @@ def ramsey_parallel(
 ##### Added by Steph   #####
 
 
-class ExperimentTemplate:
+class StatePreparationMixin:
+    def create_preparation(
+        self,
+        qubit,
+        state_to_prepare="e",
+        section_uid_suffix="",
+        play_after_sections=None,
+        add_measure_acquire_sections=False,
+        acquire_handle_name_suffix="",
+    ):
+        if len(section_uid_suffix) > 0:
+            section_uid_suffix = f"_{section_uid_suffix}"
+        if state_to_prepare == "g":
+            preparation_sections = []
+            if add_measure_acquire_sections:
+                g_measure_section = self.create_measure_acquire_sections(
+                    qubit=qubit,
+                    handle_suffix=f"{acquire_handle_name_suffix}_g",
+                )
+                preparation_sections = [g_measure_section]
+        elif state_to_prepare == "e":
+            e_section = Section(
+                uid=f"{qubit.uid}_prep_e{section_uid_suffix}",
+                play_after=play_after_sections,
+                on_system_grid=True,
+            )
+            e_section.play(
+                signal=self.signal_name("drive", qubit),
+                pulse=qt_ops.quantum_gate(qubit, "X180_ge", uid=f"{qubit.uid}_prep_e"),
+            )
+            preparation_sections = [e_section]
+            if add_measure_acquire_sections:
+                e_measure_section = self.create_measure_acquire_sections(
+                    qubit=qubit,
+                    play_after=f"{qubit.uid}_prep_e{section_uid_suffix}",
+                    handle_suffix=f"{acquire_handle_name_suffix}_e",
+                )
+                preparation_sections += [e_measure_section]
+        elif state_to_prepare == "f":
+            # prepare e state
+            e_section = Section(
+                uid=f"{qubit.uid}_prep_f_pulse_e{section_uid_suffix}",
+                play_after=play_after_sections,
+                on_system_grid=True,
+            )
+            e_section.play(
+                signal=self.signal_name("drive", qubit),
+                pulse=qt_ops.quantum_gate(
+                    qubit, "X180_ge", uid=f"{qubit.uid}_prep_f_pulse_e"
+                ),
+            )
+            # prepare f state
+            f_section = Section(
+                uid=f"{qubit.uid}_prep_f_pulse_f{section_uid_suffix}",
+                play_after=play_after_sections + [e_section],
+                on_system_grid=True,
+            )
+            f_section.play(
+                signal=self.signal_name("drive_ef", qubit),
+                pulse=qt_ops.quantum_gate(
+                    qubit, "X180_ef", uid=f"{qubit.uid}_prep_f_pulse_f"
+                ),
+            )
+            preparation_sections = [e_section, f_section]
+            if add_measure_acquire_sections:
+                f_measure_section = self.create_measure_acquire_sections(
+                    qubit=qubit,
+                    play_after=f"{qubit.uid}_prep_f_pulse_f{section_uid_suffix}",
+                    handle_suffix=f"{acquire_handle_name_suffix}_f",
+                )
+                preparation_sections += [f_measure_section]
+        else:
+            raise NotImplementedError(
+                "Currently, only state g, e and f " "can be prepared."
+            )
+        return preparation_sections
+
+
+class ExperimentTemplate(StatePreparationMixin):
     fallback_experiment_name = "Experiment"
-    savedir = None
+    save_directory = None
     timestamp = None
-    compiled_exp = None
-    fit_results = None
-    new_qubit_parameters = None
+    compiled_experiment = None
+    results = None
+    analysis_results = None
+    valid_user_parameters = dict(
+        experiment_metainfo=[],
+        analysis_metainfo=[
+            "figure_name",
+            "overwrite_figures",
+            "figure_formats",
+        ],
+    )
 
     def __init__(
         self,
@@ -312,16 +391,17 @@ class ExperimentTemplate:
         sweep_parameters_dict=None,
         experiment_metainfo=None,
         acquisition_metainfo=None,
-        cal_states=None,
-        datadir=None,
+        qubit_temporary_values=None,
+        apply_exit_condition=False,
         do_analysis=True,
         analysis_metainfo=None,
         save=True,
+        data_directory=None,
         update=False,
         run=False,
+        check_valid_user_parameters=True,
         **kwargs,
     ):
-
         self.qubits = qubits
         self.session = session
         self.measurement_setup = measurement_setup
@@ -332,35 +412,39 @@ class ExperimentTemplate:
         for key, sd in self.sweep_parameters_dict.items():
             if not hasattr(sd, "__iter__"):
                 self.sweep_parameters_dict[key] = [sd]
-        self.cal_states = cal_states
 
         self.experiment_metainfo = experiment_metainfo
         if self.experiment_metainfo is None:
             self.experiment_metainfo = {}
+        self.cal_states = self.experiment_metainfo.get("cal_states", None)
         if acquisition_metainfo is None:
             acquisition_metainfo = {}
         self.acquisition_metainfo = dict(count=2**12)
         # overwrite default with user-provided options
         self.acquisition_metainfo.update(acquisition_metainfo)
+        if qubit_temporary_values is None:
+            qubit_temporary_values = {}
+        self.qubit_temporary_values = qubit_temporary_values
 
-        self.datadir = datadir
+        self.data_directory = data_directory
         self.do_analysis = do_analysis
         self.analysis_metainfo = analysis_metainfo
         if self.analysis_metainfo is None:
             self.analysis_metainfo = {}
         self.update = update
-        if self.update and self.analysis_metainfo.get("do_fitting", False):
-            log.warning(
-                "update is True but "
-                "analysis_metainfo['do_fitting'] is False. Qubit "
-                "parameters will not be updated."
-            )
         self.save = save
+        if self.save and self.data_directory is None:
+            raise ValueError(
+                "save==True, but no data_directory was specified. "
+                "Please provide data_directory or set save=False."
+            )
 
         self.experiment_name = experiment_name
         if self.experiment_name is None:
             self.experiment_name = self.fallback_experiment_name
         self.create_experiment_label()
+        self.generate_timestamp_save_directory()
+
         self.signals = signals
         if self.signals is None:
             self.signals = ["drive", "measure", "acquire"]
@@ -368,11 +452,33 @@ class ExperimentTemplate:
             self.experiment_signals,
             self.experiment_signal_uids_qubit_map,
         ) = self.create_experiment_signals(self.qubits, self.signals)
+
+        self.apply_exit_condition = apply_exit_condition
+        if check_valid_user_parameters:
+            self.check_user_parameters_validity()
         self.create_experiment()
 
         self.run = run
         if self.run:
             self.autorun()
+
+    def check_user_parameters_validity(self):
+        for par in self.experiment_metainfo:
+            if par not in self.valid_user_parameters["experiment_metainfo"]:
+                log.warning(
+                    f"Parameter '{par}' passed to experiment_metainfo "
+                    f"is not recognised and will probably not have an effect. "
+                    f"The valid parameters are "
+                    f"{self.valid_user_parameters['experiment_metainfo']}"
+                )
+        for par in self.analysis_metainfo:
+            if par not in self.valid_user_parameters["analysis_metainfo"]:
+                log.warning(
+                    f"Parameter '{par}' passed to analysis_metainfo "
+                    f"is not recognised and will probably not have an effect. "
+                    f"The valid parameters are "
+                    f"{self.valid_user_parameters['analysis_metainfo']}"
+                )
 
     def create_experiment_label(self):
         if len(self.qubits) <= 5:
@@ -407,168 +513,369 @@ class ExperimentTemplate:
         )
 
     def define_experiment(self):
-        # Define the experiment acquire loops, sweeps, sections, pulses
-        # To be overridden by children
-        self.sweeps_dict = {}
-        for qubit in self.qubits:
-            self.sweeps_dict[qubit.uid] = []
-            for i, swp in enumerate(self.sweep_parameters_dict[qubit.uid]):
-                self.sweeps_dict[qubit.uid] += [
-                    Sweep(
-                        uid=f"{qubit.uid}_{self.experiment_name}_sweep_{i}",
-                        parameters=[swp],
-                    )
-                ]
+        """
+        Define the experiment acquire loops, sweeps, sections, pulses
+
+        To be overridden by children
+
+        """
+        pass
 
     def configure_experiment(self):
         """
-        Set experiment calibration.
+        Set the measurement_setup calibration from the qubits calibrations.
 
-        This method sets the experiment calibration from the qubit
-        calibration of a signal line. To be overridden by children for
-        overwriting settings.
+        To be overridden by children for setting the experiment calibration.
 
         """
+        self.update_measurement_setup()
 
-        expcal = Calibration()
-        for qubit in self.qubits:
-            qbcal = qubit.calibration()
-            for (
-                sig
-            ) in self.signals:  # 'drive', 'drive_ef', 'flux', 'measure', 'acquire'
-                expcal[self.signal_name(sig, qubit)] = qbcal[qubit.signals[sig]]
-        self.experiment.set_calibration(expcal)
+    def create_unique_uids(self):
+        from laboneq.dsl.experiment.play_pulse import PlayPulse
+
+        uids = set()
+
+        def rename_uid_sweep_section(sec, suffix):
+            if isinstance(sec, (Sweep, Section)):
+                if sec.uid in uids:
+                    sec_type = "Sweep" if isinstance(sec, type(Sweep)) else "Section"
+                    print(f"Renaming {sec_type} uid {sec.uid} to {sec.uid}_{suffix}")
+                    sec.uid += f"_{suffix}"
+                    suffix += 1
+                uids.add(sec.uid)
+                for ch in sec.children:
+                    suffix = rename_uid_sweep_section(ch, suffix=suffix)
+            elif isinstance(sec, PlayPulse):
+                if sec.pulse.uid in uids:
+                    print(
+                        f"Renaming Pulse with uid {sec.pulse.uid} to {sec.pulse.uid}_{suffix}"
+                    )
+                    sec.pulse.uid += f"_{suffix}"
+                    suffix += 1
+                uids.add(sec.pulse.uid)
+            return suffix
+
+        for i, sec in enumerate(self.experiment.sections):
+            rename_uid_sweep_section(sec, suffix=0)
 
     def compile_experiment(self):
-        if len(self.experiment.sections) == 0:
-            self.define_experiment()
-        calib = self.experiment.get_calibration()
-        if all([cv is None for cv in calib.values()]):
-            self.configure_experiment()
-        self.compiled_exp = self.session.compile(self.experiment)
+        self.create_unique_uids()
+        self.compiled_experiment = self.session.compile(self.experiment)
 
     def run_experiment(self):
-        if self.savedir is None:
-            self.create_timestamp_savedir()
-        if self.compiled_exp is None:
-            self.compile_experiment()
-        self.results = self.session.run(self.compiled_exp)
-        return self.results
+        self.results = self.session.run(self.compiled_experiment)
 
-    def analyse_experiment(self):
+    def execute_exit_condition(self):
         # to be overridden by children
         pass
 
-    @staticmethod
-    def update_measurement_setup(qubits, measurement_setup):
-        calib_hlp.update_measurement_setup_from_qubits(qubits, measurement_setup)
+    def analyse_experiment(self):
+        # to be overridden by children
+        self.analysis_results = {
+            qubit.uid: dict(
+                new_parameter_values=dict(),
+                old_parameter_values=dict(),
+                fit_results=None,
+            )
+            for qubit in self.qubits
+        }
+
+    def update_measurement_setup(self):
+        calib_hlp.update_measurement_setup_from_qubits(
+            self.qubits, self.measurement_setup
+        )
 
     def update_qubit_parameters(self):
         pass
 
     def update_entire_setup(self):
         self.update_qubit_parameters()
-        self.update_measurement_setup(self.qubits, self.measurement_setup)
+        self.update_measurement_setup()
 
-    def create_timestamp_savedir(self):
+    def reset_setup(self):
+        old_qb_params_exist = any(
+            [
+                len(self.analysis_results[qubit.uid]["old_parameter_values"]) > 0
+                for qubit in self.qubits
+            ]
+        )
+        if old_qb_params_exist:
+            for qubit in self.qubits:
+                old_qb_pars = self.analysis_results[qubit.uid]["old_parameter_values"]
+                for qb_par, par_value in old_qb_pars.items():
+                    if qb_par in qubit.parameters.__dict__:
+                        qubit.parameters.__dict__[qb_par] = par_value
+                        if qb_par == "dc_voltage_parking":
+                            nt_cb_func = self.experiment_metainfo.get(
+                                "neartime_callback_function", None
+                            )
+                            if nt_cb_func is None:
+                                raise ValueError(
+                                    "Please provide the neartime callback function "
+                                    "for setting the dc voltage in "
+                                    "experiment_metainfo['neartime_callback_function']."
+                                )
+                            log.info(
+                                f"Updating DC voltage source slot "
+                                f"{qubit.parameters.dc_slot} ({qubit.uid}) to the "
+                                f"new value of {par_value:.4f}."
+                            )
+                            nt_cb_func(self.session, par_value, qubit)
+                    elif qb_par.startswith("ge"):
+                        par_name = qb_par.split("_")[-1]
+                        qubit.parameters.drive_parameters_ge[par_name] = par_value
+                    elif qb_par.startswith("ef"):
+                        par_name = qb_par.split("_")[-1]
+                        qubit.parameters.drive_parameters_ef[par_name] = par_value
+                    else:
+                        log.warning(
+                            f"Parameter {qb_par} was not found for "
+                            f"{qubit.uid}. This parameter was not reset."
+                        )
+            self.update_measurement_setup()
+
+    def generate_timestamp_save_directory(self):
         # create experiment timestamp
         self.timestamp = str(time.strftime("%Y%m%d_%H%M%S"))
-        # create experiment savedir
-        self.savedir = os.path.abspath(
-            os.path.join(
-                self.datadir,
-                f"{self.timestamp[:8]}",
-                f"{self.timestamp[-6:]}_{self.experiment_label}",
+        if self.data_directory is not None:
+            # create experiment save_directory
+            self.save_directory = os.path.abspath(
+                os.path.join(
+                    self.data_directory,
+                    f"{self.timestamp[:8]}",
+                    f"{self.timestamp[-6:]}_{self.experiment_label}",
+                )
             )
-        )
-        # create the savedir
-        if not os.path.exists(self.savedir):
-            os.makedirs(self.savedir)
 
-    def save_experiment(self):
-        if self.savedir is None:
-            self.create_timestamp_savedir()
+    def create_save_directory(self):
+        # create the save_directory inside self.data_directory
+        if self.save_directory is not None and not os.path.exists(self.save_directory):
+            os.makedirs(self.save_directory)
 
-        # Save Results
-        results_file = os.path.abspath(
-            os.path.join(self.savedir, f"{self.timestamp}_results.json")
-        )
-        try:
-            self.results.save(results_file)
-        except Exception as e:
-            log.warning(f"Could not save all the results: {e}")
+    def save_measurement_setup(self):
+        """
+        Saves the measurement_setup into a json file, and creates another json
+        file with the meta-information passed to this class: experiment_metainfo
+        and analysis_metainfo.
 
-        # Save acquired results
-        filename = os.path.abspath(
-            os.path.join(self.savedir, f"{self.timestamp}_acquired_results.p")
-        )
-        with open(filename, "wb") as f:
-            pickle.dump(self.results.acquired_results, f)
+        The saved measurement_setup contains the setup description before the
+        execution of the experiment.
+
+        """
+        self.create_save_directory()
 
         # Save the measurement setup
-        filename = os.path.abspath(
-            os.path.join(self.savedir, f"{self.timestamp}_measurement_setup.json")
+        filename = "measurement_setup_before_experiment.json"
+        filename = f"{self.timestamp}_{filename}"
+        filepath = os.path.abspath(os.path.join(self.save_directory, filename))
+        if filename not in os.listdir(self.save_directory):
+            # only save the setup if the file does not already exist
+            self.measurement_setup.save(filepath)
+
+    def save_experiment_metainfo(self):
+        # Save the meta-information
+        metainfo = {
+            "sweep_parameters_dict": self.sweep_parameters_dict,
+            "experiment_metainfo": self.experiment_metainfo,
+            "analysis_metainfo": self.analysis_metainfo,
+        }
+        metainfo_file = os.path.abspath(
+            os.path.join(self.save_directory, f"{self.timestamp}_meta_information.p")
         )
-        self.measurement_setup.save(filename)
+        with open(metainfo_file, "wb") as f:
+            pickle.dump(metainfo, f)
+
+    def save_results(self, filename_suffix=""):
+        if len(filename_suffix) > 0:
+            filename_suffix = f"_{filename_suffix}"
+        if self.results is not None:
+            self.create_save_directory()
+            # Save Results
+            results_file = os.path.abspath(
+                os.path.join(
+                    self.save_directory,
+                    f"{self.timestamp}_results{filename_suffix}.json",
+                )
+            )
+            try:
+                self.results.save(results_file)
+            except Exception as e:
+                log.warning(f"Could not save all the results: {e}")
+
+            # Save only the acquired results as pickle: fallback in case
+            # something goes wrong with the serialisation
+            filename = os.path.abspath(
+                os.path.join(
+                    self.save_directory,
+                    f"{self.timestamp}_acquired_results{filename_suffix}.p",
+                )
+            )
+            with open(filename, "wb") as f:
+                pickle.dump(self.results.acquired_results, f)
 
     def save_figure(self, fig, qubit, figure_name=None):
-        if self.savedir is None:
-            self.create_timestamp_savedir()
+        self.create_save_directory()
         fig_name = self.analysis_metainfo.get("figure_name", figure_name)
         if fig_name is None:
             fig_name = f"{self.timestamp}_{self.experiment_name}_{qubit.uid}"
-        fig.savefig(self.savedir + f"\\{fig_name}.png", bbox_inches="tight", dpi=600)
+        fig_name_final = fig_name
+        if not self.analysis_metainfo.get("overwrite_figures", False):
+            i = 1
+            # check if filename exists in self.save_directory
+            while any(
+                [
+                    fn.endswith(f"{fig_name_final}.png")
+                    for fn in os.listdir(self.save_directory)
+                ]
+            ):
+                fig_name_final = f"{fig_name}_{i}"
+                i += 1
+        fig_fmts = self.analysis_metainfo.get("figure_formats", ["png"])
+        for fmt in fig_fmts:
+            fig.savefig(
+                self.save_directory + f"\\{fig_name_final}.{fmt}",
+                bbox_inches="tight",
+                dpi=600,
+            )
 
-    def save_fit_results(self):
-        if self.fit_results is not None:
-            # Save fit results into a json file
-            fit_res_file = os.path.abspath(
-                os.path.join(self.savedir, f"{self.timestamp}_fit_results.json")
-            )
-            fit_results_to_save = {}
-            for qbuid, fit_res in self.fit_results.items():
-                if isinstance(fit_res, dict):
-                    fit_results_to_save[qbuid] = {}
-                    for k, fr in fit_res.items():
-                        fit_results_to_save[qbuid][
-                            k
-                        ] = ana_hlp.flatten_lmfit_modelresult(fr)
-                else:
-                    fit_results_to_save[qbuid] = ana_hlp.flatten_lmfit_modelresult(
-                        fit_res
+    def save_analysis_results(self, filename_suffix=""):
+        if self.analysis_results is None:
+            return
+
+        new_qb_params_exist = any(
+            [
+                len(self.analysis_results[qubit.uid]["new_parameter_values"]) > 0
+                for qubit in self.qubits
+            ]
+        )
+        old_qb_params_exist = any(
+            [
+                len(self.analysis_results[qubit.uid]["old_parameter_values"]) > 0
+                for qubit in self.qubits
+            ]
+        )
+        fit_results_exist = any(
+            [
+                self.analysis_results[qubit.uid]["fit_results"] is not None
+                for qubit in self.qubits
+            ]
+        )
+        other_ana_res_exist = any(
+            [len(self.analysis_results[qubit.uid]) > 2 for qubit in self.qubits]
+        )
+
+        if (
+            new_qb_params_exist
+            or old_qb_params_exist
+            or fit_results_exist
+            or other_ana_res_exist
+        ):
+            self.create_save_directory()
+
+            if len(filename_suffix) > 0:
+                filename_suffix = f"_{filename_suffix}"
+
+            # Save fit results as json for easier readability
+            if fit_results_exist:
+                fit_results_to_save_json = dict()
+                for qbuid, ana_res in self.analysis_results.items():
+                    fit_results = self.analysis_results[qbuid]["fit_results"]
+                    # Convert lmfit results into a dictionary that can be saved
+                    # as json
+                    if isinstance(fit_results, dict):
+                        fit_results_to_save_json[qbuid] = {}
+                        for k, fr in fit_results.items():
+                            fit_results_to_save_json[qbuid][
+                                k
+                            ] = ana_hlp.flatten_lmfit_modelresult(fr)
+                    else:
+                        fit_results_to_save_json[
+                            qbuid
+                        ] = ana_hlp.flatten_lmfit_modelresult(fit_results)
+                # Save fit results into a json file
+                fit_res_file = os.path.abspath(
+                    os.path.join(
+                        self.save_directory,
+                        f"{self.timestamp}_fit_results{filename_suffix}.json",
                     )
-            with open(fit_res_file, "w") as file:
-                json.dump(fit_results_to_save, file, indent=2)
-            # Save fit results into a pickle file
-            filename = os.path.abspath(
-                os.path.join(self.savedir, f"{self.timestamp}_fit_results.p")
+                )
+                with open(fit_res_file, "w") as file:
+                    json.dump(fit_results_to_save_json, file, indent=2)
+
+            # ana_results_to_save = deepcopy(self.analysis_results)
+            # fit_results_to_pickle = dict()
+            # if fit_results_exist:
+            #     for qbuid, ana_res in self.analysis_results.items():
+            #         fit_results = self.analysis_results[qbuid]["fit_results"]
+            #         fit_results_to_pickle[qbuid] = fit_results
+            #
+            #         # Convert lmfit results into a dictionary that can be saved
+            #         # as json
+            #         if isinstance(fit_results, dict):
+            #             ana_results_to_save[qbuid]["fit_results"] = {}
+            #             for k, fr in fit_results.items():
+            #                 ana_results_to_save["fit_results"][qbuid][k] = \
+            #                     ana_hlp.flatten_lmfit_modelresult(fr)
+            #         else:
+            #             ana_results_to_save[qbuid]["fit_results"] = \
+            #                 ana_hlp.flatten_lmfit_modelresult(fit_results)
+            #
+            #     # Save fit results into a pickle file
+            #     filename = os.path.abspath(os.path.join(
+            #         self.save_directory,
+            #         f"{self.timestamp}_fit_results{filename_suffix}.p")
+            #     )
+            #     with open(filename, "wb") as f:
+            #         pickle.dump(fit_results_to_pickle, f)
+
+            # Save analysis_results pickle file
+            ana_res_file = os.path.abspath(
+                os.path.join(
+                    self.save_directory,
+                    f"{self.timestamp}_analysis_results{filename_suffix}.p",
+                )
             )
-            with open(filename, "wb") as f:
-                pickle.dump(self.fit_results, f)
+            with open(ana_res_file, "wb") as f:
+                pickle.dump(self.analysis_results, f)
 
     def autorun(self):
         try:
-            if self.compiled_exp is None:
-                self.compile_experiment()
-            self.run_experiment()
             if self.save:
-                self.save_experiment()
-            if self.do_analysis:
-                self.analyse_experiment()
+                # save the measurement setup configuration before the experiment
+                # execution
+                self.save_measurement_setup()
+                # save the meta-information
+                self.save_experiment_metainfo()
+            with calib_hlp.QubitTemporaryValuesContext(*self.qubit_temporary_values):
+                self.define_experiment()
+                self.configure_experiment()
+                self.compile_experiment()
+                self.run_experiment()
+                if self.apply_exit_condition:
+                    self.execute_exit_condition()
+                if self.do_analysis:
+                    self.analyse_experiment()
             if self.update:
                 self.update_entire_setup()
-            return self.results
+            if self.save:
+                # Save Results object
+                self.save_results()
+                # Save the fit results
+                self.save_analysis_results()
         except Exception:
             log.error("Unhandled error during experiment!")
             log.error(traceback.format_exc())
 
     def create_acquire_rt_loop(self):
-        self.acquire_loop = AcquireLoopRt(
-            uid="RT_Acquire_Loop", **self.acquisition_metainfo
-        )
+        self.acquire_loop = AcquireLoopRt(**self.acquisition_metainfo)
 
     def create_measure_acquire_sections(
-        self, uid, qubit, play_after=None, handle_suffix="", integration_kernel=None
+        self,
+        qubit,
+        uid=None,
+        play_after=None,
+        handle_suffix="",
+        integration_kernel="default",
     ):
         handle = f"{self.experiment_name}_{qubit.uid}"
         if len(handle_suffix) > 0:
@@ -578,13 +885,14 @@ class ExperimentTemplate:
         if not hasattr(self, "integration_kernel"):
             # ensure the integration_kernel is created only once to avoid
             # serialisation errors
-            self.integration_kernel = pulse_library.const(
-                uid=f"integration_kernel_{qubit.uid}",
-                length=qubit.parameters.readout_integration_length,
-                amplitude=1,
-            )
-        if integration_kernel is None:
+            self.integration_kernel = qubit.get_integration_kernels()
+            for int_krn in self.integration_kernel:
+                if hasattr(int_krn, "uid"):
+                    int_krn.uid = f"integration_kernel_{qubit.uid}"
+        if integration_kernel == "default":
             integration_kernel = self.integration_kernel
+        if isinstance(integration_kernel, list) and len(integration_kernel) == 1:
+            integration_kernel = integration_kernel[0]
         measure_acquire_section = Section(uid=uid)
         measure_acquire_section.play_after = play_after
         measure_acquire_section.measure(
@@ -594,7 +902,7 @@ class ExperimentTemplate:
             acquire_signal=self.signal_name("acquire", qubit),
             integration_kernel=integration_kernel,
             integration_length=qubit.parameters.readout_integration_length,
-            reset_delay=qubit.parameters.user_defined["reset_delay_length"],
+            reset_delay=qubit.parameters.reset_delay_length,
         )
         return measure_acquire_section
 
@@ -607,7 +915,6 @@ class ExperimentTemplate:
         if "g" in self.cal_states:
             # Ground state - just a msmt
             g_measure_section = self.create_measure_acquire_sections(
-                uid=f"{qubit.uid}_cal_trace_g_meas",
                 qubit=qubit,
                 handle_suffix="cal_trace_g",
             )
@@ -615,60 +922,35 @@ class ExperimentTemplate:
             cal_trace_sections += [g_measure_section]
         if "e" in self.cal_states:
             # Excited state - prep pulse + msmt
-            e_section = Section(
-                uid=f"{qubit.uid}_cal_trace_e",
-                play_after=play_after_sections,
-            )
-            e_section.play(
-                signal=self.signal_name("drive", qubit),
-                pulse=qt_ops.quantum_gate(
-                    qubit, "X180_ge", uid=f"{qubit.uid}_cal_trace_e"
-                ),
+            e_prep_sections = self.create_preparation(
+                qubit,
+                state_to_prepare="e",
+                play_after_sections=play_after_sections,
+                section_uid_suffix="cal_traces",
             )
             e_measure_section = self.create_measure_acquire_sections(
-                uid=f"{qubit.uid}_cal_trace_e_meas",
                 qubit=qubit,
-                play_after=f"{qubit.uid}_cal_trace_e",
+                play_after=e_prep_sections,
                 handle_suffix="cal_trace_e",
             )
-            play_after_sections = [s for s in play_after_sections] + [
-                e_section,
-                e_measure_section,
-            ]
-            cal_trace_sections += [e_section, e_measure_section]
+            play_after_sections = (
+                [s for s in play_after_sections] + e_prep_sections + [e_measure_section]
+            )
+            cal_trace_sections += e_prep_sections + [e_measure_section]
         if "f" in self.cal_states:
-            # Excited state - prep pulse + msmt
-            # prepare e state
-            e_section = Section(
-                uid=f"{qubit.uid}_cal_trace_f_e",
-                play_after=play_after_sections,
-                on_system_grid=True,
+            # 2nd-excited-state - prep pulse + msmt
+            f_prep_sections = self.create_preparation(
+                qubit,
+                state_to_prepare="f",
+                play_after_sections=play_after_sections,
+                section_uid_suffix="cal_traces",
             )
-            e_section.play(
-                signal=self.signal_name("drive", qubit),
-                pulse=qt_ops.quantum_gate(
-                    qubit, "X180_ge", uid=f"{qubit.uid}_cal_trace_f_e"
-                ),
-            )
-            # prepare f state
-            f_section = Section(
-                uid=f"{qubit.uid}_cal_trace_f_f",
-                play_after=play_after_sections + [e_section],
-                on_system_grid=True,
-            )
-            f_section.play(
-                signal=self.signal_name("drive_ef", qubit),
-                pulse=qt_ops.quantum_gate(
-                    qubit, "X180_ef", uid=f"{qubit.uid}_cal_trace_f_f"
-                ),
-            )
-            measure_section = self.create_measure_acquire_sections(
-                uid=f"{qubit.uid}_cal_trace_f_meas",
+            f_measure_section = self.create_measure_acquire_sections(
                 qubit=qubit,
-                play_after=f"{qubit.uid}_cal_trace_f_f",
+                play_after=f_prep_sections,
                 handle_suffix="cal_trace_f",
             )
-            cal_trace_sections += [e_section, f_section, measure_section]
+            cal_trace_sections += f_prep_sections + [f_measure_section]
         for cal_tr_sec in cal_trace_sections:
             if section_container is None:
                 self.acquire_loop.add(cal_tr_sec)
@@ -676,1830 +958,18 @@ class ExperimentTemplate:
                 section_container.add(cal_tr_sec)
 
 
-class ResonatorSpectroscopy(ExperimentTemplate):
-    fallback_experiment_name = "ResonatorSpectroscopy"
-
-    def __init__(self, *args, **kwargs):
-        kwargs["signals"] = kwargs.pop("signals", ["measure", "acquire"])
-
-        acquisition_metainfo_user = kwargs.pop("acquisition_metainfo", dict())
-        acquisition_metainfo = dict(acquisition_type=AcquisitionType.SPECTROSCOPY)
-        acquisition_metainfo.update(acquisition_metainfo_user)
-        kwargs["acquisition_metainfo"] = acquisition_metainfo
-
-        experiment_metainfo = kwargs.get("experiment_metainfo", dict())
-        self.nt_swp_par = experiment_metainfo.get(
-            "neartime_sweep_parameter", "frequency"
-        )
-        self.pulsed = experiment_metainfo.get("pulsed", False)
-        run = kwargs.pop("run", False)  # instantiate base without running exp
-        kwargs["run"] = False
-        super().__init__(*args, **kwargs)
-
-        # Add suffix to experiment name
-        if self.nt_swp_par != "frequency":
-            self.experiment_name += (
-                f"{self.nt_swp_par[0].upper()}{self.nt_swp_par[1:]}Sweep"
-            )
-            self.create_experiment_label()
-
-        for qubit in self.qubits:
-            freq_swp = self.sweep_parameters_dict[qubit.uid][0]
-            if all(freq_swp.values > 1e9):
-                # sweep values are passed as qubit resonance frequencies:
-                # subtract lo freq to sweep if freq
-                if_freq_swp = SweepParameter(
-                    f"if_freq_{qubit.uid}",
-                    values=freq_swp.values - qubit.parameters.readout_lo_frequency,
-                    axis_name=freq_swp.axis_name,
-                    driven_by=[freq_swp],
-                )
-                self.sweep_parameters_dict[qubit.uid][0] = if_freq_swp
-
-        self.run = run
-        if self.run:
-            self.autorun()
-
-    def define_experiment(self):
-        self.experiment.sections = []
-        self.create_acquire_rt_loop()
-        for qubit in self.qubits:
-            ro_pulse_amp = qubit.parameters.user_defined["readout_amplitude"]
-            qb_sweep_pars = self.sweep_parameters_dict[qubit.uid]
-            nt_sweep = None
-            if len(qb_sweep_pars) > 1:
-                nt_sweep_par = qb_sweep_pars[1]
-                nt_sweep = Sweep(
-                    uid=f"neartime_{self.nt_swp_par}_sweep_{qubit.uid}",
-                    parameters=[nt_sweep_par],
-                )
-                self.experiment.add(nt_sweep)
-                if self.nt_swp_par == "voltage":
-                    ntsf = self.experiment_metainfo.get(
-                        "neartime_callback_function", None
-                    )
-                    if ntsf is None:
-                        raise ValueError(
-                            "Please provide the neartime callback function for "
-                            "the voltage sweep in "
-                            "experiment_metainfo['neartime_sweep_prameter']."
-                        )
-                    # all near-time callback functions have the format
-                    # func(session, sweep_param_value, qubit)
-                    nt_sweep.call(ntsf, voltage=nt_sweep_par, qubit=qubit)
-                elif self.nt_swp_par == "amplitude":
-                    ro_pulse_amp = 1
-                # add real-time loop to nt_sweep
-                nt_sweep.add(self.acquire_loop)
-            else:
-                self.experiment.add(self.acquire_loop)
-
-            inner_freq_sweep = qb_sweep_pars[0]
-            sweep_inner = Sweep(
-                uid=f"resonator_frequency_inner_{qubit.uid}",
-                parameters=[inner_freq_sweep],
-            )
-            measure_acquire_section = Section(uid=f"measure_acquire_{qubit.uid}")
-            if self.pulsed:
-                ro_pulse = pulse_library.const(
-                    length=qubit.parameters.user_defined["readout_length"],
-                    amplitude=ro_pulse_amp,
-                )
-                integration_kernel = pulse_library.const(
-                    uid=f"integration_kernel_{qubit.uid}",
-                    length=qubit.parameters.readout_integration_length,
-                    amplitude=1,
-                )
-                measure_acquire_section.measure(
-                    measure_signal=self.signal_name("measure", qubit),
-                    measure_pulse=ro_pulse,
-                    handle=f"{self.experiment_name}_{qubit.uid}",
-                    acquire_signal=self.signal_name("acquire", qubit),
-                    integration_kernel=integration_kernel,
-                    integration_length=qubit.parameters.readout_integration_length,
-                    reset_delay=qubit.parameters.user_defined["reset_delay_length"],
-                )
-                sweep_inner.add(measure_acquire_section)
-            else:
-                measure_acquire_section.measure(
-                    measure_signal=None,
-                    handle=f"{self.experiment_name}_{qubit.uid}",
-                    acquire_signal=self.signal_name("acquire", qubit),
-                    integration_length=qubit.parameters.readout_integration_length,
-                    reset_delay=qubit.parameters.user_defined["reset_delay_length"],
-                )
-                # why is the reserve_sec needed for cw but not for pulsed?
-                reserve_sec = Section(uid=f"delay_{qubit.uid}", length=1e-6)
-                # holdoff time after signal acquisition
-                reserve_sec.reserve(signal=f"measure_{qubit.uid}")
-                reserve_sec.reserve(signal=f"acquire_{qubit.uid}")
-
-                sweep_inner.add(measure_acquire_section)
-                sweep_inner.add(reserve_sec)
-
-            self.acquire_loop.add(sweep_inner)
-
-    def configure_experiment(self):
-        super().configure_experiment()
-
-        # configure sweep
-        for qubit in self.qubits:
-            qb_sweep = self.sweep_parameters_dict[qubit.uid]
-            local_oscillator = None
-            ro_amplitude = None
-            if len(qb_sweep) > 1:
-                if self.nt_swp_par == "amplitude":  # and not self.pulsed:
-                    ro_amplitude = qb_sweep[1]
-                elif self.nt_swp_par == "frequency":
-                    local_oscillator = Oscillator(frequency=qb_sweep[1])
-
-            freq_swp = qb_sweep[0]
-            cal_measure = self.experiment.signals[
-                self.signal_name("measure", qubit)
-            ].calibration
-            cal_measure.oscillator = Oscillator(
-                frequency=freq_swp, modulation_type=ModulationType.HARDWARE
-            )
-            if local_oscillator is not None:
-                cal_measure.local_oscillator = local_oscillator
-            cal_acquire = self.experiment.signals[
-                self.signal_name("acquire", qubit)
-            ].calibration
-            cal_acquire.local_oscillator = local_oscillator
-            if ro_amplitude is not None:
-                cal_measure.amplitude = ro_amplitude
-
-    def analyse_experiment(self):
-        ts = self.timestamp if self.timestamp is not None else ""
-        self.new_qubit_parameters = {}
-        self.fit_results = {}
-        freq_filter = self.analysis_metainfo.get("frequency_filter_for_fit", {})
-        if not hasattr(freq_filter, "__iter__"):
-            freq_filter = {qubit.uid: freq_filter for qubit in self.qubits}
-        find_peaks = self.analysis_metainfo.get("find_peaks", {})
-        if not hasattr(find_peaks, "__iter__"):
-            find_peaks = {qubit.uid: find_peaks for qubit in self.qubits}
-        for qubit in self.qubits:
-            self.new_qubit_parameters[qubit.uid] = {}
-            # get frequency filter of qubit
-            ff_qb = freq_filter.get(qubit.uid, None)
-            # decide whether to extract peaks or dips for qubit
-            fp_qb = find_peaks.get(qubit.uid, False)
-            take_extremum = np.argmax if fp_qb else np.argmin
-            # extract data
-            handle = f"{self.experiment_name}_{qubit.uid}"
-            data_mag = abs(self.results.get_data(handle))
-            res_axis = self.results.get_axis(handle)
-            if self.nt_swp_par == "frequency":
-                data_mag = np.array([data for data in data_mag]).flatten()
-                if len(res_axis) > 1:
-                    outer = self.results.get_axis(handle)[0]
-                    inner = self.results.get_axis(handle)[1]
-                    freqs = np.array([out + inner for out in outer]).flatten()
-                else:
-                    freqs = (
-                        self.results.get_axis(handle)[0]
-                        + qubit.parameters.readout_lo_frequency
-                    )
-
-                data_to_search = data_mag if ff_qb is None else data_mag[ff_qb(freqs)]
-                freqs_to_search = freqs if ff_qb is None else freqs[ff_qb(freqs)]
-                f0 = freqs_to_search[take_extremum(data_to_search)]
-                d0 = data_to_search[take_extremum(data_to_search)]
-                self.new_qubit_parameters[qubit.uid]["readout_resonator_frequency"] = f0
-
-                # plot data
-                fig, ax = plt.subplots()
-                ax.plot(freqs / 1e9, data_mag)
-                ax.plot(f0 / 1e9, d0, "ro")
-                textstr = f"Extracted readout-resonator frequency: {f0 / 1e9:.4f} GHz"
-                textstr += (
-                    f"\nCurrent readout-resonator frequency: "
-                    f"{qubit.parameters.readout_resonator_frequency / 1e9:.4f} GHz"
-                )
-                ax.text(0, -0.15, textstr, ha="left", va="top", transform=ax.transAxes)
-                ax.set_xlabel(self.results.get_axis_name(handle)[0])
-                ax.set_ylabel("Signal Magnitude (a.u.)")
-            else:
-                # 2D plot of results
-                nt_sweep_par_vals = self.results.get_axis(handle)[0]
-                nt_sweep_par_name = self.results.get_axis_name(handle)[0]
-                freqs = (
-                    self.results.get_axis(handle)[1]
-                    + qubit.parameters.readout_lo_frequency
-                )
-                freqs_axis_name = self.results.get_axis_name(handle)[1]
-                data_mag = abs(self.results.get_data(handle))
-
-                X, Y = np.meshgrid(freqs / 1e9, nt_sweep_par_vals)
-                fig, ax = plt.subplots(constrained_layout=True)
-
-                CS = ax.contourf(X, Y, data_mag, levels=100, cmap="magma")
-                ax.set_title(f"{handle}")
-                ax.set_xlabel(freqs_axis_name)
-                ax.set_ylabel(nt_sweep_par_name)
-                cbar = fig.colorbar(CS)
-                cbar.set_label("Signal Magnitude (a.u.)")
-
-                if self.nt_swp_par == "voltage":
-                    # 1D plot of the qubit frequency vs voltage
-                    if ff_qb is None:
-                        freqs_dips = freqs[take_extremum(data_mag, axis=1)]
-                    else:
-                        mask = ff_qb(freqs)
-                        freqs_dips = freqs[mask][
-                            take_extremum(data_mag[:, mask], axis=1)
-                        ]
-                    # plot
-                    ax.plot(freqs_dips / 1e9, nt_sweep_par_vals, "ow")
-                    # figure out whether voltages vs freqs is convex or concave
-                    take_extremum_fit, scf = (
-                        (np.argmax, 1)
-                        if (ana_hlp.is_data_convex(nt_sweep_par_vals, freqs_dips))
-                        else (np.argmin, -1)
-                    )
-                    # optimal parking parameters at the extremum of
-                    # voltages vs frequencies
-                    f0 = freqs_dips[take_extremum_fit(freqs_dips)]
-                    V0 = nt_sweep_par_vals[take_extremum_fit(freqs_dips)]
-                    self.new_qubit_parameters[qubit.uid].update(
-                        {"readout_resonator_frequency": f0, "dc_voltage_parking": V0}
-                    )
-
-                    if self.analysis_metainfo.get("do_fitting", True):
-                        # fit frequency vs voltage and take the optimal parking
-                        # parameters from fit
-                        data_to_fit = freqs_dips
-                        swpts_to_fit = nt_sweep_par_vals
-                        (
-                            freqs_guess,
-                            phase_guess,
-                        ) = ana_hlp.find_oscillation_frequency_and_phase(
-                            data_to_fit, swpts_to_fit
-                        )
-                        param_hints = self.analysis_metainfo.get(
-                            "param_hints",
-                            {
-                                "frequency": {
-                                    "value": 2 * np.pi * freqs_guess,
-                                    "min": 0,
-                                },
-                                "phase": {"value": phase_guess},
-                                "amplitude": {
-                                    "value": abs(max(data_to_fit) - min(data_to_fit))
-                                    / 2,
-                                    "min": 0,
-                                },
-                                "offset": {"value": np.mean(data_to_fit)},
-                            },
-                        )
-                        fit_res = ana_hlp.fit_data_lmfit(
-                            fit_mods.oscillatory,
-                            swpts_to_fit,
-                            data_to_fit,
-                            param_hints=param_hints,
-                        )
-                        self.fit_results[qubit.uid] = fit_res
-
-                        # extract USS and LSS voltages and frequencies
-                        freq_fit = unc.ufloat(
-                            fit_res.params["frequency"].value,
-                            fit_res.params["frequency"].stderr,
-                        )
-                        phase_fit = unc.ufloat(
-                            fit_res.params["phase"].value,
-                            fit_res.params["phase"].stderr,
-                        )
-                        (
-                            voltages_uss,
-                            voltages_lss,
-                            _,
-                            _,
-                        ) = ana_hlp.get_pi_pi2_xvalues_on_cos(
-                            swpts_to_fit, freq_fit, phase_fit
-                        )
-                        v_uss_values = np.array(
-                            [vuss.nominal_value for vuss in voltages_uss]
-                        )
-                        v_lss_values = np.array(
-                            [vlss.nominal_value for vlss in voltages_lss]
-                        )
-                        freqs_uss = fit_res.model.func(
-                            v_uss_values, **fit_res.best_values
-                        )
-                        freqs_lss = fit_res.model.func(
-                            v_lss_values, **fit_res.best_values
-                        )
-
-                        # plot fit
-                        swpts_fine = np.linspace(swpts_to_fit[0], swpts_to_fit[-1], 501)
-                        ax.plot(
-                            fit_res.model.func(swpts_fine, **fit_res.best_values) / 1e9,
-                            swpts_fine,
-                            "w-",
-                        )
-                        (line_uss,) = ax.plot(freqs_uss / 1e9, v_uss_values, "bo")
-                        (line_lss,) = ax.plot(freqs_lss / 1e9, v_lss_values, "go")
-
-                        # extract parking values, show them on plot and save
-                        # them in self.new_qubit_parameters
-                        self.new_qubit_parameters[qubit.uid].update(
-                            {
-                                "readout_resonator_frequency": {},
-                                "dc_voltage_parking": {},
-                            }
-                        )
-                        if len(v_uss_values) > 0:
-                            uss_idx = np.argsort(abs(v_uss_values))[0]
-                            v_uss, f_uss = voltages_uss[uss_idx], freqs_uss[uss_idx]
-                            textstr = (
-                                "Smallest USS voltage:\n"
-                                + f"{v_uss.nominal_value:.4f} V $\\pm$ {v_uss.std_dev:.4f} V"
-                            )
-                            textstr += f"\nParking frequency:\n{f_uss / 1e9:.4f} GHz"
-                            ax.text(
-                                1,
-                                -0.15,
-                                textstr,
-                                ha="right",
-                                va="top",
-                                c=line_uss.get_c(),
-                                transform=ax.transAxes,
-                            )
-                            self.new_qubit_parameters[qubit.uid][
-                                "readout_resonator_frequency"
-                            ]["uss"] = v_uss.nominal_value
-                            self.new_qubit_parameters[qubit.uid]["dc_voltage_parking"][
-                                "uss"
-                            ] = f_uss
-                        if len(v_lss_values) > 0:
-                            lss_idx = np.argsort(abs(v_lss_values))[0]
-                            v_lss, f_lss = voltages_lss[lss_idx], freqs_lss[lss_idx]
-                            textstr = (
-                                "Smallest LSS voltage:\n"
-                                + f"{v_lss.nominal_value:.4f} V $\\pm$ {v_lss.std_dev:.4f} V"
-                            )
-                            textstr += f"\nParking frequency:\n{f_lss / 1e9:.4f} GHz"
-                            ax.text(
-                                0,
-                                -0.15,
-                                textstr,
-                                ha="left",
-                                va="top",
-                                c=line_lss.get_c(),
-                                transform=ax.transAxes,
-                            )
-                            self.new_qubit_parameters[qubit.uid][
-                                "readout_resonator_frequency"
-                            ]["lss"] = v_lss.nominal_value
-                            self.new_qubit_parameters[qubit.uid]["dc_voltage_parking"][
-                                "lss"
-                            ] = f_lss
-
-            ax.set_title(f"{ts}_{handle}")
-            # save figures and results
-            if self.save:
-                # Save the figure
-                self.save_figure(fig, qubit)
-                if len(self.fit_results) > 0:
-                    # Save fit results
-                    self.save_fit_results()
-            if self.analysis_metainfo.get("show_figures", False):
-                plt.show()
-            plt.close(fig)
-
-    def update_qubit_parameters(self):
-        for qubit in self.qubits:
-            new_qb_pars = self.new_qubit_parameters[qubit.uid]
-            if len(new_qb_pars) == 4:
-                # both uss and lss found
-                raise ValueError(
-                    "Both upper and lower sweep spots were found. "
-                    "Unclear which one to set. Please update "
-                    "qubit parameters manually."
-                )
-            qubit.parameters.readout_resonator_frequency = new_qb_pars[
-                "readout_resonator_frequency"
-            ]
-            if "dc_voltage_parking" in new_qb_pars:
-                qubit.parameters.user_defined["dc_voltage_parking"] = new_qb_pars[
-                    "dc_voltage_parking"
-                ]
-
-
-class QubitSpectroscopy(ExperimentTemplate):
-    fallback_experiment_name = "QubitSpectroscopy"
-
-    def __init__(self, *args, **kwargs):
-        experiment_metainfo = kwargs.get("experiment_metainfo", dict())
-        self.nt_swp_par = experiment_metainfo.get(
-            "neartime_sweep_parameter", "frequency"
-        )
-        self.pulsed = experiment_metainfo.get("pulsed", True)
-        run = kwargs.pop("run", False)  # instantiate base without running exp
-        kwargs["run"] = False
-        super().__init__(*args, **kwargs)
-
-        # Add suffix to experiment name
-        if self.nt_swp_par != "frequency":
-            self.experiment_name += (
-                f"{self.nt_swp_par[0].upper()}{self.nt_swp_par[1:]}Sweep"
-            )
-            self.create_experiment_label()
-
-        for qubit in self.qubits:
-            freq_swp = self.sweep_parameters_dict[qubit.uid][0]
-            if all(freq_swp.values > 1e9):
-                # sweep values are passed as qubit resonance frequencies:
-                # subtract lo freq to sweep if freq
-                if_freq_swp = SweepParameter(
-                    f"if_freq_{qubit.uid}",
-                    values=freq_swp.values - qubit.parameters.drive_lo_frequency,
-                    axis_name=freq_swp.axis_name,
-                    driven_by=[freq_swp],
-                )
-                self.sweep_parameters_dict[qubit.uid][0] = if_freq_swp
-
-        self.run = run
-        if self.run:
-            self.autorun()
-
-    def define_experiment(self):
-        self.experiment.sections = []
-        self.create_acquire_rt_loop()
-
-        if len(self.sweep_parameters_dict[self.qubits[0].uid]) > 1:
-            # 2D sweep
-            nt_sweep_pars = [
-                self.sweep_parameters_dict[qubit.uid][1] for qubit in self.qubits
-            ]
-            nt_sweep = Sweep(
-                uid=f"neartime_{self.nt_swp_par}_sweep", parameters=nt_sweep_pars
-            )
-            if self.nt_swp_par == "voltage":
-                ntsf = self.experiment_metainfo.get("neartime_callback_function", None)
-                if ntsf is None:
-                    raise ValueError(
-                        "Please provide the neartime callback function for "
-                        "the voltage sweep in "
-                        "experiment_metainfo['neartime_sweep_prameter']."
-                    )
-                # all near-time callback functions have the format
-                # func(session, sweep_param_value)
-                voltages_array = np.array([ntsp.values for ntsp in nt_sweep_pars]).T
-                slots_array = np.array(
-                    [
-                        qubit.parameters.user_defined["dc_slot"] - 1
-                        for qubit in self.qubits
-                    ]
-                )
-                slots_array = slots_array[np.newaxis, :]
-                slots_array = np.repeat(slots_array, voltages_array.shape[0], axis=0)
-                sweep_array = np.zeros(
-                    (voltages_array.shape[0], 2 * voltages_array.shape[1])
-                )
-                sweep_array[:, 0::2] = slots_array
-                sweep_array[:, 1::2] = voltages_array
-                nt_sweep_par = SweepParameter(
-                    uid="dc_voltage_sweep", values=sweep_array
-                )
-                nt_sweep = Sweep(
-                    uid=f"neartime_{self.nt_swp_par}_sweep", parameters=[nt_sweep_par]
-                )
-                nt_sweep.call(ntsf, voltage=nt_sweep_par)
-
-            # add real-time loop to nt_sweep
-            nt_sweep.add(self.acquire_loop)
-            self.experiment.add(nt_sweep)
-        else:
-            self.experiment.add(self.acquire_loop)
-
-        # create joint frequency sweep for all qubits
-        sweep_pars_freq = [
-            self.sweep_parameters_dict[qubit.uid][0] for qubit in self.qubits
-        ]
-        sweep_freq = Sweep(
-            uid=f"{self.experiment_name}_sweep", parameters=sweep_pars_freq
-        )
-
-        for i, qubit in enumerate(self.qubits):
-            spec_pulse_amp = qubit.parameters.user_defined["spec_amplitude"]
-            if self.nt_swp_par == "amplitude":
-                spec_pulse_amp = nt_sweep_pars[i]
-
-            integration_kernel = None
-            if self.pulsed:
-                excitation_section = Section(uid=f"{qubit.uid}_excitation")
-                spec_pulse = pulse_library.const(
-                    uid=f"spectroscopy_pulse_{qubit.uid}",
-                    length=qubit.parameters.user_defined["spec_length"],
-                    amplitude=spec_pulse_amp,
-                    can_compress=True,  # fails without this!
-                )
-                integration_kernel = pulse_library.const(
-                    uid=f"integration_kernel_{qubit.uid}",
-                    length=qubit.parameters.readout_integration_length,
-                    amplitude=qubit.parameters.user_defined["readout_amplitude"],
-                )
-                excitation_section.play(
-                    signal=self.signal_name("drive", qubit), pulse=spec_pulse
-                )
-                sweep_freq.add(excitation_section)
-
-            measure_sections = self.create_measure_acquire_sections(
-                uid=f"{qubit.uid}_readout",
-                qubit=qubit,
-                integration_kernel=integration_kernel,
-                play_after=f"{qubit.uid}_excitation" if self.pulsed else None,
-            )
-            sweep_freq.add(measure_sections)
-
-        self.acquire_loop.add(sweep_freq)
-
-        # for qubit in self.qubits:
-        #     spec_pulse_amp = qubit.parameters.user_defined["spec_amplitude"]
-        #     qb_sweep_pars = self.sweep_parameters_dict[qubit.uid]
-        #     if len(qb_sweep_pars) > 1:
-        #         nt_sweep_par = qb_sweep_pars[1]
-        #         nt_sweep = Sweep(
-        #             uid=f"neartime_{self.nt_swp_par}_sweep_{qubit.uid}",
-        #             parameters=[nt_sweep_par])
-        #         self.experiment.add(nt_sweep)
-        #         if self.nt_swp_par == 'voltage':
-        #             ntsf = self.experiment_metainfo.get(
-        #                 'neartime_callback_function', None)
-        #             if ntsf is None:
-        #                 raise ValueError(
-        #                     "Please provide the neartime callback function for "
-        #                     "the voltage sweep in "
-        #                     "experiment_metainfo['neartime_sweep_prameter'].")
-        #             # all near-time callback functions have the format
-        #             # func(session, sweep_param_value, qubit)
-        #             nt_sweep.call(ntsf, voltage=nt_sweep_par, qubit=qubit)
-        #         elif self.nt_swp_par == 'amplitude':
-        #             spec_pulse_amp = nt_sweep_par
-        #         # add real-time loop to nt_sweep
-        #         nt_sweep.add(self.acquire_loop)
-        #     else:
-        #         self.experiment.add(self.acquire_loop)
-        #
-        #     freq_sweep = Sweep(uid=f"frequency_sweep_{qubit.uid}",
-        #                        parameters=[self.sweep_parameters_dict[qubit.uid][0]])
-        #     integration_kernel = None
-        #     if self.pulsed:
-        #         excitation_section = Section(uid=f"{qubit.uid}_excitation")
-        #         spec_pulse = pulse_library.const(
-        #             uid=f"spectroscopy_pulse_{qubit.uid}",
-        #             length=qubit.parameters.user_defined["spec_length"],
-        #             amplitude=spec_pulse_amp,
-        #             can_compress=True  # fails without this!
-        #         )
-        #         integration_kernel = pulse_library.const(
-        #             uid=f"integration_kernel_{qubit.uid}",
-        #             length=qubit.parameters.readout_integration_length,
-        #             amplitude=qubit.parameters.user_defined['readout_amplitude'],
-        #         )
-        #         excitation_section.play(
-        #             signal=self.signal_name("drive", qubit), pulse=spec_pulse
-        #         )
-        #         freq_sweep.add(excitation_section)
-        #
-        #     measure_sections = self.create_measure_acquire_sections(
-        #         uid=f"{qubit.uid}_readout",
-        #         qubit=qubit,
-        #         integration_kernel=integration_kernel,
-        #         play_after=f"{qubit.uid}_excitation" if self.pulsed else None)
-        #
-        #     freq_sweep.add(measure_sections)
-        #     self.acquire_loop.add(freq_sweep)
-
-    def configure_experiment(self):
-        super().configure_experiment()
-        for qubit in self.qubits:
-            qb_sweep = self.sweep_parameters_dict[qubit.uid]
-            local_oscillator = None
-            drive_amplitude = None
-            if len(qb_sweep) > 1:
-                if self.nt_swp_par == "amplitude" and not self.pulsed:
-                    drive_amplitude = qb_sweep[1]
-                elif self.nt_swp_par == "frequency":
-                    local_oscillator = Oscillator(frequency=qb_sweep[1])
-
-            freq_swp = self.sweep_parameters_dict[qubit.uid][0]
-            cal_drive = self.experiment.signals[
-                self.signal_name("drive", qubit)
-            ].calibration
-            cal_drive.oscillator = Oscillator(
-                frequency=freq_swp, modulation_type=ModulationType.HARDWARE
-            )
-            if local_oscillator is not None:
-                cal_drive.local_oscillator = local_oscillator
-            if drive_amplitude is not None:
-                cal_drive.amplitude = drive_amplitude
-
-    def analyse_experiment(self):
-        ts = self.timestamp if self.timestamp is not None else ""
-        self.new_qubit_parameters = {}
-        self.fit_results = {}
-        freq_filter = self.analysis_metainfo.get("frequency_filter_for_fit", {})
-        if not hasattr(freq_filter, "__iter__"):
-            freq_filter = {qubit.uid: freq_filter for qubit in self.qubits}
-        find_peaks = self.analysis_metainfo.get("find_peaks", {})
-        if not hasattr(find_peaks, "__iter__"):
-            find_peaks = {qubit.uid: find_peaks for qubit in self.qubits}
-        for qubit in self.qubits:
-            # get frequency filter of qubit
-            ff_qb = freq_filter.get(qubit.uid, None)
-            # extract data
-            handle = f"{self.experiment_name}_{qubit.uid}"
-            data_mag = abs(self.results.get_data(handle))
-            res_axis = self.results.get_axis(handle)
-            if self.nt_swp_par == "frequency":
-                data_mag = np.array([data for data in data_mag]).flatten()
-                if len(res_axis) > 1:
-                    outer = self.results.get_axis(handle)[0]
-                    inner = self.results.get_axis(handle)[1]
-                    freqs = np.array([out + inner for out in outer]).flatten()
-                else:
-                    freqs = (
-                        self.results.get_axis(handle)[0]
-                        + qubit.parameters.drive_lo_frequency
-                    )
-
-                # plot data
-                fig, ax = plt.subplots()
-                ax.plot(freqs / 1e9, data_mag, "o")
-                ax.set_xlabel(self.results.get_axis_name(handle)[0])
-                ax.set_ylabel("Signal Magnitude (a.u.)")
-
-                if self.analysis_metainfo.get("do_fitting", True):
-                    data_to_fit = data_mag if ff_qb is None else data_mag[ff_qb(freqs)]
-                    freqs_to_fit = freqs if ff_qb is None else freqs[ff_qb(freqs)]
-                    # fit data
-                    param_hints = self.analysis_metainfo.get("param_hints")
-                    if param_hints is None:
-                        width_guess = 50e3
-                        # fit with guess values for a peak
-                        param_hints = {
-                            "amplitude": {"value": np.max(data_to_fit) * width_guess},
-                            "position": {"value": freqs_to_fit[np.argmax(data_to_fit)]},
-                            "width": {"value": width_guess},
-                            "offset": {"value": 0},
-                        }
-                        fit_res_peak = ana_hlp.fit_data_lmfit(
-                            fit_mods.lorentzian,
-                            freqs_to_fit,
-                            data_to_fit,
-                            param_hints=param_hints,
-                        )
-                        # fit with guess values for a dip
-                        param_hints["amplitude"]["value"] *= -1
-                        param_hints["position"]["value"] = freqs_to_fit[
-                            np.argmin(data_to_fit)
-                        ]
-                        fit_res_dip = ana_hlp.fit_data_lmfit(
-                            fit_mods.lorentzian,
-                            freqs_to_fit,
-                            data_to_fit,
-                            param_hints=param_hints,
-                        )
-                        # determine whether there is a peak or a dip: compare
-                        # the distance between the value at the fitted peak/dip
-                        # to the mean of the data_mag array: the larger distance
-                        # is the true spectroscopy signal
-                        dpeak = abs(
-                            fit_res_peak.model.func(
-                                fit_res_peak.best_values["position"],
-                                **fit_res_peak.best_values,
-                            )
-                            - np.mean(data_to_fit)
-                        )
-                        ddip = abs(
-                            fit_res_dip.model.func(
-                                fit_res_dip.best_values["position"],
-                                **fit_res_dip.best_values,
-                            )
-                            - np.mean(data_to_fit)
-                        )
-                        fit_res = fit_res_peak if dpeak > ddip else fit_res_dip
-                    else:
-                        # do what the user asked
-                        fit_res = ana_hlp.fit_data_lmfit(
-                            fit_mods.lorentzian,
-                            freqs_to_fit,
-                            data_to_fit,
-                            param_hints=param_hints,
-                        )
-                    self.fit_results[qubit.uid] = fit_res
-                    fqb = fit_res.params["position"].value
-                    fqb_err = fit_res.params["position"].stderr
-                    self.new_qubit_parameters[qubit.uid] = {
-                        "resonance_frequency_ge": fqb
-                    }
-
-                    # plot fit
-                    freqs_fine = np.linspace(freqs_to_fit[0], freqs_to_fit[-1], 501)
-                    ax.plot(
-                        freqs_fine / 1e9,
-                        fit_res.model.func(freqs_fine, **fit_res.best_values),
-                        "r-",
-                    )
-                    textstr = (
-                        f"Extracted qubit frequency: {fqb / 1e9:.4f} GHz "
-                        f"$\\pm$ {fqb_err / 1e9:.4f} GHz"
-                    )
-                    textstr += (
-                        f"\nCurrent qubit frequency: "
-                        f"{qubit.parameters.resonance_frequency_ge / 1e9:.4f} GHz"
-                    )
-                    ax.text(
-                        0, -0.15, textstr, ha="left", va="top", transform=ax.transAxes
-                    )
-            else:
-                # 2D plot of results
-                nt_sweep_par_vals = self.results.get_axis(handle)[0]
-                nt_sweep_par_name = self.results.get_axis_name(handle)[0]
-                freqs = (
-                    self.results.get_axis(handle)[1]
-                    + qubit.parameters.drive_lo_frequency
-                )
-                freqs_axis_name = self.results.get_axis_name(handle)[1]
-                data_mag = abs(self.results.get_data(handle))
-
-                X, Y = np.meshgrid(freqs / 1e9, nt_sweep_par_vals)
-                fig, ax = plt.subplots(constrained_layout=True)
-
-                CS = ax.contourf(X, Y, data_mag, levels=100, cmap="magma")
-                ax.set_title(f"{handle}")
-                ax.set_xlabel(freqs_axis_name)
-                ax.set_ylabel(nt_sweep_par_name)
-                cbar = fig.colorbar(CS)
-                cbar.set_label("Signal Magnitude (a.u.)")
-
-                if self.nt_swp_par == "voltage":
-                    # 1D plot of the qubit frequency vs voltage
-                    # decide whether to extract peaks or dips for qubit
-                    fp_qb = find_peaks.get(qubit.uid, True)
-                    take_extremum = np.argmax if fp_qb else np.argmin
-                    if ff_qb is None:
-                        freqs_peaks = freqs[take_extremum(data_mag, axis=1)]
-                    else:
-                        mask = ff_qb(freqs)
-                        print(len(freqs), len(freqs[mask]))
-                        freqs_peaks = freqs[mask][
-                            take_extremum(data_mag[:, mask], axis=1)
-                        ]
-                    # plot
-                    ax.plot(freqs_peaks / 1e9, nt_sweep_par_vals, "ow")
-                    # figure out whether voltages vs freqs is convex or concave
-                    take_extremum_fit, scf = (
-                        (np.argmax, 1)
-                        if (ana_hlp.is_data_convex(nt_sweep_par_vals, freqs_peaks))
-                        else (np.argmin, -1)
-                    )
-                    # optimal parking parameters at the extremum of
-                    # voltages vs frequencies
-                    f0 = freqs_peaks[take_extremum_fit(freqs_peaks)]
-                    V0 = nt_sweep_par_vals[take_extremum_fit(freqs_peaks)]
-                    self.new_qubit_parameters[qubit.uid] = {
-                        "readout_resonator_frequency": f0,
-                        "dc_voltage_parking": V0,
-                    }
-
-                    if self.analysis_metainfo.get("do_fitting", True):
-                        # fit frequency vs voltage and take the optimal parking
-                        # parameters from fit
-                        # fit_func = lambda x, V0, f0, fv: f0 - fv * (x - V0) ** 2
-                        param_hints = {
-                            "V0": {"value": V0},
-                            "f0": {"value": f0},
-                            "fv": {
-                                "value": scf * (max(freqs_peaks) - min(freqs_peaks))
-                            },
-                        }
-                        fit_res = ana_hlp.fit_data_lmfit(
-                            fit_mods.transmon_voltage_dependence_quadratic,
-                            nt_sweep_par_vals,
-                            freqs_peaks,
-                            param_hints=param_hints,
-                        )
-                        self.fit_results[qubit.uid] = fit_res
-                        self.new_qubit_parameters[qubit.uid] = {
-                            "resonance_frequency_ge": fit_res.best_values["f0"],
-                            "dc_voltage_parking": fit_res.best_values["V0"],
-                        }
-                        # plot fit
-                        ntpval_fine = np.linspace(
-                            nt_sweep_par_vals[0], nt_sweep_par_vals[-1], 501
-                        )
-                        ax.plot(
-                            fit_res.model.func(ntpval_fine, **fit_res.best_values)
-                            / 1e9,
-                            ntpval_fine,
-                            "w-",
-                        )
-                        f0, f0err = (
-                            fit_res.best_values["f0"],
-                            fit_res.params["f0"].stderr,
-                        )
-                        V0, V0err = (
-                            fit_res.best_values["V0"],
-                            fit_res.params["V0"].stderr,
-                        )
-                        ax.plot(
-                            f0 / 1e9,
-                            V0,
-                            "sC2",
-                            markersize=plt.rcParams["lines.markersize"] + 1,
-                        )
-                        textstr = f"Parking voltage: {V0:.4f} $\\pm$ {V0err:.4f} V"
-                        textstr += f"\nParking frequency: {f0 / 1e9:.4f} $\\pm$ {f0err / 1e9:.4f} GHz"
-                        ax.text(
-                            0,
-                            -0.15,
-                            textstr,
-                            ha="left",
-                            va="top",
-                            transform=ax.transAxes,
-                        )
-
-            ax.set_title(f"{ts}_{handle}")
-            # save figures and results
-            if self.save:
-                # Save the figure
-                self.save_figure(fig, qubit)
-                if len(self.fit_results) > 0:
-                    # Save fit results
-                    self.save_fit_results()
-            if self.analysis_metainfo.get("show_figures", False):
-                plt.show()
-            plt.close(fig)
-
-    def update_qubit_parameters(self):
-        for qubit in self.qubits:
-            new_qb_pars = self.new_qubit_parameters[qubit.uid]
-            qubit.parameters.resonance_frequency_ge = new_qb_pars[
-                "resonance_frequency_ge"
-            ]
-            if "dc_voltage_parking" in new_qb_pars:
-                qubit.parameters.user_defined["dc_voltage_parking"] = new_qb_pars[
-                    "dc_voltage_parking"
-                ]
-
-
-### Single-Qubit Gate Tune-up Experiment classes ###
-
-
-class SingleQubitGateTuneup(ExperimentTemplate):
-    def __init__(self, *args, signals=None, transition_to_calib="ge", **kwargs):
-        self.transition_to_calib = transition_to_calib
-        # suffix of the drive signal
-        self.drive_signal_suffix = "_ef" if self.transition_to_calib == "ef" else ""
-
-        cal_states = kwargs.get("cal_states", None)
-        if cal_states is None:
-            cal_states = "gef" if "f" in self.transition_to_calib else "ge"
-        kwargs["cal_states"] = cal_states
-
-        if signals is None:
-            signals = ["drive", "measure", "acquire"]
-        if "f" in self.transition_to_calib and "drive_ef" not in signals:
-            signals += ["drive_ef"]
-
-        run = kwargs.pop("run", False)  # instantiate base without running exp
-        kwargs["run"] = False
-        super().__init__(*args, signals=signals, **kwargs)
-
-        self.experiment_name += f"_{self.transition_to_calib}"
-        self.create_experiment_label()
-
-        self.run = run
-        if self.run:
-            self.autorun()
-
-    def add_preparation_pulses_to_section(self, section, qubit):
-        if self.transition_to_calib == "ge":
-            return
-        elif self.transition_to_calib == "ef":
-            uid = f"{qubit.uid}_prep_e"
-            section.play(
-                signal=self.signal_name("drive", qubit),
-                pulse=qt_ops.quantum_gate(qubit, "X180_ge", uid=uid),
-            )
-        elif self.transition_to_calib == "fh":
-            section.play(
-                signal=self.signal_name("drive", qubit),
-                pulse=qt_ops.quantum_gate(qubit, "X180_ge", uid=f"{qubit.uid}_prep_e"),
-            )
-            uid = f"{qubit.uid}_prep_f"
-            section.play(
-                signal=self.signal_name("drive_ef", qubit),
-                pulse=qt_ops.quantum_gate(qubit, "X180_ef", uid=uid),
-            )
-        else:
-            raise ValueError(
-                f"Transitions name {self.transition_to_calib} "
-                f"not recognised. Please used one of "
-                f'["ge", "ef", "fh"].'
-            )
-
-    def analyse_experiment(self):
-        self.new_qubit_parameters = {}
-        self.fit_results = {}
-        ts = self.timestamp if self.timestamp is not None else ""
-        for qubit in self.qubits:
-            # extract data
-            handle = f"{self.experiment_name}_{qubit.uid}"
-            do_pca = self.analysis_metainfo.get("do_pca", False)
-            data_dict = ana_hlp.extract_and_rotate_data_1d(
-                self.results, handle, cal_states=self.cal_states, do_pca=do_pca
-            )
-            num_cal_traces = data_dict["num_cal_traces"]
-
-            # configure plot: data is plotted in analyse_experiment_qubit
-            fig, ax = plt.subplots()
-            ax.set_xlabel(self.results.get_axis_name(handle)[0])
-            ax.set_ylabel(
-                "Principal Component (a.u)"
-                if (num_cal_traces == 0 or do_pca)
-                else f"$|{self.cal_states[-1]}\\rangle$-State Population"
-            )
-            ax.set_title(f"{ts}_{handle}")
-            # run the analysis from the children
-            self.analyse_experiment_qubit(qubit, data_dict, fig, ax)
-            if self.save:
-                # Save the figure
-                self.save_figure(fig, qubit)
-                # Save fit results
-                self.save_fit_results()
-            if self.analysis_metainfo.get("show_figures", False):
-                plt.show()
-            plt.close(fig)
-
-    def analyse_experiment_qubit(self, qubit, data_dict, figure, ax):
-        """
-        Method to be overriden by children.
-
-        Args:
-            qubit: qubit-class instance
-            data_dict: the return dict of ana_hlp.extract_and_rotate_data_1d
-            figure: figure instance
-            ax: axis instance
-
-        """
-        pass
-
-
-class AmplitudeRabi(SingleQubitGateTuneup):
-    fallback_experiment_name = "Rabi"
-
-    def define_experiment(self):
-        self.experiment.sections = []
-        # define Rabi experiment pulse sequence
-        # outer loop - real-time, cyclic averaging
-        self.create_acquire_rt_loop()
-        self.experiment.add(self.acquire_loop)
-        for i, qubit in enumerate(self.qubits):
-            # create sweep
-            sweep = Sweep(
-                uid=f"{qubit.uid}_{self.experiment_name}_sweep",
-                parameters=[self.sweep_parameters_dict[qubit.uid][0]],
-            )
-
-            # create preparation pulses section
-            preparation_section = Section(
-                uid=f"{qubit.uid}_preparation",
-                alignment=SectionAlignment.RIGHT,
-                on_system_grid=True,
-            )
-            # preparation pulses: ge if calibrating ef
-            self.add_preparation_pulses_to_section(preparation_section, qubit)
-
-            # create pulses section
-            excitation_section = Section(
-                uid=f"{qubit.uid}_excitation",
-                alignment=SectionAlignment.LEFT,
-                on_system_grid=True,
-                play_after=f"{qubit.uid}_preparation",
-            )
-            # pulse to calibrate
-            drive_pulse = qt_ops.quantum_gate(qubit, f"X180_{self.transition_to_calib}")
-            # amplitude is scaled w.r.t this value
-            drive_pulse.amplitude = 1
-            excitation_section.play(
-                signal=self.signal_name(f"drive{self.drive_signal_suffix}", qubit),
-                pulse=drive_pulse,
-                amplitude=self.sweep_parameters_dict[qubit.uid][0],
-            )
-
-            # excitation_section.delay(signal=f"drive_{qubit.uid}", time=10e-9)
-            # create readout + acquire sections
-            measure_sections = self.create_measure_acquire_sections(
-                uid=f"{qubit.uid}_readout",
-                qubit=qubit,
-                play_after=f"{qubit.uid}_excitation",
-            )
-
-            # add sweep and sections to acquire loop rt
-            self.acquire_loop.add(sweep)
-            sweep.add(preparation_section)
-            sweep.add(excitation_section)
-            sweep.add(measure_sections)
-            self.add_cal_states_sections(qubit)
-
-    def analyse_experiment_qubit(self, qubit, data_dict, figure, ax):
-        # plot data
-        ax.plot(
-            data_dict["sweep_points_w_cal_tr"],
-            data_dict["data_rotated_w_cal_tr"],
-            "o",
-            zorder=2,
-        )
-        if self.analysis_metainfo.get("do_fitting", True):
-            swpts_to_fit = data_dict["sweep_points"]
-            data_to_fit = data_dict["data_rotated"]
-            # fit data
-            freqs_guess, phase_guess = ana_hlp.find_oscillation_frequency_and_phase(
-                data_to_fit, swpts_to_fit
-            )
-            param_hints = self.analysis_metainfo.get(
-                "param_hints",
-                {
-                    "frequency": {"value": 2 * np.pi * freqs_guess, "min": 0},
-                    "phase": {"value": phase_guess},
-                    "amplitude": {
-                        "value": abs(max(data_to_fit) - min(data_to_fit)) / 2,
-                        "min": 0,
-                    },
-                    "offset": {"value": np.mean(data_to_fit)},
-                },
-            )
-            fit_res = ana_hlp.fit_data_lmfit(
-                fit_mods.oscillatory, swpts_to_fit, data_to_fit, param_hints=param_hints
-            )
-            self.fit_results[qubit.uid] = fit_res
-
-            freq_fit = unc.ufloat(
-                fit_res.params["frequency"].value, fit_res.params["frequency"].stderr
-            )
-            phase_fit = unc.ufloat(
-                fit_res.params["phase"].value, fit_res.params["phase"].stderr
-            )
-            (
-                pi_amps_top,
-                pi_amps_bottom,
-                pi2_amps_rise,
-                pi2_amps_fall,
-            ) = ana_hlp.get_pi_pi2_xvalues_on_cos(swpts_to_fit, freq_fit, phase_fit)
-            # if pca is done, it can happen that the pi-pulse amplitude
-            # is in pi_amps_bottom and the pi/2-pulse amplitude in pi2_amps_fall
-            pi_amps = np.sort(np.concatenate([pi_amps_top, pi_amps_bottom]))
-            pi2_amps = np.sort(np.concatenate([pi2_amps_rise, pi2_amps_fall]))
-            pi2_amp = pi2_amps[0]
-            pi_amp = pi_amps[pi_amps > pi2_amp][0]
-            self.new_qubit_parameters[qubit.uid] = {
-                "amplitude_pi": pi_amp.nominal_value,
-                "amplitude_pi2": pi2_amp.nominal_value,
-                "pi_amps": [pia.nominal_value for pia in pi_amps],
-                "pi2_amps": [pi2a.nominal_value for pi2a in pi_amps],
-            }
-
-            # plot fit
-            swpts_fine = np.linspace(swpts_to_fit[0], swpts_to_fit[-1], 501)
-            ax.plot(
-                swpts_fine,
-                fit_res.model.func(swpts_fine, **fit_res.best_values),
-                "r-",
-                zorder=1,
-            )
-            plt.plot(
-                pi_amp.nominal_value,
-                fit_res.model.func(pi_amp.nominal_value, **fit_res.best_values),
-                "sk",
-                zorder=3,
-                markersize=plt.rcParams["lines.markersize"] + 1,
-            )
-            plt.plot(
-                pi2_amp.nominal_value,
-                fit_res.model.func(pi2_amp.nominal_value, **fit_res.best_values),
-                "sk",
-                zorder=3,
-                markersize=plt.rcParams["lines.markersize"] + 1,
-            )
-            # textbox
-            old_pi_amp = (
-                qubit.parameters.drive_parameters_ef["amplitude_pi"]
-                if "f" in self.transition_to_calib
-                else qubit.parameters.drive_parameters_ge["amplitude_pi"]
-            )
-            old_pi2_amp = (
-                qubit.parameters.drive_parameters_ef["amplitude_pi2"]
-                if "f" in self.transition_to_calib
-                else qubit.parameters.drive_parameters_ge["amplitude_pi2"]
-            )
-            textstr = (
-                "$A_{\\pi}$: "
-                + f"{pi_amp.nominal_value:.4f} $\\pm$ {pi_amp.std_dev:.4f}"
-            )
-            textstr += "\nCurrent $A_{\\pi}$: " + f"{old_pi_amp:.4f}"
-            ax.text(0, -0.15, textstr, ha="left", va="top", transform=ax.transAxes)
-            textstr = (
-                "$A_{\\pi/2}$: "
-                + f"{pi2_amp.nominal_value:.4f} $\\pm$ {pi2_amp.std_dev:.4f}"
-            )
-            textstr += "\nCurrent $A_{\\pi/2}$: " + f"{old_pi2_amp:.4f}"
-            ax.text(0.69, -0.15, textstr, ha="left", va="top", transform=ax.transAxes)
-
-    def update_qubit_parameters(self):
-        for qubit in self.qubits:
-            dr_pars = (
-                qubit.parameters.drive_parameters_ef
-                if "f" in self.transition_to_calib
-                else qubit.parameters.drive_parameters_ge
-            )
-            dr_pars["amplitude_pi"] = self.new_qubit_parameters[qubit.uid][
-                "amplitude_pi"
-            ]
-            dr_pars["amplitude_pi2"] = self.new_qubit_parameters[qubit.uid][
-                "amplitude_pi2"
-            ]
-
-
-class Ramsey(SingleQubitGateTuneup):
-    fallback_experiment_name = "Ramsey"
-
-    def define_experiment(self):
-        self.experiment.sections = []
-        self.create_acquire_rt_loop()
-        self.experiment.add(self.acquire_loop)
-        # from the delays sweep parameters, create sweep parameters for
-        # half the total delay time and for the phase of the second X90 pulse
-        detuning = self.experiment_metainfo.get("detuning")
-        if detuning is None:
-            raise ValueError("Please provide detuning in experiment_metainfo.")
-        swp_pars_phases = []
-        for qubit in self.qubits:
-            delays = deepcopy(self.sweep_parameters_dict[qubit.uid][0].values)
-            pl = (
-                qubit.parameters.drive_parameters_ef["length"]
-                if "f" in self.transition_to_calib
-                else qubit.parameters.drive_parameters_ge["length"]
-            )
-            swp_pars_phases += [
-                SweepParameter(
-                    uid=f"x90_phases_{qubit.uid}",
-                    values=((delays - delays[0] + pl) * detuning[qubit.uid] * 2 * np.pi)
-                    % (2 * np.pi),
-                )
-            ]
-        swp_pars_delays = [
-            self.sweep_parameters_dict[qubit.uid][0] for qubit in self.qubits
-        ]
-
-        # create joint sweep for all qubits
-        sweep = Sweep(
-            uid=f"{self.experiment_name}_sweep",
-            parameters=swp_pars_delays + swp_pars_phases,
-        )
-        self.acquire_loop.add(sweep)
-        for i, qubit in enumerate(self.qubits):
-            # create preparation pulses section
-            preparation_section = Section(
-                uid=f"{qubit.uid}_preparation",
-                alignment=SectionAlignment.RIGHT,
-                on_system_grid=True,
-            )
-            # preparation pulses: ge if calibrating ef
-            self.add_preparation_pulses_to_section(preparation_section, qubit)
-            # Ramsey pulses
-            ramsey_drive_pulse = qt_ops.quantum_gate(
-                qubit, f"X90_{self.transition_to_calib}"
-            )
-
-            # create ramsey-pulses section
-            excitation_section = Section(
-                uid=f"{qubit.uid}_excitation",
-                alignment=SectionAlignment.RIGHT,
-                on_system_grid=True,
-                play_after=f"{qubit.uid}_preparation",
-            )
-            excitation_section.play(
-                signal=self.signal_name(f"drive{self.drive_signal_suffix}", qubit),
-                pulse=ramsey_drive_pulse,
-            )
-            excitation_section.delay(
-                signal=self.signal_name(f"drive{self.drive_signal_suffix}", qubit),
-                time=swp_pars_delays[i],
-            )
-            excitation_section.play(
-                signal=self.signal_name(f"drive{self.drive_signal_suffix}", qubit),
-                pulse=ramsey_drive_pulse,
-                phase=swp_pars_phases[i],
-            )
-
-            # create readout + acquire sections
-            measure_sections = self.create_measure_acquire_sections(
-                uid=f"{qubit.uid}_readout",
-                qubit=qubit,
-                play_after=f"{qubit.uid}_excitation",
-            )
-
-            # add sweep and sections to acquire loop rt
-            sweep.add(preparation_section)
-            sweep.add(excitation_section)
-            sweep.add(measure_sections)
-            self.add_cal_states_sections(qubit)
-
-    def analyse_experiment_qubit(self, qubit, data_dict, figure, ax):
-        delays_offset = (
-            qubit.parameters.drive_parameters_ef["length"]
-            if "f" in self.transition_to_calib
-            else qubit.parameters.drive_parameters_ge["length"]
-        )
-        # plot data with correct scaling
-        ax.plot(
-            (data_dict["sweep_points_w_cal_tr"] + delays_offset) * 1e6,
-            data_dict["data_rotated_w_cal_tr"],
-            "o",
-            zorder=2,
-        )
-        ax.set_xlabel("Pulse Separation, $\\tau$ ($\\mu$s)")
-        if self.analysis_metainfo.get("do_fitting", True):
-            swpts_to_fit = data_dict["sweep_points"] + delays_offset
-            data_to_fit = data_dict["data_rotated"]
-            # fit data
-            freqs_guess, phase_guess = ana_hlp.find_oscillation_frequency_and_phase(
-                data_to_fit, swpts_to_fit
-            )
-            param_hints = self.analysis_metainfo.get(
-                "param_hints",
-                {
-                    "frequency": {"value": freqs_guess},
-                    "phase": {"value": phase_guess},
-                    "decay_time": {"value": 2 / 3 * max(swpts_to_fit), "min": 0},
-                    "amplitude": {"value": 0.5, "vary": False},
-                    "oscillation_offset": {"value": 0, "vary": "f" in self.cal_states},
-                    "exponential_offset": {"value": np.mean(data_to_fit)},
-                    "decay_exponent": {"value": 1, "vary": False},
-                },
-            )
-            fit_res = ana_hlp.fit_data_lmfit(
-                fit_mods.oscillatory_decay_new,
-                swpts_to_fit,
-                data_to_fit,
-                param_hints=param_hints,
-            )
-            self.fit_results[qubit.uid] = fit_res
-
-            t2_star = fit_res.best_values["decay_time"]
-            t2_star_err = fit_res.params["decay_time"].stderr
-            freq_fit = fit_res.best_values["frequency"]
-            freq_fit_err = fit_res.params["frequency"].stderr
-            old_qb_freq = (
-                qubit.parameters.resonance_frequency_ef
-                if "f" in self.transition_to_calib
-                else qubit.parameters.resonance_frequency_ge
-            )
-            introduced_detuning = self.experiment_metainfo["detuning"][qubit.uid]
-            print(old_qb_freq, introduced_detuning, freq_fit)
-            # new_qb_freq = old_qb_freq - (introduced_detuning - freq_fit)
-            new_qb_freq = old_qb_freq + introduced_detuning - freq_fit
-            self.new_qubit_parameters[qubit.uid] = {
-                "resonance_frequency": new_qb_freq,
-                "T2_star": t2_star,
-            }
-
-            # plot fit
-            swpts_fine = np.linspace(swpts_to_fit[0], swpts_to_fit[-1], 501)
-            ax.plot(
-                swpts_fine * 1e6,
-                fit_res.model.func(swpts_fine, **fit_res.best_values),
-                "r-",
-                zorder=1,
-            )
-            textstr = (
-                f"New qubit frequency: {new_qb_freq / 1e9:.6f} GHz "
-                f"$\\pm$ {freq_fit_err / 1e6:.4f} MHz"
-            )
-            textstr += f"\nOld qubit frequency: {old_qb_freq / 1e9:.6f} GHz"
-            textstr += (
-                f"\nDiff new-old qubit frequency: "
-                f"{(new_qb_freq - old_qb_freq) / 1e6:.6f} MHz"
-            )
-            textstr += f"\nIntroduced detuning: {introduced_detuning / 1e6:.2f} MHz"
-            textstr += (
-                f"\nFitted frequency: {freq_fit / 1e6:.6f} "
-                f"$\\pm$ {freq_fit_err / 1e6:.4f} MHz"
-            )
-            textstr += (
-                f"\n$T_2^*$: {t2_star * 1e6:.4f} $\\pm$ "
-                f"{t2_star_err * 1e6:.4f} $\\mu$s"
-            )
-            ax.text(0, -0.15, textstr, ha="left", va="top", transform=ax.transAxes)
-
-    def update_qubit_parameters(self):
-        for qubit in self.qubits:
-            new_freq = self.new_qubit_parameters[qubit.uid]["resonance_frequency"]
-            if "f" in self.transition_to_calib:
-                qubit.parameters.resonance_frequency_ef = new_freq
-            else:
-                qubit.parameters.resonance_frequency_ge = new_freq
-
-
-class QScale(SingleQubitGateTuneup):
-    fallback_experiment_name = "QScale"
-
-    def define_experiment(self):
-        self.experiment.sections = []
-        self.create_acquire_rt_loop()
-        self.experiment.add(self.acquire_loop)
-        for i, qubit in enumerate(self.qubits):
-            tn = self.transition_to_calib
-            X90_pulse = qt_ops.quantum_gate(qubit, f"X90_{tn}")
-            X180_pulse = qt_ops.quantum_gate(qubit, f"X180_{tn}")
-            Y180_pulse = qt_ops.quantum_gate(qubit, f"Y180_{tn}")
-            Ym180_pulse = qt_ops.quantum_gate(qubit, f"mY180_{tn}")
-            pulse_ids = ["xy", "xx", "xmy"]
-            pulses_2nd = [Y180_pulse, X180_pulse, Ym180_pulse]
-
-            swp = self.sweep_parameters_dict[qubit.uid][0]
-            # create sweep
-            sweep = Sweep(
-                uid=f"{qubit.uid}_{self.experiment_name}_sweep", parameters=[swp]
-            )
-            self.acquire_loop.add(sweep)
-            # create pulses sections
-            for i, pulse_2nd in enumerate(pulses_2nd):
-                id = pulse_ids[i]
-                play_after = (
-                    f"{qubit.uid}_{pulse_ids[i - 1]}_section_meas" if i > 0 else None
-                )
-
-                excitation_section = Section(
-                    uid=f"{qubit.uid}_{id}_section",
-                    play_after=play_after,
-                    alignment=SectionAlignment.RIGHT,
-                )
-                # preparation pulses: ge if calibrating ef
-                self.add_preparation_pulses_to_section(excitation_section, qubit)
-                # qscale pulses
-                excitation_section.play(
-                    signal=self.signal_name("drive", qubit),
-                    pulse=X90_pulse,
-                    pulse_parameters={"beta": swp},
-                )
-                excitation_section.play(
-                    signal=self.signal_name("drive", qubit),
-                    pulse=pulse_2nd,
-                    pulse_parameters={"beta": swp},
-                )
-
-                # create readout + acquire sections
-                measure_sections = self.create_measure_acquire_sections(
-                    uid=f"{qubit.uid}_{id}_section_meas",
-                    qubit=qubit,
-                    play_after=f"{qubit.uid}_{id}_section",
-                )
-
-                # Add sections to sweep
-                sweep.add(excitation_section)
-                sweep.add(measure_sections)
-
-            self.add_cal_states_sections(qubit)
-
-
-class T1(SingleQubitGateTuneup):
-    fallback_experiment_name = "T1"
-
-    def define_experiment(self):
-        self.experiment.sections = []
-        self.create_acquire_rt_loop()
-        self.experiment.add(self.acquire_loop)
-
-        # create joint sweep for all qubits
-        sweep = Sweep(
-            uid=f"{self.experiment_name}_sweep",
-            parameters=[
-                self.sweep_parameters_dict[qubit.uid][0] for qubit in self.qubits
-            ],
-        )
-        self.acquire_loop.add(sweep)
-        for i, qubit in enumerate(self.qubits):
-
-            # create preparation-pulses section
-            preparation_section = Section(
-                uid=f"{qubit.uid}_preparation",
-                alignment=SectionAlignment.RIGHT,
-                on_system_grid=True,
-            )
-            # preparation pulses: ge if calibrating ef
-            self.add_preparation_pulses_to_section(preparation_section, qubit)
-
-            # create excitation-pulses section
-            excitation_section = Section(
-                uid=f"{qubit.uid}_excitation",
-                alignment=SectionAlignment.RIGHT,
-                on_system_grid=True,
-                play_after=f"{qubit.uid}_preparation",
-            )
-            # add x180 pulse
-            x180_pulse = qt_ops.quantum_gate(qubit, f"X180_{self.transition_to_calib}")
-            excitation_section.play(
-                signal=self.signal_name(f"drive{self.drive_signal_suffix}", qubit),
-                pulse=x180_pulse,
-            )
-            # add delay
-            excitation_section.delay(
-                signal=self.signal_name(f"drive{self.drive_signal_suffix}", qubit),
-                time=self.sweep_parameters_dict[qubit.uid][0],
-            )
-
-            # create readout + acquire sections
-            measure_sections = self.create_measure_acquire_sections(
-                uid=f"{qubit.uid}_readout",
-                qubit=qubit,
-                play_after=f"{qubit.uid}_excitation",
-            )
-
-            # add sweep and sections to acquire loop rt
-            sweep.add(preparation_section)
-            sweep.add(excitation_section)
-            sweep.add(measure_sections)
-            self.add_cal_states_sections(qubit)
-
-    def analyse_experiment_qubit(self, qubit, data_dict, figure, ax):
-        # plot data with correct scaling
-        ax.plot(
-            data_dict["sweep_points_w_cal_tr"] * 1e6,
-            data_dict["data_rotated_w_cal_tr"],
-            "o",
-            zorder=2,
-        )
-        ax.set_xlabel("Pulse Delay, $\\tau$ ($\\mu$s)")
-        if self.analysis_metainfo.get("do_fitting", True):
-            swpts_to_fit = data_dict["sweep_points"]
-            data_to_fit = data_dict["data_rotated"]
-            # fit data
-            param_hints = self.analysis_metainfo.get(
-                "param_hints",
-                {
-                    "decay_rate": {"value": 3 * max(swpts_to_fit) / 2},
-                    "amplitude": {
-                        "value": abs(max(data_to_fit) - min(data_to_fit)) / 2,
-                        "min": 0,
-                    },
-                    "offset": {"value": 0, "vary": False},
-                },
-            )
-            fit_res = ana_hlp.fit_data_lmfit(
-                fit_mods.exponential_decay,
-                swpts_to_fit,
-                data_to_fit,
-                param_hints=param_hints,
-            )
-            self.fit_results[qubit.uid] = fit_res
-
-            dec_rt = unc.ufloat(
-                fit_res.params["decay_rate"].value, fit_res.params["decay_rate"].stderr
-            )
-            t1 = 1 / dec_rt
-            self.new_qubit_parameters[qubit.uid] = {"T1": t1.nominal_value}
-
-            # plot fit
-            swpts_fine = np.linspace(swpts_to_fit[0], swpts_to_fit[-1], 501)
-            ax.plot(
-                swpts_fine * 1e6,
-                fit_res.model.func(swpts_fine, **fit_res.best_values),
-                "r-",
-                zorder=1,
-            )
-            textstr = (
-                f"$T_1$: {t1.nominal_value * 1e6:.4f} $\\pm$ "
-                f"{t1.std_dev * 1e6:.4f} $\\mu$s"
-            )
-            ax.text(0, -0.15, textstr, ha="left", va="top", transform=ax.transAxes)
-
-
-class Echo(SingleQubitGateTuneup):
-    fallback_experiment_name = "Echo"
-
-    def define_experiment(self):
-        self.experiment.sections = []
-        self.create_acquire_rt_loop()
-        self.experiment.add(self.acquire_loop)
-        # from the delays sweep parameters, create sweep parameters for
-        # half the total delay time and for the phase of the second X90 pulse
-        detuning = self.experiment_metainfo.get("detuning")
-        if detuning is None:
-            raise ValueError("Please provide detuning in experiment_metainfo.")
-        swp_pars_half_delays = []
-        swp_pars_phases = []
-        for qubit in self.qubits:
-            delays = self.sweep_parameters_dict[qubit.uid][0].values
-            pl = (
-                qubit.parameters.drive_parameters_ef["length"]
-                if "f" in self.transition_to_calib
-                else qubit.parameters.drive_parameters_ge["length"]
-            )
-            swp_pars_half_delays += [
-                SweepParameter(
-                    uid=f"echo_delays_{qubit.uid}", values=0.5 * (delays - pl)
-                )  # subtract the echo-pulse length
-            ]
-            swp_pars_phases += [
-                SweepParameter(
-                    uid=f"echo_phases_{qubit.uid}",
-                    values=((delays - delays[0] + pl) * detuning[qubit.uid] * 2 * np.pi)
-                    % (2 * np.pi),
-                )
-            ]
-
-        # create joint sweep for all qubits
-        sweep = Sweep(
-            uid=f"{self.experiment_name}_sweep",
-            parameters=swp_pars_half_delays + swp_pars_phases,
-        )
-        self.acquire_loop.add(sweep)
-        for i, qubit in enumerate(self.qubits):
-
-            # create preparation pulses section
-            preparation_section = Section(
-                uid=f"{qubit.uid}_preparation",
-                alignment=SectionAlignment.RIGHT,
-                on_system_grid=True,
-            )
-            # preparation pulses: ge if calibrating ef
-            self.add_preparation_pulses_to_section(preparation_section, qubit)
-
-            # create excitation section
-            excitation_section = Section(
-                uid=f"{qubit.uid}_excitation",
-                alignment=SectionAlignment.RIGHT,
-                on_system_grid=True,
-                play_after=f"{qubit.uid}_preparation",
-            )
-            # Echo pulses and delays
-            ramsey_drive_pulse = qt_ops.quantum_gate(
-                qubit, f"X90_{self.transition_to_calib}"
-            )
-            echo_drive_pulse = qt_ops.quantum_gate(
-                qubit, f"X180_{self.transition_to_calib}"
-            )
-            excitation_section.play(
-                signal=self.signal_name(f"drive{self.drive_signal_suffix}", qubit),
-                pulse=ramsey_drive_pulse,
-            )
-            excitation_section.delay(
-                signal=self.signal_name(f"drive{self.drive_signal_suffix}", qubit),
-                time=swp_pars_half_delays[i],
-            )
-            excitation_section.play(
-                signal=self.signal_name(f"drive{self.drive_signal_suffix}", qubit),
-                pulse=echo_drive_pulse,
-            )
-            excitation_section.delay(
-                signal=self.signal_name(f"drive{self.drive_signal_suffix}", qubit),
-                time=swp_pars_half_delays[i],
-            )
-            excitation_section.play(
-                signal=self.signal_name(f"drive{self.drive_signal_suffix}", qubit),
-                pulse=ramsey_drive_pulse,
-                phase=swp_pars_phases[i],
-            )
-
-            # create readout + acquire sections
-            measure_sections = self.create_measure_acquire_sections(
-                uid=f"{qubit.uid}_readout",
-                qubit=qubit,
-                play_after=f"{qubit.uid}_excitation",
-            )
-
-            # add sweep and sections to acquire loop rt
-            sweep.add(preparation_section)
-            sweep.add(excitation_section)
-            sweep.add(measure_sections)
-            self.add_cal_states_sections(qubit)
-
-    def analyse_experiment_qubit(self, qubit, data_dict, figure, ax):
-        # plot data with correct scaling
-        ax.plot(
-            data_dict["sweep_points_w_cal_tr"] * 1e6,
-            data_dict["data_rotated_w_cal_tr"],
-            "o",
-            zorder=2,
-        )
-        ax.set_xlabel("Pulse Separation, $\\tau$ ($\\mu$s)")
-
-        if self.analysis_metainfo.get("do_fitting", True):
-            swpts_to_fit = data_dict["sweep_points"]
-            data_to_fit = data_dict["data_rotated"]
-            # fit data
-            freqs_guess, phase_guess = ana_hlp.find_oscillation_frequency_and_phase(
-                data_to_fit, swpts_to_fit
-            )
-            param_hints = self.analysis_metainfo.get(
-                "param_hints",
-                {
-                    "frequency": {"value": 2 * np.pi * freqs_guess},
-                    "phase": {"value": phase_guess},
-                    "decay_rate": {"value": 3 * max(swpts_to_fit) / 2, "min": 0},
-                    "amplitude": {"value": 0.5, "vary": False},
-                    "offset": {"value": np.mean(data_to_fit)},
-                },
-            )
-            fit_res = ana_hlp.fit_data_lmfit(
-                fit_mods.oscillatory_decay,
-                swpts_to_fit,
-                data_to_fit,
-                param_hints=param_hints,
-            )
-            self.fit_results[qubit.uid] = fit_res
-
-            dec_rt = unc.ufloat(
-                fit_res.params["decay_rate"].value, fit_res.params["decay_rate"].stderr
-            )
-            t2 = 1 / dec_rt
-            self.new_qubit_parameters[qubit.uid] = {"T2": t2.nominal_value}
-
-            # plot fit
-            swpts_fine = np.linspace(swpts_to_fit[0], swpts_to_fit[-1], 501)
-            ax.plot(
-                swpts_fine * 1e6,
-                fit_res.model.func(swpts_fine, **fit_res.best_values),
-                "r-",
-                zorder=1,
-            )
-            textstr = (
-                f"$T_2$: {t2.nominal_value * 1e6:.4f} $\\pm$ "
-                f"{t2.std_dev * 1e6:.4f} $\\mu$s"
-            )
-            ax.text(0, -0.15, textstr, ha="left", va="top", transform=ax.transAxes)
-
-
-class RamseyParking(Ramsey):
-    fallback_experiment_name = "RamseyParking"
-
-    def define_experiment(self):
-        super().define_experiment()
-        self.experiment.sections = []
-        qubit = self.qubits[0]  # TODO: parallelize
-        # voltage sweep
-        nt_sweep_par = self.sweep_parameters_dict[qubit.uid][1]
-        nt_sweep = Sweep(
-            uid=f"neartime_voltage_sweep_{qubit.uid}",
-            parameters=[nt_sweep_par],
-        )
-        self.experiment.add(nt_sweep)
-        ntsf = self.experiment_metainfo.get("neartime_callback_function", None)
-        if ntsf is None:
-            raise ValueError(
-                "Please provide the neartime callback function for the voltage"
-                "sweep in experiment_metainfo['neartime_sweep_prameter']."
-            )
-        # all near-time callback functions have the format
-        # func(session, sweep_param_value, qubit)
-        nt_sweep.call(ntsf, voltage=nt_sweep_par, qubit=qubit)
-        # self.create_acquire_rt_loop()
-        nt_sweep.add(self.acquire_loop)
-
-    def analyse_experiment(self):
-        self.new_qubit_parameters = {}
-        self.fit_results = {}
-        ts = self.timestamp if self.timestamp is not None else ""
-        for qubit in self.qubits:
-            (
-                qubit.parameters.drive_parameters_ef["length"]
-                if "f" in self.transition_to_calib
-                else qubit.parameters.drive_parameters_ge["length"]
-            )
-            # extract data
-            handle = f"{self.experiment_name}_{qubit.uid}"
-            do_pca = self.analysis_metainfo.get("do_pca", False)
-            data_dict = ana_hlp.extract_and_rotate_data_2d(
-                self.results, handle, cal_states=self.cal_states, do_pca=do_pca
-            )
-            num_cal_traces = data_dict["num_cal_traces"]
-
-            if self.analysis_metainfo.get("do_fitting", True):
-                voltages = data_dict["sweep_points_nt"]
-                all_fit_results = {}
-                all_new_qb_pars = {}
-                # run Ramsey analysis
-                data_to_fit_2d = data_dict["data_rotated"]
-                data_rotated_w_cal_tr_2d = data_dict["data_rotated_w_cal_tr"]
-                for i in range(data_to_fit_2d.shape[0]):
-                    data_to_fit = data_to_fit_2d[i, :]
-                    data_dict_tmp = deepcopy(data_dict)
-                    data_dict_tmp["data_rotated"] = data_to_fit
-                    data_dict_tmp["data_rotated_w_cal_tr"] = data_rotated_w_cal_tr_2d[
-                        i, :
-                    ]
-
-                    fig, ax = plt.subplots()
-                    ax.set_xlabel(self.results.get_axis_name(handle)[1])
-                    ax.set_ylabel(
-                        "Principal Component (a.u)"
-                        if (num_cal_traces == 0 or do_pca)
-                        else f"$|{self.cal_states[-1]}\\rangle$-State Population"
-                    )
-                    ax.set_title(f"{ts}_{handle}")
-                    # run ramsey analysis
-                    self.analyse_experiment_qubit(qubit, data_dict_tmp, fig, ax)
-                    if self.save:
-                        # Save the figure
-                        fig_name = (
-                            f"{self.timestamp}_Ramsey"
-                            f"_{qubit.uid}_{voltages[i]:.3f}V"
-                        )
-                        self.save_figure(fig, qubit, fig_name)
-                    plt.close(fig)
-                    all_fit_results[i] = self.fit_results[qubit.uid]
-                    all_new_qb_pars[i] = self.new_qubit_parameters[qubit.uid]
-
-                self.new_qubit_parameters[qubit.uid] = all_new_qb_pars
-                self.fit_results[qubit.uid] = all_fit_results
-                # fit qubit frequencies vs voltage
-                qubit_frequencies = np.array(
-                    [
-                        self.new_qubit_parameters[qubit.uid][i]["resonance_frequency"]
-                        for i in range(len(voltages))
-                    ]
-                )
-
-                # figure out whether voltages vs freqs is convex or concave
-                take_extremum_fit, scf = (
-                    (np.argmax, 1)
-                    if (ana_hlp.is_data_convex(voltages, qubit_frequencies))
-                    else (np.argmin, -1)
-                )
-                # optimal parking parameters at the extremum of
-                # voltages vs frequencies
-                f0 = qubit_frequencies[take_extremum_fit(qubit_frequencies)]
-                V0 = voltages[take_extremum_fit(qubit_frequencies)]
-                param_hints = {
-                    "V0": {"value": V0},
-                    "f0": {"value": f0},
-                    "fv": {
-                        "value": scf * (max(qubit_frequencies) - min(qubit_frequencies))
-                    },
-                }
-                fit_res = ana_hlp.fit_data_lmfit(
-                    fit_mods.transmon_voltage_dependence_quadratic,
-                    voltages,
-                    qubit_frequencies,
-                    param_hints=param_hints,
-                )
-                f0, f0err = fit_res.best_values["f0"], fit_res.params["f0"].stderr
-                V0, V0err = fit_res.best_values["V0"], fit_res.params["V0"].stderr
-                self.fit_results[qubit.uid]["parking"] = fit_res
-                self.new_qubit_parameters[qubit.uid]["parking"] = {
-                    "resonance_frequency": f0,
-                    "dc_voltage_parking": V0,
-                }
-                # plot data + fit
-                fig, ax = plt.subplots()
-                ax.set_xlabel(self.results.get_axis_name(handle)[0])
-                ax.set_ylabel("Qubit Frequency, $f_{qb}$ (GHz)")
-                ax.set_title(f"{ts}_{handle}")
-                ax.plot(voltages, qubit_frequencies / 1e9, "o", zorder=2)
-                # plot fit
-                voltages_fine = np.linspace(voltages[0], voltages[-1], 501)
-                ax.plot(
-                    voltages_fine,
-                    fit_res.model.func(voltages_fine, **fit_res.best_values) / 1e9,
-                    "r-",
-                )
-                if voltages[0] <= V0 <= voltages[-1]:
-                    ax.plot(
-                        V0,
-                        f0 / 1e9,
-                        "sk",
-                        markersize=plt.rcParams["lines.markersize"] + 1,
-                    )
-                textstr = f"Parking voltage: {V0:.4f} $\\pm$ {V0err:.4f} V"
-                textstr += (
-                    f"\nParking frequency: {f0 / 1e9:.4f} $\\pm$ {f0err / 1e9:.4f} GHz"
-                )
-                ax.text(0, -0.15, textstr, ha="left", va="top", transform=ax.transAxes)
-
-                # save figures and results
-                if self.save:
-                    # Save the figure
-                    self.save_figure(fig, qubit)
-                    if len(self.fit_results) > 0:
-                        # Save fit results
-                        self.save_fit_results()
-                if self.analysis_metainfo.get("show_figures", False):
-                    plt.show()
-                plt.close(fig)
-
-    def update_qubit_parameters(self):
-        for qubit in self.qubits:
-            new_qb_pars = self.new_qubit_parameters[qubit.uid]
-            qubit.parameters.resonance_frequency_ge = new_qb_pars["parking"][
-                "resonance_frequency"
-            ]
-            if "dc_voltage_parking" in new_qb_pars:
-                qubit.parameters.user_defined["dc_voltage_parking"] = new_qb_pars[
-                    "parking"
-                ]["dc_voltage_parking"]
+def merge_valid_user_parameters(user_parameters_list):
+    valid_user_parameters = dict(
+        experiment_metainfo=[],
+        analysis_metainfo=[],
+    )
+    for user_parameters in user_parameters_list:
+        if "experiment_metainfo" in user_parameters:
+            valid_user_parameters["experiment_metainfo"].extend(
+                user_parameters["experiment_metainfo"]
+            )
+        if "analysis_metainfo" in user_parameters:
+            valid_user_parameters["analysis_metainfo"].extend(
+                user_parameters["analysis_metainfo"]
+            )
+    return valid_user_parameters

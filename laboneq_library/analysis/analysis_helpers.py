@@ -1,7 +1,6 @@
-import logging
-from copy import deepcopy
-
 import numpy as np
+from copy import deepcopy
+import logging
 
 logging.basicConfig(level=logging.WARNING)
 log = logging.getLogger("analysis_helpers")
@@ -20,10 +19,16 @@ def find_oscillation_frequency_and_phase(data, time):
     return freq, phase
 
 
-def fit_data_lmfit(function, x, y, param_hints):
+def fit_data_lmfit(model, x, y, param_hints):
     import lmfit
 
-    model = lmfit.Model(function)
+    if isinstance(model, str):
+        # string with the name of an lmfit model
+        model = lmfit.models.lmfit_models[model]()
+    elif not isinstance(model, lmfit.model.Model):
+        # a fitting function: needs to be converted to an lmfit model
+        model = lmfit.Model(model)
+
     model.param_hints = param_hints
     fit_res = model.fit(x=x, data=y, params=model.make_params())
     for par in fit_res.params:
@@ -70,23 +75,33 @@ def extend_sweep_points_cal_traces(sweep_points, num_cal_traces=0):
     return np.concatenate([sweep_points, cal_traces_swpts])
 
 
-def extract_and_rotate_data_1d(results, handle, cal_states="ge", do_pca=False):
+def extract_and_rotate_data_1d(
+    results, data_handle, cal_trace_handle_root=None, cal_states="ge", do_pca=False
+):
     # extract data
-    swpts = deepcopy(results.get_axis(handle)[0])
+    swpts = deepcopy(results.get_axis(data_handle)[0])
     if isinstance(swpts, list):
         swpts = swpts[0]
-    data_raw = deepcopy(results.get_data(handle))
+    data_raw = deepcopy(results.get_data(data_handle))
+    if cal_trace_handle_root is None:
+        cal_trace_handle_root = data_handle
     cal_trace_handles = [
-        e for e in list(results.acquired_results) if f"{handle}_cal_trace" in e
+        e
+        for e in list(results.acquired_results)
+        if f"{cal_trace_handle_root}_cal_trace" in e
     ]
     num_cal_traces = len(cal_trace_handles)
     if num_cal_traces > 0:
         # rotate data to cal states
-        raw_data_cal_pt_0 = results.get_data(f"{handle}_cal_trace_{cal_states[0]}")
-        raw_data_cal_pt_1 = results.get_data(f"{handle}_cal_trace_{cal_states[1]}")
+        raw_data_cal_pt_0 = results.get_data(
+            f"{cal_trace_handle_root}_cal_trace_{cal_states[0]}"
+        )
+        raw_data_cal_pt_1 = results.get_data(
+            f"{cal_trace_handle_root}_cal_trace_{cal_states[1]}"
+        )
         cal_traces = np.array([raw_data_cal_pt_0, raw_data_cal_pt_1])
         data_raw_w_cal_tr = np.concatenate([data_raw, cal_traces])
-        if not do_pca > 0:
+        if not do_pca:
             data_rot = cal_tr_rot.rotate_data_to_cal_trace_results(
                 data_raw_w_cal_tr, raw_data_cal_pt_0, raw_data_cal_pt_1
             )
@@ -97,35 +112,54 @@ def extract_and_rotate_data_1d(results, handle, cal_states="ge", do_pca=False):
         # rotate data using pca
         data_rot = cal_tr_rot.principal_component_analysis(data_raw)
         data_raw_w_cal_tr = data_raw
+        cal_traces = np.array([])
     swpts_w_cal_tr = extend_sweep_points_cal_traces(swpts, num_cal_traces)
 
     data_dict = {
         "sweep_points": swpts,
+        "sweep_points_w_cal_traces": swpts_w_cal_tr,
+        "sweep_points_cal_traces": swpts_w_cal_tr[
+            len(swpts_w_cal_tr) - num_cal_traces :
+        ],
         "data_raw": data_raw,
-        "sweep_points_w_cal_tr": swpts_w_cal_tr,
-        "data_raw_w_cal_tr": data_raw_w_cal_tr,
+        "data_raw_w_cal_traces": data_raw_w_cal_tr,
+        "data_raw_cal_traces": data_raw_w_cal_tr[
+            len(data_raw_w_cal_tr) - num_cal_traces :
+        ],
         "data_rotated": data_rot[: len(data_raw)],
-        "data_rotated_w_cal_tr": data_rot,
+        "data_rotated_w_cal_traces": data_rot,
+        "data_rotated_cal_traces": data_rot[len(data_rot) - num_cal_traces :],
         "num_cal_traces": num_cal_traces,
+        "do_pca": do_pca,
     }
 
     return data_dict
 
 
-def extract_and_rotate_data_2d(results, handle, cal_states="ge", do_pca=False):
+def extract_and_rotate_data_2d(
+    results, data_handle, cal_trace_handle_root=None, cal_states="ge", do_pca=False
+):
     # extract data
-    swpts_nt = deepcopy(results.get_axis(handle)[0])
-    swpts_rt = deepcopy(results.get_axis(handle)[1])
-    data_raw = deepcopy(results.get_data(handle))
+    swpts_nt = deepcopy(results.get_axis(data_handle)[0])
+    swpts_rt = deepcopy(results.get_axis(data_handle)[1][0])
+    data_raw = deepcopy(results.get_data(data_handle))
+    if cal_trace_handle_root is None:
+        cal_trace_handle_root = data_handle
     cal_trace_handles = [
-        e for e in list(results.acquired_results) if f"{handle}_cal_trace" in e
+        e
+        for e in list(results.acquired_results)
+        if f"{cal_trace_handle_root}_cal_trace" in e
     ]
     num_cal_traces = len(cal_trace_handles)
     data_rot = np.zeros(shape=data_raw.shape)
     if num_cal_traces > 0:
         # rotate data to cal states
-        raw_data_cal_pt_0 = results.get_data(f"{handle}_cal_trace_{cal_states[0]}")
-        raw_data_cal_pt_1 = results.get_data(f"{handle}_cal_trace_{cal_states[1]}")
+        raw_data_cal_pt_0 = results.get_data(
+            f"{cal_trace_handle_root}_cal_trace_{cal_states[0]}"
+        )
+        raw_data_cal_pt_1 = results.get_data(
+            f"{cal_trace_handle_root}_cal_trace_{cal_states[1]}"
+        )
         cal_traces = np.array([raw_data_cal_pt_0, raw_data_cal_pt_1]).T
         data_raw_w_cal_tr = np.concatenate([data_raw, cal_traces], axis=1)
         data_rot = np.zeros(shape=data_raw_w_cal_tr.shape)
@@ -151,12 +185,20 @@ def extract_and_rotate_data_2d(results, handle, cal_states="ge", do_pca=False):
     data_dict = {
         "sweep_points": swpts_rt,
         "sweep_points_nt": swpts_nt,
+        "sweep_points_w_cal_traces": swpts_rt_w_cal_tr,
+        "sweep_points_cal_traces": swpts_rt_w_cal_tr[
+            len(swpts_rt_w_cal_tr) - num_cal_traces :
+        ],
         "data_raw": data_raw,
-        "sweep_points_w_cal_tr": swpts_rt_w_cal_tr,
-        "data_raw_w_cal_tr": data_raw_w_cal_tr,
+        "data_raw_w_cal_traces": data_raw_w_cal_tr,
+        "data_raw_cal_traces": data_raw_w_cal_tr[
+            :, data_raw_w_cal_tr.shape[1] - num_cal_traces :
+        ],
         "data_rotated": data_rot[:, : data_raw.shape[1]],
-        "data_rotated_w_cal_tr": data_rot,
+        "data_rotated_w_cal_traces": data_rot,
+        "data_rotated_cal_traces": data_rot[:, data_rot.shape[1] - num_cal_traces :],
         "num_cal_traces": num_cal_traces,
+        "do_pca": do_pca,
     }
 
     return data_dict
