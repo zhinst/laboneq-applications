@@ -21,215 +21,40 @@ from laboneq_library.experiments.experiment_library import (
     merge_valid_user_parameters,
 )
 
-#### RAW traces Experiments ####
 
+class SignalPropagationDelay(ExperimentTemplate):
+    fallback_experiment_name = "SignalPropagationDelay"
 
-class OptimalIntegrationKernels(ExperimentTemplate):
-    fallback_experiment_name = "OptimalIntegrationKernels"
-    valid_user_parameters = merge_valid_user_parameters(
-        [
-            dict(
-                analysis_metainfo=[
-                    "show_figures",
-                ],
-            ),
-            ExperimentTemplate.valid_user_parameters,
-        ]
-    )
-
-    def __init__(self, *args, preparation_states=("g", "e"), **kwargs):
-        self.preparation_states = preparation_states
-        acquisition_metainfo_user = kwargs.pop("acquisition_metainfo", dict())
-        acquisition_metainfo = dict(acquisition_type=AcquisitionType.RAW)
-        acquisition_metainfo.update(acquisition_metainfo_user)
-        kwargs["acquisition_metainfo"] = acquisition_metainfo
-
-        # Add suffix to experiment name
-        experiment_name = kwargs.get("experiment_name", self.fallback_experiment_name)
-        experiment_name += f"_{''.join(self.preparation_states)}"
-        kwargs["experiment_name"] = experiment_name
-
-        run = kwargs.pop("run", False)  # instantiate base without running exp
-        kwargs["run"] = False
-        save = kwargs.pop("save", True)  # instantiate base without saving exp
-        kwargs["save"] = save
+    def __init__(self, *args, **kwargs):
+        kwargs["signals"] = kwargs.pop("signals", ["measure", "acquire"])
         super().__init__(*args, **kwargs)
 
-        # create experiment for each prep state
-        self.experiments = {}
-        kwargs_exp = deepcopy(kwargs)
-        kwargs_exp.pop("signals", None)
-        kwargs_exp.pop("check_valid_user_parameters", False)
-        if "g" in self.preparation_states:
-            self.experiments["g"] = ExperimentTemplate(
-                *args, check_valid_user_parameters=False, **kwargs_exp)
-            self.experiments["g"].experiment_name = f"{self.experiment_name}_g"
-        if "e" in self.preparation_states:
-            self.experiments["e"] = ExperimentTemplate(
-                *args, signals=["measure", "acquire", "drive"],
-                check_valid_user_parameters=False, **kwargs_exp
-            )
-            self.experiments["e"].experiment_name = f"{self.experiment_name}_e"
-        if "f" in self.preparation_states:
-            self.experiments["f"] = ExperimentTemplate(
-                *args, signals=["measure", "acquire", "drive", "drive_ef"],
-                check_valid_user_parameters=False, **kwargs_exp
-            )
-            self.experiments["f"].experiment_name = f"{self.experiment_name}_f"
-
-        self.save = save
-        self.run = run
-        if self.run:
-            self.autorun()
-
     def define_experiment(self):
-        # self.exp_g.create_acquire_rt_loop()
-        # self.exp_g.experiment.add(self.exp_g.acquire_loop)
-        # self.exp_e.create_acquire_rt_loop()
-        # self.exp_e.experiment.add(self.exp_e.acquire_loop)
+        self.experiment.sections = []
+        self.create_acquire_rt_loop()
+        delay_sweep = Sweep(
+            uid=f"{self.experiment_name}_sweep",
+            parameters=[
+                self.sweep_parameters_dict[qubit.uid][0] for qubit in self.qubits
+            ],
+        )
+        self.experiment.add(delay_sweep)
+        delay_sweep.add(self.acquire_loop)
 
-        for prep_state, exp in self.experiments.items():
-            exp.create_acquire_rt_loop()
-            exp.experiment.add(exp.acquire_loop)
-
-            for qubit in self.qubits:
-                measure_play_after = None
-                excitation_sections = []
-                if prep_state in ["e", "f"]:
-                    # create ge-preparation section
-                    excitation_ge_section = Section(
-                        uid=f"{qubit.uid}_ge_excitation",
-                        alignment=SectionAlignment.RIGHT,
-                        on_system_grid="f" in self.preparation_states,
-                    )
-                    # ge-preparation drive pulse
-                    drive_pulse_ge = qt_ops.quantum_gate(qubit, "X180_ge")
-                    excitation_ge_section.play(
-                        signal=self.signal_name("drive", qubit),
-                        pulse=drive_pulse_ge,
-                    )
-                    measure_play_after = f"{qubit.uid}_ge_excitation"
-                    excitation_sections += [excitation_ge_section]
-                    exp.acquire_loop.add(excitation_ge_section)
-                if prep_state == "f":
-                    # create ef-preparation section
-                    excitation_ef_section = Section(
-                        uid=f"{qubit.uid}_ef_excitation",
-                        alignment=SectionAlignment.RIGHT,
-                        on_system_grid=True,
-                        play_after=f"{qubit.uid}_ge_excitation",
-                    )
-                    # ef-preparation drive pulse
-                    drive_pulse_ef = qt_ops.quantum_gate(qubit, "X180_ef")
-                    excitation_ef_section.play(
-                        signal=self.signal_name("drive_ef", qubit),
-                        pulse=drive_pulse_ef,
-                    )
-                    measure_play_after = f"{qubit.uid}_ef_excitation"
-                    excitation_sections += [excitation_ef_section]
-                    exp.acquire_loop.add(excitation_ef_section)
-
-                measure_sections = exp.create_measure_acquire_sections(
-                    qubit=qubit, integration_kernel=None, play_after=measure_play_after
-                )
-                exp.acquire_loop.add(measure_sections)
+        for i, qubit in enumerate(self.qubits):
+            # create readout + acquire sections
+            measure_section = self.create_measure_acquire_sections(qubit=qubit)
+            self.acquire_loop.add(measure_section)
 
     def configure_experiment(self):
-        for exp in self.experiments.values():
-            exp.configure_experiment()
-            cal = Calibration()
-            for qubit in self.qubits:
-                cal[f"acquire_{qubit.uid}"] = SignalCalibration(
-                    oscillator=None,
-                    port_delay=240e-9,
-                )
-            exp.experiment.set_calibration(cal)
+        super().configure_experiment()
 
-    def compile_experiment(self):
-        # self.exp_g.compile_experiment()
-        # self.exp_e.compile_experiment()
-        for exp in self.experiments.values():
-            exp.compile_experiment()
-
-    def run_experiment(self):
-        # self.exp_g.run_experiment()
-        # self.exp_e.run_experiment()
-        for exp in self.experiments.values():
-            exp.run_experiment()
-            # save experiments to the same directory, under the same timestamp
-            exp.timestamp = self.timestamp
-            exp.save_directory = self.save_directory
-
-    def save_results(self):
-        for state, exp in self.experiments.items():
-            exp.save_results(filename_suffix=state)
-
-    def analyse_experiment(self):
-        super().analyse_experiment()
+        cal = Calibration()
         for qubit in self.qubits:
-            # plot traces and kernel
-            fig_size = plt.rcParams["figure.figsize"]
-            fig, axs = plt.subplots(
-                nrows=len(self.preparation_states)
-                + 1
-                + ("f" in self.preparation_states),
-                sharex=True,
-                figsize=(fig_size[0], fig_size[1] * 2),
+            cal[self.signal_name("acquire", qubit)] = SignalCalibration(
+                port_delay=self.sweep_parameters_dict[qubit.uid][0]
             )
-
-            raw_traces = []
-            for i, ps in enumerate(self.preparation_states):
-                handle = f"{self.experiment_name}_{ps}_{qubit.uid}"
-                trace = self.experiments[ps].results.get_data(handle)
-                raw_traces += [trace[: (len(trace) // 16) * 16]]
-                axs[i].plot(np.real(raw_traces[-1]), label=f"{ps}: I")
-                axs[i].plot(np.imag(raw_traces[-1]), label=f"{ps}: Q")
-                axs[i].set_ylabel("Voltage, $V$ (a.u.)")
-                axs[i].legend(frameon=False)
-            self.analysis_results[qubit.uid]["raw_traces"] = {
-                ps: raw_traces[i] for i, ps in enumerate(self.preparation_states)
-            }
-
-            kernels = calculate_integration_kernels(raw_traces)
-            self.analysis_results[qubit.uid]["new_parameter_values"].update(
-                {"integration_kernels": kernels}
-            )
-            self.analysis_results[qubit.uid]["old_parameter_values"].update(
-                {"integration_kernels": qubit.get_integration_kernels()}
-            )
-            for i, krn in enumerate(kernels):
-                ax = axs[len(self.preparation_states) + i]
-                krn_vals = krn.samples
-                ax.plot(np.real(krn_vals), label=f"w{i+1}: I")
-                ax.plot(np.imag(krn_vals), label=f"w{i+1}: Q")
-                ax.set_ylabel("Voltage, $V$ (a.u.)")
-                ax.legend(frameon=False)
-            axs[-1].set_xlabel("Samples, $N$")
-            axs[0].set_title(f"{self.timestamp}_{self.experiment_name}_{qubit.uid}")
-            fig.align_ylabels()
-            fig.subplots_adjust(hspace=0.05)
-
-            # save figures
-            if self.save:
-                # Save the figures
-                self.save_figure(fig, qubit)
-            if self.analysis_metainfo.get("show_figures", False):
-                plt.show()
-            plt.close(fig)
-
-    def update_qubit_parameters(self):
-        for qubit in self.qubits:
-            new_qb_pars = self.analysis_results[qubit.uid]["new_parameter_values"]
-            if len(new_qb_pars) == 0:
-                return
-            qubit.parameters.readout_integration_kernels = new_qb_pars[
-                "integration_kernels"
-            ]
-
-
-###################################
-#### Spectroscopy Experiments  ####
-###################################
+        self.experiment.set_calibration(cal)
 
 
 class ResonatorSpectroscopy(ExperimentTemplate):
@@ -1029,3 +854,206 @@ class StateDiscrimination(ExperimentTemplate):
             if self.analysis_metainfo.get("show_figures", False):
                 plt.show()
             plt.close(fig)
+
+
+class OptimalIntegrationKernels(ExperimentTemplate):
+    fallback_experiment_name = "OptimalIntegrationKernels"
+    valid_user_parameters = merge_valid_user_parameters(
+        [
+            dict(
+                analysis_metainfo=[
+                    "show_figures",
+                ],
+            ),
+            ExperimentTemplate.valid_user_parameters,
+        ]
+    )
+
+    def __init__(self, *args, preparation_states=("g", "e"), **kwargs):
+        self.preparation_states = preparation_states
+        acquisition_metainfo_user = kwargs.pop("acquisition_metainfo", dict())
+        acquisition_metainfo = dict(acquisition_type=AcquisitionType.RAW)
+        acquisition_metainfo.update(acquisition_metainfo_user)
+        kwargs["acquisition_metainfo"] = acquisition_metainfo
+
+        # Add suffix to experiment name
+        experiment_name = kwargs.get("experiment_name", self.fallback_experiment_name)
+        experiment_name += f"_{''.join(self.preparation_states)}"
+        kwargs["experiment_name"] = experiment_name
+
+        run = kwargs.pop("run", False)  # instantiate base without running exp
+        kwargs["run"] = False
+        save = kwargs.pop("save", True)  # instantiate base without saving exp
+        kwargs["save"] = save
+        super().__init__(*args, **kwargs)
+
+        # create experiment for each prep state
+        self.experiments = {}
+        kwargs_exp = deepcopy(kwargs)
+        kwargs_exp.pop("signals", None)
+        kwargs_exp.pop("check_valid_user_parameters", False)
+        if "g" in self.preparation_states:
+            self.experiments["g"] = ExperimentTemplate(
+                *args, check_valid_user_parameters=False, **kwargs_exp)
+            self.experiments["g"].experiment_name = f"{self.experiment_name}_g"
+        if "e" in self.preparation_states:
+            self.experiments["e"] = ExperimentTemplate(
+                *args, signals=["measure", "acquire", "drive"],
+                check_valid_user_parameters=False, **kwargs_exp
+            )
+            self.experiments["e"].experiment_name = f"{self.experiment_name}_e"
+        if "f" in self.preparation_states:
+            self.experiments["f"] = ExperimentTemplate(
+                *args, signals=["measure", "acquire", "drive", "drive_ef"],
+                check_valid_user_parameters=False, **kwargs_exp
+            )
+            self.experiments["f"].experiment_name = f"{self.experiment_name}_f"
+
+        self.save = save
+        self.run = run
+        if self.run:
+            self.autorun()
+
+    def define_experiment(self):
+        # self.exp_g.create_acquire_rt_loop()
+        # self.exp_g.experiment.add(self.exp_g.acquire_loop)
+        # self.exp_e.create_acquire_rt_loop()
+        # self.exp_e.experiment.add(self.exp_e.acquire_loop)
+
+        for prep_state, exp in self.experiments.items():
+            exp.create_acquire_rt_loop()
+            exp.experiment.add(exp.acquire_loop)
+
+            for qubit in self.qubits:
+                measure_play_after = None
+                excitation_sections = []
+                if prep_state in ["e", "f"]:
+                    # create ge-preparation section
+                    excitation_ge_section = Section(
+                        uid=f"{qubit.uid}_ge_excitation",
+                        alignment=SectionAlignment.RIGHT,
+                        on_system_grid="f" in self.preparation_states,
+                    )
+                    # ge-preparation drive pulse
+                    drive_pulse_ge = qt_ops.quantum_gate(qubit, "X180_ge")
+                    excitation_ge_section.play(
+                        signal=self.signal_name("drive", qubit),
+                        pulse=drive_pulse_ge,
+                    )
+                    measure_play_after = f"{qubit.uid}_ge_excitation"
+                    excitation_sections += [excitation_ge_section]
+                    exp.acquire_loop.add(excitation_ge_section)
+                if prep_state == "f":
+                    # create ef-preparation section
+                    excitation_ef_section = Section(
+                        uid=f"{qubit.uid}_ef_excitation",
+                        alignment=SectionAlignment.RIGHT,
+                        on_system_grid=True,
+                        play_after=f"{qubit.uid}_ge_excitation",
+                    )
+                    # ef-preparation drive pulse
+                    drive_pulse_ef = qt_ops.quantum_gate(qubit, "X180_ef")
+                    excitation_ef_section.play(
+                        signal=self.signal_name("drive_ef", qubit),
+                        pulse=drive_pulse_ef,
+                    )
+                    measure_play_after = f"{qubit.uid}_ef_excitation"
+                    excitation_sections += [excitation_ef_section]
+                    exp.acquire_loop.add(excitation_ef_section)
+
+                measure_sections = exp.create_measure_acquire_sections(
+                    qubit=qubit, integration_kernel=None, play_after=measure_play_after
+                )
+                exp.acquire_loop.add(measure_sections)
+
+    def configure_experiment(self):
+        for exp in self.experiments.values():
+            exp.configure_experiment()
+            cal = Calibration()
+            for qubit in self.qubits:
+                cal[f"acquire_{qubit.uid}"] = SignalCalibration(
+                    oscillator=None,
+                    port_delay=240e-9,
+                )
+            exp.experiment.set_calibration(cal)
+
+    def compile_experiment(self):
+        # self.exp_g.compile_experiment()
+        # self.exp_e.compile_experiment()
+        for exp in self.experiments.values():
+            exp.compile_experiment()
+
+    def run_experiment(self):
+        # self.exp_g.run_experiment()
+        # self.exp_e.run_experiment()
+        for exp in self.experiments.values():
+            exp.run_experiment()
+            # save experiments to the same directory, under the same timestamp
+            exp.timestamp = self.timestamp
+            exp.save_directory = self.save_directory
+
+    def save_results(self):
+        for state, exp in self.experiments.items():
+            exp.save_results(filename_suffix=state)
+
+    def analyse_experiment(self):
+        super().analyse_experiment()
+        for qubit in self.qubits:
+            # plot traces and kernel
+            fig_size = plt.rcParams["figure.figsize"]
+            fig, axs = plt.subplots(
+                nrows=len(self.preparation_states)
+                + 1
+                + ("f" in self.preparation_states),
+                sharex=True,
+                figsize=(fig_size[0], fig_size[1] * 2),
+            )
+
+            raw_traces = []
+            for i, ps in enumerate(self.preparation_states):
+                handle = f"{self.experiment_name}_{ps}_{qubit.uid}"
+                trace = self.experiments[ps].results.get_data(handle)
+                raw_traces += [trace[: (len(trace) // 16) * 16]]
+                axs[i].plot(np.real(raw_traces[-1]), label=f"{ps}: I")
+                axs[i].plot(np.imag(raw_traces[-1]), label=f"{ps}: Q")
+                axs[i].set_ylabel("Voltage, $V$ (a.u.)")
+                axs[i].legend(frameon=False)
+            self.analysis_results[qubit.uid]["raw_traces"] = {
+                ps: raw_traces[i] for i, ps in enumerate(self.preparation_states)
+            }
+
+            kernels = calculate_integration_kernels(raw_traces)
+            self.analysis_results[qubit.uid]["new_parameter_values"].update(
+                {"integration_kernels": kernels}
+            )
+            self.analysis_results[qubit.uid]["old_parameter_values"].update(
+                {"integration_kernels": qubit.get_integration_kernels()}
+            )
+            for i, krn in enumerate(kernels):
+                ax = axs[len(self.preparation_states) + i]
+                krn_vals = krn.samples
+                ax.plot(np.real(krn_vals), label=f"w{i+1}: I")
+                ax.plot(np.imag(krn_vals), label=f"w{i+1}: Q")
+                ax.set_ylabel("Voltage, $V$ (a.u.)")
+                ax.legend(frameon=False)
+            axs[-1].set_xlabel("Samples, $N$")
+            axs[0].set_title(f"{self.timestamp}_{self.experiment_name}_{qubit.uid}")
+            fig.align_ylabels()
+            fig.subplots_adjust(hspace=0.05)
+
+            # save figures
+            if self.save:
+                # Save the figures
+                self.save_figure(fig, qubit)
+            if self.analysis_metainfo.get("show_figures", False):
+                plt.show()
+            plt.close(fig)
+
+    def update_qubit_parameters(self):
+        for qubit in self.qubits:
+            new_qb_pars = self.analysis_results[qubit.uid]["new_parameter_values"]
+            if len(new_qb_pars) == 0:
+                return
+            qubit.parameters.readout_integration_kernels = new_qb_pars[
+                "integration_kernels"
+            ]
