@@ -894,18 +894,23 @@ class OptimalIntegrationKernels(ExperimentTemplate):
         kwargs_exp.pop("check_valid_user_parameters", False)
         if "g" in self.preparation_states:
             self.experiments["g"] = ExperimentTemplate(
-                *args, check_valid_user_parameters=False, **kwargs_exp)
+                *args, check_valid_user_parameters=False, **kwargs_exp
+            )
             self.experiments["g"].experiment_name = f"{self.experiment_name}_g"
         if "e" in self.preparation_states:
             self.experiments["e"] = ExperimentTemplate(
-                *args, signals=["measure", "acquire", "drive"],
-                check_valid_user_parameters=False, **kwargs_exp
+                *args,
+                signals=["measure", "acquire", "drive"],
+                check_valid_user_parameters=False,
+                **kwargs_exp,
             )
             self.experiments["e"].experiment_name = f"{self.experiment_name}_e"
         if "f" in self.preparation_states:
             self.experiments["f"] = ExperimentTemplate(
-                *args, signals=["measure", "acquire", "drive", "drive_ef"],
-                check_valid_user_parameters=False, **kwargs_exp
+                *args,
+                signals=["measure", "acquire", "drive", "drive_ef"],
+                check_valid_user_parameters=False,
+                **kwargs_exp,
             )
             self.experiments["f"].experiment_name = f"{self.experiment_name}_f"
 
