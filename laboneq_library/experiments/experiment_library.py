@@ -364,6 +364,63 @@ class StatePreparationMixin:
             )
         return preparation_sections
 
+    def create_active_reset_sections(
+        self, qubit, states_to_reset=("g", "e"), handle_suffix=None, play_after=None
+    ):
+        handle = "active_reset"
+        if handle_suffix is not None:
+            handle_suffix = f"_{handle_suffix}"
+        else:
+            handle_suffix = ""
+        # create readout + acquire sections
+        measure_acquire_section = self.create_measure_acquire_sections(
+            qubit=qubit,
+            play_after=play_after,
+            handle_suffix=f"{handle}{handle_suffix}",
+        )
+        handle = measure_acquire_section.children[1].handle
+
+        match_section = Match(
+            uid=f"feedback_{qubit.uid}{handle_suffix}",
+            handle=handle,
+            play_after=measure_acquire_section,
+        )
+        if "g" in states_to_reset:
+            case = Case(state=0)
+            case.play(
+                signal=self.signal_name("drive", qubit),
+                pulse=qt_ops.quantum_gate(qubit, "X180_ge"),
+                amplitude=0,
+            )
+            match_section.add(case)
+        if "e" in states_to_reset:
+            case = Case(state=1)
+            case.play(
+                signal=self.signal_name("drive", qubit),
+                pulse=qt_ops.quantum_gate(qubit, "X180_ge"),
+            )
+            match_section.add(case)
+        if "f" in states_to_reset:
+            if len(qubit.get_integration_kernels()) < 2:
+                raise NotImplementedError(
+                    f"Currently active reset of levels higher than 'e' requires "
+                    f"multi-state discrimination and at least 2 optimised "
+                    f"integration kernels, but {qubit.uid} has fewer than 2 "
+                    f"kernels."
+                )
+            case = Case(state=2)
+            case.play(
+                signal=self.signal_name("drive_ef", qubit),
+                pulse=qt_ops.quantum_gate(qubit, "X180_ef"),
+            )
+            case.play(
+                signal=self.signal_name("drive", qubit),
+                pulse=qt_ops.quantum_gate(qubit, "X180_ge"),
+            )
+            match_section.add(case)
+
+        return [measure_acquire_section, match_section]
+
 
 class ExperimentTemplate(StatePreparationMixin):
     fallback_experiment_name = "Experiment"
@@ -373,7 +430,7 @@ class ExperimentTemplate(StatePreparationMixin):
     results = None
     analysis_results = None
     valid_user_parameters = dict(
-        experiment_metainfo=[],
+        experiment_metainfo=["preparation_type", "states_to_actively_reset"],
         analysis_metainfo=[
             "figure_name",
             "overwrite_figures",
@@ -416,6 +473,7 @@ class ExperimentTemplate(StatePreparationMixin):
         self.experiment_metainfo = experiment_metainfo
         if self.experiment_metainfo is None:
             self.experiment_metainfo = {}
+        self.preparation_type = self.experiment_metainfo.get("preparation_type", "wait")
         self.cal_states = self.experiment_metainfo.get("cal_states", None)
         if acquisition_metainfo is None:
             acquisition_metainfo = {}
@@ -442,6 +500,8 @@ class ExperimentTemplate(StatePreparationMixin):
         self.experiment_name = experiment_name
         if self.experiment_name is None:
             self.experiment_name = self.fallback_experiment_name
+        if self.preparation_type != "wait":
+            self.experiment_name += f"_{self.preparation_type}"
         self.create_experiment_label()
         self.generate_timestamp_save_directory()
 
@@ -456,8 +516,8 @@ class ExperimentTemplate(StatePreparationMixin):
         self.apply_exit_condition = apply_exit_condition
         if check_valid_user_parameters:
             self.check_user_parameters_validity()
-        self.create_experiment()
 
+        self.create_experiment()
         self.run = run
         if self.run:
             self.autorun()
@@ -523,12 +583,23 @@ class ExperimentTemplate(StatePreparationMixin):
 
     def configure_experiment(self):
         """
-        Set the measurement_setup calibration from the qubits calibrations.
+        Sets the measurement_setup calibration from the qubits calibrations.
+        Sets the experiment calibration if preparation_type == "active_reset".
 
-        To be overridden by children for setting the experiment calibration.
+        To be overridden by children for further settings of the experiment
+        calibration.
 
         """
         self.update_measurement_setup()
+        cal = Calibration()
+        if self.preparation_type == "active_reset":
+            for qubit in self.qubits:
+                cal[self.signal_name("acquire", qubit)] = SignalCalibration(
+                    oscillator=Oscillator(
+                        frequency=0, modulation_type=ModulationType.SOFTWARE
+                    ),
+                )
+            self.experiment.set_calibration(cal)
 
     def create_unique_uids(self):
         from laboneq.dsl.experiment.play_pulse import PlayPulse
@@ -543,8 +614,11 @@ class ExperimentTemplate(StatePreparationMixin):
                     sec.uid += f"_{suffix}"
                     suffix += 1
                 uids.add(sec.uid)
-                for ch in sec.children:
-                    suffix = rename_uid_sweep_section(ch, suffix=suffix)
+                if not isinstance(sec, Case):
+                    # making unique uids for the pulses in Cases results in an
+                    # error
+                    for ch in sec.children:
+                        suffix = rename_uid_sweep_section(ch, suffix=suffix)
             elif isinstance(sec, PlayPulse):
                 if sec.pulse.uid in uids:
                     print(
