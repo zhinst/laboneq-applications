@@ -287,6 +287,23 @@ def ramsey_parallel(
 ##### Added by Steph   #####
 
 
+def merge_valid_user_parameters(user_parameters_list):
+    valid_user_parameters = dict(
+        experiment_metainfo=[],
+        analysis_metainfo=[],
+    )
+    for user_parameters in user_parameters_list:
+        if "experiment_metainfo" in user_parameters:
+            valid_user_parameters["experiment_metainfo"].extend(
+                user_parameters["experiment_metainfo"]
+            )
+        if "analysis_metainfo" in user_parameters:
+            valid_user_parameters["analysis_metainfo"].extend(
+                user_parameters["analysis_metainfo"]
+            )
+    return valid_user_parameters
+
+
 class StatePreparationMixin:
     def create_state_preparation_sections(
         self,
@@ -508,20 +525,10 @@ class StatePreparationMixin:
         return preparation_sections
 
 
-class ExperimentTemplate(StatePreparationMixin):
-    fallback_experiment_name = "Experiment"
-    save_directory = None
-    timestamp = None
-    compiled_experiment = None
-    results = None
-    analysis_results = None
+class ConfigurableExperiment(StatePreparationMixin):
+    fallback_experiment_name = "ConfigurableExperiment"
     valid_user_parameters = dict(
         experiment_metainfo=["preparation_type", "states_to_actively_reset"],
-        analysis_metainfo=[
-            "figure_name",
-            "overwrite_figures",
-            "figure_formats",
-        ],
     )
 
     def __init__(
@@ -536,13 +543,8 @@ class ExperimentTemplate(StatePreparationMixin):
         acquisition_metainfo=None,
         qubit_temporary_values=None,
         apply_exit_condition=False,
-        do_analysis=True,
-        analysis_metainfo=None,
-        save=True,
-        data_directory=None,
-        update=False,
-        run=False,
         check_valid_user_parameters=True,
+        run=False,
         **kwargs,
     ):
         self.qubits = qubits
@@ -570,28 +572,12 @@ class ExperimentTemplate(StatePreparationMixin):
             qubit_temporary_values = {}
         self.qubit_temporary_values = qubit_temporary_values
 
-        self.data_directory = data_directory
-        self.do_analysis = do_analysis
-        self.analysis_metainfo = analysis_metainfo
-        if self.analysis_metainfo is None:
-            self.analysis_metainfo = {}
-        self.update = update
-        if not self.do_analysis:
-            self.update = False
-        self.save = save
-        if self.save and self.data_directory is None:
-            raise ValueError(
-                "save==True, but no data_directory was specified. "
-                "Please provide data_directory or set save=False."
-            )
-
         self.experiment_name = experiment_name
         if self.experiment_name is None:
             self.experiment_name = self.fallback_experiment_name
         if self.preparation_type != "wait":
             self.experiment_name += f"_{self.preparation_type}"
         self.create_experiment_label()
-        self.generate_timestamp_save_directory()
 
         self.signals = signals
         if self.signals is None:
@@ -730,6 +716,138 @@ class ExperimentTemplate(StatePreparationMixin):
     def execute_exit_condition(self):
         # to be overridden by children
         pass
+
+    def autorun(self):
+        try:
+            with calib_hlp.QubitTemporaryValuesContext(*self.qubit_temporary_values):
+                self.define_experiment()
+                self.configure_experiment()
+                self.compile_experiment()
+                self.run_experiment()
+                if self.apply_exit_condition:
+                    self.execute_exit_condition()
+        except Exception:
+            log.error("Unhandled error during ConfigurableExperiment!")
+            log.error(traceback.format_exc())
+
+    def create_acquire_rt_loop(self):
+        self.acquire_loop = AcquireLoopRt(**self.acquisition_metainfo)
+
+    def create_measure_acquire_sections(
+        self,
+        qubit,
+        uid=None,
+        play_after=None,
+        handle_suffix=None,
+        integration_kernel="default",
+    ):
+        handle = f"{self.experiment_name}_{qubit.uid}"
+        if handle_suffix is not None:
+            handle += f"_{handle_suffix}"
+
+        ro_pulse = qt_ops.readout_pulse(qubit)
+        if not hasattr(self, "integration_kernel"):
+            # ensure the integration_kernel is created only once to avoid
+            # serialisation errors
+            self.integration_kernel = qubit.get_integration_kernels()
+            for int_krn in self.integration_kernel:
+                if hasattr(int_krn, "uid"):
+                    int_krn.uid = f"integration_kernel_{qubit.uid}"
+        if integration_kernel == "default":
+            integration_kernel = self.integration_kernel
+        if isinstance(integration_kernel, list) and len(integration_kernel) == 1:
+            integration_kernel = integration_kernel[0]
+        measure_acquire_section = Section(uid=uid)
+        measure_acquire_section.play_after = play_after
+        measure_acquire_section.measure(
+            measure_signal=self.signal_name("measure", qubit),
+            measure_pulse=ro_pulse,
+            handle=handle,
+            acquire_signal=self.signal_name("acquire", qubit),
+            integration_kernel=integration_kernel,
+            integration_length=qubit.parameters.readout_integration_length,
+            reset_delay=qubit.parameters.reset_delay_length,
+        )
+        return measure_acquire_section
+
+
+class ExperimentTemplate(ConfigurableExperiment):
+    fallback_experiment_name = "Experiment"
+    save_directory = None
+    timestamp = None
+    results = None
+    analysis_results = None
+    valid_user_parameters = merge_valid_user_parameters(
+        [
+            dict(
+                analysis_metainfo=[
+                    "figure_name",
+                    "overwrite_figures",
+                    "figure_formats",
+                ],
+            ),
+            ConfigurableExperiment.valid_user_parameters,
+        ]
+    )
+
+    def __init__(
+        self,
+        qubits,
+        session,
+        measurement_setup,
+        experiment_name=None,
+        signals=None,
+        sweep_parameters_dict=None,
+        experiment_metainfo=None,
+        acquisition_metainfo=None,
+        qubit_temporary_values=None,
+        apply_exit_condition=False,
+        do_analysis=True,
+        analysis_metainfo=None,
+        save=True,
+        data_directory=None,
+        update=False,
+        run=False,
+        check_valid_user_parameters=True,
+        **kwargs,
+    ):
+        self.data_directory = data_directory
+        self.do_analysis = do_analysis
+        self.analysis_metainfo = analysis_metainfo
+        if self.analysis_metainfo is None:
+            self.analysis_metainfo = {}
+        self.update = update
+        if not self.do_analysis:
+            self.update = False
+        self.save = save
+        if self.save and self.data_directory is None:
+            raise ValueError(
+                "save==True, but no data_directory was specified. "
+                "Please provide data_directory or set save=False."
+            )
+
+        super().__init__(
+            qubits,
+            session,
+            measurement_setup,
+            experiment_name,
+            signals,
+            sweep_parameters_dict,
+            experiment_metainfo,
+            acquisition_metainfo,
+            qubit_temporary_values,
+            apply_exit_condition,
+            check_valid_user_parameters,
+            run=False,
+            **kwargs,
+        )
+
+        # generate_timestamp_save_directory requires the experiment label
+        # created in the super call
+        self.generate_timestamp_save_directory()
+        self.run = run
+        if self.run:
+            self.autorun()
 
     def analyse_experiment(self):
         # to be overridden by children
@@ -1009,12 +1127,7 @@ class ExperimentTemplate(StatePreparationMixin):
                 # save the meta-information
                 self.save_experiment_metainfo()
             with calib_hlp.QubitTemporaryValuesContext(*self.qubit_temporary_values):
-                self.define_experiment()
-                self.configure_experiment()
-                self.compile_experiment()
-                self.run_experiment()
-                if self.apply_exit_condition:
-                    self.execute_exit_condition()
+                super().autorun()
                 if self.do_analysis:
                     self.analyse_experiment()
             if self.update:
@@ -1025,62 +1138,5 @@ class ExperimentTemplate(StatePreparationMixin):
                 # Save the fit results
                 self.save_analysis_results()
         except Exception:
-            log.error("Unhandled error during experiment!")
+            log.error("Unhandled error during ExperimentTemplate!")
             log.error(traceback.format_exc())
-
-    def create_acquire_rt_loop(self):
-        self.acquire_loop = AcquireLoopRt(**self.acquisition_metainfo)
-
-    def create_measure_acquire_sections(
-        self,
-        qubit,
-        uid=None,
-        play_after=None,
-        handle_suffix=None,
-        integration_kernel="default",
-    ):
-        handle = f"{self.experiment_name}_{qubit.uid}"
-        if handle_suffix is not None:
-            handle += f"_{handle_suffix}"
-
-        ro_pulse = qt_ops.readout_pulse(qubit)
-        if not hasattr(self, "integration_kernel"):
-            # ensure the integration_kernel is created only once to avoid
-            # serialisation errors
-            self.integration_kernel = qubit.get_integration_kernels()
-            for int_krn in self.integration_kernel:
-                if hasattr(int_krn, "uid"):
-                    int_krn.uid = f"integration_kernel_{qubit.uid}"
-        if integration_kernel == "default":
-            integration_kernel = self.integration_kernel
-        if isinstance(integration_kernel, list) and len(integration_kernel) == 1:
-            integration_kernel = integration_kernel[0]
-        measure_acquire_section = Section(uid=uid)
-        measure_acquire_section.play_after = play_after
-        measure_acquire_section.measure(
-            measure_signal=self.signal_name("measure", qubit),
-            measure_pulse=ro_pulse,
-            handle=handle,
-            acquire_signal=self.signal_name("acquire", qubit),
-            integration_kernel=integration_kernel,
-            integration_length=qubit.parameters.readout_integration_length,
-            reset_delay=qubit.parameters.reset_delay_length,
-        )
-        return measure_acquire_section
-
-
-def merge_valid_user_parameters(user_parameters_list):
-    valid_user_parameters = dict(
-        experiment_metainfo=[],
-        analysis_metainfo=[],
-    )
-    for user_parameters in user_parameters_list:
-        if "experiment_metainfo" in user_parameters:
-            valid_user_parameters["experiment_metainfo"].extend(
-                user_parameters["experiment_metainfo"]
-            )
-        if "analysis_metainfo" in user_parameters:
-            valid_user_parameters["analysis_metainfo"].extend(
-                user_parameters["analysis_metainfo"]
-            )
-    return valid_user_parameters
