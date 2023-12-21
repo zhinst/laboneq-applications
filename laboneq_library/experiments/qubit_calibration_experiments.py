@@ -236,59 +236,8 @@ class QubitSpectroscopy(ExperimentTemplate):
                     freqs_to_fit = freqs if ff_qb is None else freqs[ff_qb(freqs)]
                     # fit data
                     param_hints = self.analysis_metainfo.get("param_hints")
-                    if param_hints is None:
-                        width_guess = 50e3
-                        # fit with guess values for a peak
-                        param_hints = {
-                            "amplitude": {"value": np.max(data_to_fit) * width_guess},
-                            "position": {"value": freqs_to_fit[np.argmax(data_to_fit)]},
-                            "width": {"value": width_guess},
-                            "offset": {"value": 0},
-                        }
-                        fit_res_peak = ana_hlp.fit_data_lmfit(
-                            fit_mods.lorentzian,
-                            freqs_to_fit,
-                            data_to_fit,
-                            param_hints=param_hints,
-                        )
-                        # fit with guess values for a dip
-                        param_hints["amplitude"]["value"] *= -1
-                        param_hints["position"]["value"] = freqs_to_fit[
-                            np.argmin(data_to_fit)
-                        ]
-                        fit_res_dip = ana_hlp.fit_data_lmfit(
-                            fit_mods.lorentzian,
-                            freqs_to_fit,
-                            data_to_fit,
-                            param_hints=param_hints,
-                        )
-                        # determine whether there is a peak or a dip: compare
-                        # the distance between the value at the fitted peak/dip
-                        # to the mean of the data_mag array: the larger distance
-                        # is the true spectroscopy signal
-                        dpeak = abs(
-                            fit_res_peak.model.func(
-                                fit_res_peak.best_values["position"],
-                                **fit_res_peak.best_values,
-                            )
-                            - np.mean(data_to_fit)
-                        )
-                        ddip = abs(
-                            fit_res_dip.model.func(
-                                fit_res_dip.best_values["position"],
-                                **fit_res_dip.best_values,
-                            )
-                            - np.mean(data_to_fit)
-                        )
-                        fit_res = fit_res_peak if dpeak > ddip else fit_res_dip
-                    else:
-                        # do what the user asked
-                        fit_res = ana_hlp.fit_data_lmfit(
-                            fit_mods.lorentzian,
-                            freqs_to_fit,
-                            data_to_fit,
-                            param_hints=param_hints,
-                        )
+                    fit_res = ana_hlp.fit_lorentzian(
+                        data_to_fit, freqs_to_fit, param_hints)
                     self.analysis_results[qubit.uid]["fit_results"] = fit_res
                     fqb = fit_res.params["position"].value
                     fqb_err = fit_res.params["position"].stderr

@@ -69,6 +69,8 @@ class ResonatorSpectroscopy(ExperimentTemplate):
                 ],
                 analysis_metainfo=[
                     "frequency_filter_for_fit",
+                    "measurement_type",
+                    "fit_lorentzian",
                     "find_peaks",
                     "do_fitting",
                     "param_hints",
@@ -249,10 +251,11 @@ class ResonatorSpectroscopy(ExperimentTemplate):
             take_extremum = np.argmax if fp_qb else np.argmin
             # extract data
             handle = f"{self.experiment_name}_{qubit.uid}"
-            data_mag = abs(self.results.get_data(handle))
+            msmt_type = self.analysis_metainfo.get("measurement_type", "transmission")
+            data = np.imag(self.results.get_data(handle)) if msmt_type == "reflection" else abs(self.results.get_data(handle))
             res_axis = self.results.get_axis(handle)
             if self.nt_swp_par is None or self.nt_swp_par == "frequency":
-                data_mag = np.array([data for data in data_mag]).flatten()
+                data = np.array([data for data in data]).flatten()
                 if len(res_axis) > 1:
                     outer = self.results.get_axis(handle)[0]
                     inner = self.results.get_axis(handle)[1]
@@ -265,17 +268,28 @@ class ResonatorSpectroscopy(ExperimentTemplate):
 
                 # plot data
                 fig, ax = plt.subplots()
-                ax.plot(freqs / 1e9, data_mag)
+                ax.plot(freqs / 1e9, data)
                 ax.set_xlabel("Readout Frequency, $f_{\\mathrm{RO}}$ (GHz)")
-                ax.set_ylabel("Signal Magnitude, $|S_{21}|$ (a.u.)")
+                ax.set_ylabel("Imaginary Reflected Signal, $|S_{11}|$ (a.u.)"
+                              if msmt_type == "reflection"
+                              else "Transmission Signal Magnitude, $|S_{21}|$ (a.u.)")
 
                 if self.analysis_metainfo.get("do_fitting", True):
-                    data_to_search = (
-                        data_mag if ff_qb is None else data_mag[ff_qb(freqs)]
+                    data_to_fit = (
+                        data if ff_qb is None else data[ff_qb(freqs)]
                     )
-                    freqs_to_search = freqs if ff_qb is None else freqs[ff_qb(freqs)]
-                    f0 = freqs_to_search[take_extremum(data_to_search)]
-                    d0 = data_to_search[take_extremum(data_to_search)]
+                    freqs_to_fit = freqs if ff_qb is None else freqs[ff_qb(freqs)]
+                    if self.analysis_metainfo.get("fit_lorentzian", False):
+                        param_hints = self.analysis_metainfo.get("param_hints")
+                        fit_res = ana_hlp.fit_lorentzian(
+                            data_to_fit, freqs_to_fit, param_hints)
+                        self.analysis_results[qubit.uid]["fit_results"] = fit_res
+                        f0 = fit_res.params["position"].value
+                        d0 = fit_res.model.func(f0, **fit_res.best_values)
+                    else:
+                        # find frequency at min or max of data_to_fit
+                        f0 = freqs_to_fit[take_extremum(data_to_fit)]
+                        d0 = data_to_fit[take_extremum(data_to_fit)]
                     f0_old = qubit.parameters.readout_resonator_frequency
                     new_parameter_values["readout_resonator_frequency"] = f0
                     old_parameter_values["readout_resonator_frequency"] = f0_old

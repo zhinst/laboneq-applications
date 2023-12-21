@@ -2,10 +2,10 @@ import numpy as np
 from copy import deepcopy
 import logging
 
-logging.basicConfig(level=logging.WARNING)
-log = logging.getLogger("analysis_helpers")
+log = logging.getLogger(__name__)
 
 from laboneq_library.analysis import cal_trace_rotation as cal_tr_rot
+from laboneq.analysis import fitting as fit_mods
 
 
 def find_oscillation_frequency_and_phase(data, time):
@@ -262,3 +262,78 @@ def get_pi_pi2_xvalues_on_cos(x, frequency, phase):
     pi2xv_falling = pi2_xvals_falling[mask_func(pi2_xvals_falling)]
 
     return pixv_top, pixv_bottom, pi2xv_rising, pi2xv_falling
+
+
+def fit_lorentzian(data, sweep_points, param_hints=None):
+    """
+    Fit the Lorentzian model fit_mods.lorentzian to the data as a function of
+    sweep_points.
+
+    This function determines whether the Lorentzian structure has a peak or a
+    dip by performing two fits with two guess values, the min and the max of
+    the data. To determine whether there is a peak or a dip, the distance
+    between the value at the fitted peak/dip is compared to the mean of the
+    data array: the larger distance is the true spectroscopy signal.
+
+    Args:
+        data: numpy array of data to fit
+        sweep_points: numpy array of the independent variable
+        param_hints: dict with parameter hints for the fit (see fit_data_lmfit)
+
+    Returns:
+        an instance of lmfit.model.ModelResult
+    """
+    if param_hints is None:
+        width_guess = 50e3
+        # fit with guess values for a peak
+        param_hints = {
+            "amplitude": {"value": np.max(data) * width_guess},
+            "position": {"value": sweep_points[np.argmax(data)]},
+            "width": {"value": width_guess},
+            "offset": {"value": 0},
+        }
+        fit_res_peak = fit_data_lmfit(
+            fit_mods.lorentzian,
+            sweep_points,
+            data,
+            param_hints=param_hints,
+        )
+        # fit with guess values for a dip
+        param_hints["amplitude"]["value"] *= -1
+        param_hints["position"]["value"] = sweep_points[
+            np.argmin(data)
+        ]
+        fit_res_dip = fit_data_lmfit(
+            fit_mods.lorentzian,
+            sweep_points,
+            data,
+            param_hints=param_hints,
+        )
+        # determine whether there is a peak or a dip: compare
+        # the distance between the value at the fitted peak/dip
+        # to the mean of the data array: the larger distance
+        # is the true spectroscopy signal
+        dpeak = abs(
+            fit_res_peak.model.func(
+                fit_res_peak.best_values["position"],
+                **fit_res_peak.best_values,
+            )
+            - np.mean(data)
+        )
+        ddip = abs(
+            fit_res_dip.model.func(
+                fit_res_dip.best_values["position"],
+                **fit_res_dip.best_values,
+            )
+            - np.mean(data)
+        )
+        fit_res = fit_res_peak if dpeak > ddip else fit_res_dip
+    else:
+        # do what the user asked
+        fit_res = fit_data_lmfit(
+            fit_mods.lorentzian,
+            sweep_points,
+            data,
+            param_hints=param_hints,
+        )
+    return fit_res
