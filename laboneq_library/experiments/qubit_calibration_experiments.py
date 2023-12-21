@@ -1565,8 +1565,6 @@ class RamseyParking(Ramsey):
                         self.analysis_results[qubit.uid]
                     )
 
-                # recreate empty self.analysis_results
-                ExperimentTemplate.analyse_experiment(self)
                 self.analysis_results[qubit.uid].update(ramsey_analysis_results)
                 # fit qubit frequencies vs voltage
                 qubit_frequencies = np.array(
