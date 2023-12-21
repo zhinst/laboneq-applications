@@ -630,7 +630,9 @@ class AmplitudeRabi(SingleQubitGateTuneup):
                 play_after=prep_sections,
             )
             # pulse to calibrate
-            drive_pulse = qt_ops.quantum_gate(qubit, f"X180_{self.transition_to_calibrate}")
+            drive_pulse = qt_ops.quantum_gate(
+                qubit, f"X180_{self.transition_to_calibrate}"
+            )
             # amplitude is scaled w.r.t this value
             drive_pulse.amplitude = 1
             excitation_section.play(
@@ -1237,7 +1239,9 @@ class T1(SingleQubitGateTuneup):
                 play_after=prep_sections,
             )
             # add x180 pulse
-            x180_pulse = qt_ops.quantum_gate(qubit, f"X180_{self.transition_to_calibrate}")
+            x180_pulse = qt_ops.quantum_gate(
+                qubit, f"X180_{self.transition_to_calibrate}"
+            )
             excitation_section.play(
                 signal=self.signal_name(f"drive{self.drive_signal_suffix}", qubit),
                 pulse=x180_pulse,
@@ -1680,7 +1684,9 @@ class RamseyParking(Ramsey):
             if len(new_qb_pars) == 0:
                 return
 
-            new_freq = new_qb_pars[f"resonance_frequency_{self.transition_to_calibrate}"]
+            new_freq = new_qb_pars[
+                f"resonance_frequency_{self.transition_to_calibrate}"
+            ]
             if "f" in self.transition_to_calibrate:
                 qubit.parameters.resonance_frequency_ef = new_freq
             else:
