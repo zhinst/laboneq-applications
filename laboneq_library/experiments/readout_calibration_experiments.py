@@ -49,7 +49,7 @@ class SignalPropagationDelay(ExperimentTemplate):
     def configure_experiment(self):
         super().configure_experiment()
 
-        cal = Calibration()
+        cal = self.experiment.get_calibration()
         for qubit in self.qubits:
             cal[self.signal_name("acquire", qubit)] = SignalCalibration(
                 port_delay=self.sweep_parameters_dict[qubit.uid][0]
@@ -199,7 +199,7 @@ class ResonatorSpectroscopy(ExperimentTemplate):
         super().configure_experiment()
 
         # configure sweep
-        cal = Calibration()
+        cal = self.experiment.get_calibration()
         for qubit in self.qubits:
             qb_sweep = self.sweep_parameters_dict[qubit.uid]
             local_oscillator = None
@@ -815,7 +815,7 @@ class StateDiscrimination(ExperimentTemplate):
         self.create_acquire_rt_loop()
         self.experiment.add(self.acquire_loop)
         for qubit in self.qubits:
-            self.add_cal_states_sections(qubit)
+            self.add_cal_states_sections(qubit, add_to=self.acquire_loop)
 
     def analyse_experiment(self):
         super().analyse_experiment()

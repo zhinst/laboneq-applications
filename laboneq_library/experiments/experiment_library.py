@@ -288,12 +288,12 @@ def ramsey_parallel(
 
 
 class StatePreparationMixin:
-    def create_preparation(
+    def create_state_preparation_sections(
         self,
         qubit,
         state_to_prepare="e",
         section_uid_suffix="",
-        play_after_sections=None,
+        play_after=None,
         add_measure_acquire_sections=False,
         acquire_handle_name_suffix="",
     ):
@@ -304,13 +304,14 @@ class StatePreparationMixin:
             if add_measure_acquire_sections:
                 g_measure_section = self.create_measure_acquire_sections(
                     qubit=qubit,
+                    play_after=play_after,
                     handle_suffix=f"{acquire_handle_name_suffix}_g",
                 )
                 preparation_sections = [g_measure_section]
         elif state_to_prepare == "e":
             e_section = Section(
                 uid=f"{qubit.uid}_prep_e{section_uid_suffix}",
-                play_after=play_after_sections,
+                play_after=play_after,
                 on_system_grid=True,
             )
             e_section.play(
@@ -329,7 +330,7 @@ class StatePreparationMixin:
             # prepare e state
             e_section = Section(
                 uid=f"{qubit.uid}_prep_f_pulse_e{section_uid_suffix}",
-                play_after=play_after_sections,
+                play_after=play_after,
                 on_system_grid=True,
             )
             e_section.play(
@@ -339,9 +340,12 @@ class StatePreparationMixin:
                 ),
             )
             # prepare f state
+            play_after_for_f = [e_section]
+            if play_after is not None:
+                play_after_for_f = play_after + play_after_for_f
             f_section = Section(
                 uid=f"{qubit.uid}_prep_f_pulse_f{section_uid_suffix}",
-                play_after=play_after_sections + [e_section],
+                play_after=play_after_for_f,
                 on_system_grid=True,
             )
             f_section.play(
@@ -363,6 +367,67 @@ class StatePreparationMixin:
                 "Currently, only state g, e and f " "can be prepared."
             )
         return preparation_sections
+
+    def add_cal_states_sections(self, qubit, add_to=None):
+        if self.cal_states is None:
+            return
+
+        play_after = []
+        cal_trace_sections = []
+        if "g" in self.cal_states:
+            # create preparation pulses sections like active reset
+            g_qb_prep_sec = StatePreparationMixin.create_qubit_preparation_sections(
+                self, qubit, handle_suffix="cal_traces_g"
+            )
+            # Ground state - just a msmt
+            g_measure_section = self.create_measure_acquire_sections(
+                qubit=qubit,
+                handle_suffix="cal_trace_g",
+            )
+            play_after = [g_measure_section]
+            cal_trace_sections += g_qb_prep_sec + [g_measure_section]
+        if "e" in self.cal_states:
+            # create preparation pulses sections like active reset
+            e_qb_prep_sec = StatePreparationMixin.create_qubit_preparation_sections(
+                self, qubit, handle_suffix="cal_traces_e", play_after=play_after
+            )
+            # Excited state - prep pulse + msmt
+            e_prep_sections = self.create_state_preparation_sections(
+                qubit,
+                state_to_prepare="e",
+                play_after=play_after + e_qb_prep_sec,  # e_qb_prep_sec might be []
+                section_uid_suffix="cal_traces",
+            )
+            e_measure_section = self.create_measure_acquire_sections(
+                qubit=qubit,
+                play_after=e_prep_sections,
+                handle_suffix="cal_trace_e",
+            )
+            play_after = [e_measure_section]
+            cal_trace_sections += e_qb_prep_sec + e_prep_sections + [e_measure_section]
+        if "f" in self.cal_states:
+            # create preparation pulses sections like active reset
+            f_qb_prep_sec = StatePreparationMixin.create_qubit_preparation_sections(
+                self, qubit, handle_suffix="cal_traces_f", play_after=play_after
+            )
+            # 2nd-excited-state - prep pulse + msmt
+            f_prep_sections = self.create_state_preparation_sections(
+                qubit,
+                state_to_prepare="f",
+                play_after=play_after + f_qb_prep_sec,  # f_qb_prep_sec might be []
+                section_uid_suffix="cal_traces",
+            )
+            f_measure_section = self.create_measure_acquire_sections(
+                qubit=qubit,
+                play_after=f_prep_sections,
+                handle_suffix="cal_trace_f",
+            )
+            cal_trace_sections += f_qb_prep_sec + f_prep_sections + [f_measure_section]
+        for cal_tr_sec in cal_trace_sections:
+            if add_to is None:
+                self.acquire_loop.add(cal_tr_sec)
+            else:
+                add_to.add(cal_tr_sec)
 
     def create_active_reset_sections(
         self, qubit, states_to_reset=("g", "e"), handle_suffix=None, play_after=None
@@ -420,6 +485,27 @@ class StatePreparationMixin:
             match_section.add(case)
 
         return [measure_acquire_section, match_section]
+
+    def create_transition_preparation_sections(self, qubit, **kwargs):
+        if hasattr(self, "transition_to_calib"):
+            # All children of SingleQubitGateTuneup
+            return self.create_state_preparation_sections(
+                qubit, state_to_prepare=self.transition_to_calib[0], **kwargs
+            )
+
+    def create_qubit_preparation_sections(self, qubit, **kwargs):
+        preparation_sections = []
+        if self.preparation_type == "active_reset":
+            states_to_reset = self.experiment_metainfo.get(
+                "states_to_actively_reset", ("g", "e")
+            )
+            preparation_sections += self.create_active_reset_sections(
+                qubit, states_to_reset, **kwargs
+            )
+        # return None if no preparation sections were created because the output
+        # of this method is intended to be passed to the play_after of another
+        # section.
+        return preparation_sections
 
 
 class ExperimentTemplate(StatePreparationMixin):
@@ -948,11 +1034,11 @@ class ExperimentTemplate(StatePreparationMixin):
         qubit,
         uid=None,
         play_after=None,
-        handle_suffix="",
+        handle_suffix=None,
         integration_kernel="default",
     ):
         handle = f"{self.experiment_name}_{qubit.uid}"
-        if len(handle_suffix) > 0:
+        if handle_suffix is not None:
             handle += f"_{handle_suffix}"
 
         ro_pulse = qt_ops.readout_pulse(qubit)
@@ -979,57 +1065,6 @@ class ExperimentTemplate(StatePreparationMixin):
             reset_delay=qubit.parameters.reset_delay_length,
         )
         return measure_acquire_section
-
-    def add_cal_states_sections(self, qubit, section_container=None):
-        if self.cal_states is None:
-            return
-
-        play_after_sections = []
-        cal_trace_sections = []
-        if "g" in self.cal_states:
-            # Ground state - just a msmt
-            g_measure_section = self.create_measure_acquire_sections(
-                qubit=qubit,
-                handle_suffix="cal_trace_g",
-            )
-            play_after_sections = [g_measure_section]
-            cal_trace_sections += [g_measure_section]
-        if "e" in self.cal_states:
-            # Excited state - prep pulse + msmt
-            e_prep_sections = self.create_preparation(
-                qubit,
-                state_to_prepare="e",
-                play_after_sections=play_after_sections,
-                section_uid_suffix="cal_traces",
-            )
-            e_measure_section = self.create_measure_acquire_sections(
-                qubit=qubit,
-                play_after=e_prep_sections,
-                handle_suffix="cal_trace_e",
-            )
-            play_after_sections = (
-                [s for s in play_after_sections] + e_prep_sections + [e_measure_section]
-            )
-            cal_trace_sections += e_prep_sections + [e_measure_section]
-        if "f" in self.cal_states:
-            # 2nd-excited-state - prep pulse + msmt
-            f_prep_sections = self.create_preparation(
-                qubit,
-                state_to_prepare="f",
-                play_after_sections=play_after_sections,
-                section_uid_suffix="cal_traces",
-            )
-            f_measure_section = self.create_measure_acquire_sections(
-                qubit=qubit,
-                play_after=f_prep_sections,
-                handle_suffix="cal_trace_f",
-            )
-            cal_trace_sections += f_prep_sections + [f_measure_section]
-        for cal_tr_sec in cal_trace_sections:
-            if section_container is None:
-                self.acquire_loop.add(cal_tr_sec)
-            else:
-                section_container.add(cal_tr_sec)
 
 
 def merge_valid_user_parameters(user_parameters_list):
