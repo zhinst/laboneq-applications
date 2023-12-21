@@ -11,9 +11,7 @@ ryaml = YAML()
 
 import logging
 
-logging.basicConfig(level=logging.WARNING)
-log = logging.getLogger("calibration_helpers")
-
+log = logging.getLogger(__name__)
 
 # saving and loading
 def load_qubit_parameters(filename="./qubit_parameters.yaml"):
