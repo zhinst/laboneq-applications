@@ -497,7 +497,7 @@ class SingleQubitGateTuneup(ExperimentTemplate):
     valid_user_parameters = merge_valid_user_parameters(
         [
             dict(
-                experiment_metainfo=["cal_states", "transition_to_calib"],
+                experiment_metainfo=["cal_states", "transition_to_calibrate"],
                 analysis_metainfo=[
                     "do_pca",
                     "show_figures",
@@ -509,27 +509,27 @@ class SingleQubitGateTuneup(ExperimentTemplate):
 
     def __init__(self, *args, signals=None, **kwargs):
         exp_metainfo = kwargs.get("experiment_metainfo", {})
-        self.transition_to_calib = exp_metainfo.get("transition_to_calib", "ge")
+        self.transition_to_calibrate = exp_metainfo.get("transition_to_calibrate", "ge")
 
-        # Add "f" to cal states if transition_to_calib contains f
+        # Add "f" to cal states if transition_to_calibrate contains f
         cal_states = exp_metainfo.get("cal_states", None)
         if cal_states is None:
-            cal_states = "gef" if "f" in self.transition_to_calib else "ge"
+            cal_states = "gef" if "f" in self.transition_to_calibrate else "ge"
         exp_metainfo["cal_states"] = cal_states
         kwargs["experiment_metainfo"] = exp_metainfo
 
         # Add drive_ef to signals if not there
         if signals is None:
             signals = ["drive", "measure", "acquire"]
-        if "f" in self.transition_to_calib and "drive_ef" not in signals:
+        if "f" in self.transition_to_calibrate and "drive_ef" not in signals:
             signals += ["drive_ef"]
 
         # Suffix of the drive signal
-        self.drive_signal_suffix = "_ef" if self.transition_to_calib == "ef" else ""
+        self.drive_signal_suffix = "_ef" if self.transition_to_calibrate == "ef" else ""
 
         # Add suffix to experiment name
         experiment_name = kwargs.get("experiment_name", self.fallback_experiment_name)
-        experiment_name += f"_{self.transition_to_calib}"
+        experiment_name += f"_{self.transition_to_calibrate}"
         kwargs["experiment_name"] = experiment_name
 
         super().__init__(*args, signals=signals, **kwargs)
@@ -630,7 +630,7 @@ class AmplitudeRabi(SingleQubitGateTuneup):
                 play_after=prep_sections,
             )
             # pulse to calibrate
-            drive_pulse = qt_ops.quantum_gate(qubit, f"X180_{self.transition_to_calib}")
+            drive_pulse = qt_ops.quantum_gate(qubit, f"X180_{self.transition_to_calibrate}")
             # amplitude is scaled w.r.t this value
             drive_pulse.amplitude = 1
             excitation_section.play(
@@ -705,12 +705,12 @@ class AmplitudeRabi(SingleQubitGateTuneup):
             pi_amp = pi_amps[pi_amps > pi2_amp][0]
             self.analysis_results[qubit.uid]["new_parameter_values"].update(
                 {
-                    f"{self.transition_to_calib}_amplitude_pi": pi_amp.nominal_value,
-                    f"{self.transition_to_calib}_amplitude_pi2": pi2_amp.nominal_value,
-                    f"{self.transition_to_calib}_pi_amps": [
+                    f"{self.transition_to_calibrate}_amplitude_pi": pi_amp.nominal_value,
+                    f"{self.transition_to_calibrate}_amplitude_pi2": pi2_amp.nominal_value,
+                    f"{self.transition_to_calibrate}_pi_amps": [
                         pia.nominal_value for pia in pi_amps
                     ],
-                    f"{self.transition_to_calib}_pi2_amps": [
+                    f"{self.transition_to_calibrate}_pi2_amps": [
                         pi2a.nominal_value for pi2a in pi_amps
                     ],
                 }
@@ -741,18 +741,18 @@ class AmplitudeRabi(SingleQubitGateTuneup):
             # textbox
             old_pi_amp = (
                 qubit.parameters.drive_parameters_ef["amplitude_pi"]
-                if "f" in self.transition_to_calib
+                if "f" in self.transition_to_calibrate
                 else qubit.parameters.drive_parameters_ge["amplitude_pi"]
             )
             old_pi2_amp = (
                 qubit.parameters.drive_parameters_ef["amplitude_pi2"]
-                if "f" in self.transition_to_calib
+                if "f" in self.transition_to_calibrate
                 else qubit.parameters.drive_parameters_ge["amplitude_pi2"]
             )
             self.analysis_results[qubit.uid]["old_parameter_values"].update(
                 {
-                    f"{self.transition_to_calib}_amplitude_pi": old_pi_amp,
-                    f"{self.transition_to_calib}_amplitude_pi2": old_pi2_amp,
+                    f"{self.transition_to_calibrate}_amplitude_pi": old_pi_amp,
+                    f"{self.transition_to_calibrate}_amplitude_pi2": old_pi2_amp,
                 }
             )
             textstr = (
@@ -776,14 +776,14 @@ class AmplitudeRabi(SingleQubitGateTuneup):
 
             dr_pars = (
                 qubit.parameters.drive_parameters_ef
-                if "f" in self.transition_to_calib
+                if "f" in self.transition_to_calibrate
                 else qubit.parameters.drive_parameters_ge
             )
             dr_pars["amplitude_pi"] = new_qb_pars[
-                f"{self.transition_to_calib}_amplitude_pi"
+                f"{self.transition_to_calibrate}_amplitude_pi"
             ]
             dr_pars["amplitude_pi2"] = new_qb_pars[
-                f"{self.transition_to_calib}_amplitude_pi2"
+                f"{self.transition_to_calibrate}_amplitude_pi2"
             ]
 
 
@@ -844,7 +844,7 @@ class Ramsey(SingleQubitGateTuneup):
             )
             # Ramsey pulses
             ramsey_drive_pulse = qt_ops.quantum_gate(
-                qubit, f"X90_{self.transition_to_calib}"
+                qubit, f"X90_{self.transition_to_calibrate}"
             )
             excitation_section.play(
                 signal=self.signal_name(f"drive{self.drive_signal_suffix}", qubit),
@@ -915,7 +915,7 @@ class Ramsey(SingleQubitGateTuneup):
             freq_fit_err = fit_res.params["frequency"].stderr
             old_qb_freq = (
                 qubit.parameters.resonance_frequency_ef
-                if "f" in self.transition_to_calib
+                if "f" in self.transition_to_calibrate
                 else qubit.parameters.resonance_frequency_ge
             )
             introduced_detuning = self.experiment_metainfo["detuning"][qubit.uid]
@@ -962,7 +962,7 @@ class Ramsey(SingleQubitGateTuneup):
                 return
 
             new_freq = new_qb_pars["resonance_frequency"]
-            if "f" in self.transition_to_calib:
+            if "f" in self.transition_to_calibrate:
                 qubit.parameters.resonance_frequency_ef = new_freq
             else:
                 qubit.parameters.resonance_frequency_ge = new_freq
@@ -995,7 +995,7 @@ class QScale(SingleQubitGateTuneup):
             self.acquire_loop.add(sweep)
 
             # create pulses sections
-            tn = self.transition_to_calib
+            tn = self.transition_to_calibrate
             X90_pulse = qt_ops.quantum_gate(qubit, f"X90_{tn}")
             X180_pulse = qt_ops.quantum_gate(qubit, f"X180_{tn}")
             Y180_pulse = qt_ops.quantum_gate(qubit, f"Y180_{tn}")
@@ -1152,15 +1152,15 @@ class QScale(SingleQubitGateTuneup):
                 slope_diff_mean = slope_xmy - slope_xy
                 qscale = intercept_diff_mean / slope_diff_mean
                 self.analysis_results[qubit.uid]["new_parameter_values"].update(
-                    {f"{self.transition_to_calib}_beta": qscale.nominal_value}
+                    {f"{self.transition_to_calibrate}_beta": qscale.nominal_value}
                 )
                 old_qscale = (
                     qubit.parameters.drive_parameters_ef["beta"]
-                    if "f" in self.transition_to_calib
+                    if "f" in self.transition_to_calibrate
                     else qubit.parameters.drive_parameters_ge["beta"]
                 )
                 self.analysis_results[qubit.uid]["old_parameter_values"].update(
-                    {f"{self.transition_to_calib}_beta": old_qscale}
+                    {f"{self.transition_to_calibrate}_beta": old_qscale}
                 )
 
                 textstr = (
@@ -1192,10 +1192,10 @@ class QScale(SingleQubitGateTuneup):
 
             dr_pars = (
                 qubit.parameters.drive_parameters_ef
-                if "f" in self.transition_to_calib
+                if "f" in self.transition_to_calibrate
                 else qubit.parameters.drive_parameters_ge
             )
-            dr_pars["beta"] = new_qb_pars[f"{self.transition_to_calib}_beta"]
+            dr_pars["beta"] = new_qb_pars[f"{self.transition_to_calibrate}_beta"]
 
 
 class T1(SingleQubitGateTuneup):
@@ -1237,7 +1237,7 @@ class T1(SingleQubitGateTuneup):
                 play_after=prep_sections,
             )
             # add x180 pulse
-            x180_pulse = qt_ops.quantum_gate(qubit, f"X180_{self.transition_to_calib}")
+            x180_pulse = qt_ops.quantum_gate(qubit, f"X180_{self.transition_to_calibrate}")
             excitation_section.play(
                 signal=self.signal_name(f"drive{self.drive_signal_suffix}", qubit),
                 pulse=x180_pulse,
@@ -1346,7 +1346,7 @@ class Echo(SingleQubitGateTuneup):
             delays = self.sweep_parameters_dict[qubit.uid][0].values
             pl = (
                 qubit.parameters.drive_parameters_ef["length"]
-                if "f" in self.transition_to_calib
+                if "f" in self.transition_to_calibrate
                 else qubit.parameters.drive_parameters_ge["length"]
             )
             swp_pars_half_delays += [
@@ -1379,10 +1379,10 @@ class Echo(SingleQubitGateTuneup):
             )
             # Echo pulses and delays
             ramsey_drive_pulse = qt_ops.quantum_gate(
-                qubit, f"X90_{self.transition_to_calib}"
+                qubit, f"X90_{self.transition_to_calibrate}"
             )
             echo_drive_pulse = qt_ops.quantum_gate(
-                qubit, f"X180_{self.transition_to_calib}"
+                qubit, f"X180_{self.transition_to_calibrate}"
             )
             excitation_section.play(
                 signal=self.signal_name(f"drive{self.drive_signal_suffix}", qubit),
@@ -1422,7 +1422,7 @@ class Echo(SingleQubitGateTuneup):
     def analyse_experiment_qubit(self, qubit, data_dict, figure, ax):
         delays_offset = (
             qubit.parameters.drive_parameters_ef["length"]
-            if "f" in self.transition_to_calib
+            if "f" in self.transition_to_calibrate
             else qubit.parameters.drive_parameters_ge["length"]
         )
         # plot data with correct scaling
@@ -1612,13 +1612,13 @@ class RamseyParking(Ramsey):
                 V0err = fit_res.params["voltage_sweet_spot"].stderr
                 self.analysis_results[qubit.uid]["fit_results"] = fit_res
                 self.analysis_results[qubit.uid]["new_parameter_values"] = {
-                    f"resonance_frequency_{self.transition_to_calib}": f0,
+                    f"resonance_frequency_{self.transition_to_calibrate}": f0,
                     "dc_voltage_parking": V0,
                 }
                 V0_old = qubit.parameters.dc_voltage_parking
                 f0_old = qubit.parameters.resonance_frequency_ge
                 self.analysis_results[qubit.uid]["old_parameter_values"] = {
-                    f"resonance_frequency_{self.transition_to_calib}": f0_old,
+                    f"resonance_frequency_{self.transition_to_calibrate}": f0_old,
                     "dc_voltage_parking": V0_old,
                 }
                 # plot data + fit
@@ -1680,8 +1680,8 @@ class RamseyParking(Ramsey):
             if len(new_qb_pars) == 0:
                 return
 
-            new_freq = new_qb_pars[f"resonance_frequency_{self.transition_to_calib}"]
-            if "f" in self.transition_to_calib:
+            new_freq = new_qb_pars[f"resonance_frequency_{self.transition_to_calibrate}"]
+            if "f" in self.transition_to_calibrate:
                 qubit.parameters.resonance_frequency_ef = new_freq
             else:
                 qubit.parameters.resonance_frequency_ge = new_freq

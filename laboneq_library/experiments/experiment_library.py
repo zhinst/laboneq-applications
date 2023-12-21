@@ -487,10 +487,10 @@ class StatePreparationMixin:
         return [measure_acquire_section, match_section]
 
     def create_transition_preparation_sections(self, qubit, **kwargs):
-        if hasattr(self, "transition_to_calib"):
+        if hasattr(self, "transition_to_calibrate"):
             # All children of SingleQubitGateTuneup
             return self.create_state_preparation_sections(
-                qubit, state_to_prepare=self.transition_to_calib[0], **kwargs
+                qubit, state_to_prepare=self.transition_to_calibrate[0], **kwargs
             )
 
     def create_qubit_preparation_sections(self, qubit, **kwargs):
