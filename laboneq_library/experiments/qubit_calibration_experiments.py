@@ -963,6 +963,17 @@ class Ramsey(SingleQubitGateTuneup):
 
 class QScale(SingleQubitGateTuneup):
     fallback_experiment_name = "QScale"
+    valid_user_parameters = merge_valid_user_parameters(
+        [
+            dict(
+                analysis_metainfo=[
+                    "do_fitting",
+                    "param_hints",
+                ],
+            ),
+            SingleQubitGateTuneup.valid_user_parameters,
+        ]
+    )
 
     def define_experiment(self):
         self.experiment.sections = []
@@ -1111,45 +1122,46 @@ class QScale(SingleQubitGateTuneup):
                         fit_line = np.repeat(fit_line, len(swpts_fine))
                     ax.plot(swpts_fine, fit_line, c=line.get_color(), zorder=1)
 
-            # calculate optimal qscale
-            fit_results = self.analysis_results[qubit.uid]["fit_results"]
-            intercept_xy = unc.ufloat(
-                fit_results["xy"].params["intercept"].value,
-                fit_results["xy"].params["intercept"].stderr,
-            )
-            slope_xy = unc.ufloat(
-                fit_results["xy"].params["slope"].value,
-                fit_results["xy"].params["slope"].stderr,
-            )
-            intercept_xmy = unc.ufloat(
-                fit_results["xmy"].params["intercept"].value,
-                fit_results["xmy"].params["intercept"].stderr,
-            )
-            slope_xmy = unc.ufloat(
-                fit_results["xmy"].params["slope"].value,
-                fit_results["xmy"].params["slope"].stderr,
-            )
-            intercept_diff_mean = intercept_xy - intercept_xmy
-            slope_diff_mean = slope_xmy - slope_xy
-            qscale = intercept_diff_mean / slope_diff_mean
-            self.analysis_results[qubit.uid]["new_parameter_values"].update(
-                {f"{self.transition_to_calib}_beta": qscale.nominal_value}
-            )
-            old_qscale = (
-                qubit.parameters.drive_parameters_ef["beta"]
-                if "f" in self.transition_to_calib
-                else qubit.parameters.drive_parameters_ge["beta"]
-            )
-            self.analysis_results[qubit.uid]["old_parameter_values"].update(
-                {f"{self.transition_to_calib}_beta": old_qscale}
-            )
+            if do_fitting:
+                # calculate optimal qscale
+                fit_results = self.analysis_results[qubit.uid]["fit_results"]
+                intercept_xy = unc.ufloat(
+                    fit_results["xy"].params["intercept"].value,
+                    fit_results["xy"].params["intercept"].stderr,
+                )
+                slope_xy = unc.ufloat(
+                    fit_results["xy"].params["slope"].value,
+                    fit_results["xy"].params["slope"].stderr,
+                )
+                intercept_xmy = unc.ufloat(
+                    fit_results["xmy"].params["intercept"].value,
+                    fit_results["xmy"].params["intercept"].stderr,
+                )
+                slope_xmy = unc.ufloat(
+                    fit_results["xmy"].params["slope"].value,
+                    fit_results["xmy"].params["slope"].stderr,
+                )
+                intercept_diff_mean = intercept_xy - intercept_xmy
+                slope_diff_mean = slope_xmy - slope_xy
+                qscale = intercept_diff_mean / slope_diff_mean
+                self.analysis_results[qubit.uid]["new_parameter_values"].update(
+                    {f"{self.transition_to_calib}_beta": qscale.nominal_value}
+                )
+                old_qscale = (
+                    qubit.parameters.drive_parameters_ef["beta"]
+                    if "f" in self.transition_to_calib
+                    else qubit.parameters.drive_parameters_ge["beta"]
+                )
+                self.analysis_results[qubit.uid]["old_parameter_values"].update(
+                    {f"{self.transition_to_calib}_beta": old_qscale}
+                )
 
-            textstr = (
-                f"Quadrature scaling: {qscale.nominal_value:.4f} $\\pm$ "
-                f"{qscale.std_dev:.4f}"
-            )
-            textstr += f"\nOld value: {old_qscale:.4f}"
-            ax.text(0, -0.15, textstr, ha="left", va="top", transform=ax.transAxes)
+                textstr = (
+                    f"Quadrature scaling: {qscale.nominal_value:.4f} $\\pm$ "
+                    f"{qscale.std_dev:.4f}"
+                )
+                textstr += f"\nOld value: {old_qscale:.4f}"
+                ax.text(0, -0.15, textstr, ha="left", va="top", transform=ax.transAxes)
             ax.legend(frameon=False, loc="center left", bbox_to_anchor=(1, 0.5))
             ax.set_ylabel(
                 "Principal Component (a.u)"
