@@ -576,6 +576,8 @@ class ExperimentTemplate(StatePreparationMixin):
         if self.analysis_metainfo is None:
             self.analysis_metainfo = {}
         self.update = update
+        if not self.do_analysis:
+            self.update = False
         self.save = save
         if self.save and self.data_directory is None:
             raise ValueError(
