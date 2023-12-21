@@ -252,7 +252,11 @@ class ResonatorSpectroscopy(ExperimentTemplate):
             # extract data
             handle = f"{self.experiment_name}_{qubit.uid}"
             msmt_type = self.analysis_metainfo.get("measurement_type", "transmission")
-            data = np.imag(self.results.get_data(handle)) if msmt_type == "reflection" else abs(self.results.get_data(handle))
+            data = (
+                np.imag(self.results.get_data(handle))
+                if msmt_type == "reflection"
+                else abs(self.results.get_data(handle))
+            )
             res_axis = self.results.get_axis(handle)
             if self.nt_swp_par is None or self.nt_swp_par == "frequency":
                 data = np.array([data for data in data]).flatten()
@@ -270,19 +274,20 @@ class ResonatorSpectroscopy(ExperimentTemplate):
                 fig, ax = plt.subplots()
                 ax.plot(freqs / 1e9, data)
                 ax.set_xlabel("Readout Frequency, $f_{\\mathrm{RO}}$ (GHz)")
-                ax.set_ylabel("Imaginary Reflected Signal, $|S_{11}|$ (a.u.)"
-                              if msmt_type == "reflection"
-                              else "Transmission Signal Magnitude, $|S_{21}|$ (a.u.)")
+                ax.set_ylabel(
+                    "Imaginary Reflected Signal, $|S_{11}|$ (a.u.)"
+                    if msmt_type == "reflection"
+                    else "Transmission Signal Magnitude, $|S_{21}|$ (a.u.)"
+                )
 
                 if self.analysis_metainfo.get("do_fitting", True):
-                    data_to_fit = (
-                        data if ff_qb is None else data[ff_qb(freqs)]
-                    )
+                    data_to_fit = data if ff_qb is None else data[ff_qb(freqs)]
                     freqs_to_fit = freqs if ff_qb is None else freqs[ff_qb(freqs)]
                     if self.analysis_metainfo.get("fit_lorentzian", False):
                         param_hints = self.analysis_metainfo.get("param_hints")
                         fit_res = ana_hlp.fit_lorentzian(
-                            data_to_fit, freqs_to_fit, param_hints)
+                            data_to_fit, freqs_to_fit, param_hints
+                        )
                         self.analysis_results[qubit.uid]["fit_results"] = fit_res
                         f0 = fit_res.params["position"].value
                         d0 = fit_res.model.func(f0, **fit_res.best_values)

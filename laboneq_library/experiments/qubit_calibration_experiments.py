@@ -237,7 +237,8 @@ class QubitSpectroscopy(ExperimentTemplate):
                     # fit data
                     param_hints = self.analysis_metainfo.get("param_hints")
                     fit_res = ana_hlp.fit_lorentzian(
-                        data_to_fit, freqs_to_fit, param_hints)
+                        data_to_fit, freqs_to_fit, param_hints
+                    )
                     self.analysis_results[qubit.uid]["fit_results"] = fit_res
                     fqb = fit_res.params["position"].value
                     fqb_err = fit_res.params["position"].stderr

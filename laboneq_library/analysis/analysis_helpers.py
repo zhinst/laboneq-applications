@@ -300,9 +300,7 @@ def fit_lorentzian(data, sweep_points, param_hints=None):
         )
         # fit with guess values for a dip
         param_hints["amplitude"]["value"] *= -1
-        param_hints["position"]["value"] = sweep_points[
-            np.argmin(data)
-        ]
+        param_hints["position"]["value"] = sweep_points[np.argmin(data)]
         fit_res_dip = fit_data_lmfit(
             fit_mods.lorentzian,
             sweep_points,
