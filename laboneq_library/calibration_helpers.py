@@ -346,7 +346,7 @@ def load_results_from_data_folder(data_folder):
     ]
     if len(results_fn) == 0:
         raise ValueError(
-            f"The data folder {data_folder} does not contain a " f"results file."
+            f"The data folder {data_folder} does not contain a results file."
         )
     else:
         results_fn = results_fn[0]
