@@ -1,4 +1,5 @@
 import numpy as np
+from copy import copy
 from copy import deepcopy
 import uncertainties as unc
 from itertools import combinations
@@ -237,13 +238,6 @@ class ResonatorSpectroscopy(ExperimentTemplate):
         if not hasattr(find_peaks, "__iter__"):
             find_peaks = {qubit.uid: find_peaks for qubit in self.qubits}
         for qubit in self.qubits:
-            new_parameter_values = self.analysis_results[qubit.uid][
-                "new_parameter_values"
-            ]
-            old_parameter_values = self.analysis_results[qubit.uid][
-                "old_parameter_values"
-            ]
-
             # get frequency filter of qubit
             ff_qb = freq_filter.get(qubit.uid, None)
             # decide whether to extract peaks or dips for qubit
@@ -251,244 +245,14 @@ class ResonatorSpectroscopy(ExperimentTemplate):
             take_extremum = np.argmax if fp_qb else np.argmin
             # extract data
             handle = f"{self.experiment_name}_{qubit.uid}"
-            msmt_type = self.analysis_metainfo.get("measurement_type", "transmission")
-            data = (
-                np.imag(self.results.get_data(handle))
-                if msmt_type == "reflection"
-                else abs(self.results.get_data(handle))
-            )
-            res_axis = self.results.get_axis(handle)
             if self.nt_swp_par is None or self.nt_swp_par == "frequency":
-                data = np.array([data for data in data]).flatten()
-                if len(res_axis) > 1:
-                    outer = self.results.get_axis(handle)[0]
-                    inner = self.results.get_axis(handle)[1]
-                    freqs = np.array([out + inner for out in outer]).flatten()
-                else:
-                    freqs = (
-                        self.results.get_axis(handle)[0]
-                        + qubit.parameters.readout_lo_frequency
-                    )
-
-                # plot data
-                fig, ax = plt.subplots()
-                ax.plot(freqs / 1e9, data)
-                ax.set_xlabel("Readout Frequency, $f_{\\mathrm{RO}}$ (GHz)")
-                ax.set_ylabel(
-                    "Imaginary Reflected Signal, $|S_{11}|$ (a.u.)"
-                    if msmt_type == "reflection"
-                    else "Transmission Signal Magnitude, $|S_{21}|$ (a.u.)"
+                fig, ax = self.analyse_experiment_qubit_1d(
+                    qubit, handle, ff_qb, take_extremum
                 )
-
-                if self.analysis_metainfo.get("do_fitting", True):
-                    data_to_fit = data if ff_qb is None else data[ff_qb(freqs)]
-                    freqs_to_fit = freqs if ff_qb is None else freqs[ff_qb(freqs)]
-                    if self.analysis_metainfo.get("fit_lorentzian", False):
-                        param_hints = self.analysis_metainfo.get("param_hints")
-                        fit_res = ana_hlp.fit_lorentzian(
-                            data_to_fit, freqs_to_fit, param_hints
-                        )
-                        self.analysis_results[qubit.uid]["fit_results"] = fit_res
-                        f0 = fit_res.params["position"].value
-                        d0 = fit_res.model.func(f0, **fit_res.best_values)
-                    else:
-                        # find frequency at min or max of data_to_fit
-                        f0 = freqs_to_fit[take_extremum(data_to_fit)]
-                        d0 = data_to_fit[take_extremum(data_to_fit)]
-                    f0_old = qubit.parameters.readout_resonator_frequency
-                    new_parameter_values["readout_resonator_frequency"] = f0
-                    old_parameter_values["readout_resonator_frequency"] = f0_old
-                    ax.plot(f0 / 1e9, d0, "ro")
-                    textstr = (
-                        f"Extracted readout-resonator frequency: {f0 / 1e9:.4f} GHz"
-                    )
-                    textstr += f"\nOld value: {f0_old / 1e9:.4f} GHz"
-                    ax.text(
-                        0, -0.15, textstr, ha="left", va="top", transform=ax.transAxes
-                    )
             else:
-                # 2D plot of results
-                nt_sweep_par_vals = self.results.get_axis(handle)[0]
-                nt_sweep_par_name = self.results.get_axis_name(handle)[0]
-                freqs = (
-                    self.results.get_axis(handle)[1]
-                    + qubit.parameters.readout_lo_frequency
+                fig, ax = self.analyse_experiment_qubit_2d(
+                    qubit, handle, ff_qb, take_extremum
                 )
-                data_mag = abs(self.results.get_data(handle))
-
-                X, Y = np.meshgrid(freqs / 1e9, nt_sweep_par_vals)
-                fig, ax = plt.subplots(constrained_layout=True)
-
-                CS = ax.contourf(X, Y, data_mag, levels=100, cmap="magma")
-                ax.set_title(f"{handle}")
-                ax.set_xlabel("Readout Frequency, $f_{\\mathrm{RO}}$ (GHz)")
-                ax.set_ylabel(nt_sweep_par_name)
-                cbar = fig.colorbar(CS)
-                cbar.set_label("Signal Magnitude, $|S_{21}|$ (a.u.)")
-
-                if self.nt_swp_par == "voltage":
-                    # 1D plot of the qubit frequency vs voltage
-                    if ff_qb is None:
-                        freqs_dips = freqs[take_extremum(data_mag, axis=1)]
-                    else:
-                        mask = ff_qb(freqs)
-                        freqs_dips = freqs[mask][
-                            take_extremum(data_mag[:, mask], axis=1)
-                        ]
-                    # plot
-                    ax.plot(freqs_dips / 1e9, nt_sweep_par_vals, "ow")
-                    # figure out whether voltages vs freqs is convex or concave
-                    take_extremum_fit, scf = (
-                        (np.argmax, 1)
-                        if (ana_hlp.is_data_convex(nt_sweep_par_vals, freqs_dips))
-                        else (np.argmin, -1)
-                    )
-                    # optimal parking parameters at the extremum of
-                    # voltages vs frequencies
-                    f0 = freqs_dips[take_extremum_fit(freqs_dips)]
-                    V0 = nt_sweep_par_vals[take_extremum_fit(freqs_dips)]
-                    new_parameter_values.update(
-                        {"readout_resonator_frequency": f0, "dc_voltage_parking": V0}
-                    )
-                    f0_old = qubit.parameters.readout_resonator_frequency
-                    V0_old = qubit.parameters.dc_voltage_parking
-                    old_parameter_values.update(
-                        {
-                            "readout_resonator_frequency": f0_old,
-                            "dc_voltage_parking": V0_old,
-                        }
-                    )
-
-                    if self.analysis_metainfo.get("do_fitting", True):
-                        # fit frequency vs voltage and take the optimal parking
-                        # parameters from fit
-                        data_to_fit = freqs_dips
-                        swpts_to_fit = nt_sweep_par_vals
-                        (
-                            freqs_guess,
-                            phase_guess,
-                        ) = ana_hlp.find_oscillation_frequency_and_phase(
-                            data_to_fit, swpts_to_fit
-                        )
-                        param_hints = self.analysis_metainfo.get(
-                            "param_hints",
-                            {
-                                "frequency": {
-                                    "value": 2 * np.pi * freqs_guess,
-                                    "min": 0,
-                                },
-                                "phase": {"value": phase_guess},
-                                "amplitude": {
-                                    "value": abs(max(data_to_fit) - min(data_to_fit))
-                                    / 2,
-                                    "min": 0,
-                                },
-                                "offset": {"value": np.mean(data_to_fit)},
-                            },
-                        )
-                        fit_res = ana_hlp.fit_data_lmfit(
-                            fit_mods.oscillatory,
-                            swpts_to_fit,
-                            data_to_fit,
-                            param_hints=param_hints,
-                        )
-                        self.analysis_results[qubit.uid]["fit_results"] = fit_res
-
-                        # extract USS and LSS voltages and frequencies
-                        freq_fit = unc.ufloat(
-                            fit_res.params["frequency"].value,
-                            fit_res.params["frequency"].stderr,
-                        )
-                        phase_fit = unc.ufloat(
-                            fit_res.params["phase"].value,
-                            fit_res.params["phase"].stderr,
-                        )
-                        (
-                            voltages_uss,
-                            voltages_lss,
-                            _,
-                            _,
-                        ) = ana_hlp.get_pi_pi2_xvalues_on_cos(
-                            swpts_to_fit, freq_fit, phase_fit
-                        )
-                        v_uss_values = np.array(
-                            [vuss.nominal_value for vuss in voltages_uss]
-                        )
-                        v_lss_values = np.array(
-                            [vlss.nominal_value for vlss in voltages_lss]
-                        )
-                        freqs_uss = fit_res.model.func(
-                            v_uss_values, **fit_res.best_values
-                        )
-                        freqs_lss = fit_res.model.func(
-                            v_lss_values, **fit_res.best_values
-                        )
-
-                        # plot fit
-                        swpts_fine = np.linspace(swpts_to_fit[0], swpts_to_fit[-1], 501)
-                        ax.plot(
-                            fit_res.model.func(swpts_fine, **fit_res.best_values) / 1e9,
-                            swpts_fine,
-                            "w-",
-                        )
-                        (line_uss,) = ax.plot(freqs_uss / 1e9, v_uss_values, "bo")
-                        (line_lss,) = ax.plot(freqs_lss / 1e9, v_lss_values, "go")
-
-                        # extract parking values, show them on plot and save
-                        # them in self.new_qubit_parameters
-                        new_parameter_values.update(
-                            {
-                                "readout_resonator_frequency": {},
-                                "dc_voltage_parking": {},
-                            }
-                        )
-                        if len(v_uss_values) > 0:
-                            uss_idx = np.argsort(abs(v_uss_values))[0]
-                            v_uss, f_uss = voltages_uss[uss_idx], freqs_uss[uss_idx]
-                            textstr = (
-                                "Smallest USS voltage:\n"
-                                + f"{v_uss.nominal_value:.4f} V $\\pm$ {v_uss.std_dev:.4f} V"
-                            )
-                            textstr += f"\nParking frequency:\n{f_uss / 1e9:.4f} GHz"
-                            ax.text(
-                                1,
-                                -0.15,
-                                textstr,
-                                ha="right",
-                                va="top",
-                                c=line_uss.get_c(),
-                                transform=ax.transAxes,
-                            )
-                            new_parameter_values["readout_resonator_frequency"][
-                                "uss"
-                            ] = f_uss
-                            new_parameter_values["dc_voltage_parking"][
-                                "uss"
-                            ] = v_uss.nominal_value
-                        if len(v_lss_values) > 0:
-                            lss_idx = np.argsort(abs(v_lss_values))[0]
-                            v_lss, f_lss = voltages_lss[lss_idx], freqs_lss[lss_idx]
-                            textstr = (
-                                "Smallest LSS voltage:\n"
-                                + f"{v_lss.nominal_value:.4f} V $\\pm$ {v_lss.std_dev:.4f} V"
-                            )
-                            textstr += f"\nParking frequency:\n{f_lss / 1e9:.4f} GHz"
-                            ax.text(
-                                0,
-                                -0.15,
-                                textstr,
-                                ha="left",
-                                va="top",
-                                c=line_lss.get_c(),
-                                transform=ax.transAxes,
-                            )
-                            new_parameter_values["readout_resonator_frequency"][
-                                "lss"
-                            ] = f_lss
-                            new_parameter_values["dc_voltage_parking"][
-                                "lss"
-                            ] = v_lss.nominal_value
-
             ax.set_title(f"{self.timestamp}_{handle}")
             # save figures and results
             if self.save:
@@ -497,6 +261,226 @@ class ResonatorSpectroscopy(ExperimentTemplate):
             if self.analysis_metainfo.get("show_figures", False):
                 plt.show()
             plt.close(fig)
+
+    def analyse_experiment_qubit_1d(self, qubit, handle, freq_filter_qb, take_extremum):
+        new_parameter_values = self.analysis_results[qubit.uid]["new_parameter_values"]
+        old_parameter_values = self.analysis_results[qubit.uid]["old_parameter_values"]
+        msmt_type = self.analysis_metainfo.get("measurement_type", "transmission")
+        data = (
+            np.imag(self.results.get_data(handle))
+            if msmt_type == "reflection"
+            else abs(self.results.get_data(handle))
+        )
+        res_axis = self.results.get_axis(handle)
+        data = np.array([data for data in data]).flatten()
+        if len(res_axis) > 1:
+            outer = copy(res_axis[0])
+            inner = copy(res_axis[1])
+            freqs = np.array([out + inner for out in outer]).flatten()
+        else:
+            freqs = res_axis[0] + qubit.parameters.readout_lo_frequency
+
+        # plot data
+        fig, ax = plt.subplots()
+        ax.plot(freqs / 1e9, data)
+        ax.set_xlabel("Readout Frequency, $f_{\\mathrm{RO}}$ (GHz)")
+        ax.set_ylabel(
+            "Imaginary Reflected Signal, $|S_{11}|$ (a.u.)"
+            if msmt_type == "reflection"
+            else "Transmission Signal Magnitude, $|S_{21}|$ (a.u.)"
+        )
+
+        if self.analysis_metainfo.get("do_fitting", True):
+            data_to_fit = (
+                data if freq_filter_qb is None else data[freq_filter_qb(freqs)]
+            )
+            freqs_to_fit = (
+                freqs if freq_filter_qb is None else freqs[freq_filter_qb(freqs)]
+            )
+            if self.analysis_metainfo.get("fit_lorentzian", False):
+                param_hints = self.analysis_metainfo.get("param_hints")
+                fit_res = ana_hlp.fit_lorentzian(data_to_fit, freqs_to_fit, param_hints)
+                self.analysis_results[qubit.uid]["fit_results"] = fit_res
+                f0 = fit_res.params["position"].value
+                d0 = fit_res.model.func(f0, **fit_res.best_values)
+            else:
+                # find frequency at min or max of data_to_fit
+                f0 = freqs_to_fit[take_extremum(data_to_fit)]
+                d0 = data_to_fit[take_extremum(data_to_fit)]
+            f0_old = qubit.parameters.readout_resonator_frequency
+            new_parameter_values["readout_resonator_frequency"] = f0
+            old_parameter_values["readout_resonator_frequency"] = f0_old
+            ax.plot(f0 / 1e9, d0, "ro")
+            textstr = f"Extracted readout-resonator frequency: {f0 / 1e9:.4f} GHz"
+            textstr += f"\nOld value: {f0_old / 1e9:.4f} GHz"
+            ax.text(0, -0.15, textstr, ha="left", va="top", transform=ax.transAxes)
+        return fig, ax
+
+    def analyse_experiment_qubit_2d(self, qubit, handle, freq_filter_qb, take_extremum):
+        new_parameter_values = self.analysis_results[qubit.uid]["new_parameter_values"]
+        old_parameter_values = self.analysis_results[qubit.uid]["old_parameter_values"]
+        # 2D plot of results
+        nt_sweep_par_vals = self.results.get_axis(handle)[0]
+        nt_sweep_par_name = self.results.get_axis_name(handle)[0]
+        freqs = self.results.get_axis(handle)[1] + qubit.parameters.readout_lo_frequency
+        data_mag = abs(self.results.get_data(handle))
+
+        X, Y = np.meshgrid(freqs / 1e9, nt_sweep_par_vals)
+        fig, ax = plt.subplots(constrained_layout=True)
+
+        CS = ax.contourf(X, Y, data_mag, levels=100, cmap="magma")
+        ax.set_title(f"{handle}")
+        ax.set_xlabel("Readout Frequency, $f_{\\mathrm{RO}}$ (GHz)")
+        ax.set_ylabel(nt_sweep_par_name)
+        cbar = fig.colorbar(CS)
+        cbar.set_label("Signal Magnitude, $|S_{21}|$ (a.u.)")
+
+        if self.nt_swp_par == "voltage":
+            # 1D plot of the qubit frequency vs voltage
+            if freq_filter_qb is None:
+                freqs_dips = freqs[take_extremum(data_mag, axis=1)]
+            else:
+                mask = freq_filter_qb(freqs)
+                freqs_dips = freqs[mask][take_extremum(data_mag[:, mask], axis=1)]
+            # plot
+            ax.plot(freqs_dips / 1e9, nt_sweep_par_vals, "ow")
+            # figure out whether voltages vs freqs is convex or concave
+            take_extremum_fit, scf = (
+                (np.argmax, 1)
+                if (ana_hlp.is_data_convex(nt_sweep_par_vals, freqs_dips))
+                else (np.argmin, -1)
+            )
+            # optimal parking parameters at the extremum of
+            # voltages vs frequencies
+            f0 = freqs_dips[take_extremum_fit(freqs_dips)]
+            V0 = nt_sweep_par_vals[take_extremum_fit(freqs_dips)]
+            new_parameter_values.update(
+                {"readout_resonator_frequency": f0, "dc_voltage_parking": V0}
+            )
+            f0_old = qubit.parameters.readout_resonator_frequency
+            V0_old = qubit.parameters.dc_voltage_parking
+            old_parameter_values.update(
+                {
+                    "readout_resonator_frequency": f0_old,
+                    "dc_voltage_parking": V0_old,
+                }
+            )
+
+            if self.analysis_metainfo.get("do_fitting", True):
+                # fit frequency vs voltage and take the optimal parking
+                # parameters from fit
+                data_to_fit = freqs_dips
+                swpts_to_fit = nt_sweep_par_vals
+                (
+                    freqs_guess,
+                    phase_guess,
+                ) = ana_hlp.find_oscillation_frequency_and_phase(
+                    data_to_fit, swpts_to_fit
+                )
+                param_hints = self.analysis_metainfo.get(
+                    "param_hints",
+                    {
+                        "frequency": {
+                            "value": 2 * np.pi * freqs_guess,
+                            "min": 0,
+                        },
+                        "phase": {"value": phase_guess},
+                        "amplitude": {
+                            "value": abs(max(data_to_fit) - min(data_to_fit)) / 2,
+                            "min": 0,
+                        },
+                        "offset": {"value": np.mean(data_to_fit)},
+                    },
+                )
+                fit_res = ana_hlp.fit_data_lmfit(
+                    fit_mods.oscillatory,
+                    swpts_to_fit,
+                    data_to_fit,
+                    param_hints=param_hints,
+                )
+                self.analysis_results[qubit.uid]["fit_results"] = fit_res
+
+                # extract USS and LSS voltages and frequencies
+                freq_fit = unc.ufloat(
+                    fit_res.params["frequency"].value,
+                    fit_res.params["frequency"].stderr,
+                )
+                phase_fit = unc.ufloat(
+                    fit_res.params["phase"].value,
+                    fit_res.params["phase"].stderr,
+                )
+                (
+                    voltages_uss,
+                    voltages_lss,
+                    _,
+                    _,
+                ) = ana_hlp.get_pi_pi2_xvalues_on_cos(swpts_to_fit, freq_fit, phase_fit)
+                v_uss_values = np.array([vuss.nominal_value for vuss in voltages_uss])
+                v_lss_values = np.array([vlss.nominal_value for vlss in voltages_lss])
+                freqs_uss = fit_res.model.func(v_uss_values, **fit_res.best_values)
+                freqs_lss = fit_res.model.func(v_lss_values, **fit_res.best_values)
+
+                # plot fit
+                swpts_fine = np.linspace(swpts_to_fit[0], swpts_to_fit[-1], 501)
+                ax.plot(
+                    fit_res.model.func(swpts_fine, **fit_res.best_values) / 1e9,
+                    swpts_fine,
+                    "w-",
+                )
+                (line_uss,) = ax.plot(freqs_uss / 1e9, v_uss_values, "bo")
+                (line_lss,) = ax.plot(freqs_lss / 1e9, v_lss_values, "go")
+
+                # extract parking values, show them on plot and save
+                # them in self.new_qubit_parameters
+                new_parameter_values.update(
+                    {
+                        "readout_resonator_frequency": {},
+                        "dc_voltage_parking": {},
+                    }
+                )
+                if len(v_uss_values) > 0:
+                    uss_idx = np.argsort(abs(v_uss_values))[0]
+                    v_uss, f_uss = voltages_uss[uss_idx], freqs_uss[uss_idx]
+                    textstr = (
+                        "Smallest USS voltage:\n"
+                        + f"{v_uss.nominal_value:.4f} V $\\pm$ {v_uss.std_dev:.4f} V"
+                    )
+                    textstr += f"\nParking frequency:\n{f_uss / 1e9:.4f} GHz"
+                    ax.text(
+                        1,
+                        -0.15,
+                        textstr,
+                        ha="right",
+                        va="top",
+                        c=line_uss.get_c(),
+                        transform=ax.transAxes,
+                    )
+                    new_parameter_values["readout_resonator_frequency"]["uss"] = f_uss
+                    new_parameter_values["dc_voltage_parking"][
+                        "uss"
+                    ] = v_uss.nominal_value
+                if len(v_lss_values) > 0:
+                    lss_idx = np.argsort(abs(v_lss_values))[0]
+                    v_lss, f_lss = voltages_lss[lss_idx], freqs_lss[lss_idx]
+                    textstr = (
+                        "Smallest LSS voltage:\n"
+                        + f"{v_lss.nominal_value:.4f} V $\\pm$ {v_lss.std_dev:.4f} V"
+                    )
+                    textstr += f"\nParking frequency:\n{f_lss / 1e9:.4f} GHz"
+                    ax.text(
+                        0,
+                        -0.15,
+                        textstr,
+                        ha="left",
+                        va="top",
+                        c=line_lss.get_c(),
+                        transform=ax.transAxes,
+                    )
+                    new_parameter_values["readout_resonator_frequency"]["lss"] = f_lss
+                    new_parameter_values["dc_voltage_parking"][
+                        "lss"
+                    ] = v_lss.nominal_value
+        return fig, ax
 
     def execute_exit_condition(self):
         if self.nt_swp_par == "voltage":
