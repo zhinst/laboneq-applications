@@ -464,11 +464,11 @@ class QubitTemporaryValuesContext:
         log.debug("Entered QubitTemporaryValuesContext")
         try:
             self.old_value_pairs = [
-                (qubit, param_name, qubit.parameters.__dict__[param_name])
+                (qubit, param_name, getattr(qubit.parameters, param_name))
                 for qubit, param_name, _ in self.param_value_pairs
             ]
             for qubit, param_name, value in self.param_value_pairs:
-                qubit.parameters.__dict__[param_name] = value
+                setattr(qubit.parameters, param_name, value)
         except KeyError as e:
             self.__exit__(None, None, None)
             raise KeyError(
@@ -482,5 +482,5 @@ class QubitTemporaryValuesContext:
 
     def __exit__(self, type, value, traceback):
         for qubit, param_name, value in self.old_value_pairs:
-            qubit.parameters.__dict__[param_name] = value
+            setattr(qubit.parameters, param_name, value)
         log.debug("Exited QubitTemporaryValuesContext")
