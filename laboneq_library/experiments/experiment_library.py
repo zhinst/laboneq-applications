@@ -955,6 +955,8 @@ class ExperimentTemplate(ConfigurableExperiment):
     def save_experiment_metainfo(self):
         # Save the meta-information
         metainfo = {
+            "experiment_name": self.experiment_name,
+            "experiment_label": self.experiment_label,
             "sweep_parameters_dict": self.sweep_parameters_dict,
             "experiment_metainfo": self.experiment_metainfo,
             "analysis_metainfo": self.analysis_metainfo,
