@@ -883,8 +883,8 @@ class ExperimentTemplate(ConfigurableExperiment):
             for qubit in self.qubits:
                 old_qb_pars = self.analysis_results[qubit.uid]["old_parameter_values"]
                 for qb_par, par_value in old_qb_pars.items():
-                    if qb_par in qubit.parameters.__dict__:
-                        qubit.parameters.__dict__[qb_par] = par_value
+                    if getattr(qubit.parameters, qb_par, None) is not None:
+                        setattr(qubit.parameters, qb_par,  par_value)
                         if qb_par == "dc_voltage_parking":
                             nt_cb_func = self.experiment_metainfo.get(
                                 "neartime_callback_function", None
