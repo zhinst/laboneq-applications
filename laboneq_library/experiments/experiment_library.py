@@ -960,6 +960,8 @@ class ExperimentTemplate(ConfigurableExperiment):
             "sweep_parameters_dict": self.sweep_parameters_dict,
             "experiment_metainfo": self.experiment_metainfo,
             "analysis_metainfo": self.analysis_metainfo,
+            "timestamp": self.timestamp,
+            "save_directory": self.save_directory,
         }
         metainfo_file = os.path.abspath(
             os.path.join(self.save_directory, f"{self.timestamp}_meta_information.p")
