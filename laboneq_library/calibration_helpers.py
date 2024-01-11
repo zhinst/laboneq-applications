@@ -1,6 +1,7 @@
 import datetime
 import time
 import json
+import pickle
 import os
 from pathlib import Path
 
@@ -288,49 +289,73 @@ def create_qubits_from_parameters(qubit_parameters, measurement_setup):
     return qubits
 
 
-def load_measurement_setup_from_data_folder(data_folder, before_experiment=True):
+def load_measurement_setup_from_experiment_directory(experiment_directory, before_experiment=True):
     """
-    Load a DeviceSetup from the data_folder.
+    Load a DeviceSetup from the experiment_directory.
 
     Searched for a filename that contains "measurement_setup.json" inside
-    data_folder.
+    experiment_directory.
 
     Args:
-        data_folder: path to the directory where the measurement data is saved
+        experiment_directory: path to the directory where the measurement data is saved
         before_experiment: whether to load the setup from the file saves before
             (True) or after (False) running the experiment, which might update
             the setup. If True, the setup is loaded from the file inside
-            data_folder which contains the name "measurement_setup". If False,
+            experiment_directory which contains the name "measurement_setup". If False,
             the setup is loaded from the results saved in the file inside
-            data_folder which contains the name "results"
+            experiment_directory which contains the name "results"
 
     Returns:
         instance of DeviceSetup
     """
     if before_experiment:
-        msmt_setup_fn = [f for f in os.listdir(data_folder) if "measurement_setup" in f]
+        msmt_setup_fn = [f for f in os.listdir(experiment_directory) if "measurement_setup" in f]
         if len(msmt_setup_fn) == 0:
             raise ValueError(
-                f"The data folder {data_folder} does not contain a "
+                f"The data folder {experiment_directory} does not contain a "
                 f"measurement_setup file."
             )
         else:
             msmt_setup_fn = msmt_setup_fn[0]
-        return DeviceSetup.load(data_folder + f"\\{msmt_setup_fn}")
+        return DeviceSetup.load(experiment_directory + f"\\{msmt_setup_fn}")
     else:
-        results = load_results_from_data_folder(data_folder)
+        results = load_results_from_experiment_directory(experiment_directory)
         return results.device_setup
 
 
-def load_results_from_data_folder(data_folder):
+def load_acquired_results_from_experiment_directory(experiment_directory):
     """
-    Load a Results object from the data_folder.
+    Load an AcquiredResults object from a pickle file in the experiment_directory.
 
-    Searched for a filename that contains "results.json" inside
-    data_folder.
+    Searched for a filename that contains "analysis_results.p" inside
+    experiment_directory.
 
     Args:
-        data_folder: path to the directory where the measurement data is saved
+        experiment_directory: path to the directory where the measurement data is saved
+
+    Returns:
+        instance of AcquiredResults
+    """
+
+    results_fn = [f for f in os.listdir(experiment_directory) if "acquired_results.p" in f]
+    if len(results_fn) == 0:
+        raise ValueError(
+            f"The data folder {experiment_directory} does not contain a results file."
+        )
+    else:
+        results_fn = results_fn[0]
+    return pickle.load(open(experiment_directory + f"\\{results_fn}", "rb"))
+
+
+def load_results_from_experiment_directory(experiment_directory):
+    """
+    Load a Results object from the experiment_directory.
+
+    Searched for a filename that contains "results.json" inside
+    experiment_directory.
+
+    Args:
+        experiment_directory: path to the directory where the measurement data is saved
 
     Returns:
         instance of Results
@@ -338,7 +363,7 @@ def load_results_from_data_folder(data_folder):
 
     results_fn = [
         f
-        for f in os.listdir(data_folder)
+        for f in os.listdir(experiment_directory)
         if "results" in f
         and "fit" not in f
         and "acquired" not in f
@@ -346,23 +371,32 @@ def load_results_from_data_folder(data_folder):
     ]
     if len(results_fn) == 0:
         raise ValueError(
-            f"The data folder {data_folder} does not contain a results file."
+            f"The data folder {experiment_directory} does not contain a results file."
         )
     else:
         results_fn = results_fn[0]
-    return Results.load(data_folder + f"\\{results_fn}")
+    try:
+        results = Results.load(experiment_directory + f"\\{results_fn}")
+    except Exception:
+        log.warning(
+            "Could not deserialise the result object. Loading the "
+            "acquired_results from pickle."
+        )
+        results = load_acquired_results_from_experiment_directory(experiment_directory)
+
+    return results
 
 
-def load_qubits_from_data_folder(data_folder, measurement_setup):
+def load_qubits_from_experiment_directory(experiment_directory, measurement_setup):
     """
     Creates new instances of Transmon with the parameters loaded from a file
-    in data_folder.
+    in experiment_directory.
 
     Searched for filenames containing "qubit_parameters.yaml" or
-    "qubit_parameters.json" in data_folder.
+    "qubit_parameters.json" in experiment_directory.
 
     Args:
-        data_folder: path to the directory where the measurement data is saved
+        experiment_directory: path to the directory where the measurement data is saved
         measurement_setup: instance of DeviceSetup; passed to
         create_qubits_from_parameters
 
@@ -372,10 +406,10 @@ def load_qubits_from_data_folder(data_folder, measurement_setup):
 
     try:
         qubit_parameters = load_qubit_parameters(
-            data_folder + "\\qubit_parameters.yaml"
+            experiment_directory + "\\qubit_parameters.yaml"
         )
     except FileNotFoundError:
-        qubit_parameters = load_qubit_parameters_json(data_folder)
+        qubit_parameters = load_qubit_parameters_json(experiment_directory)
     qubits = create_qubits_from_parameters(qubit_parameters, measurement_setup)
     measurement_setup.qubits = qubits
     return qubits
@@ -401,9 +435,9 @@ def save_qubit_parameters(save_folder, qubits, timestamp=""):
         json.dump(qubit_parameters, file, indent=2)
 
 
-def get_latest_data_folder(data_directory):
+def get_latest_experiment_directory(data_directory):
     """
-    Returns the last data folder in data_directory.
+    Returns the last data folder in experiment_directory.
 
     Example: data_directory contains the following folders:
     ["20231128", "20231127", "20231126"]. This function returns the most recent
@@ -411,7 +445,7 @@ def get_latest_data_folder(data_directory):
     names of the folders.
 
     Args:
-        data_directory: directory where the measurement data is saved
+        data_directory: directory where the all the experiment data is saved
 
     Returns:
         the latest data folder
@@ -432,6 +466,8 @@ def get_latest_data_folder(data_directory):
         raise ValueError(f"Did not find any measurement folders in {data_directory}.")
     return latest_folder
 
+def get_timestamp_from_experiment_directory(experiment_directory):
+    pass
 
 class QubitTemporaryValuesContext:
     """
