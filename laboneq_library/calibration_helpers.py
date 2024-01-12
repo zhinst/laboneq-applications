@@ -125,7 +125,9 @@ def create_transmon(qubit: str, base_parameters, device_setup):
     return transmon
 
 
-def save_results_to_database(results_database, results_object, key_name: str, user_note: str):
+def save_results_to_database(
+    results_database, results_object, key_name: str, user_note: str
+):
     results_database.store(
         data=results_object,
         key=f"{key_name}_{datetime.datetime.now()}",

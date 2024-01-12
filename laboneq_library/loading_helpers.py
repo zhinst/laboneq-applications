@@ -64,8 +64,11 @@ def get_measurement_setup_file_path(experiment_directory, file_extension="json")
     Returns:
         the full path to a measurement_setup file
     """
-    msmt_setup_fp = [f for f in os.listdir(experiment_directory)
-                     if f"measurement_setup" in f and f.endswith(file_extension)]
+    msmt_setup_fp = [
+        f
+        for f in os.listdir(experiment_directory)
+        if f"measurement_setup" in f and f.endswith(file_extension)
+    ]
     if len(msmt_setup_fp) == 0:
         raise FileNotFoundError(
             f"The data folder {experiment_directory} does not contain a .{file_extension}"
@@ -79,7 +82,7 @@ def get_measurement_setup_file_path(experiment_directory, file_extension="json")
         )
     else:
         msmt_setup_fp = msmt_setup_fp[0]
-    return experiment_directory + f'\\{msmt_setup_fp}'
+    return experiment_directory + f"\\{msmt_setup_fp}"
 
 
 def get_results_file_path(experiment_directory, file_extension="json"):
@@ -115,7 +118,7 @@ def get_results_file_path(experiment_directory, file_extension="json"):
         )
     else:
         results_fp = results_fp[0]
-    return experiment_directory + f'\\{results_fp}'
+    return experiment_directory + f"\\{results_fp}"
 
 
 def get_acquired_results_file_path(experiment_directory, file_extension="p"):
@@ -148,7 +151,7 @@ def get_acquired_results_file_path(experiment_directory, file_extension="p"):
         )
     else:
         aq_results_fp = aq_results_fp[0]
-    return experiment_directory + f'\\{aq_results_fp}'
+    return experiment_directory + f"\\{aq_results_fp}"
 
 
 def get_analysis_results_file_path(experiment_directory, file_extension="p"):
@@ -163,8 +166,11 @@ def get_analysis_results_file_path(experiment_directory, file_extension="p"):
     Returns:
         the full path to an analysis_results file
     """
-    ana_setup_fp = [f for f in os.listdir(experiment_directory)
-                     if f"analysis_results" in f and f.endswith(file_extension)]
+    ana_setup_fp = [
+        f
+        for f in os.listdir(experiment_directory)
+        if f"analysis_results" in f and f.endswith(file_extension)
+    ]
     if len(ana_setup_fp) == 0:
         raise FileNotFoundError(
             f"The data folder {experiment_directory} does not contain a .{file_extension}"
@@ -178,7 +184,7 @@ def get_analysis_results_file_path(experiment_directory, file_extension="p"):
         )
     else:
         ana_setup_fp = ana_setup_fp[0]
-    return experiment_directory + f'\\{ana_setup_fp}'
+    return experiment_directory + f"\\{ana_setup_fp}"
 
 
 # loading
@@ -273,6 +279,7 @@ def load_acquired_results_from_results_json(
 
     # decode acquired results
     from laboneq.dsl.result.acquired_result import AcquiredResult, AcquiredResults
+
     acquired_results_loaded = results["results"]["acquired_results"]
     acquired_results = {}
     for handle in acquired_results_loaded:
