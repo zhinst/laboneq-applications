@@ -17,10 +17,12 @@ keywords = [
     "zhinst",
 ]
 classifiers = [
+    "Development Status :: 3 - Alpha",
     "Environment :: Console",
     "Intended Audience :: Developers",
     "Intended Audience :: Science/Research",
     "License :: OSI Approved :: Apache Software License",
+    "Operating System :: MacOS",
     "Operating System :: Microsoft :: Windows",
     "Operating System :: POSIX :: Linux",
     "Programming Language :: Python :: 3.9",
@@ -40,7 +42,3 @@ namespaces = false
 
 [tool.setuptools]
 zip-safe = false
-
-
-
-
