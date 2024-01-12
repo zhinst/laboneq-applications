@@ -86,9 +86,7 @@ def extract_and_rotate_data_1d(
     if cal_trace_handle_root is None:
         cal_trace_handle_root = data_handle
     cal_trace_handles = [
-        e
-        for e in list(results.acquired_results)
-        if f"{cal_trace_handle_root}_cal_trace" in e
+        e for e in results.get_handles() if f"{cal_trace_handle_root}_cal_trace" in e
     ]
     num_cal_traces = len(cal_trace_handles)
     if num_cal_traces > 0:
@@ -101,13 +99,13 @@ def extract_and_rotate_data_1d(
         )
         cal_traces = np.array([raw_data_cal_pt_0, raw_data_cal_pt_1])
         data_raw_w_cal_tr = np.concatenate([data_raw, cal_traces])
-        if not do_pca:
+        if do_pca:
+            # rotate data using pca
+            data_rot = cal_tr_rot.principal_component_analysis(data_raw_w_cal_tr)
+        else:
             data_rot = cal_tr_rot.rotate_data_to_cal_trace_results(
                 data_raw_w_cal_tr, raw_data_cal_pt_0, raw_data_cal_pt_1
             )
-        else:
-            # rotate data using pca
-            data_rot = cal_tr_rot.principal_component_analysis(data_raw_w_cal_tr)
     else:
         # rotate data using pca
         data_rot = cal_tr_rot.principal_component_analysis(data_raw)
@@ -146,9 +144,7 @@ def extract_and_rotate_data_2d(
     if cal_trace_handle_root is None:
         cal_trace_handle_root = data_handle
     cal_trace_handles = [
-        e
-        for e in list(results.acquired_results)
-        if f"{cal_trace_handle_root}_cal_trace" in e
+        e for e in results.get_handles() if f"{cal_trace_handle_root}_cal_trace" in e
     ]
     num_cal_traces = len(cal_trace_handles)
     data_rot = np.zeros(shape=data_raw.shape)
@@ -163,16 +159,16 @@ def extract_and_rotate_data_2d(
         cal_traces = np.array([raw_data_cal_pt_0, raw_data_cal_pt_1]).T
         data_raw_w_cal_tr = np.concatenate([data_raw, cal_traces], axis=1)
         data_rot = np.zeros(shape=data_raw_w_cal_tr.shape)
-        if not do_pca > 0:
-            for i in range(data_raw_w_cal_tr.shape[0]):
-                data_rot[i, :] = cal_tr_rot.rotate_data_to_cal_trace_results(
-                    data_raw_w_cal_tr[i, :], raw_data_cal_pt_0[i], raw_data_cal_pt_1[i]
-                )
-        else:
+        if do_pca:
             # rotate data using pca
             for i in range(data_raw_w_cal_tr.shape[0]):
                 data_rot[i, :] = cal_tr_rot.principal_component_analysis(
                     data_raw_w_cal_tr[i, :]
+                )
+        else:
+            for i in range(data_raw_w_cal_tr.shape[0]):
+                data_rot[i, :] = cal_tr_rot.rotate_data_to_cal_trace_results(
+                    data_raw_w_cal_tr[i, :], raw_data_cal_pt_0[i], raw_data_cal_pt_1[i]
                 )
     else:
         # rotate data using pca
