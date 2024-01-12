@@ -1,7 +1,7 @@
 import datetime
 import time
 import json
-import pickle
+import dill as pickle
 import os
 from pathlib import Path
 
@@ -13,33 +13,6 @@ ryaml = YAML()
 import logging
 
 log = logging.getLogger(__name__)
-
-
-# saving and loading
-def load_qubit_parameters(filename="./qubit_parameters.yaml"):
-    with open(filename) as f:
-        calib_file = f.read()
-    qubit_parameters = ryaml.load(calib_file)
-    return qubit_parameters
-
-
-def load_qubit_parameters_json(folder=None, full_filepath=None):
-    if full_filepath is None:
-        if folder is None:
-            raise ValueError("Please provide either folder or full_filepath.")
-        full_filepath = [
-            fn for fn in os.listdir(folder) if "qubit_parameters.json" in fn
-        ]
-        if len(full_filepath) == 0:
-            raise FileNotFoundError(
-                f"There is no json file containing qubit " f"parameters in {folder}."
-            )
-        full_filepath = f"{folder}\\{full_filepath[0]}"
-    with open(full_filepath) as f:
-        qubit_parameters = f.read()
-    # convert to python dictionary
-    qubit_parameters = json.loads(qubit_parameters)
-    return qubit_parameters
 
 
 def update_qubit_parameters_and_calibration(
@@ -81,27 +54,6 @@ def update_qubit_parameters_and_calibration(
             metadata={"creation_date": datetime.datetime.now(), "name": "calibration"},
         )
     return transmon_list
-
-
-def update_measurement_setup_from_qubits(qubits, measurement_setup):
-    """
-    Overwrites measurement_setup.qubit with qubits, and the measurement-setup
-    calibration with the qubits calibration.
-
-    Args:
-        qubits: list of qubits
-        measurement_setup: instance of DeviceSetup
-    """
-
-    msmt_setup_cal = measurement_setup.get_calibration()
-    for qubit in qubits:
-        cal = qubit.calibration()
-        for sig_name, lsig_path in qubit.signals.items():
-            msmt_setup_cal[lsig_path] = cal[lsig_path]
-        if qubit in measurement_setup.qubits:
-            qb_idx = measurement_setup.qubits.index(qubit)
-            measurement_setup.qubits[qb_idx] = qubit
-    measurement_setup.set_calibration(msmt_setup_cal)
 
 
 # create a transmon qubit object from entries in a parameter dictionary
@@ -173,7 +125,7 @@ def create_transmon(qubit: str, base_parameters, device_setup):
     return transmon
 
 
-def save_results(results_database, results_object, key_name: str, user_note: str):
+def save_results_to_database(results_database, results_object, key_name: str, user_note: str):
     results_database.store(
         data=results_object,
         key=f"{key_name}_{datetime.datetime.now()}",
@@ -182,6 +134,27 @@ def save_results(results_database, results_object, key_name: str, user_note: str
             "user_note": f"{user_note}",
         },
     )
+
+
+def update_measurement_setup_from_qubits(qubits, measurement_setup):
+    """
+    Overwrites measurement_setup.qubit with qubits, and the measurement-setup
+    calibration with the qubits calibration.
+
+    Args:
+        qubits: list of qubits
+        measurement_setup: instance of DeviceSetup
+    """
+
+    msmt_setup_cal = measurement_setup.get_calibration()
+    for qubit in qubits:
+        cal = qubit.calibration()
+        for sig_name, lsig_path in qubit.signals.items():
+            msmt_setup_cal[lsig_path] = cal[lsig_path]
+        if qubit in measurement_setup.qubits:
+            qb_idx = measurement_setup.qubits.index(qubit)
+            measurement_setup.qubits[qb_idx] = qubit
+    measurement_setup.set_calibration(msmt_setup_cal)
 
 
 def create_qubits_from_measurement_setup(measurement_setup):
@@ -289,132 +262,6 @@ def create_qubits_from_parameters(qubit_parameters, measurement_setup):
     return qubits
 
 
-def load_measurement_setup_from_experiment_directory(experiment_directory, before_experiment=True):
-    """
-    Load a DeviceSetup from the experiment_directory.
-
-    Searched for a filename that contains "measurement_setup.json" inside
-    experiment_directory.
-
-    Args:
-        experiment_directory: path to the directory where the measurement data is saved
-        before_experiment: whether to load the setup from the file saves before
-            (True) or after (False) running the experiment, which might update
-            the setup. If True, the setup is loaded from the file inside
-            experiment_directory which contains the name "measurement_setup". If False,
-            the setup is loaded from the results saved in the file inside
-            experiment_directory which contains the name "results"
-
-    Returns:
-        instance of DeviceSetup
-    """
-    if before_experiment:
-        msmt_setup_fn = [f for f in os.listdir(experiment_directory) if "measurement_setup" in f]
-        if len(msmt_setup_fn) == 0:
-            raise ValueError(
-                f"The data folder {experiment_directory} does not contain a "
-                f"measurement_setup file."
-            )
-        else:
-            msmt_setup_fn = msmt_setup_fn[0]
-        return DeviceSetup.load(experiment_directory + f"\\{msmt_setup_fn}")
-    else:
-        results = load_results_from_experiment_directory(experiment_directory)
-        return results.device_setup
-
-
-def load_acquired_results_from_experiment_directory(experiment_directory):
-    """
-    Load an AcquiredResults object from a pickle file in the experiment_directory.
-
-    Searched for a filename that contains "analysis_results.p" inside
-    experiment_directory.
-
-    Args:
-        experiment_directory: path to the directory where the measurement data is saved
-
-    Returns:
-        instance of AcquiredResults
-    """
-
-    results_fn = [f for f in os.listdir(experiment_directory) if "acquired_results.p" in f]
-    if len(results_fn) == 0:
-        raise ValueError(
-            f"The data folder {experiment_directory} does not contain a results file."
-        )
-    else:
-        results_fn = results_fn[0]
-    return pickle.load(open(experiment_directory + f"\\{results_fn}", "rb"))
-
-
-def load_results_from_experiment_directory(experiment_directory):
-    """
-    Load a Results object from the experiment_directory.
-
-    Searched for a filename that contains "results.json" inside
-    experiment_directory.
-
-    Args:
-        experiment_directory: path to the directory where the measurement data is saved
-
-    Returns:
-        instance of Results
-    """
-
-    results_fn = [
-        f
-        for f in os.listdir(experiment_directory)
-        if "results" in f
-        and "fit" not in f
-        and "acquired" not in f
-        and "analysis" not in f
-    ]
-    if len(results_fn) == 0:
-        raise ValueError(
-            f"The data folder {experiment_directory} does not contain a results file."
-        )
-    else:
-        results_fn = results_fn[0]
-    try:
-        results = Results.load(experiment_directory + f"\\{results_fn}")
-    except Exception:
-        log.warning(
-            "Could not deserialise the result object. Loading the "
-            "acquired_results from pickle."
-        )
-        results = load_acquired_results_from_experiment_directory(experiment_directory)
-
-    return results
-
-
-def load_qubits_from_experiment_directory(experiment_directory, measurement_setup):
-    """
-    Creates new instances of Transmon with the parameters loaded from a file
-    in experiment_directory.
-
-    Searched for filenames containing "qubit_parameters.yaml" or
-    "qubit_parameters.json" in experiment_directory.
-
-    Args:
-        experiment_directory: path to the directory where the measurement data is saved
-        measurement_setup: instance of DeviceSetup; passed to
-        create_qubits_from_parameters
-
-    Returns:
-        list of Transmon instances (see create_qubits_from_parameters)
-    """
-
-    try:
-        qubit_parameters = load_qubit_parameters(
-            experiment_directory + "\\qubit_parameters.yaml"
-        )
-    except FileNotFoundError:
-        qubit_parameters = load_qubit_parameters_json(experiment_directory)
-    qubits = create_qubits_from_parameters(qubit_parameters, measurement_setup)
-    measurement_setup.qubits = qubits
-    return qubits
-
-
 def save_qubit_parameters(save_folder, qubits, timestamp=""):
     """
     Saves the parameters of qubits into a json file.
@@ -434,40 +281,6 @@ def save_qubit_parameters(save_folder, qubits, timestamp=""):
     with open(qb_pars_file, "w") as file:
         json.dump(qubit_parameters, file, indent=2)
 
-
-def get_latest_experiment_directory(data_directory):
-    """
-    Returns the last data folder in experiment_directory.
-
-    Example: data_directory contains the following folders:
-    ["20231128", "20231127", "20231126"]. This function returns the most recent
-    folder inside data_directory/20231128, as sorted by the timestamp in the
-    names of the folders.
-
-    Args:
-        data_directory: directory where the all the experiment data is saved
-
-    Returns:
-        the latest data folder
-    """
-    latest_folder = None
-    day_folders = os.listdir(data_directory)
-    day_folders.sort()
-    for day_folder in day_folders[::-1]:
-        ts_folders = os.listdir(data_directory + f"\\{day_folder}")
-        if len(ts_folders) == 0:
-            continue
-        else:
-            ts_folders.sort()
-            ts_folder = ts_folders[-1]
-            latest_folder = data_directory + f"\\{day_folder}\\{ts_folder}"
-            break
-    if latest_folder is None:
-        raise ValueError(f"Did not find any measurement folders in {data_directory}.")
-    return latest_folder
-
-def get_timestamp_from_experiment_directory(experiment_directory):
-    pass
 
 class QubitTemporaryValuesContext:
     """
