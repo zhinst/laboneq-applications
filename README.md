@@ -1,10 +1,10 @@
 # laboneq-library
 Lightweight experiment execution engine for LabOne Q experiments and an extensible collection of top-quality pre-built experiments.
 
-Currently, the `laboneq-library` is internal and serves as a learning and development platform. The 
+Currently, the `laboneq-library` is internal and serves as a learning and development platform.
 
 ## Goals of the library and its parts
-The `laboneq-library` provides a scalable framework for quantum experiments based on the Zurich Instruments LabOne Q software framework.
+The `laboneq-library` provides a scalable framework for quantum experiments based on the Zurich Instruments [LabOne Q](https://github.com/zhinst/laboneq) software framework.
 
 To this end, the `laboneq-library` contains several elements:
 
