@@ -963,20 +963,20 @@ class ExperimentTemplate(ConfigurableExperiment):
 
     def save_experiment_metainfo(self):
         # Save the meta-information
-        metainfo = {
+        exp_metainfo = {
             "experiment_name": self.experiment_name,
             "experiment_label": self.experiment_label,
             "sweep_parameters_dict": self.sweep_parameters_dict,
-            "experiment_metainfo": self.experiment_metainfo,
             "analysis_metainfo": self.analysis_metainfo,
             "timestamp": self.timestamp,
             "save_directory": self.save_directory,
         }
+        exp_metainfo.update(self.experiment_metainfo)
         metainfo_file = os.path.abspath(
             os.path.join(self.save_directory, f"{self.timestamp}_meta_information.p")
         )
         with open(metainfo_file, "wb") as f:
-            pickle.dump(metainfo, f)
+            pickle.dump(exp_metainfo, f)
 
     def save_results(self, filename_suffix=""):
         if len(filename_suffix) > 0:
