@@ -17,10 +17,12 @@ keywords = [
     "zhinst",
 ]
 classifiers = [
+    "Development Status :: 3 - Alpha",
     "Environment :: Console",
     "Intended Audience :: Developers",
     "Intended Audience :: Science/Research",
     "License :: OSI Approved :: Apache Software License",
+    "Operating System :: MacOS",
     "Operating System :: Microsoft :: Windows",
     "Operating System :: POSIX :: Linux",
     "Programming Language :: Python :: 3.9",
@@ -30,7 +32,12 @@ classifiers = [
 ]
 dependencies = [
     "ruamel.yaml>=0.17",
-    "uncertainties",
+    "uncertainties==3.1.7",  # Not actively maintained
+    "laboneq~=2.22.0",
+    "numpy~=1.26.3",  # TODO: Validate for Numpy 2.0
+    "scipy",
+    "matplotlib",
+    "xarray",
 ]
 
 [tool.setuptools.packages.find]
@@ -40,7 +47,3 @@ namespaces = false
 
 [tool.setuptools]
 zip-safe = false
-
-
-
-
