@@ -258,8 +258,10 @@ class ResonatorSpectroscopy(ExperimentTemplate):
         data = self.results.get_data(handle)
         data_abs = abs(self.results.get_data(handle))
         data_phase = np.angle(self.results.get_data(handle))
-        res_axis = self.results.get_axis(handle)
+        # needed in case there is a near-time sweep over the LO frequency
         data_abs = np.array([data_abs for data_abs in data_abs]).flatten()
+        data_phase = np.array([data_phase for data_phase in data_phase]).flatten()
+        res_axis = self.results.get_axis(handle)
         if len(res_axis) > 1:
             outer = copy(res_axis[0])
             inner = copy(res_axis[1])
