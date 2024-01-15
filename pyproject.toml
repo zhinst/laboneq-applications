@@ -47,3 +47,8 @@ namespaces = false
 
 [tool.setuptools]
 zip-safe = false
+
+[tool.pytest.ini_options]
+testpaths = [
+    "tests",
+]
