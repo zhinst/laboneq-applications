@@ -55,3 +55,17 @@ def quantum_gate(
     if uid is None:
         uid = f"{gate_name} {qubit.uid}"
     return drive_pulse(pulse_type, uid=uid, **pulse_kwargs)
+
+
+def readout_pulse(qubit):
+    return pulse_library.const(
+        length=qubit.parameters.readout_pulse_length,
+        amplitude=qubit.parameters.readout_amplitude,
+    )
+
+
+def integration_kernel(qubit):
+    return pulse_library.const(
+        length=qubit.parameters.readout_pulse_length,
+        amplitude=1,
+    )
