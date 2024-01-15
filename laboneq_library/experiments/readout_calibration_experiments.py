@@ -72,6 +72,7 @@ class ResonatorSpectroscopy(ExperimentTemplate):
                     "frequency_filter_for_fit",
                     "measurement_type",
                     "fit_lorentzian",
+                    "fit_complex",
                     "find_peaks",
                     "do_fitting",
                     "param_hints",
@@ -246,33 +247,19 @@ class ResonatorSpectroscopy(ExperimentTemplate):
             # extract data
             handle = f"{self.experiment_name}_{qubit.uid}"
             if self.nt_swp_par is None or self.nt_swp_par == "frequency":
-                fig, ax = self.analyse_experiment_qubit_1d(
-                    qubit, handle, ff_qb, take_extremum
-                )
+                self.analyse_experiment_qubit_1d(qubit, handle, ff_qb, take_extremum)
             else:
-                fig, ax = self.analyse_experiment_qubit_2d(
-                    qubit, handle, ff_qb, take_extremum
-                )
-            ax.set_title(f"{self.timestamp}_{handle}")
-            # save figures and results
-            if self.save:
-                # Save the figure
-                self.save_figure(fig, qubit)
-            if self.analysis_metainfo.get("show_figures", False):
-                plt.show()
-            plt.close(fig)
+                self.analyse_experiment_qubit_2d(qubit, handle, ff_qb, take_extremum)
 
     def analyse_experiment_qubit_1d(self, qubit, handle, freq_filter_qb, take_extremum):
         new_parameter_values = self.analysis_results[qubit.uid]["new_parameter_values"]
         old_parameter_values = self.analysis_results[qubit.uid]["old_parameter_values"]
         msmt_type = self.analysis_metainfo.get("measurement_type", "transmission")
-        data = (
-            np.imag(self.results.get_data(handle))
-            if msmt_type == "reflection"
-            else abs(self.results.get_data(handle))
-        )
+        data = self.results.get_data(handle)
+        data_abs = abs(self.results.get_data(handle))
+        data_phase = np.angle(self.results.get_data(handle))
         res_axis = self.results.get_axis(handle)
-        data = np.array([data for data in data]).flatten()
+        data_abs = np.array([data_abs for data_abs in data_abs]).flatten()
         if len(res_axis) > 1:
             outer = copy(res_axis[0])
             inner = copy(res_axis[1])
@@ -280,41 +267,95 @@ class ResonatorSpectroscopy(ExperimentTemplate):
         else:
             freqs = res_axis[0] + qubit.parameters.readout_lo_frequency
 
-        # plot data
-        fig, ax = plt.subplots()
-        ax.plot(freqs / 1e9, data)
-        ax.set_xlabel("Readout Frequency, $f_{\\mathrm{RO}}$ (GHz)")
-        ax.set_ylabel(
-            "Imaginary Reflected Signal, $|S_{11}|$ (a.u.)"
+        # plot mag/phase
+        fig_mp, axs_mp = plt.subplots(nrows=2)
+        axs_mp[0].set_title(f"{self.timestamp}_{handle}_Magnitude_Phase")
+        axs_mp[0].plot(freqs / 1e9, data_abs)
+        axs_mp[0].set_ylabel(
+            "Reflection Signal\nMagnitude, $|S_{11}|$ (a.u.)"
             if msmt_type == "reflection"
-            else "Transmission Signal Magnitude, $|S_{21}|$ (a.u.)"
+            else "Transmission Signal\nMagnitude, $|S_{21}|$ (a.u.)"
         )
+        axs_mp[1].plot(freqs / 1e9, data_phase)
+        axs_mp[1].set_ylabel(
+            "Reflection Signal\nPhase, $|S_{11}|$ (a.u.)"
+            if msmt_type == "reflection"
+            else "Transmission Signal\nPhase, $|S_{21}|$ (a.u.)"
+        )
+        axs_mp[1].set_xlabel("Readout Frequency, $f_{\\mathrm{RO}}$ (GHz)")
+
+        # plot data real/imag
+        fig_reim, ax_reim = plt.subplots()
+        ax_reim.scatter(np.real(data), np.imag(data), marker="o")
+        s_label = "$S_{11}$" if msmt_type == "reflection" else "$S_{21}$"
+        ax_reim.set_xlabel(
+            "Real Reflection Signal, Re($S_{11}$) (a.u.)"
+            if msmt_type == "reflection"
+            else "Real Transmission Signal, Re($S_{11}$) (a.u.)"
+        )
+        ax_reim.set_ylabel(
+            (
+                "Imaginary Reflection Signal, Im($S_{11}$) (a.u.)"
+                if msmt_type == "reflection"
+                else "Imaginary Transmission Signal, Im($S_{11}$) (a.u.)"
+            )
+        )
+        ax_reim.set_title(f"{self.timestamp}_{handle}_Real_Imaginary")
 
         if self.analysis_metainfo.get("do_fitting", True):
             data_to_fit = (
-                data if freq_filter_qb is None else data[freq_filter_qb(freqs)]
+                data_abs if freq_filter_qb is None else data_abs[freq_filter_qb(freqs)]
             )
             freqs_to_fit = (
                 freqs if freq_filter_qb is None else freqs[freq_filter_qb(freqs)]
             )
+            param_hints = self.analysis_metainfo.get("param_hints")
             if self.analysis_metainfo.get("fit_lorentzian", False):
-                param_hints = self.analysis_metainfo.get("param_hints")
                 fit_res = ana_hlp.fit_lorentzian(data_to_fit, freqs_to_fit, param_hints)
                 self.analysis_results[qubit.uid]["fit_results"] = fit_res
                 f0 = fit_res.params["position"].value
                 d0 = fit_res.model.func(f0, **fit_res.best_values)
+                data_fit = fit_res.model.func(freqs_to_fit, **fit_res.best_values)
+                axs_mp[0].plot(freqs_to_fit / 1e9, np.abs(data_fit), "r-")
+            elif self.analysis_metainfo.get("fit_complex", False):
+                (f0, kappa_c, kappa_i, a_in, T_delay) = ana_hlp.fit_cavity_1p1m_S11(
+                    freqs_to_fit, data, param_hints
+                )
+                d0 = ana_hlp.cavity_1p1m_S11(f0, f0, kappa_c, kappa_i, a_in, T_delay)
+                data_fit = ana_hlp.cavity_1p1m_S11(
+                    freqs_to_fit, f0, kappa_c, kappa_i, a_in, T_delay
+                )
+                axs_mp[0].plot(freqs_to_fit / 1e9, np.abs(data_fit), "r-")
+                axs_mp[1].plot(freqs_to_fit / 1e9, np.angle(data_fit), "r-")
             else:
                 # find frequency at min or max of data_to_fit
                 f0 = freqs_to_fit[take_extremum(data_to_fit)]
                 d0 = data_to_fit[take_extremum(data_to_fit)]
+
             f0_old = qubit.parameters.readout_resonator_frequency
             new_parameter_values["readout_resonator_frequency"] = f0
             old_parameter_values["readout_resonator_frequency"] = f0_old
-            ax.plot(f0 / 1e9, d0, "ro")
+
+            # point at resonance frequency
+            axs_mp[0].plot(f0 / 1e9, d0, "ro")
+            # textstring
             textstr = f"Extracted readout-resonator frequency: {f0 / 1e9:.4f} GHz"
             textstr += f"\nOld value: {f0_old / 1e9:.4f} GHz"
-            ax.text(0, -0.15, textstr, ha="left", va="top", transform=ax.transAxes)
-        return fig, ax
+            axs_mp[1].text(
+                0, -0.35, textstr, ha="left", va="top", transform=axs_mp[1].transAxes
+            )
+
+        fig_mp.align_ylabels()
+        if self.save:
+            # Save the figures
+            fig_name = f"{self.timestamp}_{self.experiment_name}_Mag_Phase_{qubit.uid}"
+            self.save_figure(fig_mp, qubit, figure_name=fig_name)
+            fig_name = f"{self.timestamp}_{self.experiment_name}_Real_Imag_{qubit.uid}"
+            self.save_figure(fig_reim, qubit, figure_name=fig_name)
+        if self.analysis_metainfo.get("show_figures", False):
+            plt.show()
+        plt.close(fig_mp)
+        plt.close(fig_reim)
 
     def analyse_experiment_qubit_2d(self, qubit, handle, freq_filter_qb, take_extremum):
         new_parameter_values = self.analysis_results[qubit.uid]["new_parameter_values"]
@@ -480,7 +521,14 @@ class ResonatorSpectroscopy(ExperimentTemplate):
                     new_parameter_values["dc_voltage_parking"][
                         "lss"
                     ] = v_lss.nominal_value
-        return fig, ax
+        ax.set_title(f"{self.timestamp}_{handle}")
+        # save figures and results
+        if self.save:
+            # Save the figure
+            self.save_figure(fig, qubit)
+        if self.analysis_metainfo.get("show_figures", False):
+            plt.show()
+        plt.close(fig)
 
     def execute_exit_condition(self):
         if self.nt_swp_par == "voltage":

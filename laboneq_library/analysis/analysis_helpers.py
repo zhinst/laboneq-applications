@@ -86,9 +86,7 @@ def extract_and_rotate_data_1d(
     if cal_trace_handle_root is None:
         cal_trace_handle_root = data_handle
     cal_trace_handles = [
-        e
-        for e in list(results.acquired_results)
-        if f"{cal_trace_handle_root}_cal_trace" in e
+        e for e in results.get_handles() if f"{cal_trace_handle_root}_cal_trace" in e
     ]
     num_cal_traces = len(cal_trace_handles)
     if num_cal_traces > 0:
@@ -101,13 +99,13 @@ def extract_and_rotate_data_1d(
         )
         cal_traces = np.array([raw_data_cal_pt_0, raw_data_cal_pt_1])
         data_raw_w_cal_tr = np.concatenate([data_raw, cal_traces])
-        if not do_pca:
+        if do_pca:
+            # rotate data using pca
+            data_rot = cal_tr_rot.principal_component_analysis(data_raw_w_cal_tr)
+        else:
             data_rot = cal_tr_rot.rotate_data_to_cal_trace_results(
                 data_raw_w_cal_tr, raw_data_cal_pt_0, raw_data_cal_pt_1
             )
-        else:
-            # rotate data using pca
-            data_rot = cal_tr_rot.principal_component_analysis(data_raw_w_cal_tr)
     else:
         # rotate data using pca
         data_rot = cal_tr_rot.principal_component_analysis(data_raw)
@@ -146,9 +144,7 @@ def extract_and_rotate_data_2d(
     if cal_trace_handle_root is None:
         cal_trace_handle_root = data_handle
     cal_trace_handles = [
-        e
-        for e in list(results.acquired_results)
-        if f"{cal_trace_handle_root}_cal_trace" in e
+        e for e in results.get_handles() if f"{cal_trace_handle_root}_cal_trace" in e
     ]
     num_cal_traces = len(cal_trace_handles)
     data_rot = np.zeros(shape=data_raw.shape)
@@ -163,16 +159,16 @@ def extract_and_rotate_data_2d(
         cal_traces = np.array([raw_data_cal_pt_0, raw_data_cal_pt_1]).T
         data_raw_w_cal_tr = np.concatenate([data_raw, cal_traces], axis=1)
         data_rot = np.zeros(shape=data_raw_w_cal_tr.shape)
-        if not do_pca > 0:
-            for i in range(data_raw_w_cal_tr.shape[0]):
-                data_rot[i, :] = cal_tr_rot.rotate_data_to_cal_trace_results(
-                    data_raw_w_cal_tr[i, :], raw_data_cal_pt_0[i], raw_data_cal_pt_1[i]
-                )
-        else:
+        if do_pca:
             # rotate data using pca
             for i in range(data_raw_w_cal_tr.shape[0]):
                 data_rot[i, :] = cal_tr_rot.principal_component_analysis(
                     data_raw_w_cal_tr[i, :]
+                )
+        else:
+            for i in range(data_raw_w_cal_tr.shape[0]):
+                data_rot[i, :] = cal_tr_rot.rotate_data_to_cal_trace_results(
+                    data_raw_w_cal_tr[i, :], raw_data_cal_pt_0[i], raw_data_cal_pt_1[i]
                 )
     else:
         # rotate data using pca
@@ -335,3 +331,108 @@ def fit_lorentzian(data, sweep_points, param_hints=None):
             param_hints=param_hints,
         )
     return fit_res
+
+
+def cavity_complex_fit(fit_func, xData, yData, p0, weights=None):
+    """
+    Performs a complex fit of the complex signal from a cavity reflection measurement.
+
+    Args:
+        fit_func: fitting function
+        xData: frequency array
+        yData: complex data to be fitted
+        p0: list with initial guess of the parameters
+        weights: fitting weights
+
+    Returns:
+        list of fitted parameters
+    """
+    from scipy.optimize import leastsq
+
+    if np.isscalar(p0):
+        p0 = np.array([p0])
+
+    def residuals(params, x, y):
+        if weights is not None:
+            diff = weights * fit_func(x, *params) - y
+        else:
+            diff = fit_func(x, *params) - y
+
+        flatDiff = np.zeros(diff.size * 2, dtype=np.float64)
+        flatDiff[0 : flatDiff.size : 2] = diff.real
+        flatDiff[1 : flatDiff.size : 2] = diff.imag
+        return flatDiff
+
+    popt, bar = leastsq(residuals, p0, args=(xData, yData), maxfev=10000)
+    return popt
+
+
+# Single-mode cavity reflection
+def cavity_1p1m_S11(f, f0, kappa_c, kappa_i, a_in, T_delay):
+    """
+    Fitting function for the complex signal from a cavity reflection measurement.
+
+    Args:
+        f: frequency
+        f0: resonance frequency
+        kappa_c:
+        kappa_i:
+        a_in:
+        T_delay:
+
+    kappa_c and kappa_i are kappas / 2*pi (in Hz)
+
+    Returns:
+        data array of the complex model
+    """
+
+    Delta = f - f0
+    num = 1.0j * Delta + (kappa_i - kappa_c) / 2
+    den = 1.0j * Delta + (kappa_i + kappa_c) / 2
+    if kappa_c > 0 and kappa_i > 0 and f0 > 0:
+        return num / den * a_in * np.exp(-1j * Delta * T_delay)
+    else:
+        return np.Inf
+
+
+# Single mode cavity reflection fitting function
+def fit_cavity_1p1m_S11(f, a_out, param_hints=None):
+    """
+    Complex fit of the signal from a cavity reflection measurement.
+
+    The aux function is written for the complex fit and can return a complex result,
+    but all its variables must be real. cavity_1p1m_amp receives complex input
+    amplitude a_in
+
+    Args:
+        f: frequency
+        a_out: complex data measured in reflection
+        param_hints: dict with parameter hints for the fit (see fit_data_lmfit)
+
+    Returns:
+        list of fitted parameters
+    """
+
+    if param_hints is None:
+        param_hints = {}
+    f0 = param_hints.get("f0", {}).get("value", 7.5737e9)
+    kappa_c = param_hints.get("kappa_c", {}).get("value", 5e3)
+    kappa_i = param_hints.get("kappa_i", {}).get("value", 5e3)
+    a_in = param_hints.get("a_in", {}).get("value", None)
+    T_delay = param_hints.get("T_delay", {}).get("value", 70e-9)
+
+    def aux_1p1m(f, f0, kappa_c, kappa_i, Re_a_in, Im_a_in, T_delay):
+        return cavity_1p1m_S11(
+            f, f0, kappa_c, kappa_i, Re_a_in + 1.0j * Im_a_in, T_delay
+        )
+
+    if a_in is None:
+        a_in = a_out[0]
+    popt = cavity_complex_fit(
+        aux_1p1m,
+        f,
+        a_out,
+        (f0, kappa_c, kappa_i, np.real(a_in), np.imag(a_in), T_delay),
+    )
+
+    return [popt[0], popt[1], popt[2], popt[3] + 1.0j * popt[4], popt[5]]
