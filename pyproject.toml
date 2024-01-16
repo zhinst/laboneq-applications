@@ -38,6 +38,8 @@ dependencies = [
     "scipy",
     "matplotlib",
     "xarray",
+    "lmfit",
+    "dill",
 ]
 
 [tool.setuptools.packages.find]
