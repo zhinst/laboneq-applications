@@ -353,6 +353,7 @@ def cavity_complex_fit(fit_func, xData, yData, p0, weights=None):
 
     def residuals(params, x, y):
         if weights is not None:
+            # TODO Steph 2024.01.16: Are the weights used correctly here?
             diff = weights * fit_func(x, *params) - y
         else:
             diff = fit_func(x, *params) - y
