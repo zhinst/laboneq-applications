@@ -2,7 +2,7 @@ import json
 import os
 import sys
 import time
-import pickle
+import dill as pickle
 from copy import deepcopy
 from logging import StreamHandler
 
@@ -883,8 +883,8 @@ class ExperimentTemplate(ConfigurableExperiment):
             for qubit in self.qubits:
                 old_qb_pars = self.analysis_results[qubit.uid]["old_parameter_values"]
                 for qb_par, par_value in old_qb_pars.items():
-                    if qb_par in qubit.parameters.__dict__:
-                        qubit.parameters.__dict__[qb_par] = par_value
+                    if getattr(qubit.parameters, qb_par, None) is not None:
+                        setattr(qubit.parameters, qb_par, par_value)
                         if qb_par == "dc_voltage_parking":
                             nt_cb_func = self.experiment_metainfo.get(
                                 "neartime_callback_function", None
@@ -945,25 +945,38 @@ class ExperimentTemplate(ConfigurableExperiment):
         self.create_save_directory()
 
         # Save the measurement setup
+        def get_filepath(filename):
+            filename_full = f"{self.timestamp}_{filename}"
+            return os.path.abspath(os.path.join(self.save_directory, filename_full))
+
+        # Save as json using the LabOneQ serialiser
         filename = "measurement_setup_before_experiment.json"
-        filename = f"{self.timestamp}_{filename}"
-        filepath = os.path.abspath(os.path.join(self.save_directory, filename))
         if filename not in os.listdir(self.save_directory):
             # only save the setup if the file does not already exist
-            self.measurement_setup.save(filepath)
+            self.measurement_setup.save(get_filepath(filename))
+
+        # Save as pickle for fallback
+        filename = "measurement_setup_before_experiment.p"
+        if filename not in os.listdir(self.save_directory):
+            with open(get_filepath(filename), "wb") as f:
+                pickle.dump(self.measurement_setup, f)
 
     def save_experiment_metainfo(self):
         # Save the meta-information
-        metainfo = {
+        exp_metainfo = {
+            "experiment_name": self.experiment_name,
+            "experiment_label": self.experiment_label,
             "sweep_parameters_dict": self.sweep_parameters_dict,
-            "experiment_metainfo": self.experiment_metainfo,
             "analysis_metainfo": self.analysis_metainfo,
+            "timestamp": self.timestamp,
+            "save_directory": self.save_directory,
         }
+        exp_metainfo.update(self.experiment_metainfo)
         metainfo_file = os.path.abspath(
             os.path.join(self.save_directory, f"{self.timestamp}_meta_information.p")
         )
         with open(metainfo_file, "wb") as f:
-            pickle.dump(metainfo, f)
+            pickle.dump(exp_metainfo, f)
 
     def save_results(self, filename_suffix=""):
         if len(filename_suffix) > 0:
@@ -982,7 +995,7 @@ class ExperimentTemplate(ConfigurableExperiment):
             except Exception as e:
                 log.warning(f"Could not save all the results: {e}")
 
-            # Save only the acquired results as pickle: fallback in case
+            # Save the acquired_results as pickle: fallback in case
             # something goes wrong with the serialisation
             filename = os.path.abspath(
                 os.path.join(

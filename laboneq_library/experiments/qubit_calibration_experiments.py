@@ -60,18 +60,19 @@ class QubitSpectroscopy(ExperimentTemplate):
         kwargs["run"] = False
         super().__init__(*args, **kwargs)
 
-        for qubit in self.qubits:
-            freq_swp = self.sweep_parameters_dict[qubit.uid][0]
-            if all(freq_swp.values > 1e9):
-                # sweep values are passed as qubit resonance frequencies:
-                # subtract lo freq to sweep if freq
-                if_freq_swp = SweepParameter(
-                    f"if_freq_{qubit.uid}",
-                    values=freq_swp.values - qubit.parameters.drive_lo_frequency,
-                    axis_name=freq_swp.axis_name,
-                    driven_by=[freq_swp],
-                )
-                self.sweep_parameters_dict[qubit.uid][0] = if_freq_swp
+        if len(self.sweep_parameters_dict) > 0:
+            for qubit in self.qubits:
+                freq_swp = self.sweep_parameters_dict[qubit.uid][0]
+                if all(freq_swp.values > 1e9):
+                    # sweep values are passed as qubit resonance frequencies:
+                    # subtract lo freq to sweep if freq
+                    if_freq_swp = SweepParameter(
+                        f"if_freq_{qubit.uid}",
+                        values=freq_swp.values - qubit.parameters.drive_lo_frequency,
+                        axis_name=freq_swp.axis_name,
+                        driven_by=[freq_swp],
+                    )
+                    self.sweep_parameters_dict[qubit.uid][0] = if_freq_swp
 
         self.run = run
         if self.run:
