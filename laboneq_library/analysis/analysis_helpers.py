@@ -110,7 +110,6 @@ def extract_and_rotate_data_1d(
         # rotate data using pca
         data_rot = cal_tr_rot.principal_component_analysis(data_raw)
         data_raw_w_cal_tr = data_raw
-        cal_traces = np.array([])
     swpts_w_cal_tr = extend_sweep_points_cal_traces(swpts, num_cal_traces)
 
     data_dict = {
