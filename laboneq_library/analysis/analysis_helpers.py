@@ -341,7 +341,7 @@ def cavity_complex_fit(fit_func, xData, yData, p0, weights=None):
         fit_func: fitting function
         xData: frequency array
         yData: complex data to be fitted
-        p0: list with initial guess of the parameters
+        p0: scalar or list with initial guesses of the parameters
         weights: fitting weights
 
     Returns:
