@@ -1,0 +1,9 @@
+site_name: LabOne Q Library Documentation
+docs_dir: sources
+site_dir: ../site
+
+watch:
+- ../laboneq_library
+
+nav:
+- Home: index.md
