@@ -55,3 +55,6 @@ zip-safe = false
 testpaths = [
     "tests",
 ]
+
+[tool.ruff]
+target-version = "py39"
