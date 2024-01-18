@@ -235,9 +235,7 @@ def create_qubits_from_parameters(qubit_parameters, measurement_setup):
 
     qubits = []
     for qb_name in qubit_parameters:
-        transmon_parameters = TransmonParameters()
-        for param_name, param_value in qubit_parameters[qb_name].items():
-            setattr(transmon_parameters, param_name, param_value)
+        transmon_parameters = TransmonParameters(**qubit_parameters[qb_name])
         qubits += [
             Transmon.from_logical_signal_group(
                 qb_name,
