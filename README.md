@@ -19,12 +19,11 @@ A library that defines quantum operations (such as pulses or gates) on a specifi
 - Pulse functionals
 
 ## How to install and use?
+
 The laboneq-library is used together and depends on Zurich Instruments' LabOne Q software framework.
-```
-pip install laboneq
-```
 
 You can clone the `laboneq-library` directory and use it as the working directory for your quantum experiments. Install the `laboneq-library` via
+
 ```
 pip install -e .
 ```
