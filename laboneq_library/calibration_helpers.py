@@ -234,31 +234,15 @@ def create_qubits_from_parameters(qubit_parameters, measurement_setup):
     """
 
     qubits = []
-    parameters = qubit_parameters
-    for q_name in qubit_parameters:
+    for qb_name in qubit_parameters:
+        transmon_parameters = TransmonParameters()
+        for param_name, param_value in qubit_parameters[qb_name].items():
+            setattr(transmon_parameters, param_name, param_value)
         qubits += [
             Transmon.from_logical_signal_group(
-                q_name,
-                lsg=measurement_setup.logical_signal_groups[q_name],
-                parameters=TransmonParameters(
-                    resonance_frequency_ge=parameters[q_name]["resonance_frequency_ge"],
-                    resonance_frequency_ef=parameters[q_name]["resonance_frequency_ef"],
-                    drive_lo_frequency=parameters[q_name]["drive_lo_frequency"],
-                    readout_resonator_frequency=parameters[q_name][
-                        "readout_resonator_frequency"
-                    ],
-                    readout_lo_frequency=parameters[q_name]["readout_lo_frequency"],
-                    readout_integration_delay=parameters[q_name][
-                        "readout_integration_delay"
-                    ],
-                    drive_range=parameters[q_name]["drive_range"],
-                    drive_parameters_ge=parameters[q_name]["drive_parameters_ge"],
-                    drive_parameters_ef=parameters[q_name]["drive_parameters_ef"],
-                    readout_range_out=parameters[q_name]["readout_range_out"],
-                    readout_range_in=parameters[q_name]["readout_range_in"],
-                    flux_offset_voltage=parameters[q_name]["flux_offset_voltage"],
-                    user_defined=parameters[q_name]["user_defined"],
-                ),
+                qb_name,
+                lsg=measurement_setup.logical_signal_groups[qb_name],
+                parameters=transmon_parameters,
             )
         ]
     return qubits
