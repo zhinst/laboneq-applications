@@ -1,0 +1,1 @@
+mkdocs==1.5.3  # Will be later replaced with ZI template package requirements
