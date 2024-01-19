@@ -43,13 +43,28 @@ A library that defines quantum operations (such as pulses or gates) on a specifi
 
 The laboneq-library is used together and depends on Zurich Instruments' LabOne Q software framework.
 
-You can clone the `laboneq-library` directory and use it as the working directory for your quantum experiments. Install the `laboneq-library` via
+> :warning: The following instructions are for internal testing
+
+### For the developer
+You can either clone or fork the `laboneq-library` directory and use it as the working directory for your quantum experiments.
 
 ```
+git clone https://github.com/zhinst/laboneq-library.git
+cd laboneq-library
 pip install -e .
 ```
 
+### For the user
+
+For the users who only need the Python library, you can install the `laboneq-library` directly from `Git`. By default the `main` branch will be installed.
+
+```
+pip install --upgrade git+https://github.com/zhinst/laboneq-library.git
+or
+pip install --upgrade git+https://github.com/zhinst/laboneq-library.git@<feature_branch_to_be_used>
+```
+
 ## How to contribute?
-Contribute via pull requests. There are no releases.
+Contribute via pull requests.
 
 Pull requests must be tested in emulation mode before they are merged. Ideally, a test on quantum hardware is done, too, or at least scheduled.
