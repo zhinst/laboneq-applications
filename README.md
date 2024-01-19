@@ -8,9 +8,30 @@ The `laboneq-library` provides a scalable framework for quantum experiments base
 
 To this end, the `laboneq-library` contains several elements:
 
-### 1-qubit tuneup
+### Supported qubit types
+
+- Transmon qubits
+
 ### Experiment library
-A library that holds basic experiment definitions. In the beginning, focused on transmons.
+A library that holds basic experiment definitions. In the beginning, focused on transmon qubits.
+
+- Single Qubit Gate Tune-Up
+
+    - Amplitude Rabi
+    - Ramsey
+    - Ramsey Parking
+    - Q Scale
+    - T1
+    - Echo
+
+- Signal Propagation Delay
+- Resonator spectroscopy
+
+    - Dispersive shift
+
+- State discrimination
+- Optimal integration kernels
+
 
 ### Quantum operations
 A library that defines quantum operations (such as pulses or gates) on a specific qubit.
