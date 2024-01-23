@@ -337,7 +337,7 @@ class QubitSpectroscopy(ExperimentTemplate):
                             },
                         )
                         fit_res = ana_hlp.fit_data_lmfit(
-                            fit_mods.transmon_voltage_dependence_quadratic,
+                            ana_hlp.transmon_voltage_dependence_quadratic,
                             nt_sweep_par_vals,
                             freqs_peaks,
                             param_hints=param_hints,
@@ -855,7 +855,7 @@ class Ramsey(SingleQubitGateTuneup):
                 },
             )
             fit_res = ana_hlp.fit_data_lmfit(
-                fit_mods.oscillatory_decay_flexible,
+                ana_hlp.oscillatory_decay_flexible,
                 swpts_to_fit,
                 data_to_fit,
                 param_hints=param_hints,
@@ -1069,7 +1069,7 @@ class QScale(SingleQubitGateTuneup):
                             slope=dict(value=slope), intercept=dict(value=intercept)
                         )
                     fit_res = ana_hlp.fit_data_lmfit(
-                        fit_mods.linear_dependence,
+                        ana_hlp.linear_dependence,
                         swpts_to_fit,
                         data_to_fit,
                         param_hints=param_hints,
@@ -1409,7 +1409,7 @@ class Echo(SingleQubitGateTuneup):
                 },
             )
             fit_res = ana_hlp.fit_data_lmfit(
-                fit_mods.oscillatory_decay_flexible,
+                ana_hlp.oscillatory_decay_flexible,
                 swpts_to_fit,
                 data_to_fit,
                 param_hints=param_hints,
@@ -1556,7 +1556,7 @@ class RamseyParking(Ramsey):
                     },
                 )
                 fit_res = ana_hlp.fit_data_lmfit(
-                    fit_mods.transmon_voltage_dependence_quadratic,
+                    ana_hlp.transmon_voltage_dependence_quadratic,
                     voltages,
                     qubit_frequencies,
                     param_hints=param_hints,

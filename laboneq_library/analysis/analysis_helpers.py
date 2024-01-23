@@ -1,4 +1,5 @@
 import numpy as np
+from numpy.typing import ArrayLike
 from copy import deepcopy
 import logging
 
@@ -86,7 +87,7 @@ def extract_and_rotate_data_1d(
     if cal_trace_handle_root is None:
         cal_trace_handle_root = data_handle
     cal_trace_handles = [
-        e for e in results.get_handles() if f"{cal_trace_handle_root}_cal_trace" in e
+        e for e in results.acquired_results if f"{cal_trace_handle_root}_cal_trace" in e
     ]
     num_cal_traces = len(cal_trace_handles)
     if num_cal_traces > 0:
@@ -143,7 +144,7 @@ def extract_and_rotate_data_2d(
     if cal_trace_handle_root is None:
         cal_trace_handle_root = data_handle
     cal_trace_handles = [
-        e for e in results.get_handles() if f"{cal_trace_handle_root}_cal_trace" in e
+        e for e in results.acquired_results if f"{cal_trace_handle_root}_cal_trace" in e
     ]
     num_cal_traces = len(cal_trace_handles)
     data_rot = np.zeros(shape=data_raw.shape)
@@ -436,3 +437,154 @@ def fit_cavity_1p1m_S11(f, a_out, param_hints=None):
     )
 
     return [popt[0], popt[1], popt[2], popt[3] + 1.0j * popt[4], popt[5]]
+
+
+def oscillatory_decay_flexible(
+    x: ArrayLike,
+    frequency: float,
+    phase: float,
+    decay_time: float,
+    amplitude: float = 1.0,
+    oscillation_offset: float = 0.0,
+    exponential_offset: float = 0.0,
+    decay_exponent: float = 1.0,
+) -> ArrayLike:
+    """A function for modelling decaying oscillations such as Ramsey and Echo
+    decay.
+
+    The form of the function is a decaying cosine:
+
+    $$
+        f(x) = amplitude \\times
+               (\\cos(2 \\times \\pi \\times frequency  \\times x + phase) +
+               oscillation \\text{\\textunderscore} offset)
+               \\exp(- (\\frac{x}{decay \\text{\\textunderscore} time})
+               ^ decay \\text{\\textunderscore} exponent) +
+               exponential \\text{\\textunderscore} offset
+    $$
+
+    Calling this function evaluates it.
+
+    Arguments:
+        x:
+            An array of values to evaluate the function at.
+        frequency:
+            The frequency of the cosine.
+        phase:
+            The phase of the cosine.
+        decay_time:
+            The exponential decay time.
+        amplitude:
+            The amplitude of the cosine.
+        oscillation_offset:
+            The offset of the oscillatory part of the function.
+        exponential_offset:
+            The offset of the exponential-decay part of the function.
+        decay_exponent:
+            Exponential decay exponent power
+
+    Returns:
+        values:
+            The values of the decaying oscillation function at the times `x`.
+
+    Examples:
+        Evaluate the function:
+        ``` py
+        x = np.linspace(0, 10, 100)
+        values = oscillatory_decay_flexible(
+            x, 1e6, np.pi / 2, 1e-6, 0.5, 0, 0, 1)
+        ```
+
+    """
+    return (
+        amplitude
+        * np.exp(-((x / decay_time) ** decay_exponent))
+        * (np.cos(2 * np.pi * frequency * x + phase) + oscillation_offset)
+        + exponential_offset
+    )
+
+
+def transmon_voltage_dependence_quadratic(
+    x: ArrayLike,
+    voltage_sweet_spot: float,
+    frequency_sweet_spot: float,
+    frequency_voltage_scaling: float,
+) -> ArrayLike:
+    """A function for the quadratic approximation of the transmon frequency
+    dependence on an external dc voltage.
+
+    The form of the quadratic approximation function is:
+
+    $$
+        f(x) = frequency \\text{\\textunderscore} sweet \\text{\\textunderscore} spot -
+            frequency \\text{\\textunderscore} voltage \\text{\\textunderscore} scaling
+            \\times (x - voltage \\text{\\textunderscore} sweep \\text{\\textunderscore} spot) ^ 2)
+    $$
+
+    Calling this function evaluates it.
+
+    Arguments:
+        x:
+            An array of values to evaluate the function at.
+        voltage_sweet_spot:
+            voltage value at sweet spot given by the offset of the quadratic
+            function along the voltage axis
+        frequency_sweet_spot:
+            frequency value at sweet spot given by the offset of the quadratic
+            function along the frequency axis
+        frequency_voltage_scaling:
+            frequency-to-voltage conversion factor
+
+    Returns:
+        values:
+            The values of the function at the voltage values `x`.
+
+    Examples:
+        Evaluate the function:
+        ``` py
+        x = np.linspace(-5, 5, 100)
+        values = transmon_voltage_dependence_quadratic(x, 1, 6e9, 5.5e9)
+        ```
+    """
+    return (
+        frequency_sweet_spot - frequency_voltage_scaling * (x - voltage_sweet_spot) ** 2
+    )
+
+
+def linear_dependence(
+    x: ArrayLike,
+    slope: float,
+    intercept: float,
+) -> ArrayLike:
+    """A function for the quadratic approximation of the transmon frequency
+    dependence on an external dc voltage.
+
+    The form of the quadratic approximation function is:
+
+    $$
+        f(x) = slope \\times x + intercept
+    $$
+
+    Calling this function evaluates it.
+
+    Arguments:
+        x:
+            An array of values to evaluate the function at.
+        slope:
+            value of the slope
+        intercept:
+            value of the intercept
+
+    Returns:
+        values:
+            The values of the function at the values `x`.
+
+    Examples:
+        Evaluate the function:
+        ``` py
+        x = np.linspace(-5, 5, 100)
+        values = linear_dependence(x, 0.5, 1)
+        ```
+    """
+
+    return slope * x + intercept

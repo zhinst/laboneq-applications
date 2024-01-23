@@ -1,12 +1,13 @@
 import datetime
 import time
 import json
-import dill as pickle
 import os
 from pathlib import Path
 
 from laboneq.simple import *  # noqa: F403
 from ruamel.yaml import YAML
+
+from laboneq_library.quantum.transmon_qubit import TransmonQubit, TransmonQubitParameters
 
 ryaml = YAML()
 
@@ -59,10 +60,10 @@ def update_qubit_parameters_and_calibration(
 # create a transmon qubit object from entries in a parameter dictionary
 def create_transmon(qubit: str, base_parameters, device_setup):
     q_name = qubit
-    transmon = Transmon.from_logical_signal_group(
+    transmon = TransmonQubit.from_logical_signal_group(
         q_name,
         lsg=device_setup.logical_signal_groups[q_name],
-        parameters=TransmonParameters(
+        parameters=TransmonQubitParameters(
             resonance_frequency_ge=base_parameters["qubits"][qubit][
                 "resonance_frequency_ge"
             ]["value"],
@@ -161,23 +162,23 @@ def update_measurement_setup_from_qubits(qubits, measurement_setup):
 
 def create_qubits_from_measurement_setup(measurement_setup):
     """
-    Instantiates Transmons from the logical signals in measurement_setup and
+    Instantiates TransmonQubits from the logical signals in measurement_setup and
     dome default values for the parameters.
 
     Args:
         measurement_setup: instance of DeviceSetup
 
     Returns:
-        list of Transmon instances
+        list of TransmonQubit instances
     """
 
     qubits = []
     for qb_name in measurement_setup.logical_signal_groups:
         qubits += [
-            Transmon.from_logical_signal_group(
+            TransmonQubit.from_logical_signal_group(
                 uid=qb_name,
                 lsg=measurement_setup.logical_signal_groups[qb_name],
-                parameters=TransmonParameters(
+                parameters=TransmonQubitParameters(
                     resonance_frequency_ge=6.00e9,
                     resonance_frequency_ef=5.83e9,
                     drive_lo_frequency=5.90e9,
@@ -220,24 +221,24 @@ def create_qubits_from_measurement_setup(measurement_setup):
 
 def create_qubits_from_parameters(qubit_parameters, measurement_setup):
     """
-    Instantiates Transmons from the logical signals in measurement_setup and
+    Instantiates TransmonQubits from the logical signals in measurement_setup and
     the qubit_parameters.
 
     Args:
         qubit_parameters: dictionary containing qubit parameters expected by
-            TransmonParameters. Has the form:
+            TransmonQubitParameters. Has the form:
             {qubit_name: {parameter_name: parameter_value}}
         measurement_setup: instance of DeviceSetup
 
     Returns:
-        list of Transmon instances
+        list of TransmonQubit instances
     """
 
     qubits = []
     for qb_name in qubit_parameters:
-        transmon_parameters = TransmonParameters(**qubit_parameters[qb_name])
+        transmon_parameters = TransmonQubitParameters(**qubit_parameters[qb_name])
         qubits += [
-            Transmon.from_logical_signal_group(
+            TransmonQubit.from_logical_signal_group(
                 qb_name,
                 lsg=measurement_setup.logical_signal_groups[qb_name],
                 parameters=transmon_parameters,

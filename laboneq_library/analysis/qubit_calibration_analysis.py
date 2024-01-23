@@ -372,7 +372,7 @@ class RamseyAnalysis(SingleQubitTuneupAnalysis):
             },
         )
         fit_res = ana_hlp.fit_data_lmfit(
-            fit_mods.oscillatory_decay_flexible,
+            ana_hlp.oscillatory_decay_flexible,
             swpts_to_fit,
             data_to_fit,
             param_hints=param_hints,
