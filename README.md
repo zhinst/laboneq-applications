@@ -65,6 +65,5 @@ pip install --upgrade git+https://github.com/zhinst/laboneq-library.git@<feature
 ```
 
 ## How to contribute?
-Contribute via pull requests.
 
-Pull requests must be tested in emulation mode before they are merged. Ideally, a test on quantum hardware is done, too, or at least scheduled.
+See [CONTRIBUTING](CONTRIBUTING.md)
