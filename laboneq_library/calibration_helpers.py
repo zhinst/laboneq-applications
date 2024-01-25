@@ -19,7 +19,6 @@ log = logging.getLogger(__name__)
 def update_qubit_parameters_and_calibration(
     qubit_parameters,
     device_setup,
-    database=None,
     calibration_file="./qubit_parameters.yaml",
     history_path="calib_history",
     set_local_oscillators=True,
@@ -41,19 +40,6 @@ def update_qubit_parameters_and_calibration(
             transmon.calibration(set_local_oscillators=set_local_oscillators)
         )
         transmon_list.append(transmon)
-
-    if database is not None:
-        database.store(
-            data=device_setup,
-            key=str(datetime.datetime.now()),
-            metadata={"creation_date": datetime.datetime.now(), "name": "device_setup"},
-        )
-
-        database.store(
-            data=device_setup.get_calibration(),
-            key=str(datetime.datetime.now()),
-            metadata={"creation_date": datetime.datetime.now(), "name": "calibration"},
-        )
     return transmon_list
 
 
@@ -124,19 +110,6 @@ def create_transmon(qubit: str, base_parameters, device_setup):
         ),
     )
     return transmon
-
-
-def save_results_to_database(
-    results_database, results_object, key_name: str, user_note: str
-):
-    results_database.store(
-        data=results_object,
-        key=f"{key_name}_{datetime.datetime.now()}",
-        metadata={
-            "creation_date": datetime.datetime.now(),
-            "user_note": f"{user_note}",
-        },
-    )
 
 
 def update_measurement_setup_from_qubits(qubits, measurement_setup):
