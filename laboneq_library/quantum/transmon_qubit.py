@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from laboneq.core.utilities.dsl_dataclass_decorator import classformatter
 from dataclasses import dataclass, field
 from typing import Any, Optional
