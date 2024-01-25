@@ -1,28 +1,24 @@
+from __future__ import annotations
+
 import numpy as np
+from typing import TYPE_CHECKING
 
 
-def principal_component_analysis(raw_data=None, results=None, handle=None):
+if TYPE_CHECKING:
+    from numpy.typing import ArrayLike
+
+
+def principal_component_analysis(raw_data: ArrayLike) -> ArrayLike:
     """
-    Rotates and projects data using principal component analysis (PCA).
+    Rotates and projects 1D data using principal component analysis (PCA).
 
     Args:
-        raw_data: array of complex data corresponding to the results of an
+        raw_data: Array of complex data corresponding to the results of an
             integrated average result
-        results: instance of a Results class
-        handle: handle inside the results instance pointing to the data on
-            which to do PCA
 
     Returns:
         data array after PCA
     """
-
-    if raw_data is None:
-        if results is None or handle is None:
-            raise ValueError(
-                "Please provide either the raw_data array, or "
-                "a Results instance and the data handle."
-            )
-        raw_data = results.get_data(handle)
     real, imag = np.real(raw_data), np.imag(raw_data)
 
     # translate each column in the data by its mean
