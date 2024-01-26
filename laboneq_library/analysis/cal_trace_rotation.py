@@ -71,14 +71,10 @@ def calculate_rotation_matrix(delta_I, delta_Q):
 
 
 def rotate_data_to_cal_trace_results(
-    raw_data=None,
-    raw_data_cal_pt_0=None,
-    raw_data_cal_pt_1=None,
-    results=None,
-    handle_data=None,
-    handle_cal_pt_0=None,
-    handle_cal_pt_1=None,
-):
+    raw_data: ArrayLike,
+    raw_data_cal_pt_0: ArrayLike,
+    raw_data_cal_pt_1: ArrayLike,
+) -> ArrayLike:
     """
     Rotates and projects the raw data onto the line in the IQ plane between
     two calibration points, then normalises the rotated and projected data to
@@ -99,35 +95,10 @@ def rotate_data_to_cal_trace_results(
             calibration trace. Second here corresponds to the highest transmon
             state. For example, e if the cal traces measured were g and e;
             f if the cal traces measured were g and f or e an f
-        results: instance of a Results class
-        handle: handle inside the results instance pointing to the data on
-            which to do PCA
 
     Returns:
         rotated, projected, and normalised data array
     """
-
-    def check_for_results_handle():
-        if results is None or handle_data is None:
-            raise ValueError(
-                "Please provide either the raw_data array, "
-                "raw_data_cal_pt_0 and raw_data_cal_pt_0, or "
-                "a Results instance and the handles for the raw "
-                "data and for the two calibration traces."
-            )
-
-    if raw_data is None:
-        check_for_results_handle()
-        raw_data = results.get_data(handle_data)
-
-    if raw_data_cal_pt_0 is None:
-        check_for_results_handle()
-        raw_data_cal_pt_0 = results.get_data(handle_cal_pt_0)
-
-    if raw_data_cal_pt_1 is None:
-        check_for_results_handle()
-        raw_data_cal_pt_1 = results.get_data(handle_cal_pt_1)
-
     data_iq = np.array([np.real(raw_data), np.imag(raw_data)])
     data_cal0 = np.array(
         [np.mean(np.real(raw_data_cal_pt_0)), np.mean(np.imag(raw_data_cal_pt_0))]
