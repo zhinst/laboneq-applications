@@ -25,6 +25,16 @@ from laboneq_library.experiments.experiment_library import (
 
 class SignalPropagationDelay(ExperimentTemplate):
     fallback_experiment_name = "SignalPropagationDelay"
+    valid_user_parameters = merge_valid_user_parameters(
+        [
+            dict(
+                analysis_metainfo=[
+                    "show_figures",
+                ],
+            ),
+            ExperimentTemplate.valid_user_parameters,
+        ]
+    )
 
     def __init__(self, *args, **kwargs):
         kwargs["signals"] = kwargs.pop("signals", ["measure", "acquire"])
@@ -56,6 +66,44 @@ class SignalPropagationDelay(ExperimentTemplate):
                 port_delay=self.sweep_parameters_dict[qubit.uid][0]
             )
         self.experiment.set_calibration(cal)
+
+    def analyse_experiment(self):
+        super().analyse_experiment()
+        for qubit in self.qubits:
+            handle = f"{self.experiment_name}_{qubit.uid}"
+            data = abs(self.results.get_data(handle))
+            delays = self.results.get_axis(handle)[0]
+            good_delay = delays[np.argmax(data)]
+            self.analysis_results[qubit.uid]["new_parameter_values"].update(
+                {"readout_integration_delay": good_delay}
+            )
+            self.analysis_results[qubit.uid]["old_parameter_values"].update(
+                {"readout_integration_delay": qubit.parameters.readout_integration_delay}
+            )
+
+            fig, ax = plt.subplots()
+            ax.plot(delays * 1e9, data, 'o-')
+            ax.plot(good_delay * 1e9, np.max(data), 'or')
+            ax.set_ylabel("Transmission Signal Magnitude, $|S_{21}|$ (a.u.)")
+            ax.set_xlabel("Readout Integration Delay, $\\tau$ (ns)")
+            textstr = '$\\tau_{\\mathrm{best}}$ = ' + f'{good_delay * 1e9:.4f} ns'
+            ax.text(0.69, -0.15, textstr, ha="left", va="top", transform=ax.transAxes)
+
+            ax.set_title(f"{self.timestamp}_{handle}")
+            if self.save:
+                # Save the figure
+                self.save_figure(fig, qubit)
+            if self.analysis_metainfo.get("show_figures", False):
+                plt.show()
+            plt.close(fig)
+
+    def update_qubit_parameters(self):
+        for qubit in self.qubits:
+            new_qb_pars = self.analysis_results[qubit.uid]["new_parameter_values"]
+            if len(new_qb_pars) == 0:
+                return
+
+            qubit.parameters.readout_integration_delay = new_qb_pars["readout_integration_delay"]
 
 
 class ResonatorSpectroscopy(ExperimentTemplate):
