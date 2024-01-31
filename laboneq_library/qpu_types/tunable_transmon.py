@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-from laboneq.core.utilities.dsl_dataclass_decorator import classformatter
 from dataclasses import dataclass, field
 from typing import Any, Optional
 
+from laboneq.core.utilities.dsl_dataclass_decorator import classformatter
 from laboneq.dsl.quantum.quantum_element import QuantumElement
 from laboneq.dsl.quantum import (
     Transmon,
@@ -11,10 +11,22 @@ from laboneq.dsl.quantum import (
 )
 from laboneq.dsl.device.io_units import LogicalSignal
 from laboneq.dsl.experiment import pulse_library
+from laboneq.simple import Section
+
+from laboneq_library.core.quantum_operations import (
+    QuantumOperations,
+    quantum_operation,
+    dsl,
+)
+
+# TODO: Add docstrings and type annotations.
+
+# TODO: Add tests.
+
 
 @classformatter
 @dataclass
-class TransmonQubitParameters(TransmonParameters):
+class TunableTransmonQubitParameters(TransmonParameters):
     #: readout amplitude
     readout_amplitude: Optional[float] = 1
     #: length of the readout pulse
@@ -49,16 +61,16 @@ class TransmonQubitParameters(TransmonParameters):
 
 @classformatter
 @dataclass(init=False, repr=True, eq=False)
-class TransmonQubit(Transmon):
+class TunableTransmonQubit(Transmon):
     """A class for a superconducting, flux-tuneable Transmon Qubit."""
 
-    parameters: TransmonQubitParameters
+    parameters: TunableTransmonQubitParameters
 
     def __init__(
         self,
         uid: str | None = None,
         signals: dict[str, LogicalSignal] | None = None,
-        parameters: TransmonQubitParameters | dict[str, Any] | None = None,
+        parameters: TunableTransmonQubitParameters | dict[str, Any] | None = None,
     ):
         """
         Initializes a new Transmon Qubit.
@@ -74,19 +86,21 @@ class TransmonQubit(Transmon):
                 Required for generating calibration and experiment signals via `calibration()` and `experiment_signals()`.
         """
         if parameters is None:
-            self.parameters = TransmonQubitParameters()
+            self.parameters = TunableTransmonQubitParameters()
         elif isinstance(parameters, dict):
-            self.parameters = TransmonQubitParameters(**parameters)
+            self.parameters = TunableTransmonQubitParameters(**parameters)
         else:
             self.parameters = parameters
+        # TODO: Should this skip the Transmon base class __init__? Or should this class no inherent from Transmon?
         QuantumElement.__init__(self, uid=uid, signals=signals)
 
     def default_integration_kernels(self):
-        return [pulse_library.const(
-            uid=f"integration_kernel_{self.uid}",
-            length=self.parameters.readout_integration_length,
-            amplitude=1,
-                )
+        return [
+            pulse_library.const(
+                uid=f"integration_kernel_{self.uid}",
+                length=self.parameters.readout_integration_length,
+                amplitude=1,
+            )
         ]
 
     def set_default_integration_kernels(self):
@@ -106,3 +120,49 @@ class TransmonQubit(Transmon):
         if integration_kernels is None:
             integration_kernels = [self.default_integration_kernels()]
         return integration_kernels
+
+
+class TunableTransmonOperations(QuantumOperations):
+    """Operations for TunableTransmonQubits."""
+
+    QUBIT_TYPE = TunableTransmonQubit
+    TRANSITIONS = ("ge", "ef")
+
+    @quantum_operation
+    def delay(q, time, transition=None) -> Section:
+        dsl.delay(q.signals["drive"], time=time)
+
+    @quantum_operation
+    def barrier(q, transition=None) -> Section:
+        dsl.reserve(q.signals["drive"])
+
+    @quantum_operation
+    def rx(q, angle, transition=None) -> Section:
+        transition = "ge" if transition is None else "ef"
+        drive_pulse = "TODO"
+        dsl.play(
+            signal=q.signals["drive"],
+            pulse=drive_pulse,
+            # TODO: convert angle to amplitude
+            #       angle may be a float or a sweep parameter
+            # TODO: better name for parameter
+            amplitude=angle,  # TODO: * q.parameter["drive_amplitude_per_radian"],
+        )
+
+    @quantum_operation
+    def measure(q, handle, transition=None) -> Section:
+        transition = "ge" if transition is None else "ef"
+        ro_pulse = "TODO"
+        # TODO: Use multistate discrimination if we need to
+        #       measure ef?
+        # TODO: Better way to handle creating / setting the handle? Should
+        #       it just be an argument?
+        dsl.measure(
+            measure_signal=q.signals["measure"],
+            measure_pulse=ro_pulse,
+            handle=handle,
+            acquire_signal=q.signals["acquire"],
+            # TODO: integration_kernel=integration_kernel,
+            # TODO: integration_length=q.parameters.readout_integration_length,
+            # TODO: reset_delay=q.parameters.reset_delay_length,
+        )
