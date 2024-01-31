@@ -638,60 +638,6 @@ class AmplitudeRabi(SingleQubitGateTuneup):
             )
             self.analysis_results[qubit.uid]["fit_results"] = fit_res
 
-            freq_fit = unc.ufloat(
-                fit_res.params["frequency"].value, fit_res.params["frequency"].stderr
-            )
-            phase_fit = unc.ufloat(
-                fit_res.params["phase"].value, fit_res.params["phase"].stderr
-            )
-            (
-                pi_amps_top,
-                pi_amps_bottom,
-                pi2_amps_rise,
-                pi2_amps_fall,
-            ) = ana_hlp.get_pi_pi2_xvalues_on_cos(swpts_to_fit, freq_fit, phase_fit)
-            # if pca is done, it can happen that the pi-pulse amplitude
-            # is in pi_amps_bottom and the pi/2-pulse amplitude in pi2_amps_fall
-            pi_amps = np.sort(np.concatenate([pi_amps_top, pi_amps_bottom]))
-            pi2_amps = np.sort(np.concatenate([pi2_amps_rise, pi2_amps_fall]))
-            pi2_amp = pi2_amps[0]
-            pi_amp = pi_amps[pi_amps > pi2_amp][0]
-            self.analysis_results[qubit.uid]["new_parameter_values"].update(
-                {
-                    f"{self.transition_to_calibrate}_amplitude_pi": pi_amp.nominal_value,
-                    f"{self.transition_to_calibrate}_amplitude_pi2": pi2_amp.nominal_value,
-                    f"{self.transition_to_calibrate}_pi_amps": [
-                        pia.nominal_value for pia in pi_amps
-                    ],
-                    f"{self.transition_to_calibrate}_pi2_amps": [
-                        pi2a.nominal_value for pi2a in pi_amps
-                    ],
-                }
-            )
-
-            # plot fit
-            swpts_fine = np.linspace(swpts_to_fit[0], swpts_to_fit[-1], 501)
-            ax.plot(
-                swpts_fine,
-                fit_res.model.func(swpts_fine, **fit_res.best_values),
-                "r-",
-                zorder=1,
-            )
-            plt.plot(
-                pi_amp.nominal_value,
-                fit_res.model.func(pi_amp.nominal_value, **fit_res.best_values),
-                "sk",
-                zorder=3,
-                markersize=plt.rcParams["lines.markersize"] + 1,
-            )
-            plt.plot(
-                pi2_amp.nominal_value,
-                fit_res.model.func(pi2_amp.nominal_value, **fit_res.best_values),
-                "sk",
-                zorder=3,
-                markersize=plt.rcParams["lines.markersize"] + 1,
-            )
-            # textbox
             old_pi_amp = (
                 qubit.parameters.drive_parameters_ef["amplitude_pi"]
                 if "f" in self.transition_to_calibrate
@@ -708,18 +654,84 @@ class AmplitudeRabi(SingleQubitGateTuneup):
                     f"{self.transition_to_calibrate}_amplitude_pi2": old_pi2_amp,
                 }
             )
-            textstr = (
-                "$A_{\\pi}$: "
-                + f"{pi_amp.nominal_value:.4f} $\\pm$ {pi_amp.std_dev:.4f}"
+
+            freq_fit = unc.ufloat(
+                fit_res.params["frequency"].value, fit_res.params["frequency"].stderr
             )
-            textstr += "\nOld $A_{\\pi}$: " + f"{old_pi_amp:.4f}"
-            ax.text(0, -0.15, textstr, ha="left", va="top", transform=ax.transAxes)
-            textstr = (
-                "$A_{\\pi/2}$: "
-                + f"{pi2_amp.nominal_value:.4f} $\\pm$ {pi2_amp.std_dev:.4f}"
+            phase_fit = unc.ufloat(
+                fit_res.params["phase"].value, fit_res.params["phase"].stderr
             )
-            textstr += "\nOld $A_{\\pi/2}$: " + f"{old_pi2_amp:.4f}"
-            ax.text(0.69, -0.15, textstr, ha="left", va="top", transform=ax.transAxes)
+            (
+                pi_amps_top,
+                pi_amps_bottom,
+                pi2_amps_rise,
+                pi2_amps_fall,
+            ) = ana_hlp.get_pi_pi2_xvalues_on_cos(swpts_to_fit, freq_fit, phase_fit)
+            # if pca is done, it can happen that the pi-pulse amplitude
+            # is in pi_amps_bottom and the pi/2-pulse amplitude in pi2_amps_fall
+            pi_amps = np.sort(np.concatenate([pi_amps_top, pi_amps_bottom]))
+            pi2_amps = np.sort(np.concatenate([pi2_amps_rise, pi2_amps_fall]))
+            params_found = True
+            try:
+                pi2_amp = pi2_amps[0]
+                pi_amp = pi_amps[pi_amps > pi2_amp][0]
+            except IndexError:
+                log.warning(f"Could not extract pi-pulse amplitude for {qubit.uid}.")
+                params_found = False
+                self.update = False
+
+            if params_found:
+                pi2_amp = pi2_amps[0]
+                pi_amp = pi_amps[pi_amps > pi2_amp][0]
+                self.analysis_results[qubit.uid]["new_parameter_values"].update(
+                    {
+                        f"{self.transition_to_calibrate}_amplitude_pi": pi_amp.nominal_value,
+                        f"{self.transition_to_calibrate}_amplitude_pi2": pi2_amp.nominal_value,
+                        f"{self.transition_to_calibrate}_pi_amps": [
+                            pia.nominal_value for pia in pi_amps
+                        ],
+                        f"{self.transition_to_calibrate}_pi2_amps": [
+                            pi2a.nominal_value for pi2a in pi_amps
+                        ],
+                    }
+                )
+
+            # plot fit
+            swpts_fine = np.linspace(swpts_to_fit[0], swpts_to_fit[-1], 501)
+            ax.plot(
+                swpts_fine,
+                fit_res.model.func(swpts_fine, **fit_res.best_values),
+                "r-",
+                zorder=1,
+            )
+            if params_found:
+                plt.plot(
+                    pi_amp.nominal_value,
+                    fit_res.model.func(pi_amp.nominal_value, **fit_res.best_values),
+                    "sk",
+                    zorder=3,
+                    markersize=plt.rcParams["lines.markersize"] + 1,
+                )
+                plt.plot(
+                    pi2_amp.nominal_value,
+                    fit_res.model.func(pi2_amp.nominal_value, **fit_res.best_values),
+                    "sk",
+                    zorder=3,
+                    markersize=plt.rcParams["lines.markersize"] + 1,
+                )
+                # textbox
+                textstr = (
+                    "$A_{\\pi}$: "
+                    + f"{pi_amp.nominal_value:.4f} $\\pm$ {pi_amp.std_dev:.4f}"
+                )
+                textstr += "\nOld $A_{\\pi}$: " + f"{old_pi_amp:.4f}"
+                ax.text(0, -0.15, textstr, ha="left", va="top", transform=ax.transAxes)
+                textstr = (
+                    "$A_{\\pi/2}$: "
+                    + f"{pi2_amp.nominal_value:.4f} $\\pm$ {pi2_amp.std_dev:.4f}"
+                )
+                textstr += "\nOld $A_{\\pi/2}$: " + f"{old_pi2_amp:.4f}"
+                ax.text(0.69, -0.15, textstr, ha="left", va="top", transform=ax.transAxes)
 
     def update_qubit_parameters(self):
         for qubit in self.qubits:
