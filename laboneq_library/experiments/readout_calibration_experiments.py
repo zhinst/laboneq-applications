@@ -916,6 +916,8 @@ class StateDiscrimination(ExperimentTemplate):
         self.create_acquire_rt_loop()
         self.experiment.add(self.acquire_loop)
         for qubit in self.qubits:
+            # create preparation pulses sections
+            self.create_qubit_preparation_sections(qubit)
             self.add_cal_states_sections(qubit, add_to=self.acquire_loop)
 
     def analyse_experiment(self):
