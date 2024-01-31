@@ -278,14 +278,14 @@ class QubitSpectroscopy(ExperimentTemplate):
                 )
                 data_mag = abs(self.results.get_data(handle))
 
-                X, Y = np.meshgrid(freqs / 1e9, nt_sweep_par_vals)
                 fig, ax = plt.subplots(constrained_layout=True)
-
-                CS = ax.contourf(X, Y, data_mag, levels=100, cmap="magma")
+                xvals, yvals, zvals = ana_hlp.sorted_mesh(
+                    freqs / 1e9, nt_sweep_par_vals, data_mag)
+                mesh = ax.pcolormesh(xvals, yvals, zvals, cmap="magma")
                 ax.set_title(f"{handle}")
                 ax.set_xlabel("Qubit Frequency, $f_{\\mathrm{QB}}$ (GHz)")
                 ax.set_ylabel(nt_sweep_par_name)
-                cbar = fig.colorbar(CS)
+                cbar = fig.colorbar(mesh)
                 cbar.set_label("Signal Magnitude, $|S_{21}|$ (a.u.)")
 
                 if self.nt_swp_par == "voltage":

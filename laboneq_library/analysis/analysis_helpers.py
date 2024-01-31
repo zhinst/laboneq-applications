@@ -439,6 +439,38 @@ def fit_cavity_1p1m_S11(f, a_out, param_hints=None):
     return [popt[0], popt[1], popt[2], popt[3] + 1.0j * popt[4], popt[5]]
 
 
+def sorted_mesh(xvals, yvals, zvals):
+    """
+    Prepare the x, y, z arrays to be plotted with matplotlib pcolormesh.
+
+    Ensures that the z values are sorted according to the values in xvals and yvals and
+    creates np.meshgrid from xvals and yvals.
+
+    Args:
+        xvals: array of the values to be plotted on the x-axis: typically the real-time
+            sweep points
+        yvals: array of the values to be plotted on the y-axis: typically the near-time
+            sweep points
+        zvals: array of the values to be plotted on the z-axis: typically the data
+
+    Returns:
+        the x, y, and z values to be passed directly to pcolormesh
+
+    """
+    # First, we need to sort the data as otherwise we get odd plotting
+    # artefacts. An example is e.g., plotting a fourier transform
+    sorted_x_arguments = xvals.argsort()
+    xvals = xvals[sorted_x_arguments]
+    sorted_y_arguments = yvals.argsort()
+    yvals = yvals[sorted_y_arguments]
+    zvals_srt = zvals[:,  sorted_x_arguments]
+    zvals_srt = zvals_srt[sorted_y_arguments, :]
+
+    xgrid, ygrid = np.meshgrid(xvals, yvals)
+
+    return xgrid, ygrid, zvals_srt
+
+
 def oscillatory_decay_flexible(
     x: ArrayLike,
     frequency: float,
