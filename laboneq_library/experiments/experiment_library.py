@@ -736,16 +736,17 @@ class ExperimentTemplate(ConfigurableExperiment):
             except Exception as e:
                 log.warning(f"Could not save all the results: {e}")
 
-            # Save the acquired_results as pickle: fallback in case
-            # something goes wrong with the serialisation
+            # Save only the acquired_results as pickle: fallback in case
+            # something goes wrong with the deserialisation of Results.
+            # AnalysisResults is less likely to change between sprints
             filename = os.path.abspath(
                 os.path.join(
                     self.save_directory,
-                    f"{self.timestamp}_acquired_results{filename_suffix}.p",
+                    f"{self.timestamp}_acquired_results{filename_suffix}.json",
                 )
             )
-            with open(filename, "wb") as f:
-                pickle.dump(self.results.acquired_results, f)
+            from laboneq.dsl.serialization import Serializer
+            Serializer.to_json_file(self.results.acquired_results, filename)
 
     def save_figure(self, fig, qubit, figure_name=None):
         self.create_save_directory()

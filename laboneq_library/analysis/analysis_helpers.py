@@ -1,7 +1,9 @@
-import numpy as np
+from scipy.optimize import leastsq
 from numpy.typing import ArrayLike
 from copy import deepcopy
+import numpy as np
 import logging
+import lmfit
 
 log = logging.getLogger(__name__)
 
@@ -21,8 +23,6 @@ def find_oscillation_frequency_and_phase(data, time):
 
 
 def fit_data_lmfit(model, x, y, param_hints):
-    import lmfit
-
     if isinstance(model, str):
         # string with the name of an lmfit model
         model = lmfit.models.lmfit_models[model]()
@@ -40,8 +40,6 @@ def fit_data_lmfit(model, x, y, param_hints):
 
 
 def flatten_lmfit_modelresult(fit_result):
-    import lmfit
-
     # used for saving an lmfit ModelResults object as a dict
     assert isinstance(fit_result, lmfit.model.ModelResult)
     fit_res_dict = dict()
@@ -347,7 +345,6 @@ def cavity_complex_fit(fit_func, xData, yData, p0, weights=None):
     Returns:
         list of fitted parameters
     """
-    from scipy.optimize import leastsq
 
     if np.isscalar(p0):
         p0 = np.array([p0])

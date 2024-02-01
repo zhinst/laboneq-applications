@@ -3,6 +3,8 @@ import numpy as np
 import dill as pickle
 import os
 
+from laboneq.dsl.result.acquired_result import AcquiredResult, AcquiredResults
+from laboneq.dsl.serialization import Serializer
 from laboneq_library import calibration_helpers as calib_hlp
 from laboneq.simple import *  # noqa: F403
 from ruamel.yaml import YAML
@@ -230,11 +232,12 @@ def load_measurement_setup_from_experiment_directory(
     return measurement_setup
 
 
-def load_acquired_results_from_experiment_directory(experiment_directory):
+def load_acquired_results_from_experiment_directory(experiment_directory, file_extension="json"):
     """
-    Load an AcquiredResults object from a pickle file in the experiment_directory.
+    Load an AcquiredResults object from a file in the experiment_directory, which has
+    the extension file_extension.
 
-    Searched for a filename that contains "analysis_results.p" inside
+    Searches for a filename that contains f"analysis_results.{file_extension}" inside
     experiment_directory.
 
     Args:
@@ -245,9 +248,27 @@ def load_acquired_results_from_experiment_directory(experiment_directory):
     """
 
     acquired_results_fp = get_acquired_results_file_path(
-        experiment_directory, file_extension="p"
+        experiment_directory, file_extension=file_extension
     )
-    return pickle.load(open(acquired_results_fp, "rb"))
+    if file_extension == "p":
+        acquired_results = pickle.load(open(acquired_results_fp, "rb"))
+    elif file_extension == "json":
+        try:
+            analysis_results_fp = get_analysis_results_file_path(
+                experiment_directory, file_extension="json")
+            acquired_results = Serializer.from_json_file(analysis_results_fp, type_hint=AcquiredResults)
+        except Exception:
+            log.warning(
+                "Could not deserialise the acquired_results object or no "
+                "acquired_results was found. Loading the acquired results "
+                "from the results json file."
+            )
+            results_fp = get_results_file_path(experiment_directory, file_extension="json")
+            acquired_results = load_acquired_results_from_results_json(results_fp)
+    else:
+        raise ValueError(f"Unrecognised file extension {file_extension}. Currently only "
+                         f"'json' or 'p' (pickle) are supported.")
+    return acquired_results
 
 
 def load_acquired_results_from_results_json(
@@ -260,6 +281,7 @@ def load_acquired_results_from_results_json(
     Args:
         json_file_path: full file path to the results.json file
         experiment_directory: path to the directory where the measurement data is saved
+            and which contains a results.json file
 
     Returns:
         An instance of AcquiredResults
@@ -278,8 +300,6 @@ def load_acquired_results_from_results_json(
         results = json.load(open(results_fp))
 
     # decode acquired results
-    from laboneq.dsl.result.acquired_result import AcquiredResult, AcquiredResults
-
     acquired_results_loaded = results["results"]["acquired_results"]
     acquired_results = {}
     for handle in acquired_results_loaded:
@@ -317,13 +337,14 @@ def load_acquired_results_from_results_json(
 
 def load_results_from_experiment_directory(experiment_directory):
     """
-    Load a Results object from the experiment_directory.
+    Load a Results or AnalysisResults object from the experiment_directory.
 
     Args:
         experiment_directory: path to the directory where the measurement data is saved
 
     Returns:
-        instance of Results
+        instance of Results or instance of AcquiredResults in case the Results could not
+        be deserialised
     """
 
     results_fp = get_results_file_path(experiment_directory, file_extension="json")
@@ -331,10 +352,10 @@ def load_results_from_experiment_directory(experiment_directory):
         results = Results.load(results_fp)
     except Exception:
         log.warning(
-            "Could not deserialise the result object. the acquired results "
-            "from the results json file."
+            "Could not deserialise the result object. Loading the acquired_results."
         )
-        results = load_acquired_results_from_results_json(results_fp)
+        results = load_acquired_results_from_experiment_directory(
+            experiment_directory, file_extension="json")
     return results
 
 
