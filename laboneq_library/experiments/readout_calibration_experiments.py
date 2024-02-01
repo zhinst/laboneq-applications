@@ -1081,7 +1081,6 @@ class OptimalIntegrationKernels(ExperimentTemplate):
             for qubit in self.qubits:
                 cal[f"acquire_{qubit.uid}"] = SignalCalibration(
                     oscillator=None,
-                    port_delay=240e-9,
                 )
             exp.experiment.set_calibration(cal)
 
