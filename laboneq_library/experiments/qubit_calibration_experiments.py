@@ -259,7 +259,7 @@ class QubitSpectroscopy(ExperimentTemplate):
                     )
                     textstr = (
                         f"Extracted qubit frequency: {fqb / 1e9:.4f} GHz "
-                        f"$\\pm$ {fqb_err / 1e9:.4f} GHz"
+                        f"$\\pm$ {fqb_err / 1e6:.4f} MHz"
                     )
                     textstr += (
                         f"\nOld qubit frequency: "
