@@ -405,16 +405,17 @@ class ConfigurableExperiment(StatePreparationMixin):
         calibration.
 
         """
-        self.update_measurement_setup()
         cal = Calibration()
-        if self.preparation_type == "active_reset":
-            for qubit in self.qubits:
+        for qubit in self.qubits:
+            if self.preparation_type == "active_reset" or \
+                    qubit.parameters.readout_integration_kernels != "default":
                 cal[self.signal_name("acquire", qubit)] = SignalCalibration(
                     oscillator=Oscillator(
-                        frequency=0, modulation_type=ModulationType.SOFTWARE
-                    ),
+                            frequency=0, modulation_type=ModulationType.SOFTWARE
+                        ),
+                    threshold=qubit.parameters.readout_discrimination_thresholds,
                 )
-            self.experiment.set_calibration(cal)
+        self.experiment.set_calibration(cal)
 
     def create_unique_uids(self):
         from laboneq.dsl.experiment.play_pulse import PlayPulse
@@ -589,6 +590,10 @@ class ExperimentTemplate(ConfigurableExperiment):
         self.run = run
         if self.run:
             self.autorun()
+
+    def configure_experiment(self):
+        self.update_measurement_setup()
+        super().configure_experiment()
 
     def analyse_experiment(self):
         # to be overridden by children

@@ -34,7 +34,9 @@ class TunableTransmonQubitParameters(TransmonParameters):
     #: duration of the weighted integration, defaults to 2 us.
     readout_integration_length: Optional[float] = 2.0e-6
     #: integration kernels
-    readout_integration_kernels: Optional[list] = None
+    readout_integration_kernels: Optional[list] = "default"
+    #: discrimination integration thresholds
+    readout_discrimination_thresholds: Optional[list] = None
     #: ge drive-pulse parameters
     drive_parameters_ge: Optional[dict] = field(
         default_factory=lambda: dict(
@@ -117,7 +119,7 @@ class TunableTransmonQubit(Transmon):
 
         """
         integration_kernels = self.parameters.readout_integration_kernels
-        if integration_kernels is None:
+        if integration_kernels == "default":
             integration_kernels = [self.default_integration_kernels()]
         return integration_kernels
 
