@@ -10,22 +10,17 @@ from ruamel.yaml import YAML
 
 ryaml = YAML()
 
-import traceback
 import logging
 
 from . import quantum_operations as qt_ops
 from laboneq.simple import *  # noqa: F403
 from laboneq_library import calibration_helpers as calib_hlp
 from laboneq_library.analysis import analysis_helpers as ana_hlp
+import warnings
 
 log = logging.getLogger(__name__)
 log.addHandler(StreamHandler(stream=sys.stderr))
 log.setLevel(logging.WARNING)
-
-
-
-###### Class - based  ######
-##### Added by Steph   #####
 
 
 def merge_valid_user_parameters(user_parameters_list):
@@ -460,17 +455,13 @@ class ConfigurableExperiment(StatePreparationMixin):
         pass
 
     def autorun(self):
-        try:
-            with calib_hlp.QubitTemporaryValuesContext(*self.qubit_temporary_values):
-                self.define_experiment()
-                self.configure_experiment()
-                self.compile_experiment()
-                self.run_experiment()
-                if self.apply_exit_condition:
-                    self.execute_exit_condition()
-        except Exception:
-            log.error("Unhandled error during ConfigurableExperiment!")
-            log.error(traceback.format_exc())
+        with calib_hlp.QubitTemporaryValuesContext(*self.qubit_temporary_values):
+            self.define_experiment()
+            self.configure_experiment()
+            self.compile_experiment()
+            self.run_experiment()
+            if self.apply_exit_condition:
+                self.execute_exit_condition()
 
     def create_acquire_rt_loop(self):
         self.acquire_loop = AcquireLoopRt(**self.acquisition_metainfo)
@@ -730,20 +721,20 @@ class ExperimentTemplate(ConfigurableExperiment):
         if self.results is not None:
             self.create_save_directory()
             # Save Results
-            results_file = os.path.abspath(
-                os.path.join(
-                    self.save_directory,
-                    f"{self.timestamp}_results{filename_suffix}.json",
-                )
-            )
+            # NOTE: The Experiments might build duplicate DSL objects, thus failing at serialization.
+            # TODO: Fix duplicate DSL objects sharing the same UID (Mainly pulses)
             try:
+                results_file = os.path.abspath(
+                    os.path.join(
+                        self.save_directory,
+                        f"{self.timestamp}_results{filename_suffix}.json",
+                    )
+                )
                 self.results.save(results_file)
-            except Exception as e:
-                log.warning(f"Could not save all the results: {e}")
-
-            # Save only the acquired_results as pickle: fallback in case
-            # something goes wrong with the deserialisation of Results.
-            # AnalysisResults is less likely to change between sprints
+            except Exception:
+                warnings.warn("Experiment results could not be saved!")
+            # Save the acquired_results as pickle: fallback in case
+            # something goes wrong with the serialisation
             filename = os.path.abspath(
                 os.path.join(
                     self.save_directory,
@@ -879,24 +870,20 @@ class ExperimentTemplate(ConfigurableExperiment):
                 pickle.dump(self.analysis_results, f)
 
     def autorun(self):
-        try:
-            if self.save:
-                # save the measurement setup configuration before the experiment
-                # execution
-                self.save_measurement_setup()
-                # save the meta-information
-                self.save_experiment_metainfo()
-            with calib_hlp.QubitTemporaryValuesContext(*self.qubit_temporary_values):
-                super().autorun()
-                if self.do_analysis:
-                    self.analyse_experiment()
-            if self.update:
-                self.update_entire_setup()
-            if self.save:
-                # Save Results object
-                self.save_results()
-                # Save the fit results
-                self.save_analysis_results()
-        except Exception:
-            log.error("Unhandled error during ExperimentTemplate!")
-            log.error(traceback.format_exc())
+        if self.save:
+            # save the measurement setup configuration before the experiment
+            # execution
+            self.save_measurement_setup()
+            # save the meta-information
+            self.save_experiment_metainfo()
+        with calib_hlp.QubitTemporaryValuesContext(*self.qubit_temporary_values):
+            super().autorun()
+            if self.do_analysis:
+                self.analyse_experiment()
+        if self.update:
+            self.update_entire_setup()
+        if self.save:
+            # Save Results object
+            self.save_results()
+            # Save the fit results
+            self.save_analysis_results()
