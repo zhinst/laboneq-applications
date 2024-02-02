@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import dataclass, field, asdict
+from dataclasses import dataclass, field
 from typing import Any, Optional
 
 from laboneq.core.utilities.dsl_dataclass_decorator import classformatter
@@ -95,15 +95,6 @@ class TunableTransmonQubit(Transmon):
             self.parameters = parameters
         # TODO: Should this skip the Transmon base class __init__? Or should this class no inherent from Transmon?
         QuantumElement.__init__(self, uid=uid, signals=signals)
-
-    def _serialize_(self) -> dict:
-        # TODO: Should be in the base `QuantumElement` class
-        return {
-            "uid": self.uid,
-            "signals": dict(self.signals),  # TODO: Fix in LabOneQ to be a normal dictionary
-            "parameters": asdict(self.parameters),
-            "__type": ".".join([self.__class__.__module__, self.__class__.__name__]),
-        }
 
     def default_integration_kernels(self):
         return [
