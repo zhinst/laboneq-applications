@@ -120,7 +120,7 @@ class TunableTransmonQubit(Transmon):
         """
         integration_kernels = self.parameters.readout_integration_kernels
         if integration_kernels == "default":
-            integration_kernels = [self.default_integration_kernels()]
+            integration_kernels = self.default_integration_kernels()
         return integration_kernels
 
 

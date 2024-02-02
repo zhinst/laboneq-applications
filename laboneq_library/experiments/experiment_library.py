@@ -479,17 +479,20 @@ class ConfigurableExperiment(StatePreparationMixin):
             handle += f"_{handle_suffix}"
 
         ro_pulse = qt_ops.readout_pulse(qubit)
-        if not hasattr(self, "integration_kernel"):
-            # ensure the integration_kernel is created only once to avoid
-            # serialisation errors
-            self.integration_kernel = qubit.get_integration_kernels()
-            for int_krn in self.integration_kernel:
-                if hasattr(int_krn, "uid"):
-                    int_krn.uid = f"integration_kernel_{qubit.uid}"
         if integration_kernel == "default":
-            integration_kernel = self.integration_kernel
+            if not hasattr(self, "integration_kernel"):
+                # ensure the integration_kernel is created only once to avoid
+                # serialisation errors
+                self.integration_kernel = {}
+            if qubit.uid not in self.integration_kernel:
+                self.integration_kernel[qubit.uid] = qubit.get_integration_kernels()
+                for int_krn in self.integration_kernel[qubit.uid]:
+                    if hasattr(int_krn, "uid"):
+                        int_krn.uid = f"integration_kernel_{qubit.uid}"
+            integration_kernel = self.integration_kernel[qubit.uid]
         if isinstance(integration_kernel, list) and len(integration_kernel) == 1:
             integration_kernel = integration_kernel[0]
+
         measure_acquire_section = Section(uid=uid)
         measure_acquire_section.play_after = play_after
         measure_acquire_section.measure(
