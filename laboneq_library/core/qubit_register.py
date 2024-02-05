@@ -63,7 +63,7 @@ class QubitRegister(UserList):
         self.data: Sequence[QuantumElement] = qubits
 
     def __str__(self):
-        return str([o.__class__.__name__ + f"({o.uid})" for o in self.data])
+        return str([f"{o.__class__.__name__}({o.uid})" for o in self.data])
 
     @classmethod
     def load(cls, filename: str) -> QubitRegister:
@@ -73,7 +73,7 @@ class QubitRegister(UserList):
             filename: The path to save the file to.
 
         Returns:
-            Instance of the `QubitRegister`.
+            `QubitRegister` loaded from the file.
         """
         with open(filename, "r") as f:
             data = json.load(f)
@@ -103,5 +103,10 @@ class QubitRegister(UserList):
         Raises:
             KeyError: Qubit unique identifier does not exists in the `device_setup`'s logical signals.
         """
+        for qubit in self.data:
+            if not qubit.uid in device_setup.logical_signal_groups:
+                msg = f"Qubit {qubit.uid} not in device setup"
+                raise KeyError(msg)
+
         for qubit in self.data:
             qubit.add_signals(device_setup.logical_signal_groups[qubit.uid].logical_signals)

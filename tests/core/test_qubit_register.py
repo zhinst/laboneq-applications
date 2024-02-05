@@ -62,5 +62,5 @@ class TestQubitRegister:
         )
 
         register = QubitRegister([TunableTransmonQubit("q0")])
-        with pytest.raises(KeyError):
+        with pytest.raises(KeyError, match="Qubit q0 not in device setup"):
             register.link_signals(setup)
