@@ -1,7 +1,7 @@
 import pytest
+
 from laboneq.dsl.device import DeviceSetup, create_connection
 from laboneq.dsl.device.instruments import HDAWG
-
 from laboneq_library.core.qubit_register import QubitRegister
 from laboneq_library.qpu_types.tunable_transmon import TunableTransmonQubit
 
@@ -52,6 +52,12 @@ class TestQubitRegister:
             "drive": setup.logical_signal_groups[register[1].uid].logical_signals["drive"].path
         }
 
+        register = QubitRegister([TunableTransmonQubit("q0")])
+        register.link_signals(setup)
+        assert register[0].signals == {
+            "flux": setup.logical_signal_groups[register[0].uid].logical_signals["flux"].path
+        }
+
     def test_link_signals_missing_qubit(self):
         setup = DeviceSetup("test")
         setup.add_dataserver(host="localhost", port="8004")
@@ -64,3 +70,4 @@ class TestQubitRegister:
         register = QubitRegister([TunableTransmonQubit("q0")])
         with pytest.raises(KeyError, match="Qubit q0 not in device setup"):
             register.link_signals(setup)
+        assert register[0].signals == {}
