@@ -2,10 +2,13 @@ import pytest
 import numpy as np
 from numpy.testing import assert_array_almost_equal
 
+from laboneq.dsl.result.acquired_result import AcquiredResult, AcquiredResults
+from laboneq.dsl.result import Results
 from laboneq_library.analysis.cal_trace_rotation import (
     principal_component_analysis,
     rotate_data_to_cal_trace_results,
 )
+from laboneq_library.experiments.adapters import extract_and_rotate_data_1d
 
 
 @pytest.mark.parametrize(
@@ -33,9 +36,6 @@ def test_rotate_data_to_cal_trace_results():
 @pytest.fixture
 def laboneq_results():
     """Results from AmplitudeRabi experiment."""
-    from laboneq.dsl.result.acquired_result import AcquiredResult, AcquiredResults
-    from laboneq.dsl.result import Results
-
     raw = np.array(
         [
             -0.14181528 + 0.74110792j,
@@ -121,7 +121,6 @@ class TestExtractAndRotateData1D:
     # NOTE: Test on intitial analysis implementation. Use output as a reference point if refactored.
     @pytest.fixture
     def analysis(self, laboneq_results):
-        from laboneq_library.analysis.analysis_helpers import extract_and_rotate_data_1d
 
         return extract_and_rotate_data_1d(
             laboneq_results,
@@ -341,8 +340,6 @@ class TestExtractAndRotateData1DWithPCA:
     # NOTE: Test on intitial analysis implementation. Use output as a reference point if refactored.
     @pytest.fixture
     def analysis(self, laboneq_results):
-        from laboneq_library.analysis.analysis_helpers import extract_and_rotate_data_1d
-
         return extract_and_rotate_data_1d(
             laboneq_results,
             data_handle="Rabi_ge_qb1",

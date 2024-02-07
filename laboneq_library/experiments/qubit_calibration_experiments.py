@@ -14,6 +14,7 @@ from . import quantum_operations as qt_ops
 from laboneq.analysis import fitting as fit_mods
 from laboneq.simple import *  # noqa: F403
 from laboneq_library.analysis import analysis_helpers as ana_hlp
+from laboneq_library.experiments import adapters
 from laboneq_library.experiments.experiment_library import (
     ExperimentTemplate,
     merge_valid_user_parameters,
@@ -506,7 +507,7 @@ class SingleQubitGateTuneup(ExperimentTemplate):
             # extract data
             handle = f"{self.experiment_name}_{qubit.uid}"
             do_pca = self.analysis_metainfo.get("do_pca", False)
-            data_dict = ana_hlp.extract_and_rotate_data_1d(
+            data_dict = adapters.extract_and_rotate_data_1d(
                 self.results, handle, cal_states=self.cal_states, do_pca=do_pca
             )
             num_cal_traces = data_dict["num_cal_traces"]
@@ -536,7 +537,7 @@ class SingleQubitGateTuneup(ExperimentTemplate):
 
         Args:
             qubit: qubit-class instance
-            data_dict: the return dict of ana_hlp.extract_and_rotate_data_1d
+            data_dict: the return dict of labone.experiments.adapters.extract_and_rotate_data_1d
             figure: figure instance
             ax: axis instance
 
@@ -979,7 +980,7 @@ class QScale(SingleQubitGateTuneup):
             for exp_id in ["xx", "xy", "xmy"]:
                 handle = f"{self.experiment_name}_{qubit.uid}_{exp_id}"
                 cal_trace_root_handle = f"{self.experiment_name}_{qubit.uid}"
-                data_dict = ana_hlp.extract_and_rotate_data_1d(
+                data_dict = adapters.extract_and_rotate_data_1d(
                     self.results,
                     handle,
                     cal_trace_root_handle,
@@ -1444,7 +1445,7 @@ class RamseyParking(Ramsey):
             # extract data
             handle = f"{self.experiment_name}_{qubit.uid}"
             do_pca = self.analysis_metainfo.get("do_pca", False)
-            data_dict = ana_hlp.extract_and_rotate_data_2d(
+            data_dict = adapters.extract_and_rotate_data_2d(
                 self.results, handle, cal_states=self.cal_states, do_pca=do_pca
             )
             num_cal_traces = data_dict["num_cal_traces"]

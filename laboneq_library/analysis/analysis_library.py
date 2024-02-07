@@ -13,6 +13,7 @@ log = logging.getLogger(__name__)
 
 from laboneq_library import loading_helpers as load_hlp
 from laboneq_library.analysis import analysis_helpers as ana_hlp
+from laboneq_library.experiments import adapters
 
 
 class SkipStepException(Exception):
@@ -292,7 +293,7 @@ class RawDataProcessingMixin:
             self.analysis_results["rotated_data"] = {}
         handle = f"{self.experiment_name}_{qubit.uid}"
         do_pca = self.analysis_metainfo.get("do_pca", False)
-        data_dict = ana_hlp.extract_and_rotate_data_1d(
+        data_dict = adapters.extract_and_rotate_data_1d(
             self.results, handle, cal_states=self.cal_states, do_pca=do_pca
         )
         self.analysis_results["rotated_data"][qubit.uid] = data_dict
