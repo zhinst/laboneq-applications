@@ -23,6 +23,22 @@ Inside the `docs` directory, execute:
 pip install -r requirements.txt
 ```
 
+To keep the live preview responsive mkdocstrings is disabled by default.
+The environment variable `ENABLE_MKDOCSTRINGS`, which takes a boolean value, can
+be used to enable the plugin.
+
+Linux/Mac
+
+```
+export ENABLE_MKDOCSTRINGS=true
+```
+
+Windows
+
+```
+set "ENABLE_MKDOCSTRINGS=true"
+```
+
 After this you should be able to build the documentation with:
 
 ```

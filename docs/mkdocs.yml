@@ -1,9 +1,12 @@
+INHERIT: zi_mkdocs/global.yml
+
 site_name: LabOne Q Library Documentation
 docs_dir: sources
 site_dir: ../site
 
 watch:
 - ../laboneq_library
+- zi_mkdocs
 
 nav:
 - Home: index.md
