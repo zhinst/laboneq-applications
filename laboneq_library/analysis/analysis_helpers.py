@@ -4,6 +4,7 @@ from copy import deepcopy
 import numpy as np
 import logging
 import lmfit
+import uncertainties as unc
 
 log = logging.getLogger(__name__)
 
@@ -37,6 +38,42 @@ def fit_data_lmfit(model, x, y, param_hints):
             log.warning(f"Stderr for {par} is None. Setting it to 0.")
             fit_res.params[par].stderr = 0
     return fit_res
+
+
+def cosine_oscillatory_fit(data: ArrayLike, x: ArrayLike, param_hints: dict = None) -> lmfit.model.ModelResult:
+    """Descriptive name"""
+    freqs_guess, phase_guess = find_oscillation_frequency_and_phase(
+        data, x
+    )
+    if not param_hints:
+        param_hints = {
+            "frequency": {"value": 2 * np.pi * freqs_guess, "min": 0},
+            "phase": {"value": phase_guess},
+            "amplitude": {
+                "value": abs(max(data) - min(data)) / 2,
+                "min": 0,
+            },
+            "offset": {"value": np.mean(data)},
+        }
+
+    fit_result = fit_data_lmfit(
+        fit_mods.oscillatory, x, data, param_hints=param_hints
+    )
+    freq_fit = unc.ufloat(
+        fit_result.params["frequency"].value,
+        fit_result.params["frequency"].stderr,
+    )
+    phase_fit = unc.ufloat(
+        fit_result.params["phase"].value,
+        fit_result.params["phase"].stderr,
+    )
+    (
+        x1_pos,
+        x1_neg,
+        x0_rising_edge,
+        x0_falling_edge,
+    ) = get_pi_pi2_xvalues_on_cos(x, freq_fit, phase_fit)
+    return fit_result, x1_pos, x1_neg, x0_rising_edge, x0_falling_edge
 
 
 def flatten_lmfit_modelresult(fit_result):
