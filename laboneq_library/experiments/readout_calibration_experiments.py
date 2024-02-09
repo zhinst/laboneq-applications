@@ -1,7 +1,6 @@
 import numpy as np
 from copy import copy
 from copy import deepcopy
-import uncertainties as unc
 from itertools import combinations
 import matplotlib.pyplot as plt
 from ruamel.yaml import YAML
@@ -13,7 +12,6 @@ import logging
 log = logging.getLogger(__name__)
 
 from . import quantum_operations as qt_ops
-from laboneq.analysis import fitting as fit_mods
 from laboneq.analysis import calculate_integration_kernels
 from laboneq.simple import *  # noqa: F403
 from laboneq_library.analysis import analysis_helpers as ana_hlp
@@ -460,59 +458,20 @@ class ResonatorSpectroscopy(ExperimentTemplate):
             if self.analysis_metainfo.get("do_fitting", True):
                 # fit frequency vs voltage and take the optimal parking
                 # parameters from fit
-                data_to_fit = freqs_dips
-                swpts_to_fit = nt_sweep_par_vals
                 (
-                    freqs_guess,
-                    phase_guess,
-                ) = ana_hlp.find_oscillation_frequency_and_phase(
-                    data_to_fit, swpts_to_fit
-                )
-                param_hints = self.analysis_metainfo.get(
-                    "param_hints",
-                    {
-                        "frequency": {
-                            "value": 2 * np.pi * freqs_guess,
-                            "min": 0,
-                        },
-                        "phase": {"value": phase_guess},
-                        "amplitude": {
-                            "value": abs(max(data_to_fit) - min(data_to_fit)) / 2,
-                            "min": 0,
-                        },
-                        "offset": {"value": np.mean(data_to_fit)},
-                    },
-                )
-                fit_res = ana_hlp.fit_data_lmfit(
-                    fit_mods.oscillatory,
-                    swpts_to_fit,
-                    data_to_fit,
-                    param_hints=param_hints,
-                )
-                self.analysis_results[qubit.uid]["fit_results"] = fit_res
-
-                # extract USS and LSS voltages and frequencies
-                freq_fit = unc.ufloat(
-                    fit_res.params["frequency"].value,
-                    fit_res.params["frequency"].stderr,
-                )
-                phase_fit = unc.ufloat(
-                    fit_res.params["phase"].value,
-                    fit_res.params["phase"].stderr,
-                )
-                (
+                    fit_res,
                     voltages_uss,
                     voltages_lss,
                     _,
                     _,
-                ) = ana_hlp.get_pi_pi2_xvalues_on_cos(swpts_to_fit, freq_fit, phase_fit)
+                ) = ana_hlp.cosine_oscillatory_fit(freqs_dips, nt_sweep_par_vals)
                 v_uss_values = np.array([vuss.nominal_value for vuss in voltages_uss])
                 v_lss_values = np.array([vlss.nominal_value for vlss in voltages_lss])
                 freqs_uss = fit_res.model.func(v_uss_values, **fit_res.best_values)
                 freqs_lss = fit_res.model.func(v_lss_values, **fit_res.best_values)
 
                 # plot fit
-                swpts_fine = np.linspace(swpts_to_fit[0], swpts_to_fit[-1], 501)
+                swpts_fine = np.linspace(nt_sweep_par_vals[0], nt_sweep_par_vals[-1], 501)
                 ax.plot(
                     fit_res.model.func(swpts_fine, **fit_res.best_values) / 1e9,
                     swpts_fine,
