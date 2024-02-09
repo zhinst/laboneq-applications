@@ -30,50 +30,24 @@ class AmplitudeRabiAnalysisResult:
     model: lmfit.model.ModelResult
 
 
-# extract
-def calculate_rabi_amplitude(data: ArrayLike, amplitudes: ArrayLike, param_hints: dict = None) -> AmplitudeRabiAnalysisResult:
-    """Calculate Rabi amplitude.
+def extract_rabi_amplitude(data: ArrayLike, amplitudes: ArrayLike, param_hints: dict = None) -> AmplitudeRabiAnalysisResult:
+    """Extract Rabi amplitude.
 
     Arguments:
         data: Input data
-        amplitudes: Swept aplitudes
+        amplitudes: Swept amplitudes
         param_hint: A dictionary of parameter hints for the fitting model.
 
     Returns:
         Amplitude fitting results.
     """
-    # TODO: Turn `param_hints` to an callable to access e.g `freq_guess` / `phase_guess`
-    # TODO: Separate fitting / fit analysis for generic usage
-    freqs_guess, phase_guess = analysis_helpers.find_oscillation_frequency_and_phase(
-        data, amplitudes
-    )
-    if not param_hints:
-        param_hints = {
-            "frequency": {"value": 2 * np.pi * freqs_guess, "min": 0},
-            "phase": {"value": phase_guess},
-            "amplitude": {
-                "value": abs(max(data) - min(data)) / 2,
-                "min": 0,
-            },
-            "offset": {"value": np.mean(data)},
-        }
-
-    fit_res = analysis_helpers.fit_data_lmfit(
-        fit_mods.oscillatory, amplitudes, data, param_hints=param_hints
-    )
-
-    freq_fit = unc.ufloat(
-        fit_res.params["frequency"].value, fit_res.params["frequency"].stderr
-    )
-    phase_fit = unc.ufloat(
-        fit_res.params["phase"].value, fit_res.params["phase"].stderr
-    )
     (
+        fit_res,
         pi_amps_top,
         pi_amps_bottom,
         pi2_amps_rise,
         pi2_amps_fall,
-    ) = analysis_helpers.get_pi_pi2_xvalues_on_cos(amplitudes, freq_fit, phase_fit)
+    ) = analysis_helpers.cosine_oscillatory_fit(data, amplitudes, param_hints=param_hints)
     # if pca is done, it can happen that the pi-pulse amplitude
     # is in pi_amps_bottom and the pi/2-pulse amplitude in pi2_amps_fall
     pi_amps = np.sort(np.concatenate([pi_amps_top, pi_amps_bottom]))

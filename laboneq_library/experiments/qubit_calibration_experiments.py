@@ -18,7 +18,7 @@ from laboneq_library.experiments.experiment_library import (
     ExperimentTemplate,
     merge_valid_user_parameters,
 )
-from laboneq_library.analysis.amplitude_rabi import calculate_rabi_amplitude
+from laboneq_library.analysis.amplitude_rabi import extract_rabi_amplitude
 
 
 class QubitSpectroscopy(ExperimentTemplate):
@@ -617,7 +617,7 @@ class AmplitudeRabi(SingleQubitGateTuneup):
         )
         if self.analysis_metainfo.get("do_fitting", True):
             swpts_to_fit = data_dict["sweep_points"]
-            fit_results = calculate_rabi_amplitude(
+            fit_results = extract_rabi_amplitude(
                 data=data_dict["data_rotated"],
                 amplitudes=swpts_to_fit,
                 param_hints=self.analysis_metainfo.get("param_hints", None)

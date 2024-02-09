@@ -1,9 +1,9 @@
 import numpy as np
 
-from laboneq_library.analysis.amplitude_rabi import calculate_rabi_amplitude
+from laboneq_library.analysis.amplitude_rabi import extract_rabi_amplitude
 
 
-def test_calculate_rabi_amplitude():
+def test_extract_rabi_amplitude():
     # Data from Amplitude Rabi experiment. Input data rotated without PCA.
     data = np.array(
         [
@@ -55,7 +55,7 @@ def test_calculate_rabi_amplitude():
             0.42679909,
         ]
     )
-    results = calculate_rabi_amplitude(data=data, amplitudes=amplitudes)
+    results = extract_rabi_amplitude(data=data, amplitudes=amplitudes)
     assert results.pi_amplitude.nominal_value == 0.3284004378016136
     assert results.pi_amplitude.std_dev == 0.003508484402063912
 
