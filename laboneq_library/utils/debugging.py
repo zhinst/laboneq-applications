@@ -52,3 +52,28 @@ def mock_acquired_results(session: Session, data: dict[str, AcquiredResult] | Ac
         yield session
     finally:
         session.run = orig
+
+
+def get_acquired_results_from_results_json(json_or_file: str | dict) -> AcquiredResults:
+    """Get acquired results from a serialized LabOne Q `Results` object.
+
+    This is a fallback mechanism to access the `AcquiredResults` if deserializing fails due to
+    LabOne Q version and serialized object incompatibility.
+
+    NOTE: Might break when `AcquiredResults` is changed.
+
+    Arguments:
+        json_or_file: A filepath or LabOne Q `Results` object in JSON format.
+
+    Returns:
+        Acquired results of the serialized data.
+    """
+    if isinstance(json_or_file, dict):
+        data = json_or_file
+    else:
+        with open(json_or_file, "r") as f:
+            data = json.load(f)["results"]
+    for key in data.copy():
+        if key not in ("__type", "acquired_results"):
+            data[key] = None
+    return Serializer.from_json(json.dumps({"results": data}), Results).acquired_results
