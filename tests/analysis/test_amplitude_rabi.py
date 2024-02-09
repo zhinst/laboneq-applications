@@ -62,12 +62,6 @@ def test_calculate_rabi_amplitude():
     assert results.pi2_amplitude.nominal_value == 0.16302037270062014
     assert results.pi2_amplitude.std_dev == 0.0026318551966845296
 
-    assert [amp.nominal_value for amp in results.pi_amplitudes] == [0.3284004378016136]
-    assert [amp.std_dev for amp in results.pi_amplitudes] == [0.003508484402063912]
-
-    assert [amp.nominal_value for amp in results.pi2_amplitudes] == [0.3284004378016136]
-    assert [amp.std_dev for amp in results.pi2_amplitudes] == [0.003508484402063912]
-
     # Test default fitting model
     assert results.model.model.func(results.pi_amplitude.nominal_value, **results.model.best_values) == 1.0020635710040655
     assert results.model.model.func(results.pi2_amplitude.nominal_value, **results.model.best_values) == 0.49907399921173384

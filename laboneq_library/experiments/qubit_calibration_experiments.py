@@ -648,8 +648,6 @@ class AmplitudeRabi(SingleQubitGateTuneup):
                 {
                     f"{self.transition_to_calibrate}_amplitude_pi": fit_results.pi_amplitude.nominal_value,
                     f"{self.transition_to_calibrate}_amplitude_pi2": fit_results.pi2_amplitude.nominal_value,
-                    f"{self.transition_to_calibrate}_pi_amps": [amp.nominal_value for amp in fit_results.pi_amplitudes],
-                    f"{self.transition_to_calibrate}_pi2_amps": [amp.nominal_value for amp in fit_results.pi2_amplitudes],
                 }
             )
 

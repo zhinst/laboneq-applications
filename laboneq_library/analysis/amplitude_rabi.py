@@ -16,13 +16,17 @@ if TYPE_CHECKING:
 
 @dataclass
 class AmplitudeRabiAnalysisResult:
+    """Amplitude Rabi results.
+
+    Attributes:
+        pi_amplitude: Pi amplitude.
+        pi2_amplitude: PI2 amplitude.
+        model: A fitting model results used for the analysis.
+    """
     # TODO: Should not probably depend on `uncertainties` data structures
-    # TODO: Include std_dev as separate attribute for both amplitude? Introduce separate Float object? List of amplitudes as nominal
+    # TODO: Include std_dev / nominal value as separate attribute for both amplitude?
     pi_amplitude: unc.UFloat
     pi2_amplitude: unc.UFloat
-    # TODO: Not needed, also remove from results
-    pi_amplitudes: list[unc.UFloat]
-    pi2_amplitudes: list[unc.UFloat]
     model: lmfit.model.ModelResult
 
 
@@ -82,14 +86,10 @@ def calculate_rabi_amplitude(data: ArrayLike, amplitudes: ArrayLike, param_hints
         return AmplitudeRabiAnalysisResult(
             pi_amplitude=None,
             pi2_amplitude=None,
-            pi_amplitudes=None,
-            pi2_amplitudes=None,
             model=fit_res
         )
     return AmplitudeRabiAnalysisResult(
         pi_amplitude=pi_amp,
         pi2_amplitude=pi2_amp,
-        pi_amplitudes=[pia for pia in pi_amps],
-        pi2_amplitudes=[pi2a for pi2a in pi_amps],
         model=fit_res
     )
