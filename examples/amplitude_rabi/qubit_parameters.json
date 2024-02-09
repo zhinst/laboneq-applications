@@ -1,0 +1,110 @@
+{
+  "qb1": {
+    "dc_slot": 13,
+    "dc_voltage_parking": -0.4194156074714888,
+    "drive_lo_frequency": 5900000000.0,
+    "drive_parameters_ef": {
+      "amplitude_pi": 0.2216345753579571,
+      "amplitude_pi2": 0.11036466475170079,
+      "beta": 0,
+      "length": 5e-8,
+      "sigma": 0.2
+    },
+    "drive_parameters_ge": {
+      "amplitude_pi": 0.32477285966750763,
+      "amplitude_pi2": 0.1620647112407002,
+      "beta": 0,
+      "length": 5e-8,
+      "sigma": 0.2
+    },
+    "drive_range": 10,
+    "flux_offset_voltage": -2.585787,
+    "readout_amplitude": 0.75,
+    "readout_integration_delay": 2e-8,
+    "readout_integration_kernels": "default",
+    "readout_integration_length": 2e-6,
+    "readout_lo_frequency": 7300000000.0,
+    "readout_pulse_length": 2e-6,
+    "readout_range_in": -5,
+    "readout_range_out": -20,
+    "readout_resonator_frequency": 7039597927.312508,
+    "reset_delay_length": 1e-6,
+    "resonance_frequency_ef": 6035609766.993598,
+    "resonance_frequency_ge": 6198461337.877587,
+    "spectroscopy_amplitude": 1,
+    "spectroscopy_pulse_length": 5e-6,
+    "user_defined": {}
+  },
+  "qb2": {
+    "dc_slot": 14,
+    "dc_voltage_parking": -0.47364376335486397,
+    "drive_lo_frequency": 5900000000.0,
+    "drive_parameters_ef": {
+      "amplitude_pi": 0.36240040888474867,
+      "amplitude_pi2": 0.1795220838669447,
+      "beta": 0,
+      "length": 5e-8,
+      "sigma": 0.2
+    },
+    "drive_parameters_ge": {
+      "amplitude_pi": 0.47382252856932233,
+      "amplitude_pi2": 0.2380530808021645,
+      "beta": 0,
+      "length": 5e-8,
+      "sigma": 0.2
+    },
+    "drive_range": 10,
+    "flux_offset_voltage": 2.636145,
+    "readout_amplitude": 0.75,
+    "readout_integration_delay": 2e-8,
+    "readout_integration_kernels": "default",
+    "readout_integration_length": 2e-6,
+    "readout_lo_frequency": 7300000000.0,
+    "readout_pulse_length": 2e-6,
+    "readout_range_in": -5,
+    "readout_range_out": -20,
+    "readout_resonator_frequency": 7220258143.015534,
+    "reset_delay_length": 1e-6,
+    "resonance_frequency_ef": 5576584734.819866,
+    "resonance_frequency_ge": 5753735397.6613655,
+    "spectroscopy_amplitude": 1,
+    "spectroscopy_pulse_length": 5e-6,
+    "user_defined": {}
+  },
+  "qb3": {
+    "dc_slot": 15,
+    "dc_voltage_parking": -0.6846297884547088,
+    "drive_lo_frequency": 6300000000.0,
+    "drive_parameters_ef": {
+      "amplitude_pi": 0.4331071680970264,
+      "amplitude_pi2": 0.22107553070265193,
+      "beta": 0,
+      "length": 5e-8,
+      "sigma": 0.2
+    },
+    "drive_parameters_ge": {
+      "amplitude_pi": 0.6566638142075663,
+      "amplitude_pi2": 0.3279219349915447,
+      "beta": 0,
+      "length": 5e-8,
+      "sigma": 0.2
+    },
+    "drive_range": 10,
+    "flux_offset_voltage": -0.5,
+    "readout_amplitude": 1,
+    "readout_integration_delay": 2e-8,
+    "readout_integration_kernels": "default",
+    "readout_integration_length": 2e-6,
+    "readout_lo_frequency": 7300000000.0,
+    "readout_pulse_length": 2e-6,
+    "readout_range_in": -5,
+    "readout_range_out": -20,
+    "readout_resonator_frequency": 7469756108.597451,
+    "reset_delay_length": 1e-6,
+    "resonance_frequency_ef": 6407573298.95645,
+    "resonance_frequency_ge": 6567084124.31076,
+    "spectroscopy_amplitude": 1,
+    "spectroscopy_pulse_length": 5e-6,
+    "user_defined": {}
+  }
+}
