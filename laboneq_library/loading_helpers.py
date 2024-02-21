@@ -73,7 +73,7 @@ def get_measurement_setup_file_path(experiment_directory, file_extension="json")
     ]
     if len(msmt_setup_fp) == 0:
         raise FileNotFoundError(
-            f"The data folder {experiment_directory} does not contain a .{file_extension}"
+            f"The data folder {experiment_directory} does not contain a .{file_extension} "
             f"file with the name 'measurement_setup.'"
         )
     elif len(msmt_setup_fp) > 1:
@@ -109,7 +109,7 @@ def get_results_file_path(experiment_directory, file_extension="json"):
     ]
     if len(results_fp) == 0:
         raise FileNotFoundError(
-            f"The data folder {experiment_directory} does not contain a .{file_extension}"
+            f"The data folder {experiment_directory} does not contain a .{file_extension} "
             f"file with the name 'results.'"
         )
     elif len(results_fp) > 1:
@@ -142,7 +142,7 @@ def get_acquired_results_file_path(experiment_directory, file_extension="p"):
     ]
     if len(aq_results_fp) == 0:
         raise FileNotFoundError(
-            f"The data folder {experiment_directory} does not contain a .{file_extension}"
+            f"The data folder {experiment_directory} does not contain a .{file_extension} "
             f"file with the name 'acquired_results.'"
         )
     elif len(aq_results_fp) > 1:
@@ -175,7 +175,7 @@ def get_analysis_results_file_path(experiment_directory, file_extension="p"):
     ]
     if len(ana_setup_fp) == 0:
         raise FileNotFoundError(
-            f"The data folder {experiment_directory} does not contain a .{file_extension}"
+            f"The data folder {experiment_directory} does not contain a .{file_extension} "
             f"file with the name 'analysis_results.'"
         )
     elif len(ana_setup_fp) > 1:
@@ -219,8 +219,8 @@ def load_measurement_setup_from_experiment_directory(
             measurement_setup = DeviceSetup.load(msmt_setup_fp)
         except Exception:
             log.warning(
-                "Could not deserialise the result object. Loading the "
-                "measurement_setup from pickle."
+                "Could not deserialise the measurement_setup object. "
+                "Loading the measurement_setup from pickle."
             )
             msmt_setup_fp = get_measurement_setup_file_path(
                 experiment_directory, file_extension="p"

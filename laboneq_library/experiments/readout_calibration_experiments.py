@@ -849,9 +849,13 @@ class StateDiscrimination(ExperimentTemplate):
         exp_metainfo = kwargs.get("experiment_metainfo", {})
         exp_metainfo.pop("cal_states", None)
         exp_metainfo["cal_states"] = self.preparation_states
+        exp_metainfo["states_to_actively_reset"] = \
+            ("g", "e", "f") if "f" in self.preparation_states else ("g", "e")
         kwargs["experiment_metainfo"] = exp_metainfo
         # Add suffix to experiment name
-        experiment_name = kwargs.get("experiment_name", self.fallback_experiment_name)
+        experiment_name = kwargs.get("experiment_name", None)
+        if experiment_name is None:
+            experiment_name = self.fallback_experiment_name
         experiment_name += f"_{''.join(self.preparation_states)}"
         kwargs["experiment_name"] = experiment_name
 
@@ -873,11 +877,23 @@ class StateDiscrimination(ExperimentTemplate):
     def define_experiment(self):
         self.experiment.sections = []
         self.create_acquire_rt_loop()
-        self.experiment.add(self.acquire_loop)
+        if len(self.sweep_parameters_dict) > 0:
+            # used for soft averaging
+            # create joint sweep for all qubits
+            sweep = Sweep(
+                uid=f"Experiment Sweep",
+                parameters=[self.sweep_parameters_dict[qubit.uid][0]
+                            for qubit in self.qubits]
+            )
+            self.experiment.add(sweep)
+            sweep.add(self.acquire_loop)
+        else:
+            self.experiment.add(self.acquire_loop)
+
         for qubit in self.qubits:
             # create preparation pulses sections
-            self.create_qubit_preparation_sections(qubit)
-            self.add_cal_states_sections(qubit, add_to=self.acquire_loop)
+            self.add_cal_states_sections(
+                qubit, add_to=self.acquire_loop)
 
     def analyse_experiment(self):
         super().analyse_experiment()
@@ -887,7 +903,7 @@ class StateDiscrimination(ExperimentTemplate):
             for i, ps in enumerate(self.preparation_states):
                 handle = f"{self.experiment_name}_{qubit.uid}_cal_trace_{ps}"
                 shots[ps] = self.results.get_data(handle)
-                ax.scatter(np.real(shots[ps]), np.imag(shots[ps]), c=f"C{i}", label=ps)
+                ax.scatter(np.real(shots[ps]), np.imag(shots[ps]), c=f"C{i}", alpha=0.25, label=ps)
                 # plot mean point
                 mean_state = np.mean(shots[ps])
                 ax.plot(
@@ -992,6 +1008,16 @@ class OptimalIntegrationKernels(ExperimentTemplate):
             exp.experiment.add(exp.acquire_loop)
 
             for qubit in self.qubits:
+                if len(self.sweep_parameters_dict) > 0:
+                    nt_sweep_par = self.sweep_parameters_dict[qubit.uid][0]
+                    nt_sweep = Sweep(
+                        uid=f"neartime_repetitions_sweep_{qubit.uid}",
+                        parameters=[nt_sweep_par],
+                    )
+                    nt_sweep.add(exp.acquire_loop)
+                    exp.experiment.sections = []
+                    exp.experiment.add(nt_sweep)
+
                 measure_play_after = None
                 excitation_sections = []
                 if prep_state in ["e", "f"]:

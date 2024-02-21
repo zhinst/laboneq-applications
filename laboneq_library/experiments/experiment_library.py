@@ -2,6 +2,7 @@ import json
 import os
 import sys
 import time
+import numpy as np
 import dill as pickle
 from copy import deepcopy
 from logging import StreamHandler
@@ -129,18 +130,25 @@ class StatePreparationMixin:
         cal_trace_sections = []
         if "g" in self.cal_states:
             # create preparation pulses sections like active reset
+            # Must call StatePreparationMixin.create_qubit_preparation_sections
+            # because self.create_qubit_preparation_sections might call the one
+            # which is overloaded in SingleQubitGateTuneup
             g_qb_prep_sec = StatePreparationMixin.create_qubit_preparation_sections(
                 self, qubit, handle_suffix="cal_traces_g"
             )
             # Ground state - just a msmt
             g_measure_section = self.create_measure_acquire_sections(
                 qubit=qubit,
+                play_after=[g_qb_prep_sec[-1]] if len(g_qb_prep_sec) > 0 else None,
                 handle_suffix="cal_trace_g",
             )
             play_after = [g_measure_section]
             cal_trace_sections += g_qb_prep_sec + [g_measure_section]
         if "e" in self.cal_states:
             # create preparation pulses sections like active reset
+            # Must call StatePreparationMixin.create_qubit_preparation_sections
+            # because self.create_qubit_preparation_sections might call the one
+            # which is overloaded in SingleQubitGateTuneup
             e_qb_prep_sec = StatePreparationMixin.create_qubit_preparation_sections(
                 self, qubit, handle_suffix="cal_traces_e", play_after=play_after
             )
@@ -148,18 +156,21 @@ class StatePreparationMixin:
             e_prep_sections = self.create_state_preparation_sections(
                 qubit,
                 state_to_prepare="e",
-                play_after=play_after + e_qb_prep_sec,  # e_qb_prep_sec might be []
+                play_after=[e_qb_prep_sec[-1]] if len(e_qb_prep_sec) > 0 else play_after,
                 section_uid_suffix="cal_traces",
             )
             e_measure_section = self.create_measure_acquire_sections(
                 qubit=qubit,
-                play_after=e_prep_sections,
+                play_after=e_prep_sections[-1],
                 handle_suffix="cal_trace_e",
             )
             play_after = [e_measure_section]
             cal_trace_sections += e_qb_prep_sec + e_prep_sections + [e_measure_section]
         if "f" in self.cal_states:
             # create preparation pulses sections like active reset
+            # Must call StatePreparationMixin.create_qubit_preparation_sections
+            # because self.create_qubit_preparation_sections might call the one
+            # which is overloaded in SingleQubitGateTuneup
             f_qb_prep_sec = StatePreparationMixin.create_qubit_preparation_sections(
                 self, qubit, handle_suffix="cal_traces_f", play_after=play_after
             )
@@ -167,12 +178,12 @@ class StatePreparationMixin:
             f_prep_sections = self.create_state_preparation_sections(
                 qubit,
                 state_to_prepare="f",
-                play_after=play_after + f_qb_prep_sec,  # f_qb_prep_sec might be []
+                play_after=[f_qb_prep_sec[-1]] if len(f_qb_prep_sec) > 0 else play_after,
                 section_uid_suffix="cal_traces",
             )
             f_measure_section = self.create_measure_acquire_sections(
                 qubit=qubit,
-                play_after=f_prep_sections,
+                play_after=f_prep_sections[-1],
                 handle_suffix="cal_trace_f",
             )
             cal_trace_sections += f_qb_prep_sec + f_prep_sections + [f_measure_section]
@@ -183,61 +194,73 @@ class StatePreparationMixin:
                 add_to.add(cal_tr_sec)
 
     def create_active_reset_sections(
-        self, qubit, states_to_reset=("g", "e"), handle_suffix=None, play_after=None
+            self, qubit, states_to_reset=("g", "e"), handle_suffix=None,
+            play_after=None, number_resets=1
     ):
-        handle = "active_reset"
         if handle_suffix is not None:
             handle_suffix = f"_{handle_suffix}"
         else:
             handle_suffix = ""
-        # create readout + acquire sections
-        measure_acquire_section = self.create_measure_acquire_sections(
-            qubit=qubit,
-            play_after=play_after,
-            handle_suffix=f"{handle}{handle_suffix}",
-        )
-        handle = measure_acquire_section.children[1].handle
 
-        match_section = Match(
-            uid=f"feedback_{qubit.uid}{handle_suffix}",
-            handle=handle,
-            play_after=measure_acquire_section,
-        )
-        if "g" in states_to_reset:
-            case = Case(state=0)
-            case.play(
-                signal=self.signal_name("drive", qubit),
-                pulse=qt_ops.quantum_gate(qubit, "X180_ge"),
-                amplitude=0,
+        sections_to_return = []
+        for i in np.arange(number_resets)+1:
+            if i == 1:
+                measure_playafter=play_after
+            else:
+                measure_playafter=f"{qubit.uid}_feedback{handle_suffix}_{i-1}"
+            # create readout + acquire sections
+            measure_acquire_section = self.create_measure_acquire_sections(
+                qubit=qubit,
+                play_after=measure_playafter,
+                handle=f"{qubit.uid}_active_reset{handle_suffix}_{i}",
+                reset_delay=500e-9
             )
-            match_section.add(case)
-        if "e" in states_to_reset:
-            case = Case(state=1)
-            case.play(
-                signal=self.signal_name("drive", qubit),
-                pulse=qt_ops.quantum_gate(qubit, "X180_ge"),
+            handle = measure_acquire_section.children[1].handle
+
+            match_section = Match(
+                uid=f"{qubit.uid}_feedback{handle_suffix}_{i}",
+                handle=handle,
+                play_after=measure_acquire_section,
             )
-            match_section.add(case)
-        if "f" in states_to_reset:
-            if len(qubit.get_integration_kernels()) < 2:
-                raise NotImplementedError(
-                    f"Currently active reset of levels higher than 'e' requires "
-                    f"multi-state discrimination and at least 2 optimised "
-                    f"integration kernels, but {qubit.uid} has fewer than 2 "
-                    f"kernels."
+
+            if "g" in states_to_reset:
+                case = Case(state=0)
+                x180 = qt_ops.quantum_gate(qubit, "X180_ge")
+                x180.uid += '0'
+                case.play(
+                    signal=self.signal_name("drive", qubit),
+                    pulse=x180,
+                    amplitude=0,
                 )
-            case = Case(state=2)
-            case.play(
-                signal=self.signal_name("drive_ef", qubit),
-                pulse=qt_ops.quantum_gate(qubit, "X180_ef"),
-            )
-            case.play(
-                signal=self.signal_name("drive", qubit),
-                pulse=qt_ops.quantum_gate(qubit, "X180_ge"),
-            )
-            match_section.add(case)
+                match_section.add(case)
+            if "e" in states_to_reset:
+                x180 = qt_ops.quantum_gate(qubit, "X180_ge")
+                x180.uid += '1'
+                case = Case(state=1)
+                case.play(
+                    signal=self.signal_name("drive", qubit),
+                    pulse=x180,
+                )
+                match_section.add(case)
+            if "f" in states_to_reset:
+                if len(qubit.get_integration_kernels()) < 2:
+                    raise NotImplementedError(
+                        f"Currently active reset of levels higher than 'e' requires "
+                        f"multi-state discrimination and at least 2 optimised "
+                        f"integration kernels, but {qubit.uid} has fewer than 2 "
+                        f"kernels."
+                    )
+                x180_ef = qt_ops.reset_pulse_ef(qubit)
+                case = Case(state=2)
+                case.play(
+                    signal=self.signal_name("drive", qubit),
+                    pulse=x180_ef,
+                )
+                match_section.add(case)
 
-        return [measure_acquire_section, match_section]
+            sections_to_return += [measure_acquire_section, match_section]
+
+        return sections_to_return
 
     def create_transition_preparation_sections(self, qubit, **kwargs):
         if hasattr(self, "transition_to_calibrate"):
@@ -252,19 +275,20 @@ class StatePreparationMixin:
             states_to_reset = self.experiment_metainfo.get(
                 "states_to_actively_reset", ("g", "e")
             )
-            preparation_sections += self.create_active_reset_sections(
-                qubit, states_to_reset, **kwargs
+            number_resets = self.experiment_metainfo.get(
+                "number_resets", 1
             )
-        # return None if no preparation sections were created because the output
-        # of this method is intended to be passed to the play_after of another
-        # section.
+            preparation_sections += self.create_active_reset_sections(
+                qubit, states_to_reset, number_resets=number_resets, **kwargs
+            )
         return preparation_sections
 
 
 class ConfigurableExperiment(StatePreparationMixin):
     fallback_experiment_name = "ConfigurableExperiment"
     valid_user_parameters = dict(
-        experiment_metainfo=["preparation_type", "states_to_actively_reset"],
+        experiment_metainfo=["preparation_type", "states_to_actively_reset",
+                             "number_resets"],
     )
 
     def __init__(
@@ -403,7 +427,7 @@ class ConfigurableExperiment(StatePreparationMixin):
         cal = Calibration()
         for qubit in self.qubits:
             if self.preparation_type == "active_reset" or \
-                    qubit.parameters.readout_integration_kernels != "default":
+                    qubit.parameters.readout_integration_kernels_type != "default":
                 cal[self.signal_name("acquire", qubit)] = SignalCalibration(
                     oscillator=Oscillator(
                             frequency=0, modulation_type=ModulationType.SOFTWARE
@@ -471,10 +495,13 @@ class ConfigurableExperiment(StatePreparationMixin):
         qubit,
         uid=None,
         play_after=None,
+        handle=None,
         handle_suffix=None,
         integration_kernel="default",
+        reset_delay="default"
     ):
-        handle = f"{self.experiment_name}_{qubit.uid}"
+        if handle is None:
+            handle = f"{self.experiment_name}_{qubit.uid}"
         if handle_suffix is not None:
             handle += f"_{handle_suffix}"
 
@@ -486,14 +513,18 @@ class ConfigurableExperiment(StatePreparationMixin):
                 self.integration_kernel = {}
             if qubit.uid not in self.integration_kernel:
                 self.integration_kernel[qubit.uid] = qubit.get_integration_kernels()
-                for int_krn in self.integration_kernel[qubit.uid]:
-                    if hasattr(int_krn, "uid"):
-                        int_krn.uid = f"integration_kernel_{qubit.uid}"
             integration_kernel = self.integration_kernel[qubit.uid]
         if isinstance(integration_kernel, list) and len(integration_kernel) == 1:
             integration_kernel = integration_kernel[0]
 
-        measure_acquire_section = Section(uid=uid)
+        if reset_delay == "default":
+            reset_delay = qubit.parameters.reset_delay_length
+
+        # The readout+acquire section needs to be the same length for all qubits.
+        # Here we fix the section length to the reset delay, plus a 2us buffer for the
+        # readout pulse and integration time.
+        sec_len = reset_delay + 2e-6
+        measure_acquire_section = Section(uid=uid, length=sec_len)
         measure_acquire_section.play_after = play_after
         measure_acquire_section.measure(
             measure_signal=self.signal_name("measure", qubit),
@@ -502,7 +533,7 @@ class ConfigurableExperiment(StatePreparationMixin):
             acquire_signal=self.signal_name("acquire", qubit),
             integration_kernel=integration_kernel,
             integration_length=qubit.parameters.readout_integration_length,
-            reset_delay=qubit.parameters.reset_delay_length,
+            reset_delay=None,
         )
         return measure_acquire_section
 
@@ -741,11 +772,14 @@ class ExperimentTemplate(ConfigurableExperiment):
             filename = os.path.abspath(
                 os.path.join(
                     self.save_directory,
-                    f"{self.timestamp}_acquired_results{filename_suffix}.json",
+                    f"{self.timestamp}_acquired_results{filename_suffix}.p",
                 )
             )
-            from laboneq.dsl.serialization import Serializer
-            Serializer.to_json_file(self.results.acquired_results, filename)
+            # from laboneq.dsl.serialization import Serializer
+            # Serializer.to_json_file(self.results.acquired_results, filename)
+            with open(filename, "wb") as f:
+                pickle.dump(self.results.acquired_results, f)
+
 
     def save_figure(self, fig, qubit, figure_name=None):
         self.create_save_directory()

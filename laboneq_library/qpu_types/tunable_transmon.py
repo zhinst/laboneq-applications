@@ -33,8 +33,10 @@ class TunableTransmonQubitParameters(TransmonParameters):
     readout_pulse_length: Optional[float] = 2e-6
     #: duration of the weighted integration, defaults to 2 us.
     readout_integration_length: Optional[float] = 2.0e-6
+    #: integration kernels type
+    readout_integration_kernels_type: Optional[list] = "default"
     #: integration kernels
-    readout_integration_kernels: Optional[list] = "default"
+    readout_integration_kernels: Optional[list] = None
     #: discrimination integration thresholds
     readout_discrimination_thresholds: Optional[list] = None
     #: ge drive-pulse parameters
@@ -119,8 +121,18 @@ class TunableTransmonQubit(Transmon):
 
         """
         integration_kernels = self.parameters.readout_integration_kernels
-        if integration_kernels == "default":
+        ro_int_type = self.parameters.readout_integration_kernels_type
+        if self.parameters.readout_integration_kernels_type == "default":
             integration_kernels = self.default_integration_kernels()
+        elif ro_int_type == "optimal":
+            if integration_kernels is None:
+                raise ValueError(
+                    f"No optimal weights exist for {self.uid}. Please set "
+                    f"readout_integration_kernels_type to 'default'.")
+        else:
+            raise ValueError(
+                f"Unknown readout_integration_kernels_type {ro_int_type}. "
+                f"Currently supported values are 'default' and 'optimal'.")
         return integration_kernels
 
 

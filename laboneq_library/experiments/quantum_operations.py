@@ -69,3 +69,77 @@ def integration_kernel(qubit):
         length=qubit.parameters.readout_pulse_length,
         amplitude=1,
     )
+
+
+def drag(x, sigma=1 / 3, beta=0.2, zero_boundaries=False, **_):
+    """
+     Copy of the DRAG pulse in pulse_library but WITHOUT THE PULSE FUNCTIONAL
+     DECORATOR IN ORDER TO BE ABLE TO EVALUATE IT!
+
+    Arguments:
+        **_ (Any):
+            All pulses accept the following keyword arguments:
+            - uid ([str][]): Unique identifier of the pulse
+            - length ([float][]): Length of the pulse in seconds
+            - amplitude ([float][]): Amplitude of the pulse
+        sigma (float):
+            Std. deviation, relative to pulse length
+        beta (float):
+            Relative amplitude of the quadrature component
+        zero_boundaries (bool):
+            Whether to zero the pulse at the boundaries
+
+    Returns:
+        array of the calculated envelope
+    """
+    gauss = np.exp(-(x**2) / (2 * sigma**2))
+    delta = 0
+    if zero_boundaries:
+        dt = x[0] - (x[1] - x[0])
+        delta = np.exp(-(dt**2) / (2 * sigma**2))
+    d_gauss = -x / sigma**2 * gauss
+    gauss -= delta
+    return (gauss + 1j * beta * d_gauss) / (1 - delta)
+
+
+@pulse_library.register_pulse_functional
+def piecewise_modulated_drag(x, piece_pulse_parameters, piece_frequencies,
+                             sampling_rate, **_):
+    """
+    Definition of a piecewise modulated waveform created from several
+    concatenated drag pulses.
+
+    Each drag pulse is created from the pulse parameters in piece_pulse_parameters,
+    and is modulation at the corresponding frequency in piece_frequencies.
+    """
+    values = np.array([])
+    time = 0.5 * (x+1) / sampling_rate
+
+    for pulse_params, frequency in zip(
+        piece_pulse_parameters, piece_frequencies
+    ):
+        if "uid" not in pulse_params:
+            pulse_params["uid"] = None
+        values = np.append(
+            values,
+            np.exp(-1j * 2 * np.pi * frequency * time) * drag(x, **pulse_params),
+        )
+    return values
+
+
+def reset_pulse_ef(qubit):
+    """
+    Creates the pulse needed to perform active reset of the ef transition.
+
+    This pulse is passed directly to the play command of the Case section.
+    """
+    piece_frequencies = [
+        0,
+        qubit.parameters.drive_frequency_ef - qubit.parameters.drive_frequency_ge
+    ]
+    piece_pulse_parameters = (qubit.parameters.drive_parameters_ge,
+                              qubit.parameters.drive_parameters_ef)
+    return piecewise_modulated_drag(
+        uid=f'reset_pulse_ef_{qubit.uid}',
+        piece_pulse_parameters=piece_pulse_parameters,
+        piece_frequencies=piece_frequencies)

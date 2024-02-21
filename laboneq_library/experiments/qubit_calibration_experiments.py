@@ -454,6 +454,7 @@ class SingleQubitGateTuneup(ExperimentTemplate):
                 analysis_metainfo=[
                     "do_pca",
                     "show_figures",
+                    "do_rotation",
                 ],
             ),
             ExperimentTemplate.valid_user_parameters,
@@ -463,6 +464,8 @@ class SingleQubitGateTuneup(ExperimentTemplate):
     def __init__(self, *args, signals=None, **kwargs):
         exp_metainfo = kwargs.get("experiment_metainfo", {})
         self.transition_to_calibrate = exp_metainfo.get("transition_to_calibrate", "ge")
+        exp_metainfo["states_to_actively_reset"] = \
+            ("g", "e", "f") if "f" in self.transition_to_calibrate else ("g", "e")
 
         # Add "f" to cal states if transition_to_calibrate contains f
         cal_states = exp_metainfo.get("cal_states", None)
@@ -610,16 +613,20 @@ class AmplitudeRabi(SingleQubitGateTuneup):
 
     def analyse_experiment_qubit(self, qubit, data_dict, figure, ax):
         # plot data
+        rotate = self.analysis_metainfo.get("do_rotation", True)
         ax.plot(
             data_dict["sweep_points_w_cal_traces"],
-            data_dict["data_rotated_w_cal_traces"],
+            data_dict["data_rotated_w_cal_traces" if rotate else "data_raw_w_cal_traces"],
             "o",
             zorder=2,
         )
         if self.analysis_metainfo.get("do_fitting", True):
             swpts_to_fit = data_dict["sweep_points"]
+            data_to_fit = data_dict["data_rotated" if rotate else "data_raw"]
+            if not rotate:
+                data_to_fit = np.array(data_to_fit, dtype=np.int32)
             fit_results = extract_rabi_amplitude(
-                data=data_dict["data_rotated"],
+                data=data_to_fit,
                 amplitudes=swpts_to_fit,
                 param_hints=self.analysis_metainfo.get("param_hints", None)
             )
@@ -840,11 +847,12 @@ class Ramsey(SingleQubitGateTuneup):
             )
             introduced_detuning = self.experiment_metainfo["detuning"][qubit.uid]
             new_qb_freq = old_qb_freq + introduced_detuning - freq_fit
+            freq_par_name = f"resonance_frequency_{self.transition_to_calibrate}"
             self.analysis_results[qubit.uid]["new_parameter_values"].update(
-                {"resonance_frequency": new_qb_freq, "T2_star": t2_star}
+                {freq_par_name: new_qb_freq, "T2_star": t2_star}
             )
             self.analysis_results[qubit.uid]["old_parameter_values"].update(
-                {"resonance_frequency": old_qb_freq}
+                {freq_par_name: old_qb_freq}
             )
 
             # plot fit
@@ -881,11 +889,9 @@ class Ramsey(SingleQubitGateTuneup):
             if len(new_qb_pars) == 0:
                 return
 
-            new_freq = new_qb_pars["resonance_frequency"]
-            if "f" in self.transition_to_calibrate:
-                qubit.parameters.resonance_frequency_ef = new_freq
-            else:
-                qubit.parameters.resonance_frequency_ge = new_freq
+            freq_par_name = f"resonance_frequency_{self.transition_to_calibrate}"
+            new_freq = new_qb_pars[freq_par_name]
+            setattr(qubit.parameters, freq_par_name, new_freq)
 
 
 class QScale(SingleQubitGateTuneup):
@@ -1493,7 +1499,7 @@ class RamseyParking(Ramsey):
                     [
                         self.analysis_results[qubit.uid][f"Ramsey_{i}"][
                             "new_parameter_values"
-                        ]["resonance_frequency"]
+                        ][f"resonance_frequency_{self.transition_to_calibrate}"]
                         for i in range(len(voltages))
                     ]
                 )
