@@ -58,3 +58,28 @@ testpaths = [
 
 [tool.ruff]
 target-version = "py39"
+lint.select = ["ALL"]
+ignore = [
+  # Type annotation for self
+  "ANN101",
+  # Missing docstring in `__init__`
+  "D107",
+  # Missing type annotation for `cls` in classmethod
+  "ANN102",
+  # Missing docstring in magic method
+  "D105",
+  # Missing type annotation for `*args`
+  "ANN002",
+  # Missing type annotation for `**kwargs`
+  "ANN003",
+  # Too many return statements
+  "PLR0911",
+  # Missing return type annotation for special method
+  "ANN204",
+]
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+[tool.black]
+target-version = ["py39"]
