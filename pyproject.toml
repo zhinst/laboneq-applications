@@ -76,6 +76,29 @@ ignore = [
   "PLR0911",
   # Missing return type annotation for special method
   "ANN204",
+  # Line contains TODO, consider resolving the issue
+  "FIX",
+  # TODO comments
+  "TD",
+]
+
+[tool.ruff.per-file-ignores]
+# Testing checks
+"tests/*" = [
+  # Magic values
+  "PLR2004",
+  # Assertions
+  "S101",
+  # Annotations
+  "ANN",
+  # Docstrings
+  "D",
+  # Private member accessed
+  "SLF001",
+  # Pytest raises Exception
+  "PT011",
+  # part of an implicit namespace package
+  "INP001"
 ]
 
 [tool.ruff.lint.pydocstyle]
