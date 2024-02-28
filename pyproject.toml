@@ -59,7 +59,7 @@ testpaths = [
 [tool.ruff]
 target-version = "py39"
 lint.select = ["ALL"]
-ignore = [
+lint.ignore = [
   # Type annotation for self
   "ANN101",
   # Missing docstring in `__init__`
@@ -82,7 +82,7 @@ ignore = [
   "TD",
 ]
 
-[tool.ruff.per-file-ignores]
+[tool.ruff.lint.per-file-ignores]
 # Testing checks
 "tests/*" = [
   # Magic values
