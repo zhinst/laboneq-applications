@@ -326,6 +326,8 @@ class ConfigurableExperiment(StatePreparationMixin):
         if acquisition_metainfo is None:
             acquisition_metainfo = {}
         self.acquisition_metainfo = dict(count=2**12)
+        if self.preparation_type == "active_reset":
+            self.acquisition_metainfo["acquisition_type"] = AcquisitionType.DISCRIMINATION
         # overwrite default with user-provided options
         self.acquisition_metainfo.update(acquisition_metainfo)
         if qubit_temporary_values is None:
@@ -779,7 +781,6 @@ class ExperimentTemplate(ConfigurableExperiment):
             # Serializer.to_json_file(self.results.acquired_results, filename)
             with open(filename, "wb") as f:
                 pickle.dump(self.results.acquired_results, f)
-
 
     def save_figure(self, fig, qubit, figure_name=None):
         self.create_save_directory()
