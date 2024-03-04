@@ -59,6 +59,7 @@ class QubitRegister(UserList):
 
         >>> qubits.link_signals(device_setup)
     """
+
     def __init__(self, qubits: Sequence[QuantumElement]):
         self.data: Sequence[QuantumElement] = qubits
 
@@ -104,9 +105,11 @@ class QubitRegister(UserList):
             KeyError: Qubit unique identifier does not exists in the `device_setup`'s logical signals.
         """
         for qubit in self.data:
-            if not qubit.uid in device_setup.logical_signal_groups:
+            if qubit.uid not in device_setup.logical_signal_groups:
                 msg = f"Qubit {qubit.uid} not in device setup"
                 raise KeyError(msg)
 
         for qubit in self.data:
-            qubit.add_signals(device_setup.logical_signal_groups[qubit.uid].logical_signals)
+            qubit.add_signals(
+                device_setup.logical_signal_groups[qubit.uid].logical_signals
+            )

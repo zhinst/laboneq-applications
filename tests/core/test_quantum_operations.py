@@ -1,25 +1,26 @@
 """ Tests for laboneq_library.core.quantum_operations. """
 
-
 import numpy as np
-import numpy.testing
 import pytest
-
+from laboneq.core.exceptions import LabOneQException
+from laboneq.dsl.experiment import builtins
 from laboneq.simple import (
-    Experiment,
+    ExecutionType,
+    QuantumElement,
     Section,
     SectionAlignment,
     SweepParameter,
     Transmon,
 )
-from laboneq.dsl.experiment import builtins
 
+import tests.helpers.dsl as tsl
+from laboneq_library.core.build_experiment import qubit_experiment
 from laboneq_library.core.quantum_operations import (
     QuantumOperations,
-    current_quantum_operations,
-    qop,
-    quantum_operation,
+    _PulseCache,
+    create_pulse,
     dsl,
+    quantum_operation,
 )
 
 
@@ -29,94 +30,139 @@ class DummyOperations(QuantumOperations):
     QUBIT_TYPE = Transmon
 
     @quantum_operation
-    def x(q, amplitude):
+    def x(self, q, amplitude):
         """A dummy quantum operation."""
         pulse = dsl.pulse_library.const()
         dsl.play(q.signals["drive"], pulse, amplitude=amplitude)
 
 
-@pytest.fixture
+class ForeignQubit(QuantumElement):
+    """A non-Transmon qubit to test passing qubits of incorrect type."""
+
+    def calibration(self):
+        """Dummy calibration method."""
+        return
+
+
+@pytest.fixture()
 def dummy_ops():
     return DummyOperations()
 
 
-@pytest.fixture
+@pytest.fixture()
 def dummy_q():
     return Transmon(
         uid="q0",
         signals={
-            "drive": "/lsg/drive",
-            "measure": "/lsg/measure",
-            "acquire": "/lsg/acquire",
+            "drive": "/lsg/q0/drive",
+            "measure": "/lsg/q0/measure",
+            "acquire": "/lsg/q0/acquire",
         },
     )
+
+
+def reserve_ops_for_dummy_q():
+    return [
+        tsl.reserve_op(signal="/lsg/q0/drive"),
+        tsl.reserve_op(signal="/lsg/q0/measure"),
+        tsl.reserve_op(signal="/lsg/q0/acquire"),
+    ]
 
 
 class TestQuantumOperationDecorator:
     def test_decorator(self):
         @quantum_operation
-        def x(q, amplitude):
+        def x(self, q, amplitude):
             pass
 
         assert x._quantum_op
 
 
-class TestCurrentQuantumOperations:
-    def test_current_operations(self):
-        qops_1 = DummyOperations()
-        qops_2 = DummyOperations()
+class TestPulseCache:
+    def test_global_cache(self):
+        cache = _PulseCache.experiment_or_global_cache()
+        assert cache.cache is _PulseCache.GLOBAL_CACHE
 
-        with pytest.raises(RuntimeError) as exc:
-            current_quantum_operations()
-        assert str(exc.value) == "No quantum operations context is currently set."
+    def test_experiment_cache(self):
+        with dsl.experiment():
+            cache = _PulseCache.experiment_or_global_cache()
+            ctx = builtins.current_experiment_context()
+        assert cache.cache is not _PulseCache.GLOBAL_CACHE
+        assert cache is ctx._pulse_cache
 
-        with qops_1:
-            assert qops_1 is current_quantum_operations()
-            with qops_2:
-                assert qops_2 is current_quantum_operations()
-            assert qops_1 is current_quantum_operations()
+    def test_reset_global_cache(self):
+        cache = _PulseCache.experiment_or_global_cache()
+        pulse = object()  # dummy pulse
 
-        with pytest.raises(RuntimeError) as exc:
-            current_quantum_operations()
-        assert str(exc.value) == "No quantum operations context is currently set."
+        cache.store(pulse, "name", "const", {"amplitude": 1.0})
+        assert cache.get("name", "const", {"amplitude": 1.0}) is pulse
+        _PulseCache.reset_global_cache()
+        assert cache.get("name", "const", {"amplitude": 1.0}) is None
+
+    def test_get_and_store(self):
+        cache = _PulseCache()
+        pulse = object()  # dummy pulse
+
+        assert cache.get("name", "const", {"amplitude": 1.0}) is None
+        cache.store(pulse, "name", "const", {"amplitude": 1.0})
+        assert cache.get("name", "const", {"amplitude": 1.0}) is pulse
 
 
-class TestQop:
-    def test_getattr(self):
-        qops_1 = DummyOperations()
-        qops_2 = DummyOperations()
+class TestCreatePulse:
+    def test_no_overrides(self):
+        pulse = create_pulse({"function": "const", "amplitude": 0.2})
+        assert pulse == tsl.pulse(function="const", amplitude=0.2)
 
-        with pytest.raises(RuntimeError) as exc:
-            qop.x
-        assert str(exc.value) == "No quantum operations context is currently set."
+    def test_with_overrides(self):
+        pulse = create_pulse(
+            {"function": "const", "amplitude": 0.2},
+            {"amplitude": 0.1},
+        )
+        assert pulse == tsl.pulse(function="const", amplitude=0.1)
 
-        with qops_1:
-            assert qops_1.x is qop.x
-            with qops_2:
-                assert qops_2.x is qop.x
-            assert qops_1.x is qop.x
+    def test_overridden_function(self):
+        pulse = create_pulse(
+            {"function": "const", "amplitude": 0.2},
+            {"function": "gaussian"},
+        )
+        assert pulse == tsl.pulse(function="gaussian", amplitude=1.0)
 
-        with pytest.raises(RuntimeError) as exc:
-            qop.x
-        assert str(exc.value) == "No quantum operations context is currently set."
+    def test_invalid_function(self):
+        with pytest.raises(ValueError) as err:
+            create_pulse({"function": "__moo__"})
+        assert str(err.value) == "Unsupported pulse function '__moo__'."
 
-    def test_getitem(self):
-        qops_1 = DummyOperations()
-        qops_2 = DummyOperations()
+    def test_no_function(self):
+        with pytest.raises(KeyError) as err:
+            create_pulse({})
+        assert str(err.value) == "'function'"
 
-        with pytest.raises(RuntimeError) as exc:
-            qop["x"]
-        assert str(exc.value) == "No quantum operations context is currently set."
+    def test_uid_default(self):
+        pulse = create_pulse({"function": "const", "amplitude": 0.2})
+        assert pulse == tsl.pulse(uid="__unnamed_0")
 
-        with qops_1:
-            assert qops_1.x is qop["x"]
-            with qops_2:
-                assert qops_2.x is qop["x"]
-            assert qops_1.x is qop["x"]
+    def test_uid_from_name(self):
+        pulse = create_pulse({"function": "const", "amplitude": 0.2}, name="rx_pulse")
+        assert pulse == tsl.pulse(uid="__rx_pulse_0")
 
-        with pytest.raises(RuntimeError) as exc:
-            qop["x"]
-        assert str(exc.value) == "No quantum operations context is currently set."
+    def test_pulse_from_global_cache(self):
+        pulse_1 = create_pulse({"function": "const", "amplitude": 0.2}, name="rx_pulse")
+        pulse_2 = create_pulse({"function": "const", "amplitude": 0.2}, name="rx_pulse")
+        assert pulse_1 is pulse_2
+        assert pulse_1.uid == "__rx_pulse_0"
+
+    def test_pulse_from_experiment_cache(self):
+        with dsl.experiment():
+            pulse_1 = create_pulse(
+                {"function": "const", "amplitude": 0.2},
+                name="rx_pulse",
+            )
+            pulse_2 = create_pulse(
+                {"function": "const", "amplitude": 0.2},
+                name="rx_pulse",
+            )
+        assert pulse_1 is pulse_2
+        assert pulse_1.uid == "rx_pulse_0"
 
 
 class TestDsl:
@@ -131,14 +177,18 @@ class TestDsl:
 
 
 class TestQuantumOperations:
-    def simple_exp(self, q, amplitudes, shots, prep=None):
+    @staticmethod
+    @qubit_experiment
+    def simple_exp(qop, q, amplitudes, shots, prep=None):
         with dsl.acquire_loop_rt(count=shots):
             with dsl.sweep(parameter=SweepParameter(values=amplitudes)) as amplitude:
                 if prep:
                     prep(q)
                 qop.x(q, amplitude)
 
-    def single_op_exp(self, q, op_name):
+    @staticmethod
+    @qubit_experiment
+    def single_op_exp(qop, q, op_name):
         qop[op_name](q)
 
     def test_create(self, dummy_ops):
@@ -148,14 +198,10 @@ class TestQuantumOperations:
         section = dummy_ops.x(dummy_q, amplitude=1.5)
         assert type(section) is Section
 
-    def test_context_manager(self, dummy_ops):
-        with dummy_ops:
-            assert current_quantum_operations() is dummy_ops
-
     def test_getattr(self, dummy_ops):
         assert dummy_ops.x.op is dummy_ops.BASE_OPS["x"]
         with pytest.raises(AttributeError) as exc:
-            dummy_ops.y
+            dummy_ops.y  # noqa: B018
         assert str(exc.value) == "'DummyOperations' object has no attribute 'y'"
 
     def test_getitem(self, dummy_ops):
@@ -163,6 +209,25 @@ class TestQuantumOperations:
         with pytest.raises(KeyError) as exc:
             dummy_ops["y"]
         assert str(exc.value) == "'y'"
+
+    def test_setitem_callable(self, dummy_ops):
+        def f():
+            pass
+
+        dummy_ops["y"] = f
+        assert dummy_ops["y"].op is f
+
+        dummy_ops["x"] = f
+        assert dummy_ops["x"].op is f
+
+    def test_setitem_op(self, dummy_ops):
+        def f():
+            pass
+
+        dummy_ops["y"] = f
+        dummy_ops["x"] = dummy_ops.y
+        assert dummy_ops["x"].op is f
+        assert dummy_ops["x"] is dummy_ops["y"]
 
     def test_contains(self, dummy_ops):
         assert "x" in dummy_ops
@@ -173,7 +238,6 @@ class TestQuantumOperations:
         assert public_attrs == [
             "BASE_OPS",
             "QUBIT_TYPE",
-            "build",
             "register",
             "x",
         ]
@@ -198,72 +262,220 @@ class TestQuantumOperations:
         assert dummy_ops.yo.op is y
 
     def test_build(self, dummy_ops, dummy_q):
-        exp = dummy_ops.build(self.simple_exp, dummy_q, np.linspace(0.1, 1, 10), 5)
+        amplitudes = np.linspace(0.1, 1, 10)
+        exp = self.simple_exp(dummy_ops, dummy_q, amplitudes, 5)
 
-        assert isinstance(exp, Experiment)
+        assert exp == tsl.experiment(uid="simple_exp").children(
+            tsl.acquire_loop_rt().children(
+                tsl.sweep(parameters=[tsl.sweep_parameter(values=amplitudes)]).children(
+                    tsl.section(uid="x_q0_0").children(
+                        reserve_ops_for_dummy_q(),
+                        tsl.play_pulse_op(
+                            signal="/lsg/q0/drive",
+                            amplitude=tsl.sweep_parameter(values=amplitudes),
+                        ),
+                    ),
+                ),
+            ),
+        )
 
-        [acquire] = exp.sections
-        assert acquire.alignment == SectionAlignment.LEFT
+    def test_build_with_prep(self, dummy_ops, dummy_q):
+        prep = dummy_ops.x.partial(amplitude=2)
+        amplitudes = np.linspace(0.1, 1, 10)
 
-        [sweep] = acquire.children
-        assert sweep.alignment == SectionAlignment.LEFT
+        exp = self.simple_exp(dummy_ops, dummy_q, amplitudes, 5, prep=prep)
 
-        [param] = sweep.parameters
-        np.testing.assert_almost_equal(param.values, np.linspace(0.1, 1, 10))
-
-        [x] = sweep.children
-        assert x.uid == "x_0"
-        assert x.alignment == SectionAlignment.LEFT
-
-        [pulse] = x.children
-        assert pulse.signal == "/lsg/drive"
-        assert pulse.amplitude is param
+        assert exp == tsl.experiment(uid="simple_exp").children(
+            tsl.acquire_loop_rt().children(
+                tsl.sweep(parameters=[tsl.sweep_parameter(values=amplitudes)]).children(
+                    tsl.section(uid="x_q0_0").children(
+                        reserve_ops_for_dummy_q(),
+                        tsl.play_pulse_op(signal="/lsg/q0/drive", amplitude=2.0),
+                    ),
+                    tsl.section(uid="x_q0_1").children(
+                        reserve_ops_for_dummy_q(),
+                        tsl.play_pulse_op(
+                            signal="/lsg/q0/drive",
+                            amplitude=tsl.sweep_parameter(values=amplitudes),
+                        ),
+                    ),
+                ),
+            ),
+        )
 
     def test_build_with_nested_ops(self, dummy_ops, dummy_q):
-        def x_amp_2(q):
-            qop.x(q, amplitude=2.0)
+        def x_amp_2(self, q):
+            self.x(q, amplitude=2.0)
 
         dummy_ops.register(x_amp_2)
 
-        exp = dummy_ops.build(self.single_op_exp, dummy_q, "x_amp_2")
+        exp = self.single_op_exp(dummy_ops, dummy_q, "x_amp_2")
 
-        [op] = exp.sections
-        assert op.uid == "x_amp_2_0"
-
-        [x_0] = op.children
-        assert x_0.uid == "x_0"
-
-        [pulse] = x_0.children
-        assert pulse.signal == "/lsg/drive"
-        assert pulse.amplitude == 2.0
+        assert exp == tsl.experiment(uid="single_op_exp").children(
+            tsl.section(uid="x_amp_2_q0_0").children(
+                reserve_ops_for_dummy_q(),
+                tsl.section(uid="x_q0_0").children(
+                    reserve_ops_for_dummy_q(),
+                    tsl.play_pulse_op(signal="/lsg/q0/drive", amplitude=2.0),
+                ),
+            ),
+        )
 
 
 class TestOperation:
     def test_call(self, dummy_ops, dummy_q):
-        with dummy_ops:
-            section_1 = dummy_ops.x(dummy_q, amplitude=2.0)
-            section_2 = dummy_ops.x(dummy_q, amplitude=3.0)
+        section_1 = dummy_ops.x(dummy_q, amplitude=2.0)
+        section_2 = dummy_ops.x(dummy_q, amplitude=3.0)
 
-        assert section_1.uid == "x_0"
-        [pulse_1] = section_1.children
-        assert pulse_1.signal == "/lsg/drive"
-        assert pulse_1.amplitude == 2.0
+        assert section_1 == tsl.section(uid="__x_q0_0").children(
+            tsl.reserve_op(signal="/lsg/q0/drive"),
+            tsl.reserve_op(signal="/lsg/q0/measure"),
+            tsl.reserve_op(signal="/lsg/q0/acquire"),
+            tsl.play_pulse_op(signal="/lsg/q0/drive", amplitude=2.0),
+        )
 
-        assert section_2.uid == "x_1"
-        [pulse_2] = section_2.children
-        assert pulse_2.signal == "/lsg/drive"
-        assert pulse_2.amplitude == 3.0
+        assert section_2 == tsl.section(uid="__x_q0_1").children(
+            tsl.reserve_op(signal="/lsg/q0/drive"),
+            tsl.reserve_op(signal="/lsg/q0/measure"),
+            tsl.reserve_op(signal="/lsg/q0/acquire"),
+            tsl.play_pulse_op(signal="/lsg/q0/drive", amplitude=3.0),
+        )
+
+    def test_call_with_foreign_qubits(self, dummy_ops):
+        q = ForeignQubit(uid="q0")
+        with pytest.raises(TypeError) as err:
+            dummy_ops.x(q, amplitude=1.0)
+        assert str(err.value) == (
+            "Quantum operation 'x' was passed the following qubits"
+            " that are not of type Transmon: q0"
+        )
 
     def test_partial(self, dummy_ops, dummy_q):
         x_with_amp = dummy_ops.x.partial(amplitude=1.5)
 
-        with dummy_ops:
-            section = x_with_amp(dummy_q)
+        section = x_with_amp(dummy_q)
 
-        assert section.uid == "x_0"
-        [pulse] = section.children
-        assert pulse.signal == "/lsg/drive"
-        assert pulse.amplitude == 1.5
+        assert section == tsl.section(uid="__x_q0_0").children(
+            tsl.reserve_op(signal="/lsg/q0/drive"),
+            tsl.reserve_op(signal="/lsg/q0/measure"),
+            tsl.reserve_op(signal="/lsg/q0/acquire"),
+            tsl.play_pulse_op(signal="/lsg/q0/drive", amplitude=1.5),
+        )
+
+    def test_section_omit(self, dummy_ops, dummy_q):
+        x = dummy_ops.x.partial(amplitude=1.0)
+        q = dummy_q
+
+        with dsl.section(uid="top") as section:
+            result = x.section(omit=True)(q)
+
+        assert section == tsl.section(uid="top").children(
+            tsl.play_pulse_op(),
+        )
+        assert result is None
+
+        with pytest.raises(LabOneQException) as err:
+            x.section(omit=True)(q)
+        assert str(err.value) == "Must be in a section context"
+
+    def test_section_alignment(self, dummy_ops, dummy_q):
+        x = dummy_ops.x.partial(amplitude=1.0)
+        q = dummy_q
+
+        section_default = x(q)
+        assert section_default.alignment == SectionAlignment.LEFT
+
+        section_right = x.section(alignment=SectionAlignment.RIGHT)(q)
+        assert section_right.alignment == SectionAlignment.RIGHT
+
+        section_left = x.section(alignment=SectionAlignment.LEFT)(q)
+        assert section_left.alignment == SectionAlignment.LEFT
+
+        section_right_left = x.section(alignment=SectionAlignment.RIGHT).section(
+            alignment=SectionAlignment.LEFT,
+        )(q)
+        assert section_right_left.alignment == SectionAlignment.LEFT
+
+        section_restored_default = x.section(alignment=SectionAlignment.RIGHT).section(
+            alignment=None,
+        )(q)
+        assert section_restored_default.alignment == SectionAlignment.LEFT
+
+    def test_section_execution_type(self, dummy_ops, dummy_q):
+        x = dummy_ops.x.partial(amplitude=1.0)
+        q = dummy_q
+
+        section_default = x(q)
+        assert section_default.execution_type is None
+
+        section_real_time = x.section(execution_type=ExecutionType.REAL_TIME)(q)
+        assert section_real_time.execution_type == ExecutionType.REAL_TIME
+
+        section_near_time = x.section(execution_type=ExecutionType.NEAR_TIME)(q)
+        assert section_near_time.execution_type == ExecutionType.NEAR_TIME
+
+        section_restored_default = x.section(
+            execution_type=ExecutionType.REAL_TIME,
+        ).section(execution_type=None)(q)
+        assert section_restored_default.execution_type is None
+
+    def test_section_length(self, dummy_ops, dummy_q):
+        x = dummy_ops.x.partial(amplitude=1.0)
+        q = dummy_q
+
+        section_default = x(q)
+        assert section_default.length is None
+
+        section_altered = x.section(length=1e-6)(q)
+        assert section_altered.length == 1e-6
+
+        section_restored_default = x.section(length=1e-6).section(length=None)(q)
+        assert section_restored_default.length is None
+
+    def test_section_play_after(self, dummy_ops, dummy_q):
+        x = dummy_ops.x.partial(amplitude=1.0)
+        q = dummy_q
+
+        section_default = x(q)
+        assert section_default.play_after is None
+
+        section_altered = x.section(play_after=["x180_q0_0"])(q)
+        assert section_altered.play_after == ["x180_q0_0"]
+
+        section_restored_default = x.section(play_after=["x180_q0_0"]).section(
+            play_after=None,
+        )(q)
+        assert section_restored_default.play_after is None
+
+    def test_section_on_system_grid(self, dummy_ops, dummy_q):
+        x = dummy_ops.x.partial(amplitude=1.0)
+        q = dummy_q
+
+        section_default = x(q)
+        assert section_default.on_system_grid is False
+
+        section_altered = x.section(on_system_grid=True)(q)
+        assert section_altered.on_system_grid is True
+
+        section_restored_default = x.section(on_system_grid=True).section(
+            on_system_grid=None,
+        )(q)
+        assert section_restored_default.on_system_grid is False
+
+    def test_section_mixed_parameters(self, dummy_ops, dummy_q):
+        x = dummy_ops.x.partial(amplitude=1.0)
+        q = dummy_q
+
+        section = (
+            x.section(alignment=SectionAlignment.RIGHT, on_system_grid=True)
+            .section(length=1e-6)
+            .section(play_after=["x180_q0_0"])(q)
+        )
+
+        assert section.alignment == SectionAlignment.RIGHT
+        assert section.on_system_grid is True
+        assert section.length == 1e-6
+        assert section.play_after == ["x180_q0_0"]
 
     def test_op(self, dummy_ops):
         assert dummy_ops.x.op is DummyOperations.BASE_OPS["x"]
@@ -272,10 +484,10 @@ class TestOperation:
         assert dummy_ops.x.src == "\n".join(
             [
                 "@quantum_operation",
-                "def x(q, amplitude):",
+                "def x(self, q, amplitude):",
                 '    """A dummy quantum operation."""',
                 "    pulse = dsl.pulse_library.const()",
                 '    dsl.play(q.signals["drive"], pulse, amplitude=amplitude)',
                 "",
-            ]
+            ],
         )
