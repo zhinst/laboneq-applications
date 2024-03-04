@@ -1,6 +1,4 @@
-# Pinned to < 8.1 until nbmake is updated.
-# See https://github.com/treebeardtech/nbmake/issues/119
-pytest>=6.0,<8.1
+pytest
 nbmake
 
 -r requirements-lint.txt
