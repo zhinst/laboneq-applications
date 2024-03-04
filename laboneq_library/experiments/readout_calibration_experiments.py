@@ -1,8 +1,12 @@
 import numpy as np
 from copy import copy
 from copy import deepcopy
-from itertools import combinations
+from itertools import combinations, product
 import matplotlib.pyplot as plt
+import matplotlib.colors as mc
+from sklearn.inspection import DecisionBoundaryDisplay
+from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
+from sklearn.metrics import confusion_matrix
 from ruamel.yaml import YAML
 
 ryaml = YAML()
@@ -12,7 +16,7 @@ import logging
 log = logging.getLogger(__name__)
 
 from . import quantum_operations as qt_ops
-from laboneq.analysis import calculate_integration_kernels
+from laboneq.analysis import calculate_integration_kernels_thresholds
 from laboneq.simple import *  # noqa: F403
 from laboneq_library.analysis import analysis_helpers as ana_hlp
 from laboneq_library.experiments.experiment_library import (
@@ -897,18 +901,31 @@ class StateDiscrimination(ExperimentTemplate):
 
     def analyse_experiment(self):
         super().analyse_experiment()
+        states_map = {"g": 0, "e": 1, "f": 2}
         for qubit in self.qubits:
             fig, ax = plt.subplots()
             shots = {}
+            all_shots = []
+            ideal_states = []
             for i, ps in enumerate(self.preparation_states):
                 handle = f"{self.experiment_name}_{qubit.uid}_cal_trace_{ps}"
                 shots[ps] = self.results.get_data(handle)
+                all_shots += [np.concatenate(
+                    [np.real(shots[ps])[:, np.newaxis],
+                     np.imag(shots[ps])[:, np.newaxis]], axis=1)
+                ]
+
+                ideal_states += [states_map[ps] * np.ones(len(shots[ps]))]
+
+                # plot shots
                 ax.scatter(np.real(shots[ps]), np.imag(shots[ps]), c=f"C{i}", alpha=0.25, label=ps)
                 # plot mean point
                 mean_state = np.mean(shots[ps])
                 ax.plot(
                     np.real(mean_state), np.imag(mean_state), "o", mfc=f"C{i}", mec="k"
                 )
+            data = np.concatenate(all_shots)
+            ideal_states = np.concatenate(ideal_states)
 
             # compute the distances between the mean of the points for each state
             all_state_combinations = combinations(self.preparation_states, 2)
@@ -926,9 +943,59 @@ class StateDiscrimination(ExperimentTemplate):
             ax.set_ylabel("Imaginary Signal Component, $V_Q$ (a.u.)")
             ax.set_title(f"{self.timestamp}_{self.experiment_name}_{qubit.uid}")
             ax.legend(frameon=False)
+
+            # Fit classifier
+            fit_classifier = self.analysis_metainfo.get("fit_classifier", True)
+            if fit_classifier and len(self.preparation_states) > 1:
+
+                clf = LinearDiscriminantAnalysis()
+                clf.fit(data, ideal_states)
+                self.analysis_results[qubit.uid]["classifier"] = clf
+                # plot discrimination lines
+                levels = None if len(self.preparation_states) > 2 else [0.5]
+                DecisionBoundaryDisplay.from_estimator(clf, data, grid_resolution=500,
+                                                       plot_method="contour", ax=ax,
+                                                       eps=1e-1, levels=levels)
+                # Calculate and plot assignment matrix
+                if self.analysis_metainfo.get("plot_assignment_matrix", True):
+                    fm = confusion_matrix(ideal_states, clf.predict(data), normalize='true')
+                    fidelity_avg = np.trace(fm) / float(np.sum(fm))
+                    self.analysis_results[qubit.uid]["assignment_matrix"] = fm
+                    self.analysis_results[qubit.uid]["average_assignment_fidelity"] = fidelity_avg
+                    # Plot assignment matrix
+                    fig_fm, ax_fm = plt.subplots()
+                    cmap = plt.get_cmap('Reds')
+                    im = ax_fm.imshow(fm, interpolation='nearest', cmap=cmap,
+                                      norm=mc.LogNorm(vmin=5e-3, vmax=1.))
+                    cb = fig.colorbar(im)
+                    cb.set_label('Assignment Probability, $P$')
+
+                    target_names = ["$|g\\rangle$", "$|e\\rangle$"]
+                    if "f" in self.preparation_states:
+                        target_names += ["$|f\\rangle$"]
+                    tick_marks = np.arange(len(target_names))
+                    ax_fm.set_xticks(tick_marks)
+                    ax_fm.set_xticklabels(target_names)
+                    ax_fm.set_yticks(tick_marks)
+                    ax_fm.set_yticklabels(target_names)
+
+                    thresh = fm.max() / 1.5
+                    for i, j in product(range(fm.shape[0]), range(fm.shape[1])):
+                        ax_fm.text(j, i, "{:0.4f}".format(fm[i, j]),
+                                   horizontalalignment="center",
+                                   color="white" if fm[i, j] > thresh else "black",
+                                   fontsize=plt.rcParams["font.size"] + 2)
+
+                    ax_fm.set_ylabel('Prepared State')
+                    ax_fm.set_xlabel('Assigned State\n$F_{{avg}}$ = {:0.2f}%'
+                                     .format(fidelity_avg * 100))
+                    ax_fm.set_title(f"{self.timestamp}_{self.experiment_name}_{qubit.uid}")
+
             if self.save:
                 # Save the figures
                 self.save_figure(fig, qubit)
+                fig_name = f"{self.timestamp}_{self.experiment_name}_Assignment_Matrix_{qubit.uid}"
+                self.save_figure(fig_fm, qubit, fig_name)
             if self.analysis_metainfo.get("show_figures", False):
                 plt.show()
             plt.close(fig)
@@ -1114,12 +1181,18 @@ class OptimalIntegrationKernels(ExperimentTemplate):
                 ps: raw_traces[i] for i, ps in enumerate(self.preparation_states)
             }
 
-            kernels = calculate_integration_kernels(raw_traces)
+            kernels, thresholds = calculate_integration_kernels_thresholds(raw_traces)
             self.analysis_results[qubit.uid]["new_parameter_values"].update(
-                {"integration_kernels": kernels}
+                {
+                    "readout_integration_kernels": kernels,
+                    "readout_discrimination_thresholds": thresholds
+                 }
             )
             self.analysis_results[qubit.uid]["old_parameter_values"].update(
-                {"integration_kernels": qubit.get_integration_kernels()}
+                {
+                    "readout_integration_kernels": qubit.get_integration_kernels(),
+                    "readout_discrimination_thresholds": qubit.parameters.readout_discrimination_thresholds
+                }
             )
             for i, krn in enumerate(kernels):
                 ax = axs[len(self.preparation_states) + i]
@@ -1146,6 +1219,6 @@ class OptimalIntegrationKernels(ExperimentTemplate):
             new_qb_pars = self.analysis_results[qubit.uid]["new_parameter_values"]
             if len(new_qb_pars) == 0:
                 return
-            qubit.parameters.readout_integration_kernels = new_qb_pars[
-                "integration_kernels"
-            ]
+
+            for param_name, value in new_qb_pars.items():
+                setattr(qubit.parameters, param_name, value)

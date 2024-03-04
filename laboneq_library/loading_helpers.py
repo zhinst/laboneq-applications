@@ -123,13 +123,16 @@ def get_results_file_path(experiment_directory, file_extension="json"):
     return experiment_directory + f"\\{results_fp}"
 
 
-def get_acquired_results_file_path(experiment_directory, file_extension="p"):
+def get_acquired_results_file_path(experiment_directory,
+                                   filename_to_match="acquired_results",
+                                   file_extension="p"):
     """
     Get the full file path to an acquired_results file in experiment_directory,
     with the extension file_extension.
 
     Args:
         experiment_directory: path to the directory where the measurement data is saved
+        filename_to_match: string to match in the filename
         file_extension: extension of the acquired_results file
 
     Returns:
@@ -138,7 +141,7 @@ def get_acquired_results_file_path(experiment_directory, file_extension="p"):
     aq_results_fp = [
         f
         for f in os.listdir(experiment_directory)
-        if f"acquired_results.{file_extension}" in f
+        if f"{filename_to_match}.{file_extension}" in f
     ]
     if len(aq_results_fp) == 0:
         raise FileNotFoundError(
@@ -232,7 +235,8 @@ def load_measurement_setup_from_experiment_directory(
     return measurement_setup
 
 
-def load_acquired_results_from_experiment_directory(experiment_directory, file_extension="json"):
+def load_acquired_results_from_experiment_directory(
+        experiment_directory, filename_to_match=None, file_extension="json"):
     """
     Load an AcquiredResults object from a file in the experiment_directory, which has
     the extension file_extension.
@@ -242,13 +246,16 @@ def load_acquired_results_from_experiment_directory(experiment_directory, file_e
 
     Args:
         experiment_directory: path to the directory where the measurement data is saved
+        filename_to_match: string to match in the filename
+        file_extension: extension of the acquired_results file
+
 
     Returns:
         instance of AcquiredResults
     """
 
     acquired_results_fp = get_acquired_results_file_path(
-        experiment_directory, file_extension=file_extension
+        experiment_directory, filename_to_match, file_extension
     )
     if file_extension == "p":
         acquired_results = pickle.load(open(acquired_results_fp, "rb"))

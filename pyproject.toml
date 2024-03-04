@@ -41,6 +41,7 @@ dependencies = [
     "xarray",
     "lmfit",
     "dill",
+    "scikit-learn",
 ]
 
 [tool.setuptools.packages.find]
