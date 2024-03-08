@@ -1,12 +1,15 @@
-import pytest
-import numpy as np
 import json
 
-from laboneq.simple import DeviceSetup, Experiment, Session
-from laboneq.dsl.result.acquired_result import AcquiredResult, AcquiredResults
+import numpy as np
+import pytest
 from laboneq.dsl.result import Results
+from laboneq.dsl.result.acquired_result import AcquiredResult, AcquiredResults
+from laboneq.simple import DeviceSetup, Experiment, Session
 
-from laboneq_library.utils.debugging import mock_acquired_results, get_acquired_results_from_results_json
+from laboneq_library.utils.debugging import (
+    get_acquired_results_from_results_json,
+    mock_acquired_results,
+)
 
 
 def test_mock_acquired_results():
@@ -40,21 +43,23 @@ def test_get_acquired_results_from_results_json(tmp_path):
         acquired_results=AcquiredResults(
             {
                 "first": AcquiredResult(data=np.array([1, 2])),
-                "second": AcquiredResult(data=np.array([0.2+0.3j]))
-            }
-        )
+                "second": AcquiredResult(data=np.array([0.2 + 0.3j])),
+            },
+        ),
     )
     tmp_dir = tmp_path / "test"
     tmp_dir.mkdir()
     filename = tmp_dir / "test.json"
     results.save(filename)
     # Create faulty serialized `Results`
-    with open(filename, "r") as f:
+    with open(filename) as f:
         json_data = json.load(f)
-        json_data["results"]["compiled_experiment"] = {"__type": "CompiledExperiment123"}
+        json_data["results"]["compiled_experiment"] = {
+            "__type": "CompiledExperiment123",
+        }
     with open(filename, "w") as f:
         json.dump(json_data, f)
     # LabOne Q Serializer raises `Exception` due to invalid `__type`
-    with pytest.raises(Exception):
+    with pytest.raises(Exception):  # noqa: B017
         Results.load(filename)
     assert get_acquired_results_from_results_json(filename) == results.acquired_results

@@ -8,7 +8,17 @@ lint:python:
     - pip install -r requirements-lint.txt
     - ruff check
   allow_failure: true
-    
+
+lint:python:core:
+  stage: pre-build
+  image: $DEFAULT_IMAGE
+  tags:
+    - linux
+    - docker
+  script:
+    - pip install -r requirements-lint.txt
+    - ruff check --extend-exclude "laboneq_library/analysis,laboneq_library/experiments,laboneq_library/calibration_helpers.py,laboneq_library/loading_helpers.py"
+
 lint:notebooks:
   stage: pre-build
   image: $DEFAULT_IMAGE

@@ -1,5 +1,5 @@
-import pytest
 import numpy as np
+import pytest
 
 from laboneq_library.analysis.amplitude_rabi import extract_rabi_amplitude
 
@@ -29,7 +29,7 @@ def test_extract_rabi_amplitude():
             0.93536926,
             0.86714271,
             0.80404261,
-        ]
+        ],
     )
     amplitudes = np.array(
         [
@@ -54,7 +54,7 @@ def test_extract_rabi_amplitude():
             0.38411918,
             0.40545914,
             0.42679909,
-        ]
+        ],
     )
     results = extract_rabi_amplitude(data=data, amplitudes=amplitudes)
     assert results.pi_amplitude.nominal_value == pytest.approx(0.3284004378016136)
@@ -64,5 +64,9 @@ def test_extract_rabi_amplitude():
     assert results.pi2_amplitude.std_dev == pytest.approx(0.0026318551966845296)
 
     # Test default fitting model
-    assert results.model.model.func(results.pi_amplitude.nominal_value, **results.model.best_values) == pytest.approx(1.0020635710040655)
-    assert results.model.model.func(results.pi2_amplitude.nominal_value, **results.model.best_values) == pytest.approx(0.49907399921173384)
+    assert results.model.model.func(
+        results.pi_amplitude.nominal_value, **results.model.best_values,
+    ) == pytest.approx(1.0020635710040655)
+    assert results.model.model.func(
+        results.pi2_amplitude.nominal_value, **results.model.best_values,
+    ) == pytest.approx(0.49907399921173384)

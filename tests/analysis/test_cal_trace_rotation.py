@@ -1,9 +1,9 @@
-import pytest
 import numpy as np
+import pytest
+from laboneq.dsl.result import Results
+from laboneq.dsl.result.acquired_result import AcquiredResult, AcquiredResults
 from numpy.testing import assert_array_almost_equal
 
-from laboneq.dsl.result.acquired_result import AcquiredResult, AcquiredResults
-from laboneq.dsl.result import Results
 from laboneq_library.analysis.cal_trace_rotation import (
     principal_component_analysis,
     rotate_data_to_cal_trace_results,
@@ -12,15 +12,16 @@ from laboneq_library.experiments.adapters import extract_and_rotate_data_1d
 
 
 @pytest.mark.parametrize(
-    "input, output",
+    ("pca_input", "expected_output"),
     [
         (np.array([1 + 5j, 2 + 2j, 5 + 2j]), np.array([-2.54012, 0.080577, 2.459543])),
         (np.array([1, 2, 5]), np.array([-1.666667, -0.666667, 2.333333])),
     ],
 )
-def test_principal_component_analysis(input, output):
+def test_principal_component_analysis(pca_input, expected_output):
     # TODO: Expand tests
-    assert_array_almost_equal(principal_component_analysis(input), output)
+    result = principal_component_analysis(pca_input)
+    assert_array_almost_equal(result, expected_output)
 
 
 def test_rotate_data_to_cal_trace_results():
@@ -29,11 +30,12 @@ def test_rotate_data_to_cal_trace_results():
     pts_1 = np.array([0.5 + 2j])
     pts_2 = np.array([0.1 + 2j])
     assert_array_almost_equal(
-        rotate_data_to_cal_trace_results(raw_data, pts_1, pts_2), [-1.25, -6.25]
+        rotate_data_to_cal_trace_results(raw_data, pts_1, pts_2),
+        [-1.25, -6.25],
     )
 
 
-@pytest.fixture
+@pytest.fixture()
 def laboneq_results():
     """Results from AmplitudeRabi experiment."""
     raw = np.array(
@@ -59,7 +61,7 @@ def laboneq_results():
             0.32719295 + 0.14280674j,
             0.28974077 + 0.18369942j,
             0.25877208 + 0.22439374j,
-        ]
+        ],
     )
     sweep_points = np.array(
         [
@@ -84,7 +86,7 @@ def laboneq_results():
             0.38411918,
             0.40545914,
             0.42679909,
-        ]
+        ],
     )
     acq_data = AcquiredResult(
         data=raw,
@@ -112,14 +114,15 @@ def laboneq_results():
                 "Rabi_ge_qb1": acq_data,
                 "Rabi_ge_qb1_cal_trace_g": trace_g,
                 "Rabi_ge_qb1_cal_trace_e": trace_e,
-            }
-        )
+            },
+        ),
     )
 
 
 class TestExtractAndRotateData1D:
-    # NOTE: Test on intitial analysis implementation. Use output as a reference point if refactored.
-    @pytest.fixture
+    # NOTE: Test on intitial analysis implementation. Use output as a
+    # reference point if refactored.
+    @pytest.fixture()
     def analysis(self, laboneq_results):
 
         return extract_and_rotate_data_1d(
@@ -156,7 +159,7 @@ class TestExtractAndRotateData1D:
                     0.38411918,
                     0.40545914,
                     0.42679909,
-                ]
+                ],
             ),
         )
 
@@ -188,13 +191,14 @@ class TestExtractAndRotateData1D:
                     0.42679909,
                     0.44813904,
                     0.46947899,
-                ]
+                ],
             ),
         )
 
     def test_sweep_points_cal_traces(self, analysis):
         assert_array_almost_equal(
-            analysis["sweep_points_cal_traces"], np.array([0.44813904, 0.46947899])
+            analysis["sweep_points_cal_traces"],
+            np.array([0.44813904, 0.46947899]),
         )
 
     def test_data_raw(self, analysis):
@@ -223,7 +227,7 @@ class TestExtractAndRotateData1D:
                     0.32719295 + 0.14280674j,
                     0.28974077 + 0.18369942j,
                     0.25877208 + 0.22439374j,
-                ]
+                ],
             ),
         )
 
@@ -255,7 +259,7 @@ class TestExtractAndRotateData1D:
                     0.25877208 + 0.22439374j,
                     -0.14148732 + 0.7385118j,
                     0.35821228 + 0.10057652j,
-                ]
+                ],
             ),
         )
 
@@ -291,7 +295,7 @@ class TestExtractAndRotateData1D:
                     0.93536926,
                     0.86714271,
                     0.80404261,
-                ]
+                ],
             ),
         )
 
@@ -323,22 +327,24 @@ class TestExtractAndRotateData1D:
                     0.80404261,
                     0.0,
                     1.0,
-                ]
+                ],
             ),
         )
 
     def test_data_rotated_cal_traces(self, analysis):
         assert_array_almost_equal(
-            analysis["data_rotated_cal_traces"], np.array([0.0, 1.0])
-        ),
+            analysis["data_rotated_cal_traces"],
+            np.array([0.0, 1.0]),
+        )
 
     def test_num_cal_traces(self, analysis):
         assert analysis["num_cal_traces"] == 2
 
 
 class TestExtractAndRotateData1DWithPCA:
-    # NOTE: Test on intitial analysis implementation. Use output as a reference point if refactored.
-    @pytest.fixture
+    # NOTE: Test on intitial analysis implementation. Use output as a
+    # reference point if refactored.
+    @pytest.fixture()
     def analysis(self, laboneq_results):
         return extract_and_rotate_data_1d(
             laboneq_results,
@@ -374,7 +380,7 @@ class TestExtractAndRotateData1DWithPCA:
                     0.38411918,
                     0.40545914,
                     0.42679909,
-                ]
+                ],
             ),
         )
 
@@ -406,13 +412,14 @@ class TestExtractAndRotateData1DWithPCA:
                     0.42679909,
                     0.44813904,
                     0.46947899,
-                ]
+                ],
             ),
         )
 
     def test_sweep_points_cal_traces(self, analysis):
         assert_array_almost_equal(
-            analysis["sweep_points_cal_traces"], np.array([0.44813904, 0.46947899])
+            analysis["sweep_points_cal_traces"],
+            np.array([0.44813904, 0.46947899]),
         )
 
     def test_data_raw(self, analysis):
@@ -441,7 +448,7 @@ class TestExtractAndRotateData1DWithPCA:
                     0.32719295 + 0.14280674j,
                     0.28974077 + 0.18369942j,
                     0.25877208 + 0.22439374j,
-                ]
+                ],
             ),
         )
 
@@ -473,7 +480,7 @@ class TestExtractAndRotateData1DWithPCA:
                     0.25877208 + 0.22439374j,
                     -0.14148732 + 0.7385118j,
                     0.35821228 + 0.10057652j,
-                ]
+                ],
             ),
         )
 
@@ -509,7 +516,7 @@ class TestExtractAndRotateData1DWithPCA:
                     0.28503987,
                     0.2297537,
                     0.1786206,
-                ]
+                ],
             ),
         )
 
@@ -541,14 +548,15 @@ class TestExtractAndRotateData1DWithPCA:
                     0.1786206,
                     -0.47293275,
                     0.33741351,
-                ]
+                ],
             ),
         )
 
     def test_data_rotated_cal_traces(self, analysis):
         assert_array_almost_equal(
-            analysis["data_rotated_cal_traces"], np.array([-0.472933, 0.337414])
-        ),
+            analysis["data_rotated_cal_traces"],
+            np.array([-0.472933, 0.337414]),
+        )
 
     def test_num_cal_traces(self, analysis):
         assert analysis["num_cal_traces"] == 2
