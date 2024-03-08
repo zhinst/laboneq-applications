@@ -1,30 +1,32 @@
 import pytest
-
 from laboneq.dsl.device import DeviceSetup, create_connection
 from laboneq.dsl.device.instruments import HDAWG
+
 from laboneq_library.core.qubit_register import QubitRegister
 from laboneq_library.qpu_types.tunable_transmon import TunableTransmonQubit
 
 
 class TestQubitRegister:
-    @pytest.fixture
+    @pytest.fixture()
     def qubits(self) -> None:
         return [
             TunableTransmonQubit("q0"),
-            TunableTransmonQubit("q1")
+            TunableTransmonQubit("q1"),
         ]
 
-    @pytest.fixture
+    @pytest.fixture()
     def register(self, qubits):
         return QubitRegister(qubits)
 
     def test_sequence_like(self, register, qubits):
         assert register == qubits
         assert register[1:] == qubits[1:]
-        assert [q for q in register] == qubits
+        assert list(register) == qubits
 
     def test_str(self, register):
-        assert str(register) == "['TunableTransmonQubit(q0)', 'TunableTransmonQubit(q1)']"
+        assert str(register) == (
+            "['TunableTransmonQubit(q0)', 'TunableTransmonQubit(q1)']"
+        )
 
     def test_save_load(self, register, tmp_path):
         p = tmp_path / "test.json"
@@ -46,16 +48,22 @@ class TestQubitRegister:
         )
         register.link_signals(setup)
         assert register[0].signals == {
-            "flux": setup.logical_signal_groups[register[0].uid].logical_signals["flux"].path
+            "flux": setup.logical_signal_groups[register[0].uid]
+            .logical_signals["flux"]
+            .path,
         }
         assert register[1].signals == {
-            "drive": setup.logical_signal_groups[register[1].uid].logical_signals["drive"].path
+            "drive": setup.logical_signal_groups[register[1].uid]
+            .logical_signals["drive"]
+            .path,
         }
 
         register = QubitRegister([TunableTransmonQubit("q0")])
         register.link_signals(setup)
         assert register[0].signals == {
-            "flux": setup.logical_signal_groups[register[0].uid].logical_signals["flux"].path
+            "flux": setup.logical_signal_groups[register[0].uid]
+            .logical_signals["flux"]
+            .path,
         }
 
     def test_link_signals_missing_qubit(self):

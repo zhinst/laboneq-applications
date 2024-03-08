@@ -1,12 +1,16 @@
+"""Core classes for working with qubit registers."""
+
 from __future__ import annotations
 
 import json
 from collections import UserList
 from dataclasses import asdict
 from importlib import import_module
-from typing import TYPE_CHECKING, Sequence
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
+    from collections.abc import Sequence
+
     from laboneq.dsl.quantum.quantum_element import QuantumElement
     from laboneq.simple import DeviceSetup
 
@@ -43,7 +47,6 @@ class QubitRegister(UserList):
         qubits: List of qubits.
 
     Example:
-
         Creating the `QubitRegister`:
 
         >>> qubits = QubitRegister([Qubit("q0"), Qubit("q1")])
@@ -76,11 +79,11 @@ class QubitRegister(UserList):
         Returns:
             `QubitRegister` loaded from the file.
         """
-        with open(filename, "r") as f:
+        with open(filename) as f:
             data = json.load(f)
         return cls([_deserialize_object(q) for q in data])
 
-    def save(self, filename: str):
+    def save(self, filename: str) -> None:
         """Save the qubits to an JSON file.
 
         Arguments:
@@ -90,11 +93,11 @@ class QubitRegister(UserList):
         with open(filename, "w") as f:
             json.dump(data, f, indent=2)
 
-    def link_signals(self, device_setup: DeviceSetup):
+    def link_signals(self, device_setup: DeviceSetup) -> None:
         """Connects the signals of the qubits to the given device setup.
 
-        Each qubit's signals are connected to the signals in the device setup logical signal
-        group with the same name as the qubit unique identifier.
+        Each qubit's signals are connected to the signals in the device setup
+        logical signal group with the same name as the qubit unique identifier.
 
         Modifies the qubits' signals in-place.
 
@@ -102,7 +105,9 @@ class QubitRegister(UserList):
             device_setup: `DeviceSetup` to link the qubits to.
 
         Raises:
-            KeyError: Qubit unique identifier does not exists in the `device_setup`'s logical signals.
+            KeyError:
+                Qubit unique identifier does not exists in the
+                `device_setup`'s logical signals.
         """
         for qubit in self.data:
             if qubit.uid not in device_setup.logical_signal_groups:
@@ -111,5 +116,5 @@ class QubitRegister(UserList):
 
         for qubit in self.data:
             qubit.add_signals(
-                device_setup.logical_signal_groups[qubit.uid].logical_signals
+                device_setup.logical_signal_groups[qubit.uid].logical_signals,
             )
