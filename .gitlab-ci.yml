@@ -1,0 +1,20 @@
+workflow:
+  rules:
+    - if: $CI_COMMIT_BRANCH && $CI_OPEN_MERGE_REQUESTS
+      when: never
+    - when: always
+
+stages:
+  - pre-build
+  - build
+  - test
+  - deploy
+  - doc
+
+variables:
+  PACKAGE_NAME: "laboneq-applications"
+  DEFAULT_IMAGE: "python:3.12"
+
+include:
+  - local: ci/gitlab/pre-build.yml
+  - local: ci/gitlab/test.yml
