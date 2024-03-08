@@ -1,0 +1,34 @@
+test:python-3.9:
+  stage: test
+  image: python:3.9
+  tags:
+    - linux
+    - docker
+  script:
+    - pip install -r requirements-dev.txt
+    - pip install -e .
+    - pytest tests -vv
+
+test:python-3.10:
+  extends: "test:python-3.9"
+  image: python:3.10
+
+test:python-3.11:
+  extends: "test:python-3.9"
+  image: python:3.11
+
+test:python-3.12:
+  extends: "test:python-3.9"
+  image: python:3.12
+  
+test:notebooks:python-3.9:
+  stage: test
+  image: python:3.9
+  tags:
+    - linux
+    - docker
+  script:
+    - pip install -r requirements-dev.txt
+    - pip install -e .
+    - pytest --nbmake examples --nbmake-kernel=python --nbmake-timeout=240 --durations=0
+  allow_failure: true
