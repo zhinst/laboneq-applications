@@ -31,4 +31,3 @@ test:notebooks:python-3.9:
     - pip install -r requirements-dev.txt
     - pip install -e .
     - pytest --nbmake examples --nbmake-kernel=python --nbmake-timeout=240 --durations=0
-  allow_failure: true
