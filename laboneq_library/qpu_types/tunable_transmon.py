@@ -93,6 +93,14 @@ class TunableTransmonQubitParameters(TransmonParameters):
     #: qubit dc parking voltage
     dc_voltage_parking: float | None = 0.0
 
+    #: deprecated parameters still used by examples:
+    readout_amplitude: float | None = 0.1
+    readout_discrimination_thresholds: list | None = None
+    readout_integration_kernels: list | None = None
+    readout_integration_length: float | None = 1e-6
+    readout_pulse_length: float | None = 1e-6
+    readout_integration_kernels_type: str = "default"
+
 
 @classformatter
 @dataclass(init=False, repr=True, eq=False)

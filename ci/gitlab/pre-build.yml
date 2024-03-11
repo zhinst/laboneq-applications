@@ -29,3 +29,13 @@ lint:notebooks:
     - pip install -r requirements-lint.txt
     - nbqa ruff examples
   allow_failure: true
+
+lint:notebooks:core:
+  stage: pre-build
+  image: $DEFAULT_IMAGE
+  tags:
+    - linux
+    - docker
+  script:
+    - pip install -r requirements-lint.txt
+    - nbqa ruff --nbqa-exclude examples/demo/2024015_experiment_library_examples.ipynb examples --ignore "INP001,D100"
