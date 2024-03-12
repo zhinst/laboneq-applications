@@ -1,6 +1,6 @@
 lint:python:
   stage: pre-build
-  image: $DEFAULT_IMAGE
+  image: $DEFAULT_PYTHON_IMAGE
   tags:
     - linux
     - docker
@@ -11,7 +11,7 @@ lint:python:
 
 lint:python:core:
   stage: pre-build
-  image: $DEFAULT_IMAGE
+  image: $DEFAULT_PYTHON_IMAGE
   tags:
     - linux
     - docker
@@ -21,7 +21,7 @@ lint:python:core:
 
 lint:notebooks:
   stage: pre-build
-  image: $DEFAULT_IMAGE
+  image: $DEFAULT_PYTHON_IMAGE
   tags:
     - linux
     - docker
@@ -32,7 +32,7 @@ lint:notebooks:
 
 lint:notebooks:core:
   stage: pre-build
-  image: $DEFAULT_IMAGE
+  image: $DEFAULT_PYTHON_IMAGE
   tags:
     - linux
     - docker

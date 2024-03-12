@@ -1,4 +1,6 @@
-pytest
 nbmake
+pytest
+pytest-cov
+pytest-xdist
 
 -r requirements-lint.txt
