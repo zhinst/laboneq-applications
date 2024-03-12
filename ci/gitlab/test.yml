@@ -20,13 +20,27 @@ test:python-3.11:
 test:python-3.12:
   extends: "test:python-3.9"
   image: python:3.12
-  
+
+test:coverage:
+  extends: "test:python-3.9"
+  image: python:3.12
+  script:
+    - pip install -r requirements-dev.txt
+    - pip install -e .
+    - pytest tests -v --cov=laboneq_library --cov=tests --cov-branch --cov-config=ci/coveragerc -n auto
+    - coverage xml -o coverage.xml
+    - coverage html -d coverage_html
+  artifacts:
+    paths:
+      - coverage_html
+    reports:
+      coverage_report:
+        coverage_format: cobertura
+        path: coverage.xml
+    expire_in: 1 day
+
 test:notebooks:python-3.9:
-  stage: test
-  image: python:3.9
-  tags:
-    - linux
-    - docker
+  extends: "test:python-3.9"
   script:
     - pip install -r requirements-dev.txt
     - pip install -e .

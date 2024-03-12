@@ -193,7 +193,7 @@ class TunableTransmonQubit(Transmon):
 
         Arguments:
             kernel_pulses:
-                Custom defintions for the kernel pulses. If present,
+                Custom definitions for the kernel pulses. If present,
                 it replaces the values of the qubit parameter
                 `readout_integration_parameters.kernels`.
 

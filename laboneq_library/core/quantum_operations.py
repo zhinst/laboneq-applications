@@ -357,7 +357,7 @@ class Operation:
         Only keyword arguments may be specified.
 
         Arguments:
-            **kw:
+            **kw (dict):
                 The keyword parameters to supply.
 
         Returns:

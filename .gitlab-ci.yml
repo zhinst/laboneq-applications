@@ -13,8 +13,18 @@ stages:
 
 variables:
   PACKAGE_NAME: "laboneq-applications"
-  DEFAULT_IMAGE: "python:3.12"
+  DEFAULT_PYTHON_IMAGE: "python:3.12"
+  DEFAULT_CLI_IMAGE: "debian:stable-slim"
+  RELEASE_DOCS:
+    value: "false"
+    description: "Whether to release the documentation to the public website"
+
+# Execution rules:
+
+.release-docs:
+  - if: $RELEASE_DOCS == "true" && $CI_COMMIT_REF_PROTECTED == "true"
 
 include:
   - local: ci/gitlab/pre-build.yml
   - local: ci/gitlab/test.yml
+  - local: ci/gitlab/doc.yml

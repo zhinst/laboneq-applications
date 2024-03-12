@@ -1,0 +1,56 @@
+variables:
+  GIT_SUBMODULE_STRATEGY: recursive
+
+doc:build:
+  stage: doc
+  image: $DEFAULT_PYTHON_IMAGE
+  tags:
+    - linux
+    - docker
+  variables:
+    ENABLE_MKDOCSTRINGS: "true"
+  script:
+    - pip install -e .
+    - cd docs
+    - pip install -r requirements.txt
+    - mkdocs build --strict
+    - cd ..
+    - find site -name "*.md" -type f -delete
+  artifacts:
+    paths:
+      - site
+    expire_in: 1 day
+
+pages:
+  stage: doc
+  image: $DEFAULT_CLI_IMAGE
+  tags:
+    - linux
+    - docker
+  needs:
+    - job: doc:build
+    - job: test:coverage
+  script:
+    - mkdir -p public/manual
+    - mv site/* public/manual
+    - mkdir -p public/coverage
+    - mv coverage_html/* public/coverage
+  artifacts:
+    paths:
+      - public
+    expire_in: 30 days
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main" && $CI_PIPELINE_SOURCE == "push"
+
+doc:deploy:
+  stage: doc
+  image: $DEFAULT_CLI_IMAGE
+  tags:
+    - linux
+    - docker
+  needs:
+    - job: doc:build
+  script:
+    - ci/scripts/deploy-docs.sh "$WEB_SERVER_DOC_KEY" site/ /home/docs/data/labone_q_applications/
+  rules:
+    - !reference [.release-docs]

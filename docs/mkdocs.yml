@@ -1,6 +1,6 @@
 INHERIT: zi_mkdocs/global.yml
 
-site_name: LabOne Q Library Documentation
+site_name: LabOne Q Applications Library
 docs_dir: sources
 site_dir: ../site
 
@@ -10,3 +10,10 @@ watch:
 
 nav:
 - Home: index.md
+
+plugins:
+  literate-nav:
+    nav_file: "index.md"
+    implicit_index: true
+  macros:
+    include_dir: ""

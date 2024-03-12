@@ -118,9 +118,9 @@ def build(exp_func: Callable, *args, name: str | None = None, **kw) -> Experimen
         name:
             A name for this experiment. Defaults to
             `exp_func.__name__` if no name is given.
-        *args:
+        *args (tuple):
             Positional arguments to pass to `exp_func`.
-        **kw:
+        **kw (dict):
             Keyword arguments to pass to `exp_func`.
 
     Returns:
