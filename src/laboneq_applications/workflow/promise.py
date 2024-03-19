@@ -28,6 +28,13 @@ class Promise:
     ):
         self.head = self if head is None else head
         self.ops = ops if ops is not None else []
+        self._done = False
+        self._result = None
+
+    @property
+    def done(self) -> bool:
+        """Indicates whether the `Promise` is done or not."""
+        return self.head._done
 
     def set_result(self, result: Any) -> None:  # noqa: ANN401
         """Set the promise result.
@@ -39,9 +46,9 @@ class Promise:
             ValueError: If result if tried to set to a child promise.
         """
         if self.head is not self:
-            msg = "Cannot resolve child promises."
-            raise ValueError(msg)
+            raise ValueError("Cannot resolve child promises.")
         self._result = result
+        self._done = True
 
     def result(self) -> Any:  # noqa: ANN401
         """Result of the promise.
@@ -49,11 +56,9 @@ class Promise:
         Raises:
             RuntimeError: Promise is not resolved.
         """
-        try:
-            res = self.head._result
-        except AttributeError:
-            msg = "Promise not resolved."
-            raise RuntimeError(msg) from None
+        if not self.head._done:
+            raise RuntimeError("Promise not resolved.") from None
+        res = self.head._result
         for op, *args in self.ops:
             res = getattr(operator, op)(res, *args)
         return res
