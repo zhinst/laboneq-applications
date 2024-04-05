@@ -1,6 +1,6 @@
-# Contributing to LabOne Q Library
+# Contributing to LabOne Q Applications Library
 
-We welcome contributions. This document includes the basics to get you started in contributing to `laboneq-library`.
+We welcome contributions. This document includes the basics to get you started in contributing to `laboneq-applications`.
 
 <!--- TODO: More detailed information -->
 
