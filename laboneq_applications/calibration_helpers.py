@@ -2,7 +2,7 @@ import json
 import os
 import logging
 from laboneq.simple import *  # noqa: F403
-from laboneq_library.qpu_types.tunable_transmon import (
+from laboneq_applications.qpu_types.tunable_transmon import (
     TunableTransmonQubit,
     TunableTransmonQubitParameters,
 )

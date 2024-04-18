@@ -5,7 +5,7 @@ import scipy as sp
 from laboneq.dsl.experiment import pulse_library as pl
 from laboneq.analysis import calculate_integration_kernels_thresholds
 
-from laboneq_library import loading_helpers as load_hlp
+from laboneq_applications import loading_helpers as load_hlp
 
 
 def extract_raw_data(folders, preparation_states, file_extension='p'):

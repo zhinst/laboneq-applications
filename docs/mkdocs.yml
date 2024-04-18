@@ -5,7 +5,7 @@ docs_dir: sources
 site_dir: ../site
 
 watch:
-- ../laboneq_library
+- ../laboneq_applications
 - zi_mkdocs
 
 nav:

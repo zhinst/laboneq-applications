@@ -6,7 +6,7 @@ from laboneq.dsl.result import Results
 from laboneq.dsl.result.acquired_result import AcquiredResult, AcquiredResults
 from laboneq.simple import DeviceSetup, Experiment, Session
 
-from laboneq_library.utils.debugging import (
+from laboneq_applications.utils.debugging import (
     get_acquired_results_from_results_json,
     mock_acquired_results,
 )

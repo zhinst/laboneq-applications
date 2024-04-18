@@ -1,1 +1,1 @@
-::: laboneq_library.qpu_types.tunable_transmon
+::: laboneq_applications.qpu_types.tunable_transmon

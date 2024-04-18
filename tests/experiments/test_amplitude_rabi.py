@@ -1,4 +1,4 @@
-""" Tests for laboneq_library.experiments amplitude Rabi. """
+""" Tests for laboneq_applications.experiments amplitude Rabi. """
 
 
 from laboneq.simple import (
@@ -8,10 +8,10 @@ from laboneq.simple import (
 )
 
 import tests.helpers.dsl as tsl
-from laboneq_library.core.build_experiment import qubit_experiment
-from laboneq_library.core.quantum_operations import dsl
-from laboneq_library.experiments.qubit_calibration_experiments import AmplitudeRabi
-from laboneq_library.qpu_types.tunable_transmon import (
+from laboneq_applications.core.build_experiment import qubit_experiment
+from laboneq_applications.core.quantum_operations import dsl
+from laboneq_applications.experiments.qubit_calibration_experiments import AmplitudeRabi
+from laboneq_applications.qpu_types.tunable_transmon import (
     TunableTransmonOperations,
 )
 

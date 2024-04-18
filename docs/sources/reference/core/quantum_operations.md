@@ -1,1 +1,1 @@
-::: laboneq_library.core.quantum_operations
+::: laboneq_applications.core.quantum_operations

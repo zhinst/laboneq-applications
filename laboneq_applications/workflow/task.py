@@ -5,9 +5,9 @@ import abc
 from functools import wraps
 from typing import Any, Callable, TypeVar, overload
 
-from laboneq_library.workflow._context import LocalContext
-from laboneq_library.workflow.promise import ReferencePromise
-from laboneq_library.workflow.resolver import ArgumentResolver
+from laboneq_applications.workflow._context import LocalContext
+from laboneq_applications.workflow.promise import ReferencePromise
+from laboneq_applications.workflow.resolver import ArgumentResolver
 
 
 def _wrapper(func: Callable) -> Callable:

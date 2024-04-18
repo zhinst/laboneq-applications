@@ -1,7 +1,7 @@
 """Module for argument resolvers."""
 from __future__ import annotations
 
-from laboneq_library.workflow.promise import Promise
+from laboneq_applications.workflow.promise import Promise
 
 
 class ArgumentResolver:

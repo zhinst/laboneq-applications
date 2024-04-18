@@ -2,7 +2,7 @@ from unittest.mock import Mock
 
 import pytest
 
-from laboneq_library.workflow import Workflow, exceptions, task
+from laboneq_applications.workflow import Workflow, exceptions, task
 
 
 @task

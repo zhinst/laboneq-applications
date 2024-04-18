@@ -4,7 +4,7 @@ import pytest
 from laboneq.dsl.device import DeviceSetup, create_connection
 from laboneq.dsl.device.instruments import HDAWG, PQSC, SHFQC
 
-from laboneq_library.qpu_types.tunable_transmon import (
+from laboneq_applications.qpu_types.tunable_transmon import (
     TunableTransmonQubit,
     TunableTransmonQubitParameters,
 )

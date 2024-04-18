@@ -1,6 +1,6 @@
 # qpu_types
 
-This is the `laboneq_library.qpu_types` reference documentation.
+This is the `laboneq_applications.qpu_types` reference documentation.
 
 ## Contents
 
