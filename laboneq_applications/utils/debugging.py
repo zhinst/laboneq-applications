@@ -49,7 +49,7 @@ def mock_acquired_results(
         A LabOne Q Session.
 
     Example:
-        >>> import from laboneq_library.utils.debugging import mock_acquired_results
+        >>> from laboneq_applications.utils.debugging import mock_acquired_results
         >>> with mock_acquired_results(
                 session, {"q1_acquired_results": AcquiredResult()}
             ) as mock_session:

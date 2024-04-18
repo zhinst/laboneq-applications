@@ -5,7 +5,7 @@ import os
 
 from laboneq.dsl.result.acquired_result import AcquiredResult, AcquiredResults
 from laboneq.dsl.serialization import Serializer
-from laboneq_library import calibration_helpers as calib_hlp
+from laboneq_applications import calibration_helpers as calib_hlp
 from laboneq.simple import *  # noqa: F403
 from ruamel.yaml import YAML
 

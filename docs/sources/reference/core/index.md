@@ -1,6 +1,6 @@
 # core
 
-This is the `laboneq_library.core` reference documentation.
+This is the `laboneq_applications.core` reference documentation.
 
 ## Contents
 

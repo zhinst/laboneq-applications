@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from laboneq_library.analysis.amplitude_rabi import extract_rabi_amplitude
+from laboneq_applications.analysis.amplitude_rabi import extract_rabi_amplitude
 
 
 def test_extract_rabi_amplitude():

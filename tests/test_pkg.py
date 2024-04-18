@@ -1,7 +1,7 @@
-"""Test for the laboneq_library package API."""
+"""Test for the laboneq_applications package API."""
 
-import laboneq_library
+import laboneq_applications
 
 
 def test_version():
-    assert laboneq_library.__version__ == "0.0.1"
+    assert laboneq_applications.__version__ == "0.0.1"

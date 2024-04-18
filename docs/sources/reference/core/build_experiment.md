@@ -1,1 +1,1 @@
-::: laboneq_library.core.build_experiment
+::: laboneq_applications.core.build_experiment

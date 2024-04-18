@@ -1,5 +1,5 @@
-from laboneq_library.workflow._context import LocalContext
-from laboneq_library.workflow.task import Task, task
+from laboneq_applications.workflow._context import LocalContext
+from laboneq_applications.workflow.task import Task, task
 
 
 class MyTestTask(Task):

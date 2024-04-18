@@ -1,6 +1,6 @@
 import pytest
 
-from laboneq_library.workflow._context import LocalContext
+from laboneq_applications.workflow._context import LocalContext
 
 
 def test_no_local_context():

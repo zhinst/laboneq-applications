@@ -1,6 +1,6 @@
 import pytest
 
-from laboneq_library.workflow.orchestrator import sort_task_graph
+from laboneq_applications.workflow.orchestrator import sort_task_graph
 
 
 class TestSortTaskGraph:

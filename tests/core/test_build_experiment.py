@@ -1,4 +1,4 @@
-""" Tests for laboneq_library.core.build_experiment. """
+""" Tests for laboneq_applications.core.build_experiment. """
 
 import numpy as np
 import pytest
@@ -8,12 +8,12 @@ from laboneq.simple import (
 )
 
 import tests.helpers.dsl as tsl
-from laboneq_library.core.build_experiment import (
+from laboneq_applications.core.build_experiment import (
     ExperimentBuilder,
     build,
     qubit_experiment,
 )
-from laboneq_library.core.quantum_operations import (
+from laboneq_applications.core.quantum_operations import (
     QuantumOperations,
     dsl,
     quantum_operation,

@@ -12,7 +12,7 @@ from laboneq.dsl.quantum import (
     TransmonParameters,
 )
 
-from laboneq_library.core.quantum_operations import (
+from laboneq_applications.core.quantum_operations import (
     QuantumOperations,
     create_pulse,
     dsl,

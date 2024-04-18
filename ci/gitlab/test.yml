@@ -27,7 +27,7 @@ test:coverage:
   script:
     - pip install -r requirements-dev.txt
     - pip install -e .
-    - pytest tests -v --cov=laboneq_library --cov=tests --cov-branch --cov-config=ci/coveragerc -n auto
+    - pytest tests -v --cov=laboneq_applications --cov=tests --cov-branch --cov-config=ci/coveragerc -n auto
     - coverage xml -o coverage.xml
     - coverage html -d coverage_html
   artifacts:

@@ -6,11 +6,11 @@ from typing import Any
 
 from typing_extensions import Self  # in `typing` from Python 3.11
 
-from laboneq_library.workflow import exceptions
-from laboneq_library.workflow._context import LocalContext
-from laboneq_library.workflow.orchestrator import sort_task_graph
-from laboneq_library.workflow.promise import Promise
-from laboneq_library.workflow.task import TaskEvent
+from laboneq_applications.workflow import exceptions
+from laboneq_applications.workflow._context import LocalContext
+from laboneq_applications.workflow.orchestrator import sort_task_graph
+from laboneq_applications.workflow.promise import Promise
+from laboneq_applications.workflow.task import TaskEvent
 
 
 class WorkflowResult:

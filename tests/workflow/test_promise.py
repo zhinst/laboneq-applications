@@ -1,6 +1,6 @@
 import pytest
 
-from laboneq_library.workflow.promise import Promise
+from laboneq_applications.workflow.promise import Promise
 
 
 class TestPromise:

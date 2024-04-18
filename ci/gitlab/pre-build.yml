@@ -17,7 +17,7 @@ lint:python:core:
     - docker
   script:
     - pip install -r requirements-lint.txt
-    - ruff check --extend-exclude "laboneq_library/analysis,laboneq_library/experiments,laboneq_library/calibration_helpers.py,laboneq_library/loading_helpers.py"
+    - ruff check --extend-exclude "laboneq_applications/analysis,laboneq_applications/experiments,laboneq_applications/calibration_helpers.py,laboneq_applications/loading_helpers.py"
 
 lint:notebooks:
   stage: pre-build

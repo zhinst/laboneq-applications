@@ -2,8 +2,8 @@ import pytest
 from laboneq.dsl.device import DeviceSetup, create_connection
 from laboneq.dsl.device.instruments import HDAWG
 
-from laboneq_library.core.qubit_register import QubitRegister
-from laboneq_library.qpu_types.tunable_transmon import TunableTransmonQubit
+from laboneq_applications.core.qubit_register import QubitRegister
+from laboneq_applications.qpu_types.tunable_transmon import TunableTransmonQubit
 
 
 class TestQubitRegister:
