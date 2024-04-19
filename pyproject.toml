@@ -45,7 +45,7 @@ dependencies = [
 ]
 
 [tool.setuptools.packages.find]
-where = ["."]
+where = ["src"]
 include = ["laboneq_applications*"]
 namespaces = false
 
@@ -58,6 +58,7 @@ testpaths = [
 ]
 
 [tool.ruff]
+src = ["src", "test"]
 target-version = "py39"
 exclude = [
   "docs/zi_mkdocs",
