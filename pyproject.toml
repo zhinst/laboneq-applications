@@ -62,7 +62,12 @@ src = ["src", "test"]
 target-version = "py39"
 exclude = [
   "docs/zi_mkdocs",
+  "src/laboneq_applications/analysis",
+  "src/laboneq_applications/experiments",
+  "src/laboneq_applications/calibration_helpers.py",
+  "src/laboneq_applications/loading_helpers.py"
 ]
+
 lint.select = ["ALL"]
 lint.ignore = [
   # Type annotation for self
