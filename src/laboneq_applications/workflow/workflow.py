@@ -96,10 +96,11 @@ class Workflow:
         graph = {}
         event_map = {}
         for task in tasks:
-            graph[task.event_id] = [
-                t.event_id for t in task.requires if isinstance(t, TaskEvent)
+            task_id = id(task)
+            graph[task_id] = [
+                id(t) for t in task.requires if isinstance(t, TaskEvent)
             ]
-            event_map[task.event_id] = task
+            event_map[task_id] = task
         return [event_map[idd] for idd in sort_task_graph(graph)]
 
     def run(self, *args, **kwargs) -> WorkflowResult:
