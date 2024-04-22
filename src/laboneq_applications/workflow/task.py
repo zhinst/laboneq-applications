@@ -80,6 +80,10 @@ class FunctionTask(Task):
         super().__init__(name if name is not None else func.__name__)
         self._func = func
 
+    def __call__(self, *args, **kwargs):
+        """Run the task."""
+        return self.run(*args, **kwargs)
+
     def run(self, *args, **kwargs) -> T:
         """Run the task."""
         return self._func(*args, **kwargs)
@@ -105,19 +109,8 @@ def task(func: TaskFunction | None = None, *, name: str | None = None):  # noqa:
     """
 
     def wrapper(func):  # noqa: ANN001, ANN202
-        @wraps(func)
-        def inner(*args, **kwargs):  # noqa: ANN202
-            if not LocalContext.is_active():
-                return func(*args, **kwargs)
-            return FunctionTask(func, name=name).run(*args, **kwargs)
-
-        return inner
-
-    if func:
-        return wrapper(func)
-    return wrapper
-
-
+        return FunctionTask(func, name=name)
+    return wrapper(func) if func else wrapper
 
 
 class TaskEvent:
@@ -125,16 +118,8 @@ class TaskEvent:
 
     def __init__(self, task: Task, *args, **kwargs):
         self.task = task
-        self.args = args
-        self.kwargs = kwargs
-        self._id: int = LocalContext.active_context().create_id()
         self._promise = ReferencePromise(self)
-        self._resolver = ArgumentResolver(*self.args, **self.kwargs)
-
-    @property
-    def event_id(self) -> int:
-        """Task event id."""
-        return self._id
+        self._resolver = ArgumentResolver(*args, **kwargs)
 
     @property
     def requires(self) -> list[TaskEvent]:

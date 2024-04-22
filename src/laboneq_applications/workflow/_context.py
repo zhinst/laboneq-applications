@@ -1,22 +1,17 @@
 from __future__ import annotations
 
 import threading
-from itertools import count
 from typing import Any, ClassVar
 
 
 class InstanceRegister:
-    """A register to keep track of instances and unique IDs within the instance."""
+    """A register to keep track of instances within the context."""
 
     def __init__(self):
-        self._id_counter = count()
         self.instances: list[Any] = []
 
     def register(self, instance: Any) -> None:  # noqa: ANN401
         self.instances.append(instance)
-
-    def create_id(self) -> int:
-        return next(self._id_counter)
 
 
 class _ContextStorage(threading.local):
@@ -29,12 +24,6 @@ class LocalContext:
 
     def __init__(self):
         self.ctx = InstanceRegister()
-
-    def __enter__(self):
-        self.enter()
-
-    def __exit__(self, *args, **kwargs) -> InstanceRegister:
-        return self.exit()
 
     @classmethod
     def enter(cls) -> None:

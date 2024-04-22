@@ -1,10 +1,8 @@
-from laboneq_applications.workflow._context import LocalContext
-from laboneq_applications.workflow.task import Task, task
+from laboneq_applications.workflow.task import FunctionTask, Task
 
 
 class MyTestTask(Task):
-    def run(self):
-        ...
+    def run(self): ...
 
 
 class TestTask:
@@ -12,26 +10,15 @@ class TestTask:
         task = MyTestTask(name="test")
         assert str(task) == "Task(name=test)"
 
-    def test_task_name(self):
-        @task
-        def foobar():
-            ...
-        with LocalContext():
-            task_ = foobar()
-        assert task_._ref.task._name == "foobar"
+    def test_name(self):
+        task_ = MyTestTask("foobar")
+        assert task_.name == "foobar"
 
-        @task(name="test")
-        def foobar():
-            ...
-        with LocalContext():
-            task_ = foobar()
-        assert task_._ref.task._name == "test"
 
-    def test_task_result_query(self):
-        @task
-        def foobar():
-            return 123
-        with LocalContext():
-            event = foobar()
-        event._ref.execute()
-        assert event.result() == 123
+class TestFunctionTask:
+    def test_result(self):
+        def foobar(x, y):
+            return x + y
+
+        task_ = FunctionTask(foobar, "foobar")
+        assert task_(1, 2) == 3
