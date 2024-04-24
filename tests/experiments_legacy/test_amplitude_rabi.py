@@ -10,7 +10,9 @@ from laboneq.simple import (
 import tests.helpers.dsl as tsl
 from laboneq_applications.core.build_experiment import qubit_experiment
 from laboneq_applications.core.quantum_operations import dsl
-from laboneq_applications.experiments.qubit_calibration_experiments import AmplitudeRabi
+from laboneq_applications.experiments_legacy.qubit_calibration_experiments import (
+    AmplitudeRabi,
+)
 from laboneq_applications.qpu_types.tunable_transmon import (
     TunableTransmonOperations,
 )

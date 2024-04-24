@@ -3,9 +3,10 @@
 __all__ = [
     "reset_uids",  # autouse fixture
     "single_tunable_transmon",  # fixture
+    "two_tunable_transmon",  # fixture
 ]
 
-from tests.helpers.device_setups import single_tunable_transmon
+from tests.helpers.device_setups import single_tunable_transmon, two_tunable_transmon
 from tests.helpers.dsl import ExpectedDSLStructure, reset_uids
 
 

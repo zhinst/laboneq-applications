@@ -14,8 +14,8 @@ from . import quantum_operations as qt_ops
 from laboneq.analysis import fitting as fit_mods
 from laboneq.simple import *  # noqa: F403
 from laboneq_applications.analysis import analysis_helpers as ana_hlp
-from laboneq_applications.experiments import adapters
-from laboneq_applications.experiments.experiment_library import (
+from laboneq_applications.experiments_legacy import adapters
+from laboneq_applications.experiments_legacy.experiment_library import (
     ExperimentTemplate,
     merge_valid_user_parameters,
 )

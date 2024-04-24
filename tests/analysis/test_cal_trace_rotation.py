@@ -8,7 +8,7 @@ from laboneq_applications.analysis.cal_trace_rotation import (
     principal_component_analysis,
     rotate_data_to_cal_trace_results,
 )
-from laboneq_applications.experiments.adapters import extract_and_rotate_data_1d
+from laboneq_applications.experiments_legacy.adapters import extract_and_rotate_data_1d
 
 
 @pytest.mark.parametrize(

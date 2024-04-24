@@ -143,7 +143,7 @@ class ExpectedDSLStructure:
                 return False
             return all(self._careful_equals(a, b) for a, b in zip(obj_attr, v))
         if isinstance(obj_attr, SweepParameter):
-            # TODO: Remove this work around one the __eq__ methods of the
+            # TODO: Remove this work around once the __eq__ methods of the
             #       sweep parameter classes are fixed in laboneq.
             return v == obj_attr
         return obj_attr == v
