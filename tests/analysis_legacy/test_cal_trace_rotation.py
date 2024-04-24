@@ -4,7 +4,7 @@ from laboneq.dsl.result import Results
 from laboneq.dsl.result.acquired_result import AcquiredResult, AcquiredResults
 from numpy.testing import assert_array_almost_equal
 
-from laboneq_applications.analysis.cal_trace_rotation import (
+from laboneq_applications.analysis_legacy.cal_trace_rotation import (
     principal_component_analysis,
     rotate_data_to_cal_trace_results,
 )

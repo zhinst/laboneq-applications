@@ -12,7 +12,7 @@ import traceback
 log = logging.getLogger(__name__)
 
 from laboneq_applications import loading_helpers as load_hlp
-from laboneq_applications.analysis import analysis_helpers as ana_hlp
+from laboneq_applications.analysis_legacy import analysis_helpers as ana_hlp
 from laboneq_applications.experiments import adapters
 
 

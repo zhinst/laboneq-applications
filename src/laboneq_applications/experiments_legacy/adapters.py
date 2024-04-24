@@ -1,5 +1,5 @@
 from copy import deepcopy
-from laboneq_applications.analysis.cal_trace_rotation import rotate_data_1d, rotate_data_2d
+from laboneq_applications.analysis_legacy.cal_trace_rotation import rotate_data_1d, rotate_data_2d
 
 
 def extract_and_rotate_data_1d(

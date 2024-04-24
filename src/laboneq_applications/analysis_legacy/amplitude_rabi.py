@@ -6,8 +6,8 @@ from dataclasses import dataclass
 import numpy as np
 import uncertainties as unc
 from laboneq.analysis import fitting as fit_mods
-from laboneq_applications.analysis import analysis_helpers
 
+from laboneq_applications.analysis_legacy import analysis_helpers
 
 if TYPE_CHECKING:
     from numpy.typing import ArrayLike

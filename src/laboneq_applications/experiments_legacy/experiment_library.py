@@ -16,7 +16,7 @@ import logging
 from . import quantum_operations as qt_ops
 from laboneq.simple import *  # noqa: F403
 from laboneq_applications import calibration_helpers as calib_hlp
-from laboneq_applications.analysis import analysis_helpers as ana_hlp
+from laboneq_applications.analysis_legacy import analysis_helpers as ana_hlp
 import warnings
 
 log = logging.getLogger(__name__)

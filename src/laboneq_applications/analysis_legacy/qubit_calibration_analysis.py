@@ -6,9 +6,10 @@ import logging
 
 log = logging.getLogger(__name__)
 
-from laboneq_applications.analysis import analysis_helpers as ana_hlp
 from laboneq.analysis import fitting as fit_mods
-from laboneq_applications.analysis.analysis_library import (
+
+from laboneq_applications.analysis_legacy import analysis_helpers as ana_hlp
+from laboneq_applications.analysis_legacy.analysis_library import (
     AnalysisTemplate,
     RawDataProcessingMixin,
     SkipStepException,

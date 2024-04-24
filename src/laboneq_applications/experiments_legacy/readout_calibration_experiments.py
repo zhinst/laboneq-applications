@@ -18,7 +18,7 @@ log = logging.getLogger(__name__)
 from . import quantum_operations as qt_ops
 from laboneq.analysis import calculate_integration_kernels_thresholds
 from laboneq.simple import *  # noqa: F403
-from laboneq_applications.analysis import analysis_helpers as ana_hlp
+from laboneq_applications.analysis_legacy import analysis_helpers as ana_hlp
 from laboneq_applications.experiments_legacy.experiment_library import (
     ExperimentTemplate,
     merge_valid_user_parameters,
