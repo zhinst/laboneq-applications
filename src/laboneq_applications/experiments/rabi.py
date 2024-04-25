@@ -43,11 +43,36 @@ def amplitude_rabi(
             If a single qubit is passed to `qubits` then a list of amplitudes to sweep.
             Otherwise a list of lists of amplitudes to sweep for each qubit.
         count:
-            Number of experiment repetitions (shots).
+            Number of real-time experiment data acquisitions (measurement shots).
         transition:
             Transition to perform the experiment on. May be any transition supported
             by the quantum operations. Default: `"ge"` (i.e. ground to first
             excited state).
+
+    Returns:
+        experiment:
+            The generated LabOne Q experiment instance to be compiled and executed.
+
+    Raises:
+        ValueError:
+            If the qubits and qubit_amplitudes are not of the same length.
+
+        ValueError:
+            If qubit_amplitudes is not a list of numbers when a single qubit is passed.
+
+        ValueError:
+            If qubit_amplitudes is not a list of lists of numbers.
+
+    Example:
+    ```python
+    amplitude_rabi(
+        qop = TunableTransmonOperations(),
+        qubits = [TunableTransmonQubit("q0"), TunableTransmonQubit("q1")],
+        amplitudes = [[0.1, 0.5, 1], [0.1, 0.5, 1]],
+        count = 10,
+        transition = 'ge'
+    )
+    ```
     """
     # TODO: Check that qubits are of the same type = QuantumElement.
     # The implementation can be used for other experiment tasks.
