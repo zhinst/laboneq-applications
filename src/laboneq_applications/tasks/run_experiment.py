@@ -19,7 +19,7 @@ def run_experiment(
         compiled_experiment: The compiled experiment to run.
 
     Returns:
-        The result of the LabOne Q Session.run() call.
+        The result of the LabOne Q `Session.run()` call.
 
     Example:
     ```python
