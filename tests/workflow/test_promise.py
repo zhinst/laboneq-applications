@@ -35,3 +35,19 @@ class TestPromise:
         child = head["key"]
         with pytest.raises(ValueError, match="Cannot resolve child promises"):
             child.set_result({"key": 0})
+
+    @pytest.mark.parametrize(
+        ("one", "other", "result"),
+        [
+            (2, 2, True),
+            (2, 3, False),
+            ("a", "a", True),
+            ("a", "b", False),
+            ([1], [1], True),
+        ],
+    )
+    def test_eq(self, one, other, result):
+        obj = Promise()
+        expr = obj == other
+        obj.set_result(one)
+        assert expr.result() is result

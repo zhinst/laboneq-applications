@@ -1,26 +1,26 @@
-"""Module for promises.
+"""Module for workflow promises.
 
 Promises are used at Workflow definition page to delay the execution of the operations.
 """
+
 from __future__ import annotations
 
 import operator
 from typing import Any
 
-# TODO: Make sure promise attributes do not clash with underlying objects.
-
 
 class Promise:
-    """Promise.
+    """Workflow promise class.
 
-    The promise records operations done on itself, which can then
+    `Promise` records operations done on itself, which can then
     be later resolved.
 
     Attributes:
-        head: Head promise of the given promise.
-        ops: Operations that was done on the Promise
-            operations can be, for example, using Python magic methods.
+        head: Head of the given promise.
+        ops: Operations that was done on the `Promise`.
     """
+
+    # TODO: Make sure promise attributes do not clash with underlying objects.
     def __init__(
         self,
         head: Promise | None = None,
@@ -32,8 +32,13 @@ class Promise:
         self._result = None
 
     @property
+    def ref(self) -> object:
+        """Promise result producing object reference."""
+        return self
+
+    @property
     def done(self) -> bool:
-        """Indicates whether the `Promise` is done or not."""
+        """Indicates whether the promise is done or not."""
         return self.head._done
 
     def set_result(self, result: Any) -> None:  # noqa: ANN401
@@ -43,7 +48,7 @@ class Promise:
             result: Result of the promise.
 
         Raises:
-            ValueError: If result if tried to set to a child promise.
+            ValueError: If called on a child promise.
         """
         if self.head is not self:
             raise ValueError("Cannot resolve child promises.")
@@ -73,16 +78,19 @@ class Promise:
         A child is created each time an operation is performed on the promise
         and each child keeps a reference to its' head promise.
 
-        Once head promises result is set, each child promise result is also resolved.
+        Once the head result is set, each child's result is also resolved.
         """
         return type(self)(head, ops)
 
     def __getitem__(self, item):  # noqa: ANN001
         return self._create_child(self.head, [*self.ops, ("getitem", item)])
 
+    def __eq__(self, other: object):
+        return self._create_child(self.head, [*self.ops, ("eq", other)])
+
 
 class ReferencePromise(Promise):
-    """A reference Promise.
+    """A reference promise.
 
     Reference promise keeps a reference to an object it is attached to.
     This way the object producing the result is not lost.
@@ -93,11 +101,12 @@ class ReferencePromise(Promise):
         ops: Operations that was done on the Promise
             operations can be, for example, using Python magic methods.
     """
+
     def __init__(
         self,
         ref: object,
         head: Promise | None = None,
-        ops: list[tuple[str, Any]] | None= None,
+        ops: list[tuple[str, Any]] | None = None,
     ):
         super().__init__(head, ops)
         self._ref = ref
