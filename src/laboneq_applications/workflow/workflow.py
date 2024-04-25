@@ -1,8 +1,10 @@
 """Core workflow objects."""
+
 from __future__ import annotations
 
 from collections import defaultdict
-from typing import Any
+from inspect import signature
+from typing import Any, Callable
 
 from typing_extensions import Self  # in `typing` from Python 3.11
 
@@ -36,16 +38,40 @@ class WorkflowResult:
 class WorkflowInput:
     """Workflow input.
 
-    Creates promises of the inputs used, which are then resolved
-    once the workflow is ran.
-
-    Attributes:
-        args: Arguments of the input.
-        kwargs: Keyword arguments of the input
+    Holds promises for workflow inputs during the construction of the workflow.
+    The promises are resolved when the workflow is run and the input values are
+    provided.
     """
+
     def __init__(self):
-        self.args: tuple = Promise()
-        self.kwargs: dict = Promise()
+        self._input: dict[str, Promise] = {}
+
+    def __getitem__(self, key: str) -> Promise:
+        if key not in self._input:
+            self._input[key] = Promise()
+        return self._input[key]
+
+    def resolve(self, **kwargs) -> None:
+        """Resolve input parameters.
+
+        Arguments:
+            **kwargs: The values for the workflow inputs.
+
+        Raises:
+            TypeError: Invalid or missing parameters.
+        """
+        undefined = set(kwargs.keys()) - set(self._input.keys())
+        if undefined:
+            raise TypeError(
+                f"Workflow got undefined input parameter(s): {', '.join(undefined)}",
+            )
+        required_keys = set(self._input.keys()) - set(kwargs.keys())
+        if required_keys:
+            raise TypeError(
+                f"Workflow missing input parameter(s): {', '.join(required_keys)}",
+            )
+        for k, v in kwargs.items():
+            self._input[k].set_result(v)
 
 
 class Workflow:
@@ -80,7 +106,10 @@ class Workflow:
 
         Resolves the topology of the Workflow.
         """
-        self._tasks = LocalContext.exit().instances
+        if self._tasks:
+            self._tasks.extend(LocalContext.exit().instances)
+        else:
+            self._tasks = LocalContext.exit().instances
         self._dag = self._resolve_topology(self._tasks)
 
     @staticmethod
@@ -97,13 +126,11 @@ class Workflow:
         event_map = {}
         for task in tasks:
             task_id = id(task)
-            graph[task_id] = [
-                id(t) for t in task.requires if isinstance(t, TaskEvent)
-            ]
+            graph[task_id] = [id(t) for t in task.requires if isinstance(t, TaskEvent)]
             event_map[task_id] = task
         return [event_map[idd] for idd in sort_task_graph(graph)]
 
-    def run(self, *args, **kwargs) -> WorkflowResult:
+    def run(self, **kwargs) -> WorkflowResult:
         """Run workflow.
 
         Arguments:
@@ -116,11 +143,8 @@ class Workflow:
         if LocalContext.is_active():
             msg = "Nesting Workflows is not allowed."
             raise exceptions.WorkflowError(msg)
-        # Resolve Workflow input args and kwargs immediately, they do not have
-        # dependencies
-        # TODO: Resolve workflow input promises more intelligently
-        self.input.args.set_result(args)
-        self.input.kwargs.set_result(kwargs)
+        # Resolve Workflow input immediately, they do not have dependencies
+        self.input.resolve(**kwargs)
         # TODO: We might not want to save each task result, memory overload?
         #       Kept for POC purposes
         tasklog = defaultdict(list)
@@ -128,3 +152,44 @@ class Workflow:
             result = event.execute()
             tasklog[event.task.name].append(result)
         return WorkflowResult(tasklog=dict(tasklog))
+
+
+class WorkflowBuilder:
+    """A workflow builder.
+
+    Builds a workflow out of the given Python function.
+
+    Arguments:
+        func: A python function, which acts as the core of the workflow.
+    """
+
+    def __init__(self, func: Callable) -> None:
+        self._func = func
+
+    def create(self) -> Workflow:
+        """Create a workflow."""
+        with Workflow() as wf:
+            self._func(**{x: wf.input[x] for x in signature(self._func).parameters})
+        return wf
+
+
+def workflow(func: Callable) -> WorkflowBuilder:
+    """A decorator to mark a function as workflow.
+
+    The arguments of the function will be the input values for the `Workflow`.
+
+    Returns:
+        A Workflow builder, which can be used to generate a workflow out of the
+        wrapped function.
+
+    Example:
+        from laboneq_applications.workflow import workflow
+
+        @workflow
+        def my_workflow(x: int):
+            ...
+
+        wf = my_workflow.create()
+        results = wf.run(x=123)
+    """
+    return WorkflowBuilder(func)

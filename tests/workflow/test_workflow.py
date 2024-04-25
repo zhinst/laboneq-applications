@@ -1,8 +1,15 @@
+from __future__ import annotations
+
+import re
+from typing import TYPE_CHECKING
 from unittest.mock import Mock
 
 import pytest
 
-from laboneq_applications.workflow import Workflow, exceptions, task
+from laboneq_applications.workflow import Workflow, exceptions, task, workflow
+
+if TYPE_CHECKING:
+    from laboneq_applications.workflow.workflow import WorkflowBuilder
 
 
 @task
@@ -43,17 +50,29 @@ def test_workflow_single():
 class TestWorkFlowInput:
     def test_valid_input(self):
         with Workflow() as wf:
-            addition(wf.input.kwargs["add_me"], y=wf.input.kwargs["add_me"])
+            addition(wf.input["add_me"], y=wf.input["add_me"])
         result = wf.run(add_me=5)
         assert result.tasklog["addition"][0] == 10
 
-    def test_missing_input_key(self):
         with Workflow() as wf:
-            addition(wf.input.args[0]["add_me"], y=1)
+            addition(wf.input["first"], wf.input["second"])
 
-        with pytest.raises(KeyError) as err:
-            wf.run({})
-        assert str(err.value) == "'add_me'"
+        result = wf.run(first=5, second=2)
+        assert result.tasklog["addition"] == [7]
+
+    def test_invalid_input(self):
+        with Workflow() as wf:
+            addition(wf.input["inp"]["add_me"], y=1)
+
+        with pytest.raises(TypeError, match=re.escape(
+            "Workflow missing input parameter(s): inp",
+        )):
+            wf.run()
+
+        with pytest.raises(TypeError, match=re.escape(
+            "Workflow got undefined input parameter(s): a",
+        )):
+            wf.run(a={})
 
     def test_mapping_input(self):
         @task
@@ -61,50 +80,39 @@ class TestWorkFlowInput:
             return result["sum"] + 5 + result["value"]
 
         with Workflow() as wf:
-            work_on_mapping(wf.input.args[0])
+            work_on_mapping(wf.input["input"])
 
-        result = wf.run({"sum": 5, "value": 1.2})
+        result = wf.run(input={"sum": 5, "value": 1.2})
         assert result.tasklog["work_on_mapping"] == [5 + 5 + 1.2]
-
-    def test_args_input(self):
-        @task
-        def work_on_mapping(x, y):
-            return x, y
-
-        with Workflow() as wf:
-            work_on_mapping(wf.input.args[0], wf.input.args[0])
-
-        result = wf.run(5, 10.5)
-        assert result.tasklog["work_on_mapping"] == [(5, 5)]
 
 
 class TestWorkFlowRerunNoCache:
     def test_workflow_rerun_input_change(self):
         with Workflow() as wf:
-            addition(1, wf.input.args[0]["add_me"])
-        result = wf.run({"add_me": 5})
+            addition(1, wf.input["input"]["add_me"])
+        result = wf.run(input={"add_me": 5})
         assert result.tasklog["addition"][0] == 6
-        result = wf.run({"add_me": 6})
+        result = wf.run(input={"add_me": 6})
         assert result.tasklog["addition"][0] == 7
 
     def test_task_graph_up_executed_on_input_change(self):
         with Workflow() as wf:
-            x = addition(1, wf.input.args[0]["add_me"])
+            x = addition(1, wf.input["input"]["add_me"])
             addition(1, x)
 
-        result = wf.run({"add_me": 1})
+        result = wf.run(input={"add_me": 1})
         assert result.tasklog["addition"] == [2, 3]
-        result = wf.run({"add_me": 2})
+        result = wf.run(input={"add_me": 2})
         assert result.tasklog["addition"] == [3, 4]
 
     def test_task_graph_down_executed_on_input_change(self):
         with Workflow() as wf:
             x = addition(1, 1)
-            addition(x, wf.input.args[0]["add_me"])
+            addition(x, wf.input["input"]["add_me"])
 
-        result = wf.run({"add_me": 1})
+        result = wf.run(input={"add_me": 1})
         assert result.tasklog["addition"] == [2, 3]
-        result = wf.run({"add_me": 2})
+        result = wf.run(input={"add_me": 2})
         assert result.tasklog["addition"] == [2, 4]
 
     def test_rerun(self):
@@ -228,4 +236,56 @@ class TestWorkflowPromises:
         assert wf.run().tasklog == {
             "return_mapping": [{"a": 123, "b": [1, 2]}],
             "act_on_mapping_value": [(123, 2)],
+        }
+
+
+class TestWorkFlowDecorator:
+    @pytest.fixture()
+    def builder(self) -> WorkflowBuilder:
+        @workflow
+        def my_wf(x: int, y: int):
+            addition(x, y)
+
+        return my_wf
+
+    def test_create(self, builder: WorkflowBuilder):
+        assert isinstance(builder.create(), Workflow)
+
+        wf1 = builder.create()
+        wf2 = builder.create()
+        assert wf1.run(x=1, y=2).tasklog == {"addition": [3]}
+        assert wf1.run(x=1, y=3).tasklog == {"addition": [4]}
+        assert wf2.run(x=1, y=4).tasklog == {"addition": [5]}
+        assert wf2.run(x=1, y=5).tasklog == {"addition": [6]}
+
+    def test_append_subtask(self, builder: WorkflowBuilder):
+        # NOTE: Interesting feature
+        wf = builder.create()
+
+        @task
+        def added_function():
+            return 123
+
+        with wf:
+            added_function()
+            added_function()
+
+        result = wf.run(x=5, y=5)
+        assert result.tasklog == {
+            "addition": [
+                10,
+            ],
+            "added_function": [
+                123, 123,
+            ],
+        }
+
+        result = wf.run(x=5, y=5)
+        assert result.tasklog == {
+            "addition": [
+                10,
+            ],
+            "added_function": [
+                123, 123,
+            ],
         }
