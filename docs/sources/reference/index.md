@@ -9,3 +9,4 @@ navigation on the left or see the contents below.
 
 * [core](core/)
 * [qpu_types](qpu_types/)
+* [tasks](tasks/)
