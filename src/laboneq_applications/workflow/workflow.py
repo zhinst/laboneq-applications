@@ -27,7 +27,7 @@ class WorkflowResult:
         """Log of executed tasks and their results.
 
         Returns:
-            A mapping for each task and its results.
+            A mapping for each task and its' results.
         """
         # NOTE: Currently values are a list of task return values,
         #       However it will be a `TaskResult` object, which can have more
@@ -39,7 +39,7 @@ class WorkflowInput:
     """Workflow input.
 
     Holds promises for workflow inputs during the construction of the workflow.
-    The promises are resolved when the workflow is run and the input values are
+    The promises are resolved when the workflow is ran and the input values are
     provided.
     """
 
@@ -51,7 +51,7 @@ class WorkflowInput:
             self._input[key] = Promise()
         return self._input[key]
 
-    def resolve(self, **kwargs) -> None:
+    def resolve(self, **kwargs: object) -> None:
         """Resolve input parameters.
 
         Arguments:
@@ -75,7 +75,7 @@ class WorkflowInput:
 
 
 class Workflow:
-    """Workflow for Task execution."""
+    """Workflow for task execution."""
 
     # TODO: Should Workflow be serializable?
     def __init__(self) -> None:
@@ -130,11 +130,10 @@ class Workflow:
             event_map[task_id] = task
         return [event_map[idd] for idd in sort_task_graph(graph)]
 
-    def run(self, **kwargs) -> WorkflowResult:
+    def run(self, **kwargs: object) -> WorkflowResult:
         """Run workflow.
 
         Arguments:
-            *args: Arguments of the workflow.
             **kwargs: Keyword arguments of the workflow.
 
         Returns:
@@ -183,6 +182,7 @@ def workflow(func: Callable) -> WorkflowBuilder:
         wrapped function.
 
     Example:
+        ```python
         from laboneq_applications.workflow import workflow
 
         @workflow
@@ -191,5 +191,6 @@ def workflow(func: Callable) -> WorkflowBuilder:
 
         wf = my_workflow.create()
         results = wf.run(x=123)
+        ```
     """
     return WorkflowBuilder(func)

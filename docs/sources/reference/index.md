@@ -11,3 +11,4 @@ navigation on the left or see the contents below.
 * [qpu_types](qpu_types/)
 * [tasks](tasks/)
 * [experiments](experiments/)
+* [workflow](workflow/)

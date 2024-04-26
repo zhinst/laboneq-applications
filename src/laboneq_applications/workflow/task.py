@@ -1,4 +1,5 @@
 """Tasks used within Workflow."""
+
 from __future__ import annotations
 
 import abc
@@ -13,7 +14,8 @@ from laboneq_applications.workflow.resolver import ArgumentResolver
 def _wrapper(func: Callable) -> Callable:
     """Wrap a method.
 
-    If called within context, produces an event instead of executing.
+    If called within the workflow context, produces an event instead of executing
+    the wrapped method.
     """
 
     @wraps(func)
@@ -31,8 +33,7 @@ def _wrapper(func: Callable) -> Callable:
 class Task(abc.ABC):
     """A base class for a Workflow task.
 
-    Required methods that subclasses need to define:
-
+    Classes that subclass this class must implement:
         - `run()`
     """
 
@@ -56,7 +57,7 @@ class Task(abc.ABC):
         """Run the task.
 
         If used within `Workflow` context, creates an event of this task
-        instead of executing the task.
+        instead of executing it.
         """
 
 
@@ -93,8 +94,7 @@ TaskFunction = TypeVar("TaskFunction", bound=Callable)
 
 
 @overload
-def task(func: TaskFunction, *, name: str | None = None) -> TaskFunction:
-    ...
+def task(func: TaskFunction, *, name: str | None = None) -> TaskFunction: ...
 
 
 def task(func: TaskFunction | None = None, *, name: str | None = None):  # noqa: D417
@@ -106,10 +106,22 @@ def task(func: TaskFunction | None = None, *, name: str | None = None):  # noqa:
     Arguments:
         name: Name of the task.
             Defaults to function name.
+
+    Example:
+        ```python
+        from laboneq_applications.workflow import task
+
+        @task
+        def my_task(x, y):
+            return x + y
+
+        my_task(1, 1)
+        ```
     """
 
     def wrapper(func):  # noqa: ANN001, ANN202
         return FunctionTask(func, name=name)
+
     return wrapper(func) if func else wrapper
 
 
