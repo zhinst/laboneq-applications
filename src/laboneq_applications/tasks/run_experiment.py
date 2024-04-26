@@ -22,15 +22,15 @@ def run_experiment(
         The result of the LabOne Q `Session.run()` call.
 
     Example:
-    ```python
-    from laboneq_library.tasks import run_experiment
-    from laboneq_library.workflow.workflow import Workflow
+        ```python
+        from laboneq_library.tasks import run_experiment
+        from laboneq_library.workflow.workflow import Workflow
 
-    with Workflow() as wf:
-        run_experiment(
-            session=session,
-            compiled_experiment=compiled_experiment,
-        )
-    ```
+        with Workflow() as wf:
+            run_experiment(
+                session=session,
+                compiled_experiment=compiled_experiment,
+            )
+        ```
     """
     return session.run(compiled_experiment)
