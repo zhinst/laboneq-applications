@@ -4,8 +4,6 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from laboneq.core.exceptions import LabOneQException
-
 if TYPE_CHECKING:
     from laboneq.core.types import CompiledExperiment
     from laboneq.dsl.experiment import Experiment
@@ -42,11 +40,7 @@ def compile_experiment(
         >>> with Workflow() as wf:
         >>>   compiled_experiment = compile_experiment(session, experiment)
     """
-    compiled_experiment = session.compile(
+    return session.compile(
         experiment=experiment,
         compiler_settings=compiler_settings,
     )
-    if compiled_experiment is None:
-        msg = "Failed to compile experiment."
-        raise LabOneQException(msg)
-    return compiled_experiment
