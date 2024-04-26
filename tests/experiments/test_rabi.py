@@ -35,7 +35,7 @@ def reference_rabi_exp(qubits, count, amplitudes, transition):
         x180_ef_length = q.transition_parameters("ef")[1]["length"]
         if transition == "ge":
             acq.children(
-                tsl.sweep(uid=f"amps_{q.uid}", parameters=[sweep_parameter]).children(
+                tsl.sweep(uid=f"amps_{q.uid}_0", parameters=[sweep_parameter]).children(
                     tsl.section(uid=f"prep_{q.uid}_0").children(
                         reserve_ops(q),
                         tsl.section(uid=f"reset_{q.uid}_0").children(
@@ -55,7 +55,7 @@ def reference_rabi_exp(qubits, count, amplitudes, transition):
                 ),
             )
             acq.children(
-                tsl.section(uid=f"cal_{q.uid}").children(
+                tsl.section(uid=f"cal_{q.uid}_0").children(
                     tsl.section(uid=f"prep_{q.uid}_1").children(
                         reserve_ops(q),
                         tsl.section(uid=f"reset_{q.uid}_1").children(
@@ -88,7 +88,7 @@ def reference_rabi_exp(qubits, count, amplitudes, transition):
             )
         elif transition == "ef":
             acq.children(
-                tsl.sweep(uid=f"amps_{q.uid}", parameters=[sweep_parameter]).children(
+                tsl.sweep(uid=f"amps_{q.uid}_0", parameters=[sweep_parameter]).children(
                     tsl.section(uid=f"prep_{q.uid}_0").children(
                         reserve_ops(q),
                         tsl.section(uid=f"reset_{q.uid}_0").children(
@@ -112,7 +112,7 @@ def reference_rabi_exp(qubits, count, amplitudes, transition):
                 ),
             )
             acq.children(
-                tsl.section(uid=f"cal_{q.uid}").children(
+                tsl.section(uid=f"cal_{q.uid}_0").children(
                     tsl.section(uid=f"prep_{q.uid}_1").children(
                         reserve_ops(q),
                         tsl.section(uid=f"reset_{q.uid}_1").children(

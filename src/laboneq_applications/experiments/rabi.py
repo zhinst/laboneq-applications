@@ -94,7 +94,7 @@ def amplitude_rabi(
     with dsl.acquire_loop_rt(count=count):
         for q, q_amplitudes in zip(qubits, qubit_amplitudes):
             with dsl.sweep(
-                uid=f"amps_{q.uid}",
+                name=f"amps_{q.uid}",
                 parameter=SweepParameter(f"amplitude_{q.uid}", q_amplitudes),
             ) as amplitude:
                 qop.prep(q, transition[0])
@@ -102,7 +102,7 @@ def amplitude_rabi(
                 qop.measure(q, f"result_{q.uid}")
 
             with dsl.section(
-                uid=f"cal_{q.uid}",
+                name=f"cal_{q.uid}",
             ):
                 for state in transition:
                     qop.prep(q, state)
