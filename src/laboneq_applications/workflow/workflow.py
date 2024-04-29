@@ -171,6 +171,11 @@ class WorkflowBuilder:
             self._func(**{x: wf.input[x] for x in signature(self._func).parameters})
         return wf
 
+    def __call__(self, **kw: object) -> WorkflowResult:
+        """Create and execute a workflow."""
+        wf = self.create()
+        return wf.run(**kw)
+
 
 def workflow(func: Callable) -> WorkflowBuilder:
     """A decorator to mark a function as workflow.

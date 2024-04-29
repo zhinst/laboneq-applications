@@ -3,9 +3,10 @@
 from collections.abc import Sequence
 
 import pytest
+from laboneq.dsl.session import Session
 
 import tests.helpers.dsl as tsl
-from laboneq_applications.experiments import amplitude_rabi
+from laboneq_applications.experiments import amplitude_rabi, amplitude_rabi_workflow
 from laboneq_applications.qpu_types.tunable_transmon import TunableTransmonOperations
 from laboneq_applications.workflow.workflow import Workflow
 
@@ -155,11 +156,61 @@ def reference_rabi_exp(qubits, count, amplitudes, transition):
     return exp
 
 
+class TestWorkflow:
+    @pytest.mark.parametrize("create", [True, False])
+    def test_create_and_run(self, single_tunable_transmon, create):
+        session = Session(single_tunable_transmon.setup)
+        session.connect(do_emulation=True)
+
+        qop = TunableTransmonOperations()
+        [q0] = single_tunable_transmon.qubits
+        amplitudes = [0.1, 0.2]
+        count = 10
+        transition = "ge"
+
+        if create:
+            def run_wf(**kw):
+                wf = amplitude_rabi_workflow.create()
+                return wf.run(**kw)
+        else:
+            run_wf = amplitude_rabi_workflow
+
+        result = run_wf(
+            session=session,
+            qop=qop,
+            qubits=q0,
+            amplitudes=amplitudes,
+            count=count,
+            transition=transition,
+        )
+
+        assert list(result.tasklog.keys()) == [
+            "amplitude_rabi",
+            "compile_experiment",
+            "run_experiment",
+        ]
+
+        [exp] = result.tasklog["amplitude_rabi"]
+        assert exp.uid == "amplitude_rabi"
+
+        [compiled_exp] = result.tasklog["compile_experiment"]
+        assert compiled_exp.experiment.uid == "amplitude_rabi"
+        assert compiled_exp.device_setup.uid == "test"
+
+        [exp_result] = result.tasklog["run_experiment"]
+        assert list(exp_result.acquired_results.keys()) == [
+            "result_q0",
+            "cal_state_g_q0",
+            "cal_state_e_q0",
+        ]
+
+
 @pytest.mark.parametrize("transition", ["ge", "ef"])
 @pytest.mark.parametrize("count", [10, 12])
 class TestAmplitudeRabiSingleQubit:
     @pytest.fixture(autouse=True)
     def _setup(self, single_tunable_transmon, transition, count):
+        self.single_tunable_transmon = single_tunable_transmon
         self.q0 = single_tunable_transmon.qubits[0]
         self.amplitude = [0.1, 0.5, 1]
         self.count = count
@@ -180,6 +231,9 @@ class TestAmplitudeRabiSingleQubit:
             self.amplitude,
             self.transition,
         )
+        session = Session(self.single_tunable_transmon.setup)
+        session.connect(do_emulation=True)
+        session.compile(exp)
 
     def test_run_task(self):
         exp = amplitude_rabi(
@@ -232,6 +286,7 @@ class TestAmplitudeRabiSingleQubit:
 class TestAmplitudeRabiTwoQubit:
     @pytest.fixture(autouse=True)
     def _setup(self, two_tunable_transmon, transition, count):
+        self.two_tunable_transmon = two_tunable_transmon
         self.q0, self.q1 = two_tunable_transmon.qubits
         self.amplitudes = [[0.1, 0.5, 1], [0.1, 0.5, 1]]
         self.count = count
@@ -252,6 +307,9 @@ class TestAmplitudeRabiTwoQubit:
             self.amplitudes,
             self.transition,
         )
+        session = Session(self.two_tunable_transmon.setup)
+        session.connect(do_emulation=True)
+        session.compile(exp)
 
     def test_run_task(self):
         exp = amplitude_rabi(

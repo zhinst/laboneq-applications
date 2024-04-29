@@ -248,6 +248,10 @@ class TestWorkFlowDecorator:
 
         return my_wf
 
+    def test_call(self, builder: WorkflowBuilder):
+        result = builder(x=1, y=2)
+        assert result.tasklog == {"addition": [3]}
+
     def test_create(self, builder: WorkflowBuilder):
         assert isinstance(builder.create(), Workflow)
 

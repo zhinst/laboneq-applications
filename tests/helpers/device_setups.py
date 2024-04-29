@@ -1,6 +1,7 @@
 """Device setups for tests."""
 
 import pytest
+from laboneq.dsl.calibration import Oscillator, SignalCalibration
 from laboneq.dsl.device import DeviceSetup, create_connection
 from laboneq.dsl.device.instruments import HDAWG, PQSC, SHFQC
 
@@ -52,7 +53,7 @@ def single_tunable_transmon_setup():
     setup.add_connections(
         "device_shfqc",
         create_connection(to_signal="q0/drive", ports="SGCHANNELS/0/OUTPUT"),
-        create_connection(to_signal="q0/drive_ef", ports="SGCHANNELS/1/OUTPUT"),
+        create_connection(to_signal="q0/drive_ef", ports="SGCHANNELS/0/OUTPUT"),
         create_connection(to_signal="q0/measure", ports="QACHANNELS/0/OUTPUT"),
         create_connection(to_signal="q0/acquire", ports="QACHANNELS/0/INPUT"),
     )
@@ -65,6 +66,17 @@ def single_tunable_transmon_setup():
         create_connection(to_instrument="device_shfqc", ports="ZSYNCS/0"),
         create_connection(to_instrument="device_hdawg", ports="ZSYNCS/1"),
     )
+
+    for qubit in ["q0"]:
+        for line in ["drive", "measure", "acquire"]:
+            logical_signal = setup.logical_signal_by_uid(f"{qubit}/{line}")
+            logical_signal.calibration = SignalCalibration(
+                local_oscillator=Oscillator(frequency=5e9),
+            )
+        drive_lsg = setup.logical_signal_by_uid(f"{qubit}/drive")
+        drive_ef_lsg = setup.logical_signal_by_uid(f"{qubit}/drive_ef")
+        drive_ef_lsg.calibration = drive_lsg.calibration
+
     return setup
 
 
@@ -104,6 +116,17 @@ def two_tunable_transmon_setup():
         create_connection(to_instrument="device_shfqc", ports="ZSYNCS/0"),
         create_connection(to_instrument="device_hdawg", ports="ZSYNCS/1"),
     )
+
+    for qubit in ["q0", "q1"]:
+        for line in ["drive", "measure", "acquire"]:
+            logical_signal = setup.logical_signal_by_uid(f"{qubit}/{line}")
+            logical_signal.calibration = SignalCalibration(
+                local_oscillator=Oscillator(frequency=5e9),
+            )
+        drive_lsg = setup.logical_signal_by_uid(f"{qubit}/drive")
+        drive_ef_lsg = setup.logical_signal_by_uid(f"{qubit}/drive_ef")
+        drive_ef_lsg.calibration = drive_lsg.calibration
+
     return setup
 
 
