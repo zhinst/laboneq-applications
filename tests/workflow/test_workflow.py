@@ -1,20 +1,18 @@
 from __future__ import annotations
 
 import re
-from typing import TYPE_CHECKING
 from unittest.mock import Mock
 
 import pytest
 
 from laboneq_applications.workflow import Workflow, exceptions, task, workflow
-
-if TYPE_CHECKING:
-    from laboneq_applications.workflow.workflow import WorkflowBuilder
+from laboneq_applications.workflow.workflow import WorkflowBuilder
 
 
 @task
 def addition(x, y) -> float:
     return x + y
+
 
 @task
 def substraction(x, y) -> float:
@@ -64,14 +62,20 @@ class TestWorkFlowInput:
         with Workflow() as wf:
             addition(wf.input["inp"]["add_me"], y=1)
 
-        with pytest.raises(TypeError, match=re.escape(
-            "Workflow missing input parameter(s): inp",
-        )):
+        with pytest.raises(
+            TypeError,
+            match=re.escape(
+                "Workflow missing input parameter(s): inp",
+            ),
+        ):
             wf.run()
 
-        with pytest.raises(TypeError, match=re.escape(
-            "Workflow got undefined input parameter(s): a",
-        )):
+        with pytest.raises(
+            TypeError,
+            match=re.escape(
+                "Workflow got undefined input parameter(s): a",
+            ),
+        ):
             wf.run(a={})
 
     def test_mapping_input(self):
@@ -186,8 +190,7 @@ class TestMultipleTasks:
         def create_subject():
             return mock_obj()
 
-        def foobar(_):
-            ...
+        def foobar(_): ...
 
         with Workflow() as wf:
             res = create_subject()
@@ -280,7 +283,8 @@ class TestWorkFlowDecorator:
                 10,
             ],
             "added_function": [
-                123, 123,
+                123,
+                123,
             ],
         }
 
@@ -290,6 +294,25 @@ class TestWorkFlowDecorator:
                 10,
             ],
             "added_function": [
-                123, 123,
+                123,
+                123,
             ],
         }
+
+    def test_builder_has_wrapped_function_docstring(self):
+        @workflow
+        def my_wf(x: int, y: int):
+            "HELLO TEST"
+            addition(x, y)
+
+        assert my_wf.__doc__ == (
+            "HELLO TEST"
+            "\n\nThis function is a `WorkflowBuilder` and has additional"
+            " functionality described in the `WorkflowBuilder` documentation."
+        )
+
+        @workflow
+        def my_wf(x: int, y: int):
+            addition(x, y)
+
+        assert my_wf.__doc__ == WorkflowBuilder.__doc__

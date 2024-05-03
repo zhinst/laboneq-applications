@@ -160,10 +160,18 @@ class WorkflowBuilder:
 
     Arguments:
         func: A python function, which acts as the core of the workflow.
+            The docstring of the class is replaced with the `func` docstring
+            if it has one.
     """
 
     def __init__(self, func: Callable) -> None:
         self._func = func
+        if func.__doc__:
+            msg = (
+                "This function is a `WorkflowBuilder` and has additional "
+                "functionality described in the `WorkflowBuilder` documentation."
+            )
+            self.__doc__ = "\n\n".join([func.__doc__, msg])
 
     def create(self) -> Workflow:
         """Create a workflow."""
