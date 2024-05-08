@@ -22,10 +22,10 @@ def _wrapper(func: Callable) -> Callable:
     def wrapped(self: Task, *args, **kwargs) -> Any:  # noqa: ANN401
         if not LocalContext.is_active():
             return func(self, *args, **kwargs)
-        event = TaskEvent(self, *args, **kwargs)
+        blk = TaskBlock(self, *args, **kwargs)
         if LocalContext.is_active():
-            LocalContext.active_context().register(event)
-        return event._promise
+            LocalContext.active_context().register(blk)
+        return blk._promise
 
     return wrapped
 
@@ -125,10 +125,18 @@ def task(func: TaskFunction | None = None, *, name: str | None = None):  # noqa:
     return wrapper(func) if func else wrapper
 
 
-class TaskEvent(Block):
-    """Task run event."""
+class TaskBlock(Block):
+    """Task block.
 
-    def __init__(self, task: Task, *args, **kwargs):
+    `TaskBlock` is an workflow executor for a task.
+
+    Arguments:
+        task: A task this block contains.
+        *args: Arguments of the task.
+        **kwargs: Keyword arguments of the task.
+    """
+
+    def __init__(self, task: Task, *args: object, **kwargs: object):
         super().__init__(*args, **kwargs)
         self._promise = ReferencePromise(self)
         self.task = task
