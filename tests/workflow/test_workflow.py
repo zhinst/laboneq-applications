@@ -5,7 +5,7 @@ from unittest.mock import Mock
 
 import pytest
 
-from laboneq_applications.workflow import Workflow, exceptions, task, workflow
+from laboneq_applications.workflow import Workflow, exceptions, if_, task, workflow
 from laboneq_applications.workflow.workflow import WorkflowBuilder
 
 
@@ -316,3 +316,107 @@ class TestWorkFlowDecorator:
             addition(x, y)
 
         assert my_wf.__doc__ == WorkflowBuilder.__doc__
+
+
+@task
+def return_zero():
+    return 0
+
+
+class TestWorkflowIfExpression:
+    def test_at_root(self):
+        @workflow
+        def my_wf(x):
+            return_zero()
+            with if_(x == 1):
+                return_zero()
+
+        wf = my_wf.create()
+        res = wf.run(x=1)
+        assert res.tasklog == {"return_zero": [0, 0]}
+        res = wf.run(x=2)
+        assert res.tasklog == {"return_zero": [0]}
+
+    def test_nested(self):
+        @workflow
+        def my_wf(x):
+            return_zero()
+            with if_(x == 1):
+                with if_(x == 1):
+                    return_zero()
+
+        wf = my_wf.create()
+        res = wf.run(x=1)
+        assert res.tasklog == {"return_zero": [0, 0]}
+        res = wf.run(x=2)
+        assert res.tasklog == {"return_zero": [0]}
+
+    def test_task_result_input(self):
+        @workflow
+        def my_wf():
+            res = return_zero()
+            with if_(res == 0):
+                return_zero()
+            with if_(res == 2):
+                return_zero()
+
+        wf = my_wf.create()
+        res = wf.run()
+        assert res.tasklog == {"return_zero": [0, 0]}
+
+
+class TestTaskDependencyOutsideOfBlock:
+    def test_task_dependency_outside_of_assigned_block_nested(self):
+        @workflow
+        def my_wf(x):
+            res = return_zero()
+            with if_(x):
+                addition(res, 1)
+                with if_(x):
+                    res2 = return_zero()
+                    add_res = addition(res2, 2)
+                    with if_(x):
+                        addition(add_res, 3)
+
+        wf = my_wf.create()
+        res = wf.run(x=True)
+        assert res.tasklog == {"return_zero": [0, 0], "addition": [1, 2, 5]}
+
+    def test_task_dependency_outside_of_assigned_block_flat_executed(self):
+        @workflow
+        def my_wf(x):
+            with if_(x):
+                a = addition(1, 1)
+            with if_(x):
+                addition(a, 1)
+
+        wf = my_wf.create()
+        res = wf.run(x=True)
+        assert res.tasklog == {"addition": [2, 3]}
+
+    def test_task_dependency_outside_of_assigned_block_conditional_not_executed(self):
+        @workflow
+        def my_wf(x):
+            with if_(x == 0):
+                a = addition(1, 1)
+            with if_(x == 1):
+                addition(a, 1)
+
+        wf = my_wf.create()
+        with pytest.raises(
+            exceptions.WorkflowError,
+            match=re.escape("Result for 'Task(name=addition)' is not resolved."),
+        ):
+            wf.run(x=1)
+
+
+def test_constant_defined_in_workflow():
+    @workflow
+    def my_wf(x):
+        res = 1
+        with if_(x):
+            addition(res, 1)
+
+    wf = my_wf.create()
+    res = wf.run(x=True)
+    assert res.tasklog == {"addition": [2]}
