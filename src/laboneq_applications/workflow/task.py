@@ -7,8 +7,8 @@ from functools import wraps
 from typing import Any, Callable, TypeVar, overload
 
 from laboneq_applications.workflow._context import LocalContext
+from laboneq_applications.workflow.block import Block, BlockResult
 from laboneq_applications.workflow.promise import ReferencePromise
-from laboneq_applications.workflow.resolver import ArgumentResolver
 
 
 def _wrapper(func: Callable) -> Callable:
@@ -125,28 +125,31 @@ def task(func: TaskFunction | None = None, *, name: str | None = None):  # noqa:
     return wrapper(func) if func else wrapper
 
 
-class TaskEvent:
+class TaskEvent(Block):
     """Task run event."""
 
     def __init__(self, task: Task, *args, **kwargs):
-        self.task = task
+        super().__init__(*args, **kwargs)
         self._promise = ReferencePromise(self)
-        self._resolver = ArgumentResolver(*args, **kwargs)
+        self.task = task
+
+    def __repr__(self):
+        return repr(self.task)
 
     @property
-    def requires(self) -> list[TaskEvent]:
-        """Tasks this task depends on."""
-        return [
-            t.ref for t in self._resolver.requires if isinstance(t, ReferencePromise)
-        ]
+    def name(self) -> str:
+        """Name of the task."""
+        return self.task.name
 
-    def execute(self) -> Any:  # noqa: ANN401
+    def execute(self) -> BlockResult:
         """Execute the task.
 
         Returns:
-            Task results.
+            Task block result.
         """
         args, kwargs = self._resolver.resolve()
         result = self.task.run(*args, **kwargs)
         self._promise.set_result(result)
-        return result
+        r = BlockResult()
+        r.add_result(self.name, result)
+        return r

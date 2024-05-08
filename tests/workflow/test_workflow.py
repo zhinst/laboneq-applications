@@ -141,7 +141,7 @@ class TestMultipleTasks:
         with Workflow() as wf:
             for _ in range(n_tasks):
                 addition(1, 1)
-        assert len(wf.tasks) == n_tasks
+        assert len(wf.run().tasklog["addition"]) == n_tasks
 
     def test_independent_tasks(self):
         with Workflow() as wf:

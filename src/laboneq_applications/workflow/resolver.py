@@ -1,4 +1,5 @@
 """Module for argument resolvers."""
+
 from __future__ import annotations
 
 from laboneq_applications.workflow.promise import Promise
@@ -34,13 +35,6 @@ class ArgumentResolver:
     def kwargs(self) -> dict:
         """Keyword arguments to resolve."""
         return self._kwargs
-
-    @property
-    def requires(self) -> list[Promise]:
-        """Promises in the arguments."""
-        args = [req[1] for req in self._promises_args]
-        kws = list(self._promises_kwargs.values())
-        return args + kws
 
     def resolve(self) -> tuple[tuple, dict]:
         """Resolve input arguments.

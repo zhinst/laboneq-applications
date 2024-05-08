@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from collections import defaultdict
 from inspect import signature
 from typing import Any, Callable
 
@@ -10,9 +9,8 @@ from typing_extensions import Self  # in `typing` from Python 3.11
 
 from laboneq_applications.workflow import exceptions
 from laboneq_applications.workflow._context import LocalContext
-from laboneq_applications.workflow.orchestrator import sort_task_graph
+from laboneq_applications.workflow.block import Block, BlockResult
 from laboneq_applications.workflow.promise import Promise
-from laboneq_applications.workflow.task import TaskEvent
 
 
 class WorkflowResult:
@@ -74,70 +72,57 @@ class WorkflowInput:
             self._input[k].set_result(v)
 
 
+class WorkflowBlock(Block):
+    """Workflow block."""
+
+    def __init__(self, *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+
+    def execute(self) -> BlockResult:
+        """Execute the block."""
+        r = BlockResult()
+        for block in self._body:
+            r.merge(self._run_block(block))
+        return r
+
+
 class Workflow:
     """Workflow for task execution."""
 
     # TODO: Should Workflow be serializable?
     def __init__(self) -> None:
-        self._tasks: list[TaskEvent] = []
-        self._dag: list[TaskEvent] = []
         self._input = WorkflowInput()
+        self._block = WorkflowBlock()
 
     @property
     def input(self) -> WorkflowInput:
         """Workflow input."""
         return self._input
 
-    @property
-    def tasks(self) -> list[TaskEvent]:
-        """Tasks of the workflow."""
-        return self._tasks
-
     def __enter__(self) -> Self:
         """Enter the Workflow building context."""
         if LocalContext.is_active():
             msg = "Nesting Workflows is not allowed."
             raise exceptions.WorkflowError(msg)
-        LocalContext.enter()
+        self._block.__enter__()
         return self
 
     def __exit__(self, exc_type, exc_value, traceback):  # noqa: ANN001
-        """Exit the workflow building context.
-
-        Resolves the topology of the Workflow.
-        """
-        if self._tasks:
-            self._tasks.extend(LocalContext.exit().instances)
-        else:
-            self._tasks = LocalContext.exit().instances
-        self._dag = self._resolve_topology(self._tasks)
-
-    @staticmethod
-    def _resolve_topology(tasks: list[TaskEvent]) -> list[TaskEvent]:
-        """Resolve the topology of the tasks.
-
-        Arguments:
-            tasks: List of tasks whose topology is to be resolved.
-
-        Returns:
-            Execution order of the tasks.
-        """
-        graph = {}
-        event_map = {}
-        for task in tasks:
-            task_id = id(task)
-            graph[task_id] = [id(t) for t in task.requires if isinstance(t, TaskEvent)]
-            event_map[task_id] = task
-        return [event_map[idd] for idd in sort_task_graph(graph)]
+        """Exit the workflow building context."""
+        self._block.__exit__(exc_type, exc_value, traceback)
 
     def run(self, **kwargs: object) -> WorkflowResult:
-        """Run workflow.
+        """Run the workflow.
 
         Arguments:
             **kwargs: Keyword arguments of the workflow.
 
         Returns:
             Result of the workflow execution.
+
+        Raises:
+            TypeError: Workflow arguments do not match defined inputs.
+            WorkflowError: An error occurred during workflow execution.
         """
         if LocalContext.is_active():
             msg = "Nesting Workflows is not allowed."
@@ -146,11 +131,8 @@ class Workflow:
         self.input.resolve(**kwargs)
         # TODO: We might not want to save each task result, memory overload?
         #       Kept for POC purposes
-        tasklog = defaultdict(list)
-        for event in self._dag:
-            result = event.execute()
-            tasklog[event.task.name].append(result)
-        return WorkflowResult(tasklog=dict(tasklog))
+        tasklog = self._block.execute()
+        return WorkflowResult(tasklog=tasklog.log)
 
 
 class WorkflowBuilder:
