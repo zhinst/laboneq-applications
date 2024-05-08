@@ -8,6 +8,19 @@ from __future__ import annotations
 import operator
 from typing import Any
 
+from laboneq_applications.workflow.exceptions import WorkflowError
+
+
+class PromiseResultNotResolvedError(WorkflowError):
+    """Promise not resolved error."""
+
+    def __init__(self, promise: Promise, *args: object) -> None:
+        if isinstance(promise, ReferencePromise):
+            msg = f"Result for '{promise.ref}' is not resolved."
+        else:
+            msg = "Promise result is not resolved."
+        super().__init__(msg, *args)
+
 
 class Promise:
     """Workflow promise class.
@@ -32,11 +45,6 @@ class Promise:
         self._result = None
 
     @property
-    def ref(self) -> object:
-        """Promise result producing object reference."""
-        return self
-
-    @property
     def done(self) -> bool:
         """Indicates whether the promise is done or not."""
         return self.head._done
@@ -59,10 +67,10 @@ class Promise:
         """Result of the promise.
 
         Raises:
-            RuntimeError: Promise is not resolved.
+            PromiseResultNotResolvedError: Promise result is not resolved.
         """
         if not self.head._done:
-            raise RuntimeError("Promise not resolved.") from None
+            raise PromiseResultNotResolvedError(self) from None
         res = self.head._result
         for op, *args in self.ops:
             res = getattr(operator, op)(res, *args)

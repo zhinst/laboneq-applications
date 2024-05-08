@@ -1,6 +1,10 @@
 import pytest
 
-from laboneq_applications.workflow.promise import Promise
+from laboneq_applications.workflow.promise import (
+    Promise,
+    PromiseResultNotResolvedError,
+    ReferencePromise,
+)
 
 
 class TestPromise:
@@ -27,7 +31,10 @@ class TestPromise:
     def test_head_not_resolved_error(self):
         head = Promise()
         child = head["key"]
-        with pytest.raises(RuntimeError, match="Promise not resolved"):
+        with pytest.raises(
+            PromiseResultNotResolvedError,
+            match="Promise result is not resolved.",
+        ):
             child.result()
 
     def test_child_cannot_be_resolved(self):
@@ -51,3 +58,30 @@ class TestPromise:
         expr = obj == other
         obj.set_result(one)
         assert expr.result() is result
+
+
+class Reference:
+    def __init__(self) -> None:
+        pass
+
+    def __repr__(self) -> str:
+        return "foobar"
+
+
+class TestReferencePromise:
+    def test_ref(self):
+        ref = Reference()
+        head = ReferencePromise(ref)
+        assert head.ref is ref
+
+        child = head["key"]
+        assert child.ref is ref
+
+    def test_head_not_resolved_error(self):
+        head = ReferencePromise(Reference())
+        child = head["key"]
+        with pytest.raises(
+            PromiseResultNotResolvedError,
+            match="Result for 'foobar' is not resolved.",
+        ):
+            child.result()
