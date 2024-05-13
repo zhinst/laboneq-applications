@@ -32,7 +32,8 @@ def compile_experiment(
             Optional settings to pass to the compiler.
 
     Returns:
-        The compiled experiment.
+        [CompiledExperiment][laboneq.core.types.compiled_experiment.CompiledExperiment]
+            The `laboneq` compiled experiment.
 
     Example:
         >>> from laboneq_library.tasks.compile_experiment import compile_experiment
