@@ -17,3 +17,9 @@ plugins:
     implicit_index: true
   macros:
     include_dir: ""
+  mkdocstrings:
+    handlers:
+      python:
+        import: [
+          "https://docs.zhinst.com/labone_q_user_manual/objects.inv"
+        ]
