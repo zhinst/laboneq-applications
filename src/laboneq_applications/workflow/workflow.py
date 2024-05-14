@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import inspect
+import textwrap
 from inspect import signature
 from typing import Any, Callable
 
@@ -154,6 +156,12 @@ class WorkflowBuilder:
                 "functionality described in the `WorkflowBuilder` documentation."
             )
             self.__doc__ = "\n\n".join([func.__doc__, msg])
+
+    @property
+    def src(self) -> str:
+        """Source code of the workflow."""
+        src = inspect.getsource(self._func)
+        return textwrap.dedent(src)
 
     def create(self) -> Workflow:
         """Create a workflow."""

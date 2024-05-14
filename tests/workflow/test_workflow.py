@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import re
+import textwrap
 from unittest.mock import Mock
 
 import pytest
@@ -316,6 +317,27 @@ class TestWorkFlowDecorator:
             addition(x, y)
 
         assert my_wf.__doc__ == WorkflowBuilder.__doc__
+
+    def test_src(self):
+        @workflow
+        def my_wf(x: int):
+            res = 1
+            addition(res, 1)
+            addition(res, 1)
+            with if_(x):
+                addition(res, 1)
+            addition(res, 1)
+
+        assert my_wf.src == textwrap.dedent("""\
+            @workflow
+            def my_wf(x: int):
+                res = 1
+                addition(res, 1)
+                addition(res, 1)
+                with if_(x):
+                    addition(res, 1)
+                addition(res, 1)
+        """)
 
 
 @task
