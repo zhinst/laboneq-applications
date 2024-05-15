@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import abc
+import inspect
+import textwrap
 from functools import wraps
 from typing import Any, Callable, TypeVar, overload
 
@@ -52,6 +54,12 @@ class Task(abc.ABC):
         """The name of the task."""
         return self._name
 
+    @property
+    def src(self) -> str:
+        """Source code of the task."""
+        src = inspect.getsource(self.run)
+        return textwrap.dedent(src)
+
     @abc.abstractmethod
     def run(self, *args, **kwargs) -> Any:  # noqa: ANN401
         """Run the task.
@@ -80,6 +88,12 @@ class FunctionTask(Task):
     ) -> None:
         super().__init__(name if name is not None else func.__name__)
         self._func = func
+
+    @property
+    def src(self) -> str:
+        """Source code of the task."""
+        src = inspect.getsource(self._func)
+        return textwrap.dedent(src)
 
     def __call__(self, *args, **kwargs):
         """Run the task."""
@@ -143,6 +157,11 @@ class TaskBlock(Block):
 
     def __repr__(self):
         return repr(self.task)
+
+    @property
+    def src(self) -> str:
+        """Source code of the task."""
+        return self.task.src
 
     @property
     def name(self) -> str:
