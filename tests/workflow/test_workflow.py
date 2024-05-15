@@ -6,7 +6,14 @@ from unittest.mock import Mock
 
 import pytest
 
-from laboneq_applications.workflow import Workflow, exceptions, if_, task, workflow
+from laboneq_applications.workflow import (
+    Workflow,
+    exceptions,
+    for_,
+    if_,
+    task,
+    workflow,
+)
 from laboneq_applications.workflow.workflow import WorkflowBuilder
 
 
@@ -442,3 +449,37 @@ def test_constant_defined_in_workflow():
     wf = my_wf.create()
     res = wf.run(x=True)
     assert res.tasklog == {"addition": [2]}
+
+
+class TestForLoopExpression:
+    def test_at_root(self):
+        @workflow
+        def my_wf(x):
+            with for_(x) as val:
+                addition(1, val)
+
+        wf = my_wf.create()
+        res = wf.run(x=[1, 2])
+        assert res.tasklog == {"addition": [2, 3]}
+
+    def test_nested(self):
+        @workflow
+        def my_wf(x):
+            with for_(x) as first:
+                with for_(x) as second:
+                    addition(first, second)
+
+        wf = my_wf.create()
+        res = wf.run(x=[1, 2])
+        assert res.tasklog == {"addition": [2, 3, 3, 4]}
+
+    def test_nested_loop_to_loop(self):
+        @workflow
+        def my_wf(x):
+            with for_(x) as first:
+                with for_(first) as second:
+                    addition(1, second)
+
+        wf = my_wf.create()
+        res = wf.run(x=[[1, 2], [3, 4]])
+        assert res.tasklog == {"addition": [2, 3, 4, 5]}
