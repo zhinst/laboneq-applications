@@ -165,10 +165,10 @@ class TestWorkflow:
         qop = TunableTransmonOperations()
         [q0] = single_tunable_transmon.qubits
         amplitudes = [0.1, 0.2]
-        count = 10
-        transition = "ge"
+        options = {"count": 10, "transition": "ge"}
 
         if create:
+
             def run_wf(**kw):
                 wf = amplitude_rabi_workflow.create()
                 return wf.run(**kw)
@@ -180,8 +180,7 @@ class TestWorkflow:
             qop=qop,
             qubits=q0,
             amplitudes=amplitudes,
-            count=count,
-            transition=transition,
+            options=options,
         )
 
         assert list(result.tasklog.keys()) == [
@@ -213,8 +212,7 @@ class TestAmplitudeRabiSingleQubit:
         self.single_tunable_transmon = single_tunable_transmon
         self.q0 = single_tunable_transmon.qubits[0]
         self.amplitude = [0.1, 0.5, 1]
-        self.count = count
-        self.transition = transition
+        self.options = {"count": count, "transition": transition}
         self.qop = TunableTransmonOperations()
 
     def test_run_standalone_single_qubit_passed(self):
@@ -222,14 +220,13 @@ class TestAmplitudeRabiSingleQubit:
             self.qop,
             self.q0,
             self.amplitude,
-            self.count,
-            self.transition,
+            options=self.options,
         )
         assert exp == reference_rabi_exp(
             [self.q0],
-            self.count,
+            self.options["count"],
             self.amplitude,
-            self.transition,
+            self.options["transition"],
         )
         session = Session(self.single_tunable_transmon.setup)
         session.connect(do_emulation=True)
@@ -240,16 +237,14 @@ class TestAmplitudeRabiSingleQubit:
             self.qop,
             self.q0,
             self.amplitude,
-            self.count,
-            self.transition,
+            options=self.options,
         )
         with Workflow() as wf:
             amplitude_rabi(
                 self.qop,
                 self.q0,
                 self.amplitude,
-                self.count,
-                self.transition,
+                options=self.options,
             )
         assert wf.run().tasklog == {"amplitude_rabi": [exp]}
 
@@ -259,8 +254,7 @@ class TestAmplitudeRabiSingleQubit:
                 self.qop,
                 self.q0,
                 [[0.1, 0.5], [0.1, 0.5]],
-                self.count,
-                self.transition,
+                options=self.options,
             )
 
         with pytest.raises(ValueError):
@@ -268,16 +262,14 @@ class TestAmplitudeRabiSingleQubit:
                 self.qop,
                 [self.q0],
                 [0.1, 0.5],
-                self.count,
-                self.transition,
+                options=self.options,
             )
         with pytest.raises(ValueError):
             amplitude_rabi(
                 self.qop,
                 self.q0,
                 [0.1, None, 0.5],
-                self.count,
-                self.transition,
+                options=self.options,
             )
 
 
@@ -289,8 +281,7 @@ class TestAmplitudeRabiTwoQubit:
         self.two_tunable_transmon = two_tunable_transmon
         self.q0, self.q1 = two_tunable_transmon.qubits
         self.amplitudes = [[0.1, 0.5, 1], [0.1, 0.5, 1]]
-        self.count = count
-        self.transition = transition
+        self.options = {"count": count, "transition": transition}
         self.qop = TunableTransmonOperations()
 
     def test_run_standalone(self):
@@ -298,14 +289,13 @@ class TestAmplitudeRabiTwoQubit:
             self.qop,
             [self.q0, self.q1],
             self.amplitudes,
-            self.count,
-            self.transition,
+            options=self.options,
         )
         assert exp == reference_rabi_exp(
             [self.q0, self.q1],
-            self.count,
+            self.options["count"],
             self.amplitudes,
-            self.transition,
+            self.options["transition"],
         )
         session = Session(self.two_tunable_transmon.setup)
         session.connect(do_emulation=True)
@@ -316,16 +306,14 @@ class TestAmplitudeRabiTwoQubit:
             self.qop,
             [self.q0, self.q1],
             self.amplitudes,
-            self.count,
-            self.transition,
+            options=self.options,
         )
         with Workflow() as wf:
             amplitude_rabi(
                 self.qop,
                 [self.q0, self.q1],
                 self.amplitudes,
-                self.count,
-                self.transition,
+                options=self.options,
             )
         assert wf.run().tasklog == {"amplitude_rabi": [exp]}
 
@@ -335,8 +323,7 @@ class TestAmplitudeRabiTwoQubit:
                 self.qop,
                 [self.q0, self.q1],
                 [0.1, 0.5],
-                self.count,
-                self.transition,
+                options=self.options,
             )
 
         with pytest.raises(ValueError):
@@ -344,14 +331,12 @@ class TestAmplitudeRabiTwoQubit:
                 self.qop,
                 [self.q0, self.q1],
                 [[0.1, 0.5]],
-                self.count,
-                self.transition,
+                options=self.options,
             )
         with pytest.raises(ValueError):
             amplitude_rabi(
                 self.qop,
                 [self.q0, self.q1],
                 [[0.1, 0.5], [0.1, None]],
-                self.count,
-                self.transition,
+                options=self.options,
             )

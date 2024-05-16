@@ -3,11 +3,15 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Literal
 
 from laboneq.simple import Experiment, SweepParameter
 
 from laboneq_applications.core.build_experiment import qubit_experiment
+from laboneq_applications.core.options import (
+    BaseExperimentOptions,
+    create_validate_opts,
+)
 from laboneq_applications.core.quantum_operations import QuantumOperations, dsl
 from laboneq_applications.tasks import compile_experiment, run_experiment
 from laboneq_applications.workflow import task, workflow
@@ -28,13 +32,12 @@ def _is_list_of_numbers(obj: object) -> bool:
 
 
 @workflow
-def amplitude_rabi_workflow(  # noqa: PLR0913
+def amplitude_rabi_workflow(
     session: Session,
     qop: QuantumOperations,
     qubits: QuantumElement | Sequence[QuantumElement],
     amplitudes: Sequence[float] | Sequence[Sequence[float]],
-    count: int = 10,
-    transition: str = "ge",
+    options: dict,
 ) -> tuple[Workflow, WorkflowResult]:
     """Amplitude Rabi workflow builder.
 
@@ -56,12 +59,17 @@ def amplitude_rabi_workflow(  # noqa: PLR0913
             The amplitudes to sweep over for each qubit. If `qubits` is a
             single qubit, `amplitudes` must be a list of numbers. Otherwise
             it must be a list of lists of numbers.
-        count:
-            Number of experiment shots.
-        transition:
-            Transition to perform the experiment on. May be any transition supported
-            by the quantum operations. Default: `"ge"` (i.e. ground to first
-            excited state).
+        options:
+            The options for building the workflow.
+            In addition to options from [BaseExperimentOptions], the following
+            custom options are supported:
+                transition:
+                    Transition to perform the experiment on. May be any
+                    transition supported by the quantum operations.
+                    Default: `"ge"` (i.e. ground to first excited state).
+                cal_traces (optional):
+                    Whether to include calibration traces in the experiment.
+                    Default: `True`.
 
     Returns:
         workflow:
@@ -73,13 +81,19 @@ def amplitude_rabi_workflow(  # noqa: PLR0913
         The workflow builder may be called directly to create and run the workflow:
 
         ```python
+        options = {
+            count: 10,
+            transition: "ge",
+            averaging_mode: "cyclic",
+            acquisition_type: "integration_trigger",
+            cal_traces: True
+        }
         wf, result = amplitude_rabi_workflow(
             session=session,
             qop=qop,
             qubits=q0,
             amplitudes=[0.1, 0.2, 0.3],
-            count=10,
-            transition="ge",
+            options=options,
         )
         ```
 
@@ -93,8 +107,7 @@ def amplitude_rabi_workflow(  # noqa: PLR0913
             qop=qop,
             qubits=q0,
             amplitudes=[0.1, 0.2, 0.3],
-            count=10,
-            transition="ge",
+            options=options,
         )
         ```
     """
@@ -102,8 +115,7 @@ def amplitude_rabi_workflow(  # noqa: PLR0913
         qop,
         qubits,
         amplitudes=amplitudes,
-        count=count,
-        transition=transition,
+        options=options,
     )
     compiled_exp = compile_experiment(session, exp)
     _result = run_experiment(session, compiled_exp)
@@ -115,8 +127,7 @@ def amplitude_rabi(
     qop: QuantumOperations,
     qubits: QuantumElement | Sequence[QuantumElement],
     amplitudes: Sequence[float] | Sequence[Sequence[float]],
-    count: int = 10,
-    transition: str = "ge",
+    options: dict,
 ) -> Experiment:
     """Amplitude Rabi experiment.
 
@@ -130,12 +141,17 @@ def amplitude_rabi(
             The amplitudes to sweep over for each qubit. If `qubits` is a
             single qubit, `amplitudes` must be a list of numbers. Otherwise
             it must be a list of lists of numbers.
-        count:
-            Number of experiment shots.
-        transition:
-            Transition to perform the experiment on. May be any transition supported
-            by the quantum operations. Default: `"ge"` (i.e. ground to first
-            excited state).
+        options:
+            The options for building the experiment.
+            In addition to options from [BaseExperimentOptions], the following
+            custom options are supported:
+                transition:
+                    Transition to perform the experiment on. May be any
+                    transition supported by the quantum operations.
+                    Default: `"ge"` (i.e. ground to first excited state).
+                cal_traces (optional):
+                    Whether to include calibration traces in the experiment.
+                    Default: `True`.
 
     Returns:
         experiment:
@@ -153,15 +169,28 @@ def amplitude_rabi(
 
     Example:
         ```python
+        options = {
+            count: 10,
+            transition: "ge",
+            averaging_mode: "cyclic",
+            acquisition_type: "integration_trigger",
+            cal_traces: True
+        }
         amplitude_rabi(
             qop=TunableTransmonOperations(),
             qubits=[TunableTransmonQubit("q0"), TunableTransmonQubit("q1")],
             amplitudes=[[0.1, 0.5, 1], [0.1, 0.5, 1]],
-            count=10,
-            transition="ge",
+            options=options,
         )
         ```
     """
+    # Define the custom options for the experiment
+    option_fields = {
+        "transition": (Literal["ge", "ef"], "ge"),
+        "cal_traces": (bool, True),
+    }
+    opts = create_validate_opts(options, option_fields, base=BaseExperimentOptions)
+
     # TODO: Check that qubits are of the same type = QuantumElement.
     # The implementation can be used for other experiment tasks.
     if not isinstance(qubits, Sequence):
@@ -179,19 +208,26 @@ def amplitude_rabi(
             raise ValueError(
                 "All elements of qubit_amplitudes must be lists of numbers.",
             )
-    with dsl.acquire_loop_rt(count=count):
+    with dsl.acquire_loop_rt(
+        count=opts.count,
+        averaging_mode=opts.averaging_mode,
+        acquisition_type=opts.acquisition_type,
+        repetition_mode=opts.repetition_mode,
+        repetition_time=opts.repetition_time,
+        reset_oscillator_phase=opts.reset_oscillator_phase,
+    ):
         for q, q_amplitudes in zip(qubits, amplitudes):
             with dsl.sweep(
                 name=f"amps_{q.uid}",
                 parameter=SweepParameter(f"amplitude_{q.uid}", q_amplitudes),
             ) as amplitude:
-                qop.prep(q, transition[0])
-                qop.x180(q, amplitude=amplitude, transition=transition)
+                qop.prep(q, opts.transition[0])
+                qop.x180(q, amplitude=amplitude, transition=opts.transition)
                 qop.measure(q, f"result_{q.uid}")
-
-            with dsl.section(
-                name=f"cal_{q.uid}",
-            ):
-                for state in transition:
-                    qop.prep(q, state)
-                    qop.measure(q, f"cal_state_{state}_{q.uid}")
+            if opts.cal_traces:
+                with dsl.section(
+                    name=f"cal_{q.uid}",
+                ):
+                    for state in opts.transition:
+                        qop.prep(q, state)
+                        qop.measure(q, f"cal_state_{state}_{q.uid}")

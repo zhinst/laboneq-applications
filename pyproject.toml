@@ -42,6 +42,8 @@ dependencies = [
     "lmfit",
     "dill",
     "scikit-learn",
+    "pydantic",
+    "eval_type_backport", # Required for using Union type in pydantic with python 3.9
 ]
 
 [tool.setuptools.packages.find]
