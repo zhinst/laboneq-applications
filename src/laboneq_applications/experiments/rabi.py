@@ -6,6 +6,7 @@ from collections.abc import Sequence
 from typing import TYPE_CHECKING, Literal
 
 from laboneq.simple import Experiment, SweepParameter
+from numpy import ndarray
 
 from laboneq_applications.core.build_experiment import qubit_experiment
 from laboneq_applications.core.options import (
@@ -23,9 +24,10 @@ if TYPE_CHECKING:
     from laboneq_applications.workflow import Workflow, WorkflowResult
 
 
-def _is_list_of_numbers(obj: object) -> bool:
+def _is_list_of_numbers_or_nparray(obj: object) -> bool:
     return (
-        bool(obj)
+        isinstance(obj, ndarray)
+        or bool(obj)
         and isinstance(obj, list)
         and all(isinstance(item, (float, int)) for item in obj)
     )
@@ -36,7 +38,7 @@ def amplitude_rabi_workflow(
     session: Session,
     qop: QuantumOperations,
     qubits: QuantumElement | Sequence[QuantumElement],
-    amplitudes: Sequence[float] | Sequence[Sequence[float]],
+    amplitudes: Sequence[float] | Sequence[Sequence[float] | ndarray] | ndarray,
     options: dict,
 ) -> tuple[Workflow, WorkflowResult]:
     """Amplitude Rabi workflow builder.
@@ -57,8 +59,8 @@ def amplitude_rabi_workflow(
             qubit or a list of qubits.
         amplitudes:
             The amplitudes to sweep over for each qubit. If `qubits` is a
-            single qubit, `amplitudes` must be a list of numbers. Otherwise
-            it must be a list of lists of numbers.
+            single qubit, `amplitudes` must be a list of numbers or an array. Otherwise
+            it must be a list of lists of numbers or arrays.
         options:
             The options for building the workflow.
             In addition to options from [BaseExperimentOptions], the following
@@ -126,7 +128,7 @@ def amplitude_rabi_workflow(
 def amplitude_rabi(
     qop: QuantumOperations,
     qubits: QuantumElement | Sequence[QuantumElement],
-    amplitudes: Sequence[float] | Sequence[Sequence[float]],
+    amplitudes: Sequence[float] | Sequence[Sequence[float] | ndarray] | ndarray,
     options: dict,
 ) -> Experiment:
     """Amplitude Rabi experiment.
@@ -139,8 +141,8 @@ def amplitude_rabi(
             qubit or a list of qubits.
         amplitudes:
             The amplitudes to sweep over for each qubit. If `qubits` is a
-            single qubit, `amplitudes` must be a list of numbers. Otherwise
-            it must be a list of lists of numbers.
+            single qubit, `amplitudes` must be a list of numbers or an array. Otherwise
+            it must be a list of lists of numbers or arrays.
         options:
             The options for building the experiment.
             In addition to options from [BaseExperimentOptions], the following
@@ -194,7 +196,7 @@ def amplitude_rabi(
     # TODO: Check that qubits are of the same type = QuantumElement.
     # The implementation can be used for other experiment tasks.
     if not isinstance(qubits, Sequence):
-        if not _is_list_of_numbers(amplitudes):
+        if not _is_list_of_numbers_or_nparray(amplitudes):
             raise ValueError(
                 "If a single qubit is passed, the qubit_amplitudes must be a list"
                 "of numbers.",
@@ -204,7 +206,7 @@ def amplitude_rabi(
     else:
         if len(qubits) != len(amplitudes):
             raise ValueError("Length of qubits and qubit_amplitudes must be the same.")
-        if not all(_is_list_of_numbers(amps) for amps in amplitudes):
+        if not all(_is_list_of_numbers_or_nparray(amps) for amps in amplitudes):
             raise ValueError(
                 "All elements of qubit_amplitudes must be lists of numbers.",
             )

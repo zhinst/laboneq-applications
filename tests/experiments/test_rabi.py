@@ -2,6 +2,7 @@
 
 from collections.abc import Sequence
 
+import numpy as np
 import pytest
 from laboneq.dsl.session import Session
 
@@ -22,7 +23,10 @@ def reserve_ops(q):
 
 
 def reference_rabi_exp(qubits, count, amplitudes, transition):
-    if not isinstance(amplitudes[0], Sequence):
+    if not isinstance(amplitudes[0], Sequence) and not isinstance(
+        amplitudes[0],
+        np.ndarray,
+    ):
         amplitudes = [amplitudes]
     exp = tsl.experiment()
     acq = tsl.acquire_loop_rt(count=count)
@@ -272,6 +276,20 @@ class TestAmplitudeRabiSingleQubit:
                 options=self.options,
             )
 
+    def test_amplitude_is_nparray(self):
+        exp = amplitude_rabi(
+            self.qop,
+            self.q0,
+            np.array(self.amplitude),
+            options=self.options,
+        )
+        assert exp == reference_rabi_exp(
+            [self.q0],
+            self.options["count"],
+            np.array(self.amplitude),
+            self.options["transition"],
+        )
+
 
 @pytest.mark.parametrize("transition", ["ge", "ef"])
 @pytest.mark.parametrize("count", [10, 12])
@@ -340,3 +358,17 @@ class TestAmplitudeRabiTwoQubit:
                 [[0.1, 0.5], [0.1, None]],
                 options=self.options,
             )
+
+    def test_amplitude_is_nparray(self):
+        exp = amplitude_rabi(
+            self.qop,
+            [self.q0, self.q1],
+            [np.array([0, 1, 2]), np.array([0, 1, 2])],
+            options=self.options,
+        )
+        assert exp == reference_rabi_exp(
+            [self.q0, self.q1],
+            self.options["count"],
+            [np.array([0, 1, 2]), np.array([0, 1, 2])],
+            self.options["transition"],
+        )
