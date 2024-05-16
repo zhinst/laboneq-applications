@@ -34,6 +34,15 @@ class ExperimentBuilder:
         name:
             A name for this experiment. Defaults to
             `exp_func.__name__` if no name is given.
+
+    Examples:
+        ```python
+        def rx_exp(qops, q, angle):
+            qops.rx(q, angle)
+
+        rx = ExperimentBuilder(rx_exp, name="rx")
+        exp = rx(qops, q0, 0.5 * np.pi)
+        ```
     """
 
     def __init__(self, exp_func: Callable, name: str | None = None):
@@ -87,6 +96,7 @@ def qubit_experiment(
         parameters already set.
 
     Examples:
+        ```python
         @qubit_experiment
         def rx_exp(qops, q, angle):
             qops.rx(q, angle)
@@ -94,6 +104,7 @@ def qubit_experiment(
         @qubit_experiment(name="rx_exp")
         def my_exp(qops, q, angle):
             qops.rx(q, angle)
+        ```
     """
     if exp_func is None:
         return functools.partial(qubit_experiment, name=name)
@@ -125,6 +136,14 @@ def build(exp_func: Callable, *args, name: str | None = None, **kw) -> Experimen
 
     Returns:
         A LabOne Q experiment.
+
+    Examples:
+        ```python
+        def rx_exp(qops, q, angle):
+            qops.rx(q, angle)
+
+        exp = build(rx_exp, q0, 0.5 * np.pi)
+        ```
     """
     builder = ExperimentBuilder(exp_func, name=name)
     return builder(*args, **kw)
