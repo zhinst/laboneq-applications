@@ -157,6 +157,13 @@ class TestTunableTransmonOperations:
         assert qops.QUBIT_TYPE is TunableTransmonQubit
         assert qops.QUBIT_TYPE.TRANSITIONS == ("ge", "ef")
 
+    def test_operation_docstring(self):
+        qops = TunableTransmonOperations()
+
+        assert qops.x180.__doc__.startswith(
+            "Rotate the qubit by 180 degrees about the X axis.",
+        )
+
     def test_barrier(self, qops, single_tunable_transmon):
         [q0] = single_tunable_transmon.qubits
         section = qops.barrier(q0)

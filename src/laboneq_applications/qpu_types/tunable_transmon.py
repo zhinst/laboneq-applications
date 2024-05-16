@@ -415,7 +415,7 @@ class TunableTransmonOperations(QuantumOperations):
     ) -> None:
         """Rotate the qubit by 90 degrees about the X axis.
 
-        This implementation calls `rx(q, 90, ...)`.
+        This implementation calls `rx(q, π / 2, ...)`.
 
         Arguments:
             q:
@@ -448,7 +448,7 @@ class TunableTransmonOperations(QuantumOperations):
     ) -> None:
         """Rotate the qubit by 180 degrees about the X axis.
 
-        This implementation calls `rx(q, 180, ...)`.
+        This implementation calls `rx(q, π, ...)`.
 
         Arguments:
             q:
@@ -541,7 +541,7 @@ class TunableTransmonOperations(QuantumOperations):
     ) -> None:
         """Rotate the qubit by 90 degrees about the Y axis.
 
-        This implementation calls `ry(q, 90, ...)`.
+        This implementation calls `ry(q, π / 2, ...)`.
 
         Arguments:
             q:
@@ -574,7 +574,7 @@ class TunableTransmonOperations(QuantumOperations):
     ) -> None:
         """Rotate the qubit by 180 degrees about the Y axis.
 
-        This implementation calls `ry(q, 180, ...)`.
+        This implementation calls `ry(q, π, ...)`.
 
         Arguments:
             q:
@@ -627,6 +627,8 @@ class TunableTransmonOperations(QuantumOperations):
     def z90(self, q: TunableTransmonQubit, transition: str | None = None) -> None:
         """Rotate the qubit by 90 degrees about the Z-axis.
 
+        This implementation calls `rz(q, π / 2, ...)`.
+
         Arguments:
             q:
                 The qubit to rotate.
@@ -639,6 +641,8 @@ class TunableTransmonOperations(QuantumOperations):
     @quantum_operation
     def z180(self, q: TunableTransmonQubit, transition: str | None = None) -> None:
         """Rotate the qubit by 180 degrees about the Z-axis.
+
+        This implementation calls `rz(q, π, ...)`.
 
         Arguments:
             q:

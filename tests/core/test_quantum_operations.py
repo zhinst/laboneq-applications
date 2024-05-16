@@ -198,6 +198,9 @@ class TestQuantumOperations:
         section = dummy_ops.x(dummy_q, amplitude=1.5)
         assert type(section) is Section
 
+    def test_quantum_operation_docstring(self, dummy_ops):
+        assert dummy_ops.x.__doc__ == "A dummy quantum operation."
+
     def test_getattr(self, dummy_ops):
         assert dummy_ops.x.op is dummy_ops.BASE_OPS["x"]
         with pytest.raises(AttributeError) as exc:

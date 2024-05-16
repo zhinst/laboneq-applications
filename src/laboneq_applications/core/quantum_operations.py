@@ -295,6 +295,7 @@ class Operation:
         self._partial_kw = kw if kw is not None else {}
         self._section_kw = {}
         self._omit_section = False
+        self.__doc__ = self._op.__doc__
 
     def __call__(self, *args, **kw) -> Section | None:
         """Build a section using the operation.
