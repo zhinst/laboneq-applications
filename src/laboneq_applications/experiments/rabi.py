@@ -21,7 +21,7 @@ if TYPE_CHECKING:
     from laboneq.dsl.quantum.quantum_element import QuantumElement
     from laboneq.dsl.simple import Session
 
-    from laboneq_applications.workflow import Workflow, WorkflowResult
+    from laboneq_applications.workflow import WorkflowResult
 
 
 def _is_list_of_numbers_or_nparray(obj: object) -> bool:
@@ -40,7 +40,7 @@ def amplitude_rabi_workflow(
     qubits: QuantumElement | Sequence[QuantumElement],
     amplitudes: Sequence[float] | Sequence[Sequence[float] | ndarray] | ndarray,
     options: dict,
-) -> tuple[Workflow, WorkflowResult]:
+) -> tuple[WorkflowResult]:
     """Amplitude Rabi workflow builder.
 
     The amplitude Rabi workflow consists of the following steps:
@@ -74,8 +74,6 @@ def amplitude_rabi_workflow(
                     Default: `True`.
 
     Returns:
-        workflow:
-            The workflow created.
         result:
             The result of the workflow.
 
@@ -90,7 +88,7 @@ def amplitude_rabi_workflow(
             acquisition_type: "integration_trigger",
             cal_traces: True
         }
-        wf, result = amplitude_rabi_workflow(
+        result = amplitude_rabi_workflow(
             session=session,
             qop=qop,
             qubits=q0,
