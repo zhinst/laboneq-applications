@@ -81,9 +81,9 @@ class BaseExperimentOptions(BaseOptions):
 
 
 def create_validate_opts(
-    input_options: dict,
-    custom_options: None | dict = None,
-    base: BaseModel = BaseExperimentOptions,
+    input_options: dict | None,
+    custom_options: dict | None = None,
+    base: BaseModel = BaseOptions,
 ) -> BaseModel:
     """Create the option model and use it to validate user inputs.
 
@@ -98,7 +98,7 @@ def create_validate_opts(
             Override the base options if the field names are the same.
             If None, no additional options are added to the base option.
         base:
-            The base option model to built upon.
+            The base option model to built upon. Default: BaseOptions.
 
     Returns:
         BaseModel: The validated options.
@@ -117,9 +117,11 @@ def create_validate_opts(
             bar: "ge",
             fred: 20,
         }
-        opt = create_validate_opts(options, custom_options, base=BaseOption)
+        opt = create_validate_opts(options, custom_options, base=BaseOptions)
         ```
     """
+    if input_options is None:
+        input_options = {}
     if custom_options is None:
         custom_options = {}
     option_model = create_model(
