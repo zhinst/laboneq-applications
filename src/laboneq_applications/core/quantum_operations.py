@@ -252,12 +252,39 @@ class QuantumOperations:
         Arguments:
             f:
                 The function to register as a quantum operation.
-                `f` should take as positional arguments the
-                qubits to operate on. It may take additional
-                arguments that specify other parameters of the
-                operation.
+
+                The first parameter of `f` should be the set of quantum
+                operations to use. This allows `f` to use other quantum
+                operations if needed.
+
+                The qubits `f` operates on must be passed as positional
+                arguments, not keyword arguments.
+
+                Additional non-qubit arguments may be passed to `f` as
+                either positional or keyword arguments.
             name:
                 The name of the operation. Defaults to `f.__name__`.
+
+        Example:
+            Create a custom operation function, register and
+            call it:
+
+            ```python
+            def custom_op(qop, q, amplitude):
+                pulse = ...
+                play(
+                    q.signals["drive"],
+                    amplitude=amplitude,
+                    pulse=pulse,
+                )
+
+            qop.register(custom_op)
+            qop.custom_op(q, amplitude=0.5)
+            ```
+
+            In the example above the `qop` argument to `custom_op`
+            is unused, but `custom_op` could call another quantum
+            operation using, e.g., `qop.x90(q)`, if needed.
         """
         name = name if name is not None else f.__name__
         self._ops[name] = Operation(f, name, self)

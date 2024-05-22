@@ -353,6 +353,7 @@ class TunableTransmonOperations(QuantumOperations):
         angle: float | SweepParameter | None,
         transition: str | None = None,
         amplitude: float | SweepParameter | None = None,
+        phase: float = 0.0,
         length: float | SweepParameter | None = None,
         pulse: dict | None = None,
     ) -> None:
@@ -369,6 +370,9 @@ class TunableTransmonOperations(QuantumOperations):
             amplitude:
                 The amplitude of the rotation pulse. By default this
                 is determined by the angle and the qubit parameters.
+            phase:
+                The phase of the rotation pulse in radians. By default
+                this is 0.0.
             length:
                 The duration of the rotation pulse. By default this
                 is determined by the qubit parameters.
@@ -401,17 +405,20 @@ class TunableTransmonOperations(QuantumOperations):
         dsl.play(
             q.signals[drive_line],
             amplitude=amplitude,
+            phase=phase,
             length=length,
             pulse=rx_pulse,
         )
 
     @quantum_operation
-    def x90(
+    def x90(  # noqa: PLR0913
         self,
         q: TunableTransmonQubit,
         transition: str | None = None,
         amplitude: float | None = None,
+        phase: float = 0.0,
         length: float | None = None,
+        pulse: dict | None = None,
     ) -> None:
         """Rotate the qubit by 90 degrees about the X axis.
 
@@ -426,25 +433,43 @@ class TunableTransmonOperations(QuantumOperations):
             amplitude:
                 The amplitude of the rotation pulse. By default this
                 is determined by the angle and the qubit parameters.
+            phase:
+                The phase of the rotation pulse in radians. By default
+                this is 0.0.
             length:
                 The duration of the rotation pulse. By default this
                 is determined by the qubit parameters.
+            pulse:
+                A dictionary of overrides for the qubit pulse parameters.
+
+                The dictionary may contain sweep parameters for the pulse
+                parameters other than `function`.
+
+                If the `function` parameter is different to the one
+                specified for the qubit, then this override dictionary
+                completely replaces the existing pulse parameters.
+
+                Otherwise the values override or extend the existing ones.
         """
         self.rx.section(omit=True)(
             q,
             self._PI_BY_2,
             transition=transition,
             amplitude=amplitude,
+            phase=phase,
             length=length,
+            pulse=pulse,
         )
 
     @quantum_operation
-    def x180(
+    def x180(  # noqa: PLR0913
         self,
         q: TunableTransmonQubit,
         transition: str | None = None,
         amplitude: float | None = None,
+        phase: float = 0.0,
         length: float | None = None,
+        pulse: dict | None = None,
     ) -> None:
         """Rotate the qubit by 180 degrees about the X axis.
 
@@ -459,16 +484,32 @@ class TunableTransmonOperations(QuantumOperations):
             amplitude:
                 The amplitude of the rotation pulse. By default this
                 is determined by the angle and the qubit parameters.
+            phase:
+                The phase of the rotation pulse in radians. By default
+                this is 0.0.
             length:
                 The duration of the rotation pulse. By default this
                 is determined by the qubit parameters.
+            pulse:
+                A dictionary of overrides for the qubit pulse parameters.
+
+                The dictionary may contain sweep parameters for the pulse
+                parameters other than `function`.
+
+                If the `function` parameter is different to the one
+                specified for the qubit, then this override dictionary
+                completely replaces the existing pulse parameters.
+
+                Otherwise the values override or extend the existing ones.
         """
         self.rx.section(omit=True)(
             q,
             self._PI,
             transition=transition,
             amplitude=amplitude,
+            phase=phase,
             length=length,
+            pulse=pulse,
         )
 
     @quantum_operation
@@ -478,6 +519,7 @@ class TunableTransmonOperations(QuantumOperations):
         angle: float | SweepParameter | None,
         transition: str | None = None,
         amplitude: float | SweepParameter | None = None,
+        phase: float = _PI_BY_2,
         length: float | SweepParameter | None = None,
         pulse: dict | None = None,
     ) -> None:
@@ -494,6 +536,9 @@ class TunableTransmonOperations(QuantumOperations):
             amplitude:
                 The amplitude of the rotation pulse. By default this
                 is determined by the angle and the qubit parameters.
+            phase:
+                The phase of the rotation pulse in radians. By default
+                this is `π / 2`.
             length:
                 The duration of the rotation pulse. By default this
                 is determined by the qubit parameters.
@@ -526,18 +571,20 @@ class TunableTransmonOperations(QuantumOperations):
         dsl.play(
             q.signals[drive_line],
             amplitude=amplitude,
+            phase=phase,
             length=length,
             pulse=ry_pulse,
-            phase=np.pi / 2,
         )
 
     @quantum_operation
-    def y90(
+    def y90(  # noqa: PLR0913
         self,
         q: TunableTransmonQubit,
         transition: str | None = None,
         amplitude: float | None = None,
+        phase: float = _PI_BY_2,
         length: float | None = None,
+        pulse: dict | None = None,
     ) -> None:
         """Rotate the qubit by 90 degrees about the Y axis.
 
@@ -552,25 +599,43 @@ class TunableTransmonOperations(QuantumOperations):
             amplitude:
                 The amplitude of the rotation pulse. By default this
                 is determined by the angle and the qubit parameters.
+            phase:
+                The phase of the rotation pulse in radians. By default
+                this is `π / 2`.
             length:
                 The duration of the rotation pulse. By default this
                 is determined by the qubit parameters.
+            pulse:
+                A dictionary of overrides for the qubit pulse parameters.
+
+                The dictionary may contain sweep parameters for the pulse
+                parameters other than `function`.
+
+                If the `function` parameter is different to the one
+                specified for the qubit, then this override dictionary
+                completely replaces the existing pulse parameters.
+
+                Otherwise the values override or extend the existing ones.
         """
         self.ry.section(omit=True)(
             q,
             self._PI_BY_2,
             transition=transition,
             amplitude=amplitude,
+            phase=phase,
             length=length,
+            pulse=pulse,
         )
 
     @quantum_operation
-    def y180(
+    def y180(  # noqa: PLR0913
         self,
         q: TunableTransmonQubit,
         transition: str | None = None,
         amplitude: float | None = None,
+        phase: float = _PI_BY_2,
         length: float | None = None,
+        pulse: dict | None = None,
     ) -> None:
         """Rotate the qubit by 180 degrees about the Y axis.
 
@@ -585,16 +650,32 @@ class TunableTransmonOperations(QuantumOperations):
             amplitude:
                 The amplitude of the rotation pulse. By default this
                 is determined by the angle and the qubit parameters.
+            phase:
+                The phase of the rotation pulse in radians. By default
+                this is `π / 2`.
             length:
                 The duration of the rotation pulse. By default this
                 is determined by the qubit parameters.
+            pulse:
+                A dictionary of overrides for the qubit pulse parameters.
+
+                The dictionary may contain sweep parameters for the pulse
+                parameters other than `function`.
+
+                If the `function` parameter is different to the one
+                specified for the qubit, then this override dictionary
+                completely replaces the existing pulse parameters.
+
+                Otherwise the values override or extend the existing ones.
         """
         self.ry.section(omit=True)(
             q,
             self._PI,
             transition=transition,
             amplitude=amplitude,
+            phase=phase,
             length=length,
+            pulse=pulse,
         )
 
     @quantum_operation

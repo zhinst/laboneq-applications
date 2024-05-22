@@ -440,7 +440,7 @@ class TestTunableTransmonOperations:
                 amplitude=expected_amplitude,
                 length=51e-9,
                 increment_oscillator_phase=None,
-                phase=None,
+                phase=0.0,
                 pulse_parameters=None,
                 pulse=tsl.pulse(
                     uid="__rx_pulse_0",
@@ -515,6 +515,42 @@ class TestTunableTransmonOperations:
             self.check_op_builds_and_compiles(section, single_tunable_transmon)
 
     @pytest.mark.parametrize(
+        ("phase"),
+        [
+            pytest.param(np.pi / 4, id="constant"),
+            pytest.param(
+                SweepParameter(uid="sweep", values=[np.pi / 4, np.pi / 2, np.pi]),
+                id="sweep_parameter",
+            ),
+        ],
+    )
+    def test_rx_phase(
+        self,
+        phase,
+        qops,
+        single_tunable_transmon,
+    ):
+        [q0] = single_tunable_transmon.qubits
+        section = qops.rx(q0, np.pi / 2, phase=phase)
+
+        assert section == tsl.section(uid="__rx_q0_0").children(
+            self.reserve_ops(q0),
+            tsl.play_pulse_op(
+                signal="/logical_signal_groups/q0/drive",
+                phase=phase,
+            ),
+        )
+
+        if isinstance(phase, SweepParameter):
+            self.check_op_builds_and_compiles(
+                section,
+                single_tunable_transmon,
+                sweep=phase,
+            )
+        else:
+            self.check_op_builds_and_compiles(section, single_tunable_transmon)
+
+    @pytest.mark.parametrize(
         ("length"),
         [
             pytest.param(100e-9, id="constant"),
@@ -564,13 +600,47 @@ class TestTunableTransmonOperations:
                 amplitude=0.8,
                 length=51e-9,
                 increment_oscillator_phase=None,
-                phase=None,
+                phase=0.0,
                 pulse_parameters=None,
                 pulse=tsl.pulse(
                     function="drag",
                     amplitude=1.0,
                     length=1e-7,
                     pulse_parameters={"beta": 0.01, "sigma": 0.21},
+                ),
+            ),
+        )
+
+        self.check_op_builds_and_compiles(section, single_tunable_transmon)
+
+    def test_x90_overrides(self, qops, single_tunable_transmon):
+        [q0] = single_tunable_transmon.qubits
+        section = qops.x90(
+            q0,
+            transition="ef",
+            amplitude=0.1,
+            phase=np.pi / 4,
+            length=30e-9,
+            pulse={"beta": 0.05},
+        )
+
+        assert section == tsl.section(
+            uid="__x90_q0_0",
+            alignment=SectionAlignment.LEFT,
+        ).children(
+            self.reserve_ops(q0),
+            tsl.play_pulse_op(
+                signal="/logical_signal_groups/q0/drive_ef",
+                amplitude=0.1,
+                length=30e-9,
+                increment_oscillator_phase=None,
+                phase=np.pi / 4,
+                pulse_parameters=None,
+                pulse=tsl.pulse(
+                    function="drag",
+                    amplitude=1.0,
+                    length=1e-7,
+                    pulse_parameters={"beta": 0.05, "sigma": 0.21},
                 ),
             ),
         )
@@ -591,13 +661,47 @@ class TestTunableTransmonOperations:
                 amplitude=0.4,
                 length=51e-9,
                 increment_oscillator_phase=None,
-                phase=None,
+                phase=0.0,
                 pulse_parameters=None,
                 pulse=tsl.pulse(
                     function="drag",
                     amplitude=1.0,
                     length=1e-7,
                     pulse_parameters={"beta": 0.01, "sigma": 0.21},
+                ),
+            ),
+        )
+
+        self.check_op_builds_and_compiles(section, single_tunable_transmon)
+
+    def test_x180_overrides(self, qops, single_tunable_transmon):
+        [q0] = single_tunable_transmon.qubits
+        section = qops.x180(
+            q0,
+            transition="ef",
+            amplitude=0.1,
+            phase=np.pi / 4,
+            length=30e-9,
+            pulse={"beta": 0.05},
+        )
+
+        assert section == tsl.section(
+            uid="__x180_q0_0",
+            alignment=SectionAlignment.LEFT,
+        ).children(
+            self.reserve_ops(q0),
+            tsl.play_pulse_op(
+                signal="/logical_signal_groups/q0/drive_ef",
+                amplitude=0.1,
+                length=30e-9,
+                increment_oscillator_phase=None,
+                phase=np.pi / 4,
+                pulse_parameters=None,
+                pulse=tsl.pulse(
+                    function="drag",
+                    amplitude=1.0,
+                    length=1e-7,
+                    pulse_parameters={"beta": 0.05, "sigma": 0.21},
                 ),
             ),
         )
@@ -705,6 +809,42 @@ class TestTunableTransmonOperations:
             self.check_op_builds_and_compiles(section, single_tunable_transmon)
 
     @pytest.mark.parametrize(
+        ("phase"),
+        [
+            pytest.param(np.pi / 4, id="constant"),
+            pytest.param(
+                SweepParameter(uid="sweep", values=[np.pi / 4, np.pi / 2, np.pi]),
+                id="sweep_parameter",
+            ),
+        ],
+    )
+    def test_ry_phase(
+        self,
+        phase,
+        qops,
+        single_tunable_transmon,
+    ):
+        [q0] = single_tunable_transmon.qubits
+        section = qops.ry(q0, np.pi / 2, phase=phase)
+
+        assert section == tsl.section(uid="__ry_q0_0").children(
+            self.reserve_ops(q0),
+            tsl.play_pulse_op(
+                signal="/logical_signal_groups/q0/drive",
+                phase=phase,
+            ),
+        )
+
+        if isinstance(phase, SweepParameter):
+            self.check_op_builds_and_compiles(
+                section,
+                single_tunable_transmon,
+                sweep=phase,
+            )
+        else:
+            self.check_op_builds_and_compiles(section, single_tunable_transmon)
+
+    @pytest.mark.parametrize(
         ("length"),
         [
             pytest.param(100e-9, id="constant"),
@@ -768,6 +908,40 @@ class TestTunableTransmonOperations:
 
         self.check_op_builds_and_compiles(section, single_tunable_transmon)
 
+    def test_y90_overrides(self, qops, single_tunable_transmon):
+        [q0] = single_tunable_transmon.qubits
+        section = qops.y90(
+            q0,
+            transition="ef",
+            amplitude=0.1,
+            phase=np.pi / 4,
+            length=30e-9,
+            pulse={"beta": 0.05},
+        )
+
+        assert section == tsl.section(
+            uid="__y90_q0_0",
+            alignment=SectionAlignment.LEFT,
+        ).children(
+            self.reserve_ops(q0),
+            tsl.play_pulse_op(
+                signal="/logical_signal_groups/q0/drive_ef",
+                amplitude=0.1,
+                length=30e-9,
+                increment_oscillator_phase=None,
+                phase=np.pi / 4,
+                pulse_parameters=None,
+                pulse=tsl.pulse(
+                    function="drag",
+                    amplitude=1.0,
+                    length=1e-7,
+                    pulse_parameters={"beta": 0.05, "sigma": 0.21},
+                ),
+            ),
+        )
+
+        self.check_op_builds_and_compiles(section, single_tunable_transmon)
+
     def test_y180(self, qops, single_tunable_transmon):
         [q0] = single_tunable_transmon.qubits
         section = qops.y180(q0)
@@ -789,6 +963,40 @@ class TestTunableTransmonOperations:
                     amplitude=1.0,
                     length=1e-7,
                     pulse_parameters={"beta": 0.01, "sigma": 0.21},
+                ),
+            ),
+        )
+
+        self.check_op_builds_and_compiles(section, single_tunable_transmon)
+
+    def test_y180_overrides(self, qops, single_tunable_transmon):
+        [q0] = single_tunable_transmon.qubits
+        section = qops.y180(
+            q0,
+            transition="ef",
+            amplitude=0.1,
+            phase=np.pi / 4,
+            length=30e-9,
+            pulse={"beta": 0.05},
+        )
+
+        assert section == tsl.section(
+            uid="__y180_q0_0",
+            alignment=SectionAlignment.LEFT,
+        ).children(
+            self.reserve_ops(q0),
+            tsl.play_pulse_op(
+                signal="/logical_signal_groups/q0/drive_ef",
+                amplitude=0.1,
+                length=30e-9,
+                increment_oscillator_phase=None,
+                phase=np.pi / 4,
+                pulse_parameters=None,
+                pulse=tsl.pulse(
+                    function="drag",
+                    amplitude=1.0,
+                    length=1e-7,
+                    pulse_parameters={"beta": 0.05, "sigma": 0.21},
                 ),
             ),
         )
