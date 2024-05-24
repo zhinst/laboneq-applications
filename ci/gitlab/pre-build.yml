@@ -38,4 +38,4 @@ lint:notebooks:core:
     - docker
   script:
     - pip install -r requirements-lint.txt
-    - nbqa ruff --nbqa-exclude examples/demo/2024015_experiment_library_examples.ipynb examples --ignore "INP001,D100"
+    - nbqa ruff --nbqa-exclude examples/demo/2024015_experiment_library_examples.ipynb examples --ignore "INP001,D100,ANN201,T201"

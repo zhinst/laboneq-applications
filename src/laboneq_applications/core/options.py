@@ -85,7 +85,10 @@ def create_validate_opts(
     custom_options: dict | None = None,
     base: BaseModel = BaseOptions,
 ) -> BaseModel:
-    """Create the option model and use it to validate user inputs.
+    """Create an options template (model) and validate the input options against it.
+
+    The template contains options from the base model. Custom options, if provided, are
+    added and will override the base options if the field names are the same.
 
     Arguments:
         input_options:
@@ -105,17 +108,17 @@ def create_validate_opts(
 
     Example:
         ```python
-        class BaseOption(BaseModel):
+        class ExampleOption(BaseOptions):
             foo: int
             bar: str
         custom_options = {
-            fred: (int, ...),
-            default_fed: (str, "fed"),
+            "fred": (int, ...),
+            "default_fed": (str, "fed"),
         }
         options = {
-            foo: 10,
-            bar: "ge",
-            fred: 20,
+            "foo": 10,
+            "bar": "ge",
+            "fred": 20,
         }
         opt = create_validate_opts(options, custom_options, base=BaseOptions)
         ```
