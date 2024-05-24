@@ -2,11 +2,9 @@
 
 from __future__ import annotations
 
-from collections.abc import Sequence
 from typing import TYPE_CHECKING, Literal
 
 from laboneq.simple import Experiment, SweepParameter
-from numpy import ndarray
 
 from laboneq_applications.core.build_experiment import qubit_experiment
 from laboneq_applications.core.options import (
@@ -14,23 +12,18 @@ from laboneq_applications.core.options import (
     create_validate_opts,
 )
 from laboneq_applications.core.quantum_operations import QuantumOperations, dsl
+from laboneq_applications.core.validation import validate_and_convert_qubits_sweeps
 from laboneq_applications.tasks import compile_experiment, run_experiment
 from laboneq_applications.workflow import task, workflow
 
 if TYPE_CHECKING:
+    from collections.abc import Sequence
+
     from laboneq.dsl.quantum.quantum_element import QuantumElement
     from laboneq.dsl.simple import Session
+    from numpy import ndarray
 
     from laboneq_applications.workflow import WorkflowResult
-
-
-def _is_list_of_numbers_or_nparray(obj: object) -> bool:
-    return (
-        isinstance(obj, ndarray)
-        or bool(obj)
-        and isinstance(obj, list)
-        and all(isinstance(item, (float, int)) for item in obj)
-    )
 
 
 @workflow
@@ -190,24 +183,7 @@ def amplitude_rabi(
         "cal_traces": (bool, True),
     }
     opts = create_validate_opts(options, option_fields, base=BaseExperimentOptions)
-
-    # TODO: Check that qubits are of the same type = QuantumElement.
-    # The implementation can be used for other experiment tasks.
-    if not isinstance(qubits, Sequence):
-        if not _is_list_of_numbers_or_nparray(amplitudes):
-            raise ValueError(
-                "If a single qubit is passed, the qubit_amplitudes must be a list"
-                "of numbers.",
-            )
-        qubits = [qubits]
-        amplitudes = [amplitudes]
-    else:
-        if len(qubits) != len(amplitudes):
-            raise ValueError("Length of qubits and qubit_amplitudes must be the same.")
-        if not all(_is_list_of_numbers_or_nparray(amps) for amps in amplitudes):
-            raise ValueError(
-                "All elements of qubit_amplitudes must be lists of numbers.",
-            )
+    qubits, amplitudes = validate_and_convert_qubits_sweeps(qubits, amplitudes)
     with dsl.acquire_loop_rt(
         count=opts.count,
         averaging_mode=opts.averaging_mode,

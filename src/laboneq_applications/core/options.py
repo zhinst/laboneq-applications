@@ -79,7 +79,6 @@ class BaseExperimentOptions(BaseOptions):
         # parse string to RepetitionMode
         return RepetitionMode(v)
 
-
 def create_validate_opts(
     input_options: dict | None,
     custom_options: dict | None = None,
