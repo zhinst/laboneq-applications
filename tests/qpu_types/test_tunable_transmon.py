@@ -1,5 +1,6 @@
-""" Tests for laboneq_applications.qpu_types.tunable_transmon. """
+"""Tests for laboneq_applications.qpu_types.tunable_transmon."""
 
+import copy
 from contextlib import nullcontext
 
 import numpy as np
@@ -13,6 +14,8 @@ from laboneq_applications.qpu_types.tunable_transmon import (
     TunableTransmonOperations,
     TunableTransmonQubit,
     TunableTransmonQubitParameters,
+    modify_qubits,
+    modify_qubits_context,
 )
 
 
@@ -25,6 +28,11 @@ def qops():
 @pytest.fixture()
 def q0(single_tunable_transmon):
     return single_tunable_transmon.qubits[0]
+
+
+@pytest.fixture()
+def multi_qubits(two_tunable_transmon):
+    return two_tunable_transmon.qubits
 
 
 class TestTunableTransmonQubit:
@@ -111,6 +119,98 @@ class TestTunableTransmonQubit:
             "TunableTransmonQubit readout integration kernels"
             " should be either 'default' or a list of pulse dictionaries."
         )
+
+
+class TestOverrideParameters:
+    def _equal_except(self, q0, q0_temp, key):
+        for k, v in q0.__dict__.items():
+            if k not in ("parameters"):
+                assert getattr(q0_temp, k) == v
+        for k, v in q0.parameters.__dict__.items():
+            if k == key:
+                continue
+            assert getattr(q0_temp.parameters, k) == v
+
+    def test_create_temp_single_qubit(self, q0):
+        original_q0 = copy.deepcopy(q0)
+        [q0_temp] = modify_qubits([(q0, {"readout_range_out": 10})])
+        assert q0_temp.parameters.readout_range_out == 10
+        assert original_q0 == q0
+        self._equal_except(q0, q0_temp, "readout_range_out")
+
+        q0.parameters.nested_params = {"a": {"a": 2}, "b": 1}
+        # replacing the nested dictionary
+        [q0_temp] = modify_qubits([(q0, {"nested_params": {"a": 2}})])
+        assert q0_temp.parameters.nested_params == {"a": 2}
+        assert original_q0 == q0
+        self._equal_except(q0, q0_temp, "nested_params")
+
+        # replacing partially the nested dictionary
+        [q0_temp] = modify_qubits([(q0, {"nested_params.a.a": 3})])
+        assert q0_temp.parameters.nested_params == {"a": {"a": 3}, "b": 1}
+        assert original_q0 == q0
+        self._equal_except(q0, q0_temp, "nested_params")
+
+        # replacing a real nested parameter of qubits
+        [q0_temp] = modify_qubits(
+            [(q0, {"drive_parameters_ge.pulse.beta": 0.1})],
+        )
+        assert q0_temp.parameters.drive_parameters_ge["pulse"]["beta"] == 0.1
+        assert original_q0 == q0
+        self._equal_except(q0, q0_temp, "drive_parameters_ge")
+
+    def test_override_multiple_qubits(self, multi_qubits):
+        q0, q1 = multi_qubits
+        original_q0 = copy.deepcopy(q0)
+        original_q1 = copy.deepcopy(q1)
+
+        [q0_temp, q1_temp] = modify_qubits(
+            zip(multi_qubits, [{"readout_range_out": 10}, {"readout_range_out": 20}]),
+        )
+        assert q0_temp.parameters.readout_range_out == 10
+        assert q1_temp.parameters.readout_range_out == 20
+        assert original_q0 == q0
+        assert original_q1 == q1
+        self._equal_except(q0, q0_temp, "readout_range_out")
+        self._equal_except(q1, q1_temp, "readout_range_out")
+
+        q0.parameters.nested_params = {"a": {"a": 2}, "b": 1}
+        q1.parameters.nested_params = {"a": {"a": 3}, "b": 2}
+        [q0_temp, q1_temp] = modify_qubits(
+            zip(multi_qubits, [{"nested_params": {"a": 2}}, {"nested_params.a.a": 3}]),
+        )
+        assert q0_temp.parameters.nested_params == {"a": 2}
+        assert q1_temp.parameters.nested_params == {"a": {"a": 3}, "b": 2}
+        assert original_q0 == q0
+        assert original_q1 == q1
+        self._equal_except(q0, q0_temp, "nested_params")
+        self._equal_except(q1, q1_temp, "nested_params")
+
+        [q0_temp, q1_temp] = modify_qubits(
+            [
+                (q0, {"drive_parameters_ge.pulse.beta": 0.1}),
+                (q1, {"drive_parameters_ef.pulse.sigma": 0.1}),
+            ],
+        )
+        assert q0_temp.parameters.drive_parameters_ge["pulse"]["beta"] == 0.1
+        assert q1_temp.parameters.drive_parameters_ef["pulse"]["sigma"] == 0.1
+        assert original_q0 == q0
+        assert original_q1 == q1
+        self._equal_except(q0, q0_temp, "drive_parameters_ge")
+        self._equal_except(q1, q1_temp, "drive_parameters_ef")
+
+    def test_temporary_qubits_context(self, multi_qubits):
+        q0, q1 = multi_qubits
+        with modify_qubits_context(
+            zip(multi_qubits, [{"readout_range_out": 10}, {"readout_range_out": 20}]),
+        ) as temp_qubits:
+            q0_temp, q1_temp = temp_qubits
+            assert q0_temp.parameters.readout_range_out == 10
+            assert q1_temp.parameters.readout_range_out == 20
+            assert q0 == q0_temp
+            assert q1 == q1_temp
+            self._equal_except(q0, q0_temp, "readout_range_out")
+            self._equal_except(q1, q1_temp, "readout_range_out")
 
 
 class TestTunableTransmonParameters:

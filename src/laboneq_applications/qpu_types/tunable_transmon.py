@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import copy
+from contextlib import contextmanager
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any
 
@@ -20,9 +22,12 @@ from laboneq_applications.core.quantum_operations import (
 )
 
 if TYPE_CHECKING:
+    from collections.abc import Generator, Sequence
+
     from laboneq.dsl.device.io_units import LogicalSignal
     from laboneq.dsl.experiment.pulse import Pulse
     from laboneq.dsl.parameter import SweepParameter
+
 
 # TODO: Add tests for TunableTransmonQubitParameters and TunableTransmonQubit.
 
@@ -35,7 +40,70 @@ if TYPE_CHECKING:
 
 # TODO: Add rotate_xy gate that performs a rotation about an axis in the xy-plane.
 
+
 # TODO: Look at parameters in TransmonParameters (i.e. the base class).
+def modify_qubits(
+    temporary_qubit_parameters: Sequence[tuple[TunableTransmonQubit, dict]],
+) -> Sequence[TunableTransmonQubit]:
+    """Create new qubits with replaced parameter values.
+
+    New qubits are created by copying the original qubits and replacing
+    the parameter values.
+
+    Args:
+        temporary_qubit_parameters:
+            A sequence of pairs of qubits and dictionaries of
+            parameter values to override.
+
+    Returns:
+        new_qubits:
+            A list of new qubits with the replaced values. The list is in the
+            same order as the input qubits.
+
+    Examples:
+        ```python
+        [q0,q1,q2] = [TunableTransmonQubit() for _ in range(3)]
+        temporary_qubit_parameters = [
+            (q0,{"readout_range_out": 10, "drive_parameters_ge.length": 100e-9}),
+            (q1,{"readout_range_out": 20, "drive_parameters_ge.length": 200e-9}),
+            (q2,{"readout_range_out": 30, "drive_parameters_ge.length": 300e-9}),
+        ]
+        new_qubits = modify_qubits(temporary_qubit_parameters)
+        ```
+    """
+    new_qubits = []
+    for qubit, temp_value in temporary_qubit_parameters:
+        new_qubits.append(qubit.replace(temp_value))
+    return new_qubits
+
+
+@contextmanager
+def modify_qubits_context(
+    temporary_qubit_parameters: Sequence[tuple[TunableTransmonQubit, dict]],
+) -> Generator[TunableTransmonQubit, None, None]:
+    """Context manager for creating temporary qubits.
+
+    Args:
+        temporary_qubit_parameters: A sequence of pair of qubits and dictionaries of
+                                    parameter and values to override.
+
+    Yields:
+        new_qubits: A generator that yields new qubits with the replaced values.
+
+    Examples:
+        ```python
+        [q0,q1,q2] = [TunableTransmonQubit() for _ in range(3)]
+        temporary_qubit_parameters = [
+            (q0,{"readout_range_out": 10, "drive_parameters_ge.length": 100e-9}),
+            (q1,{"readout_range_out": 20, "drive_parameters_ge.length": 200e-9}),
+            (q2,{"readout_range_out": 30, "drive_parameters_ge.length": 300e-9}),
+        ]
+        with modify_qubits_context(temporary_qubit_parameters) as new_qubits:
+            # do something with new_qubits
+        ```
+    """
+    new_qubits = modify_qubits(temporary_qubit_parameters)
+    yield new_qubits
 
 
 @classformatter
@@ -100,6 +168,17 @@ class TunableTransmonQubitParameters(TransmonParameters):
     readout_integration_length: float | None = 1e-6
     readout_pulse_length: float | None = 1e-6
     readout_integration_kernels_type: str = "default"
+
+    def _override(self, overrides: dict) -> None:
+        for param_path, value in overrides.items():
+            keys = param_path.split(".")
+            obj = self
+            for key in keys[:-1]:
+                obj = obj[key] if isinstance(obj, dict) else getattr(obj, key)
+            if isinstance(obj, dict):
+                obj[keys[-1]] = value
+            else:
+                setattr(obj, keys[-1], value)
 
 
 @classformatter
@@ -221,6 +300,33 @@ class TunableTransmonQubit(Transmon):
             )
 
         return integration_kernels
+
+    def replace(
+        self,
+        temporary_qubit_parameters: dict,
+    ) -> TunableTransmonQubit:
+        """Return a new qubit with replaced parameters.
+
+        Args:
+            temporary_qubit_parameters: A dictionary of parameter and values to replace.
+
+        Returns:
+            A new_qubit with the replaced values.
+
+        Examples:
+            ```python
+            qubit = TunableTransmonQubit()
+            temporary_qubit_parameters = {
+                "readout_range_out":10,
+                "drive_parameters_ge.length": 100e-9,
+            }
+            new_qubit = qubit.replace(temporary_qubit_parameters)
+            ```
+
+        """
+        new_qubit = copy.deepcopy(self)
+        new_qubit.parameters._override(temporary_qubit_parameters)
+        return new_qubit
 
 
 class TunableTransmonOperations(QuantumOperations):
