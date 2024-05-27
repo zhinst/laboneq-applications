@@ -9,6 +9,7 @@ from typing import TYPE_CHECKING, Any
 
 import numpy as np
 from laboneq.core.utilities.dsl_dataclass_decorator import classformatter
+from laboneq.dsl.calibration import Oscillator
 from laboneq.dsl.quantum import (
     Transmon,
     TransmonParameters,
@@ -28,7 +29,6 @@ if TYPE_CHECKING:
     from laboneq.dsl.experiment.pulse import Pulse
     from laboneq.dsl.parameter import SweepParameter
 
-
 # TODO: Add tests for TunableTransmonQubitParameters and TunableTransmonQubit.
 
 # TODO: Implement multistate 0-1-2 measurement operation
@@ -40,8 +40,9 @@ if TYPE_CHECKING:
 
 # TODO: Add rotate_xy gate that performs a rotation about an axis in the xy-plane.
 
-
 # TODO: Look at parameters in TransmonParameters (i.e. the base class).
+
+
 def modify_qubits(
     temporary_qubit_parameters: Sequence[tuple[TunableTransmonQubit, dict]],
 ) -> Sequence[TunableTransmonQubit]:
@@ -369,6 +370,86 @@ class TunableTransmonOperations(QuantumOperations):
         dsl.delay(q.signals["drive"], time=time)
 
     @quantum_operation
+    def set_frequency(  # noqa: PLR0913
+        self,
+        q: TunableTransmonQubit,
+        frequency: float | SweepParameter,
+        *,
+        transition: str | None = None,
+        readout: bool = False,
+        rf: bool = True,
+    ) -> None:
+        """Sets the frequency of the given qubit transition drive line.
+
+        Arguments:
+            q:
+                The qubit to set the drive frequency of.
+            frequency:
+                The frequency to set the drive line to in Hz.
+                By default the frequency specified is the RF frequency.
+                The oscillator frequency may be set directly instead
+                by passing `rf=False`.
+            transition:
+                The transition to rotate. By default this is "ge"
+                (i.e. the 0-1 transition).
+            readout:
+                If true, the frequency of the readout line is set
+                instead.
+            rf:
+                If True, set the RF frequency of the transition.
+                If False, set the oscillator frequency directly instead.
+                The default is to set the RF frequency.
+
+        Raises:
+            RuntimeError:
+                If there is an attempt to call `set_frequency` more than
+                once on the same signal. See notes below for details.
+
+        Notes:
+            Currently `set_frequency` is implemented by setting the
+            appropriate oscillator frequencies in the experiment calibration.
+            This has two important consequences:
+
+            * Each experiment may only set one frequency per signal line,
+              although this may be a parameter sweep.
+
+            * The set frequency or sweep applies for the whole experiment
+              regardless of where in the experiment the frequency is set.
+
+            This will be improved in a future release.
+        """
+        if readout:
+            signal_line = "measure"
+            lo_frequency = q.parameters.readout_lo_frequency
+        else:
+            signal_line, _ = q.transition_parameters(transition)
+            lo_frequency = q.parameters.drive_lo_frequency
+
+        if rf:
+            # This subtraction works for both numbers and SweepParameters
+            frequency -= lo_frequency
+
+        calibration = dsl.experiment_calibration()
+        signal_calibration = calibration[q.signals[signal_line]]
+        oscillator = signal_calibration.oscillator
+
+        if oscillator is None:
+            oscillator = signal_calibration.oscillator = Oscillator(frequency=frequency)
+
+        if getattr(oscillator, "_set_frequency", False):
+            # We mark the oscillator with a _set_frequency attribute to ensure that
+            # set_frequency isn't performed on the same oscillator twice. Ideally
+            # LabOne Q would provide a set_frequency DSL method that removes the
+            # need for setting the frequency on the experiment calibration.
+            raise RuntimeError(
+                f"Frequency of qubit {q.uid} {signal_line} line was set multiple times"
+                f" using the set_frequency operation.",
+            )
+
+        oscillator._set_frequency = True
+        oscillator.frequency = frequency
+
+    @quantum_operation
     def measure(
         self,
         q: TunableTransmonQubit,
@@ -495,6 +576,10 @@ class TunableTransmonOperations(QuantumOperations):
                 Otherwise the values override or extend the existing ones.
         """
         drive_line, params = q.transition_parameters(transition)
+
+        if drive_line == "drive_ef":
+            section = dsl.active_section()
+            section.on_system_grid = True
 
         if amplitude is None:
             if angle == self._PI_BY_2:
@@ -661,6 +746,10 @@ class TunableTransmonOperations(QuantumOperations):
                 Otherwise the values override or extend the existing ones.
         """
         drive_line, params = q.transition_parameters(transition)
+
+        if drive_line == "drive_ef":
+            section = dsl.active_section()
+            section.on_system_grid = True
 
         if amplitude is None:
             if angle == self._PI_BY_2:

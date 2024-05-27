@@ -65,6 +65,15 @@ def simple_exp(qop, q, amplitudes, shots, prep=None):
             qop.x(q, amplitude)
 
 
+def simple_exp_with_cal(qop, q, amplitudes, shots, acquire_range):
+    with dsl.acquire_loop_rt(count=shots):
+        with dsl.sweep(parameter=SweepParameter(values=amplitudes)) as amplitude:
+            qop.x(q, amplitude)
+
+    calibration = dsl.experiment_calibration()
+    calibration[q.signals["acquire"]].range = 12
+
+
 class TestExperimentBuilder:
     def test_create(self):
         builder = ExperimentBuilder(simple_exp)
@@ -105,6 +114,23 @@ class TestExperimentBuilder:
         assert exp.get_calibration() == tsl.calibration(
             calibration_items={
                 "/lsg/q0/acquire": tsl.signal_calibration(range=10),
+                "/lsg/q0/drive": tsl.signal_calibration(range=10),
+                "/lsg/q0/measure": tsl.signal_calibration(range=5),
+            },
+        )
+
+    def test_setting_calibration_inside_experiment(self, dummy_ops, dummy_q):
+        builder = ExperimentBuilder(simple_exp_with_cal)
+        amplitudes = np.array([0.1, 0.2, 0.3])
+        shots = 5
+        acquire_range = 12
+        exp = builder(
+            dummy_ops, dummy_q, amplitudes, shots=shots, acquire_range=acquire_range,
+        )
+
+        assert exp.get_calibration() == tsl.calibration(
+            calibration_items={
+                "/lsg/q0/acquire": tsl.signal_calibration(range=12),
                 "/lsg/q0/drive": tsl.signal_calibration(range=10),
                 "/lsg/q0/measure": tsl.signal_calibration(range=5),
             },

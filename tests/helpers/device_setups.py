@@ -4,6 +4,7 @@ import pytest
 from laboneq.dsl.calibration import Oscillator, SignalCalibration
 from laboneq.dsl.device import DeviceSetup, create_connection
 from laboneq.dsl.device.instruments import HDAWG, PQSC, SHFQC
+from laboneq.dsl.enums import ModulationType
 
 from laboneq_applications.qpu_types.tunable_transmon import (
     TunableTransmonQubit,
@@ -68,14 +69,17 @@ def single_tunable_transmon_setup():
     )
 
     for qubit in ["q0"]:
-        for line in ["drive", "measure", "acquire"]:
+        for line, frequency in [
+            ("drive", 5e9),
+            ("drive_ef", 6e9),
+            ("measure", 4e9),
+            ("acquire", 4e9),
+        ]:
             logical_signal = setup.logical_signal_by_uid(f"{qubit}/{line}")
             logical_signal.calibration = SignalCalibration(
-                local_oscillator=Oscillator(frequency=5e9),
+                local_oscillator=Oscillator(frequency=frequency),
+                oscillator=Oscillator(modulation_type=ModulationType.HARDWARE),
             )
-        drive_lsg = setup.logical_signal_by_uid(f"{qubit}/drive")
-        drive_ef_lsg = setup.logical_signal_by_uid(f"{qubit}/drive_ef")
-        drive_ef_lsg.calibration = drive_lsg.calibration
 
     return setup
 
@@ -118,14 +122,17 @@ def two_tunable_transmon_setup():
     )
 
     for qubit in ["q0", "q1"]:
-        for line in ["drive", "measure", "acquire"]:
+        for line, frequency in [
+            ("drive", 5e9),
+            ("drive_ef", 6e9),
+            ("measure", 4e9),
+            ("acquire", 4e9),
+        ]:
             logical_signal = setup.logical_signal_by_uid(f"{qubit}/{line}")
             logical_signal.calibration = SignalCalibration(
-                local_oscillator=Oscillator(frequency=5e9),
+                local_oscillator=Oscillator(frequency=frequency),
+                oscillator=Oscillator(modulation_type=ModulationType.HARDWARE),
             )
-        drive_lsg = setup.logical_signal_by_uid(f"{qubit}/drive")
-        drive_ef_lsg = setup.logical_signal_by_uid(f"{qubit}/drive_ef")
-        drive_ef_lsg.calibration = drive_lsg.calibration
 
     return setup
 
@@ -136,6 +143,11 @@ def single_tunable_transmon_qubits(setup):
         "q0",
         setup.logical_signal_groups["q0"],
         parameters=TunableTransmonQubitParameters(
+            drive_lo_frequency=1.5e9,
+            resonance_frequency_ge=1.6e9,
+            resonance_frequency_ef=1.7e9,
+            readout_lo_frequency=2.0e9,
+            readout_resonator_frequency=2.1e9,
             drive_parameters_ge={
                 "amplitude_pi": 0.4,
                 "amplitude_pi2": 0.8,
@@ -167,6 +179,11 @@ def two_tunable_transmon_qubits(setup):
         "q0",
         setup.logical_signal_groups["q0"],
         parameters=TunableTransmonQubitParameters(
+            drive_lo_frequency=1.5e9,
+            resonance_frequency_ge=1.6e9,
+            resonance_frequency_ef=1.7e9,
+            readout_lo_frequency=2.0e9,
+            readout_resonator_frequency=2.1e9,
             drive_parameters_ge={
                 "amplitude_pi": 0.4,
                 "amplitude_pi2": 0.8,
@@ -193,6 +210,11 @@ def two_tunable_transmon_qubits(setup):
         "q1",
         setup.logical_signal_groups["q1"],
         parameters=TunableTransmonQubitParameters(
+            drive_lo_frequency=1.5e9,
+            resonance_frequency_ge=1.6e9,
+            resonance_frequency_ef=1.7e9,
+            readout_lo_frequency=2.0e9,
+            readout_resonator_frequency=2.1e9,
             drive_parameters_ge={
                 "amplitude_pi": 0.5,
                 "amplitude_pi2": 0.25,

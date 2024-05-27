@@ -8,7 +8,7 @@ import pytest
 from laboneq.simple import SectionAlignment, Session, SweepParameter
 
 import tests.helpers.dsl as tsl
-from laboneq_applications.core.build_experiment import build
+from laboneq_applications.core.build_experiment import build, qubit_experiment
 from laboneq_applications.core.quantum_operations import dsl
 from laboneq_applications.qpu_types.tunable_transmon import (
     TunableTransmonOperations,
@@ -241,6 +241,11 @@ class TestTunableTransmonOperations:
         session.connect(do_emulation=True)
         session.compile(exp)
 
+    def check_exp_compiles(self, exp, device):
+        session = Session(device.setup)
+        session.connect(do_emulation=True)
+        session.compile(exp)
+
     def reserve_ops(self, q):
         """Return the expected reserve operations for the given qubit."""
         return [
@@ -294,6 +299,156 @@ class TestTunableTransmonOperations:
         )
 
         self.check_op_builds_and_compiles(section, single_tunable_transmon)
+
+    @pytest.mark.parametrize(
+        ("rf", "freq", "oscillator_freq"),
+        [
+            pytest.param(True, 1.6e9, 0.1e9, id="rf-positive"),
+            pytest.param(True, 1.4e9, -0.1e9, id="rf-negative"),
+            pytest.param(False, 0.1e9, 0.1e9, id="oscillator-positive"),
+            pytest.param(False, -0.1e9, -0.1e9, id="oscillator-negative"),
+        ],
+    )
+    def test_set_frequency(  # noqa: PLR0913
+        self,
+        qops,
+        rf,
+        freq,
+        oscillator_freq,
+        single_tunable_transmon,
+    ):
+        [q0] = single_tunable_transmon.qubits
+
+        @qubit_experiment
+        def exp_set_freq(q):
+            # set_frequency requires an experiment context to access the calibration
+            qops.set_frequency(q, freq, rf=rf)
+
+        exp = exp_set_freq(q0)
+
+        calibration = exp.get_calibration()
+        signal_calibration = calibration[q0.signals["drive"]]
+        assert signal_calibration.oscillator.frequency == oscillator_freq
+
+        self.check_exp_compiles(exp, single_tunable_transmon)
+
+    def test_set_frequency_twice(self, qops, single_tunable_transmon):
+        [q0] = single_tunable_transmon.qubits
+
+        @qubit_experiment
+        def exp_set_freq(q):
+            # set_frequency requires an experiment context to access the calibration
+            qops.set_frequency(q, 1.5e9)
+            qops.set_frequency(q, 1.7e9)
+
+        with pytest.raises(RuntimeError) as err:
+            exp_set_freq(q0)
+
+        assert str(err.value) == (
+            "Frequency of qubit q0 drive line was set multiple times"
+            " using the set_frequency operation."
+        )
+
+    def test_set_frequency_transition(self, qops, single_tunable_transmon):
+        [q0] = single_tunable_transmon.qubits
+
+        @qubit_experiment
+        def exp_set_freq(q):
+            # set_frequency requires an experiment context to access the calibration
+            qops.set_frequency(q, 1.8e9, transition="ef")
+
+        exp = exp_set_freq(q0)
+
+        calibration = exp.get_calibration()
+        signal_calibration = calibration[q0.signals["drive_ef"]]
+        assert signal_calibration.oscillator.frequency == 0.3e9
+
+        self.check_exp_compiles(exp, single_tunable_transmon)
+
+    @pytest.mark.parametrize(
+        ("rf", "freq", "oscillator_freq"),
+        [
+            pytest.param(True, 2.1e9, 0.1e9, id="rf"),
+            pytest.param(False, 1.5e9, 1.5e9, id="oscillator"),
+        ],
+    )
+    def test_set_frequency_readout(  # noqa: PLR0913
+        self,
+        qops,
+        rf,
+        freq,
+        oscillator_freq,
+        single_tunable_transmon,
+    ):
+        [q0] = single_tunable_transmon.qubits
+
+        @qubit_experiment
+        def exp_set_freq(q):
+            # set_frequency requires an experiment context to access the calibration
+            qops.set_frequency(q, freq, readout=True, rf=rf)
+
+        exp = exp_set_freq(q0)
+
+        calibration = exp.get_calibration()
+        signal_calibration = calibration[q0.signals["measure"]]
+        assert signal_calibration.oscillator.frequency == oscillator_freq
+
+        self.check_exp_compiles(exp, single_tunable_transmon)
+
+    @pytest.mark.parametrize(
+        ("rf", "freqs", "oscillator_freqs"),
+        [
+            pytest.param(
+                True,
+                [1.5e9, 1.6e9, 1.7e9],
+                [0.0e9, 0.1e9, 0.2e9],
+                id="rf-positive",
+            ),
+            pytest.param(
+                True,
+                [1.6e9, 1.4e9, 1.6e9],
+                [0.1e9, -0.1e9, 0.1e9],
+                id="rf-negative",
+            ),
+            pytest.param(
+                False,
+                [1.5e9, 1.6e9, 1.7e9],
+                [1.5e9, 1.6e9, 1.7e9],
+                id="oscillator-positive",
+            ),
+            pytest.param(
+                False,
+                [-0.1e9, -0.2e9, -0.3e9],
+                [-0.1e9, -0.2e9, -0.3e9],
+                id="oscillator-positive",
+            ),
+        ],
+    )
+    def test_set_frequency_sweep(  # noqa: PLR0913
+        self,
+        qops,
+        rf,
+        freqs,
+        oscillator_freqs,
+        single_tunable_transmon,
+    ):
+        [q0] = single_tunable_transmon.qubits
+
+        @qubit_experiment
+        def exp_set_freq(q, frequencies):
+            # set_frequency requires an experiment context to access the calibration
+            with dsl.sweep(parameter=SweepParameter(values=frequencies)) as frequency:
+                qops.set_frequency(q, frequency, rf=rf)
+
+        exp = exp_set_freq(q0, freqs)
+
+        calibration = exp.get_calibration()
+        signal_calibration = calibration[q0.signals["drive"]]
+        frequency = signal_calibration.oscillator.frequency
+        assert isinstance(frequency, SweepParameter)
+        np.testing.assert_equal(frequency.values, oscillator_freqs)
+
+        self.check_exp_compiles(exp, single_tunable_transmon)
 
     def test_measure(self, qops, single_tunable_transmon):
         [q0] = single_tunable_transmon.qubits
@@ -533,6 +688,7 @@ class TestTunableTransmonOperations:
         assert section == tsl.section(
             uid="__rx_q0_0",
             alignment=SectionAlignment.LEFT,
+            on_system_grid=False,
         ).children(
             self.reserve_ops(q0),
             tsl.play_pulse_op(
@@ -571,7 +727,11 @@ class TestTunableTransmonOperations:
         [q0] = single_tunable_transmon.qubits
         section = qops.rx(q0, np.pi / 2, transition=transition)
 
-        assert section == tsl.section(uid="__rx_q0_0").children(
+        on_system_grid = transition == "ef"
+        assert section == tsl.section(
+            uid="__rx_q0_0",
+            on_system_grid=on_system_grid,
+        ).children(
             self.reserve_ops(q0),
             tsl.play_pulse_op(signal=f"/logical_signal_groups/q0/{expected_signal}"),
         )
@@ -693,6 +853,7 @@ class TestTunableTransmonOperations:
         assert section == tsl.section(
             uid="__x90_q0_0",
             alignment=SectionAlignment.LEFT,
+            on_system_grid=False,
         ).children(
             self.reserve_ops(q0),
             tsl.play_pulse_op(
@@ -727,6 +888,7 @@ class TestTunableTransmonOperations:
         assert section == tsl.section(
             uid="__x90_q0_0",
             alignment=SectionAlignment.LEFT,
+            on_system_grid=True,
         ).children(
             self.reserve_ops(q0),
             tsl.play_pulse_op(
@@ -754,6 +916,7 @@ class TestTunableTransmonOperations:
         assert section == tsl.section(
             uid="__x180_q0_0",
             alignment=SectionAlignment.LEFT,
+            on_system_grid=False,
         ).children(
             self.reserve_ops(q0),
             tsl.play_pulse_op(
@@ -788,6 +951,7 @@ class TestTunableTransmonOperations:
         assert section == tsl.section(
             uid="__x180_q0_0",
             alignment=SectionAlignment.LEFT,
+            on_system_grid=True,
         ).children(
             self.reserve_ops(q0),
             tsl.play_pulse_op(
@@ -823,6 +987,7 @@ class TestTunableTransmonOperations:
         assert section == tsl.section(
             uid="__ry_q0_0",
             alignment=SectionAlignment.LEFT,
+            on_system_grid=False,
         ).children(
             self.reserve_ops(q0),
             tsl.play_pulse_op(
@@ -861,7 +1026,11 @@ class TestTunableTransmonOperations:
         [q0] = single_tunable_transmon.qubits
         section = qops.ry(q0, np.pi / 2, transition=transition)
 
-        assert section == tsl.section(uid="__ry_q0_0").children(
+        on_system_grid = transition == "ef"
+        assert section == tsl.section(
+            uid="__ry_q0_0",
+            on_system_grid=on_system_grid,
+        ).children(
             self.reserve_ops(q0),
             tsl.play_pulse_op(
                 signal=f"/logical_signal_groups/q0/{expected_signal}",
@@ -988,6 +1157,7 @@ class TestTunableTransmonOperations:
         assert section == tsl.section(
             uid="__y90_q0_0",
             alignment=SectionAlignment.LEFT,
+            on_system_grid=False,
         ).children(
             self.reserve_ops(q0),
             tsl.play_pulse_op(
@@ -1022,6 +1192,7 @@ class TestTunableTransmonOperations:
         assert section == tsl.section(
             uid="__y90_q0_0",
             alignment=SectionAlignment.LEFT,
+            on_system_grid=True,
         ).children(
             self.reserve_ops(q0),
             tsl.play_pulse_op(
@@ -1049,6 +1220,7 @@ class TestTunableTransmonOperations:
         assert section == tsl.section(
             uid="__y180_q0_0",
             alignment=SectionAlignment.LEFT,
+            on_system_grid=False,
         ).children(
             self.reserve_ops(q0),
             tsl.play_pulse_op(
@@ -1083,6 +1255,7 @@ class TestTunableTransmonOperations:
         assert section == tsl.section(
             uid="__y180_q0_0",
             alignment=SectionAlignment.LEFT,
+            on_system_grid=True,
         ).children(
             self.reserve_ops(q0),
             tsl.play_pulse_op(

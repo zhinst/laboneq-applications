@@ -3,16 +3,17 @@
 from __future__ import annotations
 
 import functools
-from typing import Any, Callable
+from typing import TYPE_CHECKING, Any, Callable
 
 from laboneq.core.exceptions import LabOneQException
 from laboneq.dsl.experiment import builtins
 from laboneq.dsl.quantum import QuantumElement
-from laboneq.simple import (
-    Calibration,
-    Experiment,
-    ExperimentSignal,
-)
+
+if TYPE_CHECKING:
+    from laboneq.simple import (
+        Experiment,
+        ExperimentSignal,
+    )
 
 
 class ExperimentBuilder:
@@ -24,6 +25,9 @@ class ExperimentBuilder:
     - giving the experiment a name
     - adding the qubit signals as experiment signals
     - adding the qubit calibration to the experiment calibration
+
+    If needed, the experiment calibration may be accessed within
+    `exp_func` using [laboneq.dsl.experiment.builtins.experiment_calibration]().
 
     Arguments:
         exp_func:
@@ -68,9 +72,9 @@ class ExperimentBuilder:
         calibration = _calibration_from_qubits(qubits)
 
         with builtins.experiment(uid=self.name, signals=signals) as exp:
+            exp_calibration = builtins.experiment_calibration()
+            exp_calibration.calibration_items.update(calibration)
             self.exp_func(*args, **kw)
-
-        exp.set_calibration(Calibration(calibration))
 
         return exp
 

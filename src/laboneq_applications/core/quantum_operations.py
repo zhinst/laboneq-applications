@@ -7,7 +7,7 @@ import inspect
 import textwrap
 from typing import TYPE_CHECKING, Callable, ClassVar
 
-from laboneq.dsl.experiment import builtins
+from laboneq.dsl.experiment import builtins, section_context
 from laboneq.simple import (
     ExecutionType,
     QuantumElement,
@@ -159,12 +159,15 @@ class _DSLBuiltinOperations:
     add = staticmethod(builtins.add)
     delay = staticmethod(builtins.delay)
     experiment = staticmethod(builtins.experiment)
+    experiment_calibration = staticmethod(builtins.experiment_calibration)
     measure = staticmethod(builtins.measure)
     play = staticmethod(builtins.play)
     reserve = staticmethod(builtins.reserve)
     section = staticmethod(builtins.section)
     sweep = staticmethod(builtins.sweep)
     uid = staticmethod(builtins.uid)
+
+    active_section = staticmethod(section_context.active_section)
 
     pulse_library = pulse_library
 
