@@ -120,6 +120,29 @@ class TestTunableTransmonQubit:
             " should be either 'default' or a list of pulse dictionaries."
         )
 
+    def test_update(self, q0):
+        q0.update({"readout_range_out": 10})
+        assert q0.parameters.readout_range_out == 10
+
+        q0.update({"readout_parameters": {"length": 10e-6}})
+        assert q0.parameters.readout_parameters["length"] == 10e-6
+
+        _original_drive_parameters_ge = copy.deepcopy(q0.parameters.drive_parameters_ge)
+        q0.update({"drive_parameters_ge.amplitude_pi": 0.1})
+        assert q0.parameters.drive_parameters_ge["amplitude_pi"] == 0.1
+        assert (
+            q0.parameters.drive_parameters_ge["amplitude_pi2"]
+            == _original_drive_parameters_ge["amplitude_pi2"]
+        )
+        assert (
+            q0.parameters.drive_parameters_ge["length"]
+            == _original_drive_parameters_ge["length"]
+        )
+        assert (
+            q0.parameters.drive_parameters_ge["pulse"]
+            == _original_drive_parameters_ge["pulse"]
+        )
+
 
 class TestOverrideParameters:
     def _equal_except(self, q0, q0_temp, key):

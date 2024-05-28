@@ -329,6 +329,26 @@ class TunableTransmonQubit(Transmon):
         new_qubit.parameters._override(temporary_qubit_parameters)
         return new_qubit
 
+    def update(
+        self,
+        parameters: dict,
+    ) -> None:
+        """Update the qubit with the given parameters.
+
+        Args:
+            parameters: A dictionary of parameter and values to update.
+
+        Examples:
+            ```python
+            qubit = TunableTransmonQubit()
+            temporary_qubit_parameters = {
+                "readout_range_out":10,
+                "drive_parameters_ge.length": 100e-9,
+            }
+            qubit.update(temporary_qubit_parameters)
+        """
+        self.parameters._override(parameters)
+
 
 class TunableTransmonOperations(QuantumOperations):
     """Operations for TunableTransmonQubits."""
