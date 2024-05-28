@@ -10,8 +10,12 @@ from typing import Any, Callable
 from typing_extensions import Self  # in `typing` from Python 3.11
 
 from laboneq_applications.workflow import exceptions
-from laboneq_applications.workflow._context import LocalContext
-from laboneq_applications.workflow.engine.block import Block, BlockResult
+from laboneq_applications.workflow._context import get_active_context
+from laboneq_applications.workflow.engine.block import (
+    Block,
+    BlockResult,
+    WorkflowBlockExecutorContext,
+)
 from laboneq_applications.workflow.engine.promise import Promise
 
 
@@ -103,7 +107,7 @@ class Workflow:
 
     def __enter__(self) -> Self:
         """Enter the Workflow building context."""
-        if LocalContext.is_active():
+        if isinstance(get_active_context(), WorkflowBlockExecutorContext):
             msg = "Nesting Workflows is not allowed."
             raise exceptions.WorkflowError(msg)
         self._block.__enter__()
@@ -126,7 +130,7 @@ class Workflow:
             TypeError: Workflow arguments do not match defined inputs.
             WorkflowError: An error occurred during workflow execution.
         """
-        if LocalContext.is_active():
+        if isinstance(get_active_context(), WorkflowBlockExecutorContext):
             msg = "Nesting Workflows is not allowed."
             raise exceptions.WorkflowError(msg)
         # Resolve Workflow input immediately, they do not have dependencies

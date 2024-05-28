@@ -1,50 +1,24 @@
-"""Tasks used within Workflow."""
+"""Tasks used within workflows."""
 
 from __future__ import annotations
 
 import abc
 import inspect
 import textwrap
-from functools import wraps
 from typing import Any, Callable, TypeVar, overload
 
-from laboneq_applications.workflow._context import LocalContext
-
-
-def _wrapper(func: Callable) -> Callable:
-    """Wrap a method.
-
-    If called within the workflow context, produces an event instead of executing
-    the wrapped method.
-    """
-
-    @wraps(func)
-    def wrapped(self: Task, *args, **kwargs) -> Any:  # noqa: ANN401
-        # TODO: Active context should know how to run task. This decorator not.
-        from laboneq_applications.workflow.engine.task_block import TaskBlock
-
-        if not LocalContext.is_active():
-            return func(self, *args, **kwargs)
-        blk = TaskBlock(self, *args, **kwargs)
-        LocalContext.active_context().register(blk)
-        return blk._promise
-
-    return wrapped
+from laboneq_applications.workflow._context import get_active_context
 
 
 class Task(abc.ABC):
-    """A base class for a Workflow task.
+    """A base class for a workflow task.
 
     Classes that subclass this class must implement:
-        - `run()`
+        - `_run()`
     """
 
     def __init__(self, name: str):
         self._name: str = name
-
-    def __init_subclass__(cls, *args, **kwargs):
-        cls.run = _wrapper(cls.run)
-        super().__init_subclass__(*args, **kwargs)
 
     def __repr__(self):
         return f"Task(name={self.name})"
@@ -57,16 +31,23 @@ class Task(abc.ABC):
     @property
     def src(self) -> str:
         """Source code of the task."""
-        src = inspect.getsource(self.run)
+        src = inspect.getsource(self._run)
         return textwrap.dedent(src)
 
     @abc.abstractmethod
-    def run(self, *args, **kwargs) -> Any:  # noqa: ANN401
+    def _run(self, *args: object, **kwargs: object) -> Any:  # noqa: ANN401
+        """Run the task."""
+
+    def run(self, *args: object, **kwargs: object) -> Any:  # noqa: ANN401
         """Run the task.
 
-        If used within `Workflow` context, creates an event of this task
-        instead of executing it.
+        The behaviour of the task depends on the context it is executed.
+        The behaviour is unchanged when no context is active.
         """
+        ctx = get_active_context()
+        if ctx is None:
+            return self._run(*args, **kwargs)
+        return ctx.execute_task(self, *args, **kwargs)
 
 
 T = TypeVar("T")
@@ -95,11 +76,11 @@ class FunctionTask(Task):
         src = inspect.getsource(self._func)
         return textwrap.dedent(src)
 
-    def __call__(self, *args, **kwargs):
+    def __call__(self, *args: object, **kwargs: object) -> T:
         """Run the task."""
         return self.run(*args, **kwargs)
 
-    def run(self, *args, **kwargs) -> T:
+    def _run(self, *args: object, **kwargs: object) -> T:
         """Run the task."""
         return self._func(*args, **kwargs)
 
@@ -114,7 +95,7 @@ def task(func: TaskFunction, *, name: str | None = None) -> TaskFunction: ...
 def task(func: TaskFunction | None = None, *, name: str | None = None):  # noqa: D417
     """Mark a function as a task.
 
-    If the decorated function is used outside of Workflow context, or
+    If the decorated function is used outside of an workflow context, or
     within another task, the underlying behaviour does not change.
 
     Arguments:

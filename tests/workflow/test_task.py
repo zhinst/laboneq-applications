@@ -4,7 +4,7 @@ from laboneq_applications.workflow.task import FunctionTask, Task
 
 
 class MyTestTask(Task):
-    def run(self):
+    def _run(self):
         return 123
 
 
@@ -20,7 +20,7 @@ class TestTask:
     def test_src(self):
         task_ = MyTestTask("foobar")
         assert task_.src == textwrap.dedent("""\
-            def run(self):
+            def _run(self):
                 return 123
         """)
 

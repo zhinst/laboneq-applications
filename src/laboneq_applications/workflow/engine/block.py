@@ -4,12 +4,20 @@ from __future__ import annotations
 
 import abc
 from collections import defaultdict
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
-from laboneq_applications.workflow._context import LocalContext
-from laboneq_applications.workflow.engine.promise import PromiseResultNotResolvedError
+from laboneq_applications.workflow._context import ExecutorContext, LocalContext
+from laboneq_applications.workflow.engine.promise import (
+    PromiseResultNotResolvedError,
+    ReferencePromise,
+)
 from laboneq_applications.workflow.engine.resolver import ArgumentResolver
 from laboneq_applications.workflow.exceptions import WorkflowError
+
+if TYPE_CHECKING:
+    from laboneq_applications.workflow.engine.block import Block
+    from laboneq_applications.workflow.engine.promise import Promise
+    from laboneq_applications.workflow.task import Task
 
 
 class BlockResult:
@@ -71,15 +79,14 @@ class Block(abc.ABC):
         return self._body
 
     def __enter__(self):
-        LocalContext.enter()
+        LocalContext.enter(WorkflowBlockExecutorContext())
 
     def __exit__(self, exc_type, exc_value, traceback):  # noqa: ANN001
-        # TODO: Graph to flow all the way to the top Block (e.g Workflow).
-        #       This would be mainly for inspection
-        inner = LocalContext.exit().instances
-        self._body.extend(inner)
-        if LocalContext.is_active():
-            LocalContext.active_context().register(self)
+        register = LocalContext.exit()
+        self._body.extend(register.blocks)
+        active_ctx = LocalContext.active_context()
+        if isinstance(active_ctx, WorkflowBlockExecutorContext):
+            active_ctx.register(self)
 
     def _run_block(self, block: Block) -> BlockResult:
         """Run a block belonging to this block.
@@ -102,3 +109,79 @@ class Block(abc.ABC):
         Returns:
             Block result.
         """
+
+
+class TaskBlock(Block):
+    """Task block.
+
+    `TaskBlock` is an workflow executor for a task.
+
+    Arguments:
+        task: A task this block contains.
+        *args: Arguments of the task.
+        **kwargs: Keyword arguments of the task.
+    """
+
+    def __init__(self, task: Task, *args: object, **kwargs: object):
+        super().__init__(*args, **kwargs)
+        self._promise = ReferencePromise(self)
+        self.task = task
+
+    def __repr__(self):
+        return repr(self.task)
+
+    @property
+    def src(self) -> str:
+        """Source code of the task."""
+        return self.task.src
+
+    @property
+    def name(self) -> str:
+        """Name of the task."""
+        return self.task.name
+
+    def execute(self) -> BlockResult:
+        """Execute the task.
+
+        Returns:
+            Task block result.
+        """
+        args, kwargs = self._resolver.resolve()
+        result = self.task.run(*args, **kwargs)
+        self._promise.set_result(result)
+        r = BlockResult()
+        r.add_result(self.name, result)
+        return r
+
+
+class WorkflowBlockExecutorContext(ExecutorContext):
+    """Workflow context executor for blocks."""
+
+    def __init__(self):
+        self._blocks: list[Block] = []
+
+    @property
+    def blocks(self) -> list[Block]:
+        """Blocks registered within the context."""
+        return self._blocks
+
+    def execute_task(
+        self,
+        task: Task,
+        *args: object,
+        **kwargs: object,
+    ) -> Promise:
+        """Run a task.
+
+        Arguments:
+            task: The task instance.
+            *args: `task` arguments.
+            **kwargs: `task` keyword arguments.
+        """
+        block = TaskBlock(task, *args, **kwargs)
+        self.register(block)
+        return block._promise
+
+    def register(self, block: Block) -> None:
+        """Register a block."""
+        self._blocks.append(block)
