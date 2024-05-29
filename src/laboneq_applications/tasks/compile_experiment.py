@@ -37,7 +37,7 @@ def compile_experiment(
 
     Example:
         >>> from laboneq_library.tasks.compile_experiment import compile_experiment
-        >>> from laboneq_library.workflow.workflow import Workflow
+        >>> from laboneq_library.workflow.engine import Workflow
         >>> with Workflow() as wf:
         >>>   compiled_experiment = compile_experiment(session, experiment)
     """

@@ -14,7 +14,8 @@ from laboneq_applications.core.options import (
 from laboneq_applications.core.quantum_operations import QuantumOperations, dsl
 from laboneq_applications.core.validation import validate_and_convert_qubits_sweeps
 from laboneq_applications.tasks import compile_experiment, run_experiment
-from laboneq_applications.workflow import task, workflow
+from laboneq_applications.workflow import task
+from laboneq_applications.workflow.engine import workflow
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
@@ -23,7 +24,7 @@ if TYPE_CHECKING:
     from laboneq.dsl.simple import Session
     from numpy import ndarray
 
-    from laboneq_applications.workflow import WorkflowResult
+    from laboneq_applications.workflow.engine import WorkflowResult
 
 
 @workflow

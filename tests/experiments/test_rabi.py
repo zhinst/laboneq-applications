@@ -9,7 +9,7 @@ from laboneq.dsl.session import Session
 import tests.helpers.dsl as tsl
 from laboneq_applications.experiments import amplitude_rabi, amplitude_rabi_workflow
 from laboneq_applications.qpu_types.tunable_transmon import TunableTransmonOperations
-from laboneq_applications.workflow.workflow import Workflow
+from laboneq_applications.workflow.engine import Workflow
 
 
 def reserve_ops(q):

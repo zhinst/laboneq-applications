@@ -1,8 +1,8 @@
 import pytest
 
 from laboneq_applications.qpu_types.tunable_transmon import TunableTransmonQubit
-from laboneq_applications.tasks import update_qubits
-from laboneq_applications.workflow.workflow import Workflow
+from laboneq_applications.tasks.update_qubits import update_qubits
+from laboneq_applications.workflow.engine import Workflow
 
 
 class TestUpdateSingleQubits:

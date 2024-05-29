@@ -6,15 +6,14 @@ from unittest.mock import Mock
 
 import pytest
 
-from laboneq_applications.workflow import (
+from laboneq_applications.workflow import exceptions, task
+from laboneq_applications.workflow.engine import (
     Workflow,
-    exceptions,
     for_,
     if_,
-    task,
     workflow,
 )
-from laboneq_applications.workflow.workflow import WorkflowBuilder
+from laboneq_applications.workflow.engine.workflow import WorkflowBuilder
 
 
 @task

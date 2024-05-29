@@ -1,7 +1,7 @@
 """Test the run_experiment task."""
 
 from laboneq_applications.tasks import compile_experiment
-from laboneq_applications.workflow import Workflow
+from laboneq_applications.workflow.engine import Workflow
 
 
 def test_run_experiment_standalone(simple_experiment, simple_session):

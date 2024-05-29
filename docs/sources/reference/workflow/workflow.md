@@ -1,1 +1,1 @@
-::: laboneq_applications.workflow.workflow
+::: laboneq_applications.workflow.engine

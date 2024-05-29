@@ -3,8 +3,14 @@ from unittest.mock import Mock, call
 import pytest
 
 from laboneq_applications.workflow import task
-from laboneq_applications.workflow.expressions import ForExpression, IFExpression
-from laboneq_applications.workflow.promise import Promise, PromiseResultNotResolvedError
+from laboneq_applications.workflow.engine.expressions import (
+    ForExpression,
+    IFExpression,
+)
+from laboneq_applications.workflow.engine.promise import (
+    Promise,
+    PromiseResultNotResolvedError,
+)
 
 
 @task

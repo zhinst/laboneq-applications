@@ -24,7 +24,7 @@ def run_experiment(
     Example:
         ```python
         from laboneq_library.tasks import run_experiment
-        from laboneq_library.workflow.workflow import Workflow
+        from laboneq_library.workflow.engine import Workflow
 
         with Workflow() as wf:
             run_experiment(

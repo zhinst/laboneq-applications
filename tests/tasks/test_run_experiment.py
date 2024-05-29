@@ -4,7 +4,7 @@ import pytest
 from laboneq.dsl.experiment import Experiment
 
 from laboneq_applications.tasks import run_experiment
-from laboneq_applications.workflow import Workflow
+from laboneq_applications.workflow.engine import Workflow
 
 
 class TestRunExperiment:

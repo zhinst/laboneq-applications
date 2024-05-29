@@ -7,9 +7,9 @@ from collections import defaultdict
 from typing import Any
 
 from laboneq_applications.workflow._context import LocalContext
+from laboneq_applications.workflow.engine.promise import PromiseResultNotResolvedError
+from laboneq_applications.workflow.engine.resolver import ArgumentResolver
 from laboneq_applications.workflow.exceptions import WorkflowError
-from laboneq_applications.workflow.promise import PromiseResultNotResolvedError
-from laboneq_applications.workflow.resolver import ArgumentResolver
 
 
 class BlockResult:

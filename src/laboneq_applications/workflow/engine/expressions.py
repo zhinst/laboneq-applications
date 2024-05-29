@@ -5,8 +5,8 @@ from __future__ import annotations
 from collections.abc import Iterable
 from typing import TYPE_CHECKING, Any, Generic, TypeVar
 
-from laboneq_applications.workflow.block import Block, BlockResult
-from laboneq_applications.workflow.promise import Promise
+from laboneq_applications.workflow.engine.block import Block, BlockResult
+from laboneq_applications.workflow.engine.promise import Promise
 
 if TYPE_CHECKING:
     from collections.abc import Iterable

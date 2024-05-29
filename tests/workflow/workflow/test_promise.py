@@ -1,6 +1,6 @@
 import pytest
 
-from laboneq_applications.workflow.promise import (
+from laboneq_applications.workflow.engine.promise import (
     Promise,
     PromiseResultNotResolvedError,
     ReferencePromise,

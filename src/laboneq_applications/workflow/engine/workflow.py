@@ -11,8 +11,8 @@ from typing_extensions import Self  # in `typing` from Python 3.11
 
 from laboneq_applications.workflow import exceptions
 from laboneq_applications.workflow._context import LocalContext
-from laboneq_applications.workflow.block import Block, BlockResult
-from laboneq_applications.workflow.promise import Promise
+from laboneq_applications.workflow.engine.block import Block, BlockResult
+from laboneq_applications.workflow.engine.promise import Promise
 
 
 class WorkflowResult:
@@ -186,7 +186,7 @@ def workflow(func: Callable) -> WorkflowBuilder:
 
     Example:
         ```python
-        from laboneq_applications.workflow import workflow
+        from laboneq_applications.workflow.engine import workflow
 
         @workflow
         def my_workflow(x: int):
