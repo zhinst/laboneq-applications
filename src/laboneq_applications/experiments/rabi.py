@@ -14,14 +14,18 @@ from laboneq_applications.core.options import (
 from laboneq_applications.core.quantum_operations import QuantumOperations, dsl
 from laboneq_applications.core.validation import validate_and_convert_qubits_sweeps
 from laboneq_applications.tasks import compile_experiment, run_experiment
+from laboneq_applications.utils.handle_helpers import (
+    calibration_trace_handle,
+    result_handle,
+)
 from laboneq_applications.workflow import task
 from laboneq_applications.workflow.engine import workflow
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
 
+    from laboneq.dsl.experiment import Session
     from laboneq.dsl.quantum.quantum_element import QuantumElement
-    from laboneq.dsl.simple import Session
     from numpy import ndarray
 
     from laboneq_applications.workflow.engine import WorkflowResult
@@ -112,7 +116,7 @@ def amplitude_rabi_workflow(
         options=options,
     )
     compiled_exp = compile_experiment(session, exp)
-    _result = run_experiment(session, compiled_exp)
+    _result = run_experiment(session, compiled_exp, options=options)
 
 
 @task
@@ -200,7 +204,7 @@ def amplitude_rabi(
             ) as amplitude:
                 qop.prepare_state(q, opts.transition[0])
                 qop.x180(q, amplitude=amplitude, transition=opts.transition)
-                qop.measure(q, f"result_{q.uid}")
+                qop.measure(q, result_handle(q.uid))
                 qop.passive_reset(q)
             if opts.cal_traces:
                 with dsl.section(
@@ -208,5 +212,5 @@ def amplitude_rabi(
                 ):
                     for state in opts.transition:
                         qop.prepare_state(q, state)
-                        qop.measure(q, f"cal_state_{state}_{q.uid}")
+                        qop.measure(q, calibration_trace_handle(q.uid, state))
                         qop.passive_reset(q)

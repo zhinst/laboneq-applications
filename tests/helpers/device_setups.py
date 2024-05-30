@@ -122,16 +122,16 @@ def two_tunable_transmon_setup():
     )
 
     for qubit in ["q0", "q1"]:
-        for line, frequency in [
-            ("drive", 5e9),
-            ("drive_ef", 6e9),
-            ("measure", 4e9),
-            ("acquire", 4e9),
+        for line, frequency, mod_type in [
+            ("drive", 5e9, ModulationType.HARDWARE),
+            ("drive_ef", 6e9, ModulationType.HARDWARE),
+            ("measure", 4e9, ModulationType.SOFTWARE),
+            ("acquire", 4e9, ModulationType.SOFTWARE),
         ]:
             logical_signal = setup.logical_signal_by_uid(f"{qubit}/{line}")
             logical_signal.calibration = SignalCalibration(
                 local_oscillator=Oscillator(frequency=frequency),
-                oscillator=Oscillator(modulation_type=ModulationType.HARDWARE),
+                oscillator=Oscillator(modulation_type=mod_type),
             )
 
     return setup

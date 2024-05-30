@@ -38,6 +38,7 @@ test:coverage:
         coverage_format: cobertura
         path: coverage.xml
     expire_in: 1 day
+  coverage: '/(?i)total.*? (100(?:\.0+)?\%|[1-9]?\d(?:\.\d+)?\%)$/'
 
 test:notebooks:python-3.9:
   extends: "test:python-3.9"

@@ -202,11 +202,11 @@ class TestWorkflow:
         assert compiled_exp.device_setup.uid == "test"
 
         [exp_result] = result.tasklog["run_experiment"]
-        assert list(exp_result.acquired_results.keys()) == [
-            "result_q0",
-            "cal_state_g_q0",
-            "cal_state_e_q0",
-        ]
+        assert len(exp_result.sweep_data("q0")) > 0
+        assert exp_result.calibration_traces("q0", "g") is not None
+        assert exp_result.calibration_traces("q0", "e") is not None
+        traces = exp_result.calibration_traces("q0", ("g", "e"))
+        assert len(traces) == 2
 
 
 @pytest.mark.parametrize("transition", ["ge", "ef"])
