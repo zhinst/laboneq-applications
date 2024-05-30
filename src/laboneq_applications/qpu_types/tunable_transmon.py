@@ -53,8 +53,10 @@ def modify_qubits(
 
     Args:
         temporary_qubit_parameters:
-            A sequence of pairs of qubits and dictionaries of
-            parameter values to override.
+            A sequence of pairs of qubits and dictionaries of qubit-parameter
+            values to override. If a qubit-parameter dictionary is empty, the
+            unmodified qubit is returned.
+
 
     Returns:
         new_qubits:
@@ -63,13 +65,21 @@ def modify_qubits(
 
     Examples:
         ```python
-        [q0,q1,q2] = [TunableTransmonQubit() for _ in range(3)]
+        [q0, q1, q2] = [TunableTransmonQubit() for _ in range(3)]
         temporary_qubit_parameters = [
-            (q0,{"readout_range_out": 10, "drive_parameters_ge.length": 100e-9}),
-            (q1,{"readout_range_out": 20, "drive_parameters_ge.length": 200e-9}),
-            (q2,{"readout_range_out": 30, "drive_parameters_ge.length": 300e-9}),
+            (q0, {"readout_range_out": 10, "drive_parameters_ge.length": 100e-9}),
+            (q1, {"readout_range_out": 20, "drive_parameters_ge.length": 200e-9}),
+            (q2, {"readout_range_out": 30, "drive_parameters_ge.length": 300e-9}),
         ]
         new_qubits = modify_qubits(temporary_qubit_parameters)
+        # same qubits returned if parameters are empty
+        [q0, q1, q2] = [TunableTransmonQubit() for _ in range(3)]
+        temporary_qubit_parameters = [
+            (q0,{}),
+            (q1,{}),
+            (q2,{}),
+        ]
+        same_qubits = modify_qubits(temporary_qubit_parameters)
         ```
     """
     new_qubits = []
@@ -325,6 +335,8 @@ class TunableTransmonQubit(Transmon):
             ```
 
         """
+        if not temporary_qubit_parameters:
+            return self
         new_qubit = copy.deepcopy(self)
         new_qubit.parameters._override(temporary_qubit_parameters)
         return new_qubit

@@ -182,6 +182,15 @@ class TestOverrideParameters:
         assert original_q0 == q0
         self._equal_except(q0, q0_temp, "drive_parameters_ge")
 
+    def test_return_same_qubits(self, multi_qubits):
+        q0, q1 = multi_qubits
+        [q0_temp] = modify_qubits([(q0, {})])
+        assert q0_temp == q0
+
+        [q0_temp, q1_temp] = modify_qubits([(q0, {}), (q1, {})])
+        assert q0_temp == q0
+        assert q1_temp == q1
+
     def test_override_multiple_qubits(self, multi_qubits):
         q0, q1 = multi_qubits
         original_q0 = copy.deepcopy(q0)
