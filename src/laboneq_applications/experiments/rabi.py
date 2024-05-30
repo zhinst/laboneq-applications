@@ -198,13 +198,15 @@ def amplitude_rabi(
                 name=f"amps_{q.uid}",
                 parameter=SweepParameter(f"amplitude_{q.uid}", q_amplitudes),
             ) as amplitude:
-                qop.prep(q, opts.transition[0])
+                qop.prepare_state(q, opts.transition[0])
                 qop.x180(q, amplitude=amplitude, transition=opts.transition)
                 qop.measure(q, f"result_{q.uid}")
+                qop.passive_reset(q)
             if opts.cal_traces:
                 with dsl.section(
                     name=f"cal_{q.uid}",
                 ):
                     for state in opts.transition:
-                        qop.prep(q, state)
+                        qop.prepare_state(q, state)
                         qop.measure(q, f"cal_state_{state}_{q.uid}")
+                        qop.passive_reset(q)

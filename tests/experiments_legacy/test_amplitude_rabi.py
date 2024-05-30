@@ -17,26 +17,6 @@ from laboneq_applications.qpu_types.tunable_transmon import (
     TunableTransmonOperations,
 )
 
-# TODO: How to minimize the calibration set on the experiment vs device_setup.
-
-# TODO: Update rabi_exp to use names.
-
-# TODO: Add a Reserve operation that can reserve a list of signals to make the
-#       experiments shorter.
-
-# TODO: Test that TunableTransmonQubits can be serialized and deserialized with
-#       LabOne Q's .load and .save method.
-
-# TODO: Don't include experiment and device_setup in result. Check that we can serialize
-#       result objects.
-
-# TODO: Check that we can serialize the compiled experiment. -- .save()
-
-# TODO: Check that we can serialize experiments. -- .save()
-
-# TODO: Can we move the qubit register serialization technique to laboneq
-#       QuantumElement class?
-
 
 class AmplitudeRabiOps(AmplitudeRabi):
     @staticmethod
@@ -49,17 +29,19 @@ class AmplitudeRabiOps(AmplitudeRabi):
                     uid=f"amps_{q.uid}",
                     parameter=SweepParameter(f"amplitude_{q.uid}", q_amplitudes),
                 ) as amplitude:
-                    qop.prep(q, transition[0])
+                    qop.prepare_state(q, transition[0])
                     qop.x180(q, amplitude=amplitude, transition=transition)
                     qop.measure(q, "result")
+                    qop.passive_reset(q)
 
                 # calibration measurements:
                 with dsl.section(
                     uid=f"cal_{q.uid}",
                 ):
                     for state in transition:
-                        qop.prep(q, state)
+                        qop.prepare_state(q, state)
                         qop.measure(q, f"cal_state_{state}")
+                        qop.passive_reset(q)
 
     def define_experiment(self):
         # extract old parameters
@@ -153,12 +135,8 @@ class TestAmplitudeRabi:
         assert rabi.experiment == tsl.experiment().children(
             tsl.acquire_loop_rt().children(
                 tsl.sweep(uid="amps_q0").children(
-                    tsl.section(uid="prep_q0_0").children(
+                    tsl.section(uid="prepare_state_q0_0").children(
                         self.reserve_ops(q0),
-                        tsl.section(uid="reset_q0_0").children(
-                            self.reserve_ops(q0),
-                            tsl.delay_op(),
-                        ),
                     ),
                     tsl.section(uid="x180_q0_0").children(
                         self.reserve_ops(q0),
@@ -169,26 +147,26 @@ class TestAmplitudeRabi:
                         tsl.play_pulse_op(),
                         tsl.acquire_op(),
                     ),
+                    tsl.section(uid="passive_reset_q0_0").children(
+                        self.reserve_ops(q0),
+                        tsl.delay_op(),
+                    ),
                 ),
                 tsl.section(uid="cal_q0").children(
-                    tsl.section(uid="prep_q0_1").children(
+                    tsl.section(uid="prepare_state_q0_1").children(
                         self.reserve_ops(q0),
-                        tsl.section(uid="reset_q0_1").children(
-                            self.reserve_ops(q0),
-                            tsl.delay_op(),
-                        ),
                     ),
                     tsl.section(uid="measure_q0_1").children(
                         self.reserve_ops(q0),
                         tsl.play_pulse_op(),
                         tsl.acquire_op(),
                     ),
-                    tsl.section(uid="prep_q0_2").children(
+                    tsl.section(uid="passive_reset_q0_1").children(
                         self.reserve_ops(q0),
-                        tsl.section(uid="reset_q0_2").children(
-                            self.reserve_ops(q0),
-                            tsl.delay_op(),
-                        ),
+                        tsl.delay_op(),
+                    ),
+                    tsl.section(uid="prepare_state_q0_2").children(
+                        self.reserve_ops(q0),
                         tsl.section(uid="x180_q0_1").children(
                             self.reserve_ops(q0),
                             tsl.play_pulse_op(),
@@ -198,6 +176,10 @@ class TestAmplitudeRabi:
                         self.reserve_ops(q0),
                         tsl.play_pulse_op(),
                         tsl.acquire_op(),
+                    ),
+                    tsl.section(uid="passive_reset_q0_2").children(
+                        self.reserve_ops(q0),
+                        tsl.delay_op(),
                     ),
                 ),
             ),

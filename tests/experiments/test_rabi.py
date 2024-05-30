@@ -41,12 +41,8 @@ def reference_rabi_exp(qubits, count, amplitudes, transition):
         if transition == "ge":
             acq.children(
                 tsl.sweep(uid=f"amps_{q.uid}_0", parameters=[sweep_parameter]).children(
-                    tsl.section(uid=f"prep_{q.uid}_0").children(
+                    tsl.section(uid=f"prepare_state_{q.uid}_0").children(
                         reserve_ops(q),
-                        tsl.section(uid=f"reset_{q.uid}_0").children(
-                            reserve_ops(q),
-                            tsl.delay_op(),
-                        ),
                     ),
                     tsl.section(uid=f"x180_{q.uid}_0").children(
                         reserve_ops(q),
@@ -57,28 +53,28 @@ def reference_rabi_exp(qubits, count, amplitudes, transition):
                         tsl.play_pulse_op(),
                         tsl.acquire_op(),
                     ),
+                    tsl.section(uid=f"passive_reset_{q.uid}_0").children(
+                        reserve_ops(q),
+                        tsl.delay_op(),
+                    ),
                 ),
             )
             acq.children(
                 tsl.section(uid=f"cal_{q.uid}_0").children(
-                    tsl.section(uid=f"prep_{q.uid}_1").children(
+                    tsl.section(uid=f"prepare_state_{q.uid}_1").children(
                         reserve_ops(q),
-                        tsl.section(uid=f"reset_{q.uid}_1").children(
-                            reserve_ops(q),
-                            tsl.delay_op(),
-                        ),
                     ),
                     tsl.section(uid=f"measure_{q.uid}_1").children(
                         reserve_ops(q),
                         tsl.play_pulse_op(),
                         tsl.acquire_op(),
                     ),
-                    tsl.section(uid=f"prep_{q.uid}_2").children(
+                    tsl.section(uid=f"passive_reset_{q.uid}_1").children(
                         reserve_ops(q),
-                        tsl.section(uid=f"reset_{q.uid}_2").children(
-                            reserve_ops(q),
-                            tsl.delay_op(),
-                        ),
+                        tsl.delay_op(),
+                    ),
+                    tsl.section(uid=f"prepare_state_{q.uid}_2").children(
+                        reserve_ops(q),
                         tsl.section(uid=f"x180_{q.uid}_1").children(
                             reserve_ops(q),
                             tsl.play_pulse_op(),
@@ -89,17 +85,17 @@ def reference_rabi_exp(qubits, count, amplitudes, transition):
                         tsl.play_pulse_op(),
                         tsl.acquire_op(),
                     ),
+                    tsl.section(uid=f"passive_reset_{q.uid}_2").children(
+                        reserve_ops(q),
+                        tsl.delay_op(),
+                    ),
                 ),
             )
         elif transition == "ef":
             acq.children(
                 tsl.sweep(uid=f"amps_{q.uid}_0", parameters=[sweep_parameter]).children(
-                    tsl.section(uid=f"prep_{q.uid}_0").children(
+                    tsl.section(uid=f"prepare_state_{q.uid}_0").children(
                         reserve_ops(q),
-                        tsl.section(uid=f"reset_{q.uid}_0").children(
-                            reserve_ops(q),
-                            tsl.delay_op(),
-                        ),
                         tsl.section(uid=f"x180_{q.uid}_0").children(
                             reserve_ops(q),
                             tsl.play_pulse_op(length=x180_ge_length),
@@ -114,16 +110,16 @@ def reference_rabi_exp(qubits, count, amplitudes, transition):
                         tsl.play_pulse_op(),
                         tsl.acquire_op(),
                     ),
+                    tsl.section(uid=f"passive_reset_{q.uid}_0").children(
+                        reserve_ops(q),
+                        tsl.delay_op(),
+                    ),
                 ),
             )
             acq.children(
                 tsl.section(uid=f"cal_{q.uid}_0").children(
-                    tsl.section(uid=f"prep_{q.uid}_1").children(
+                    tsl.section(uid=f"prepare_state_{q.uid}_1").children(
                         reserve_ops(q),
-                        tsl.section(uid=f"reset_{q.uid}_1").children(
-                            reserve_ops(q),
-                            tsl.delay_op(),
-                        ),
                         tsl.section(uid=f"x180_{q.uid}_2").children(
                             reserve_ops(q),
                             tsl.play_pulse_op(length=x180_ge_length),
@@ -134,12 +130,12 @@ def reference_rabi_exp(qubits, count, amplitudes, transition):
                         tsl.play_pulse_op(),
                         tsl.acquire_op(),
                     ),
-                    tsl.section(uid=f"prep_{q.uid}_2").children(
+                    tsl.section(uid=f"passive_reset_{q.uid}_1").children(
                         reserve_ops(q),
-                        tsl.section(uid=f"reset_{q.uid}_2").children(
-                            reserve_ops(q),
-                            tsl.delay_op(),
-                        ),
+                        tsl.delay_op(),
+                    ),
+                    tsl.section(uid=f"prepare_state_{q.uid}_2").children(
+                        reserve_ops(q),
                         tsl.section(uid=f"x180_{q.uid}_3").children(
                             reserve_ops(q),
                             tsl.play_pulse_op(),
@@ -153,6 +149,10 @@ def reference_rabi_exp(qubits, count, amplitudes, transition):
                         reserve_ops(q),
                         tsl.play_pulse_op(),
                         tsl.acquire_op(),
+                    ),
+                    tsl.section(uid=f"passive_reset_{q.uid}_2").children(
+                        reserve_ops(q),
+                        tsl.delay_op(),
                     ),
                 ),
             )
@@ -176,6 +176,7 @@ class TestWorkflow:
             def run_wf(**kw):
                 wf = amplitude_rabi_workflow.create()
                 return wf.run(**kw)
+
         else:
             run_wf = amplitude_rabi_workflow
 

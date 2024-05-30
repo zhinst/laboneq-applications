@@ -5,7 +5,7 @@ from __future__ import annotations
 import copy
 from contextlib import contextmanager
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Literal
 
 import numpy as np
 from laboneq.core.utilities.dsl_dataclass_decorator import classformatter
@@ -535,16 +535,39 @@ class TunableTransmonOperations(QuantumOperations):
         )
 
     @quantum_operation
-    def prep(self, q: TunableTransmonQubit, state: str = "g") -> None:
+    def prepare_state(
+        self,
+        q: TunableTransmonQubit,
+        state: str = "g",
+        reset: Literal["active", "passive"] | None = None,
+    ) -> None:
         """Prepare a qubit in the given state.
+
+        The qubit is assumed to be in the ground state, 'g'. If this is not
+        the case pass `reset="passive"` or `reset="active"` to perform a
+        passive or active reset operation before preparing the state.
 
         Arguments:
             q:
                 The qubit to prepare.
             state:
                 The state to prepapre. One of 'g', 'e' or 'f'.
+            reset:
+                If not None, perform the specified reset operation before
+                preparing the state.
         """
-        self.reset(q)
+        if reset is None:
+            pass
+        elif reset == "passive":
+            self.passive_reset(q)
+        elif reset == "active":
+            raise ValueError("The active reset operation is not yet implemented.")
+        else:
+            raise ValueError(
+                f"The reset parameter to prepare_state must be 'active',"
+                f" 'passive', or None, not: {reset!r}",
+            )
+
         if state == "g":
             pass
         elif state == "e":
@@ -556,14 +579,23 @@ class TunableTransmonOperations(QuantumOperations):
             raise ValueError(f"Only states g, e and f can be prepared, not {state!r}")
 
     @quantum_operation
-    def reset(self, q: TunableTransmonQubit) -> None:
-        """Reset a qubit into the ground state, 'g'.
+    def passive_reset(
+        self,
+        q: TunableTransmonQubit,
+        delay: float | SweepParameter | None = None,
+    ) -> None:
+        """Reset a qubit into the ground state, 'g', using a long delay.
 
         Arguments:
             q:
                 The qubit to reset.
+            delay:
+                The duration of the delay in seconds. Defaults
+                to the qubit parameter `reset_delay_length`.
         """
-        self.delay.section(omit=True)(q, time=q.parameters.reset_delay_length)
+        if delay is None:
+            delay = q.parameters.reset_delay_length
+        self.delay.section(omit=True)(q, time=delay)
 
     @quantum_operation
     def rx(  # noqa: PLR0913
