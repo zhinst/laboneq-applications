@@ -16,7 +16,7 @@ def update_qubits(
 
     Args:
         qubit_parameter_pairs: A sequence of tuples, each consists of a qubit and
-        a parameter dictionary to update.
+            a parameter dictionary to update.
 
     Example:
         ```python
