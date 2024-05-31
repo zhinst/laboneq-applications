@@ -178,7 +178,8 @@ class WorkflowBuilder:
 def workflow(func: Callable) -> WorkflowBuilder:
     """A decorator to mark a function as workflow.
 
-    The arguments of the function will be the input values for the `Workflow`.
+    The arguments of the function will be the input values for the wrapped function and
+    must be supplied as keyword arguments.
 
     Returns:
         A Workflow builder, which can be used to generate a workflow out of the
@@ -194,6 +195,12 @@ def workflow(func: Callable) -> WorkflowBuilder:
 
         wf = my_workflow.create()
         results = wf.run(x=123)
+        ```
+
+        Executing the workflow without an instance:
+
+        ```python
+        results = my_workflow(x=123)
         ```
     """
     return WorkflowBuilder(func)

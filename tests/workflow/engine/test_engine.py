@@ -13,7 +13,7 @@ from laboneq_applications.workflow.engine import (
     if_,
     workflow,
 )
-from laboneq_applications.workflow.engine.workflow import WorkflowBuilder
+from laboneq_applications.workflow.engine.core import WorkflowBuilder
 
 
 @task
