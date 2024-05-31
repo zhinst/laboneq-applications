@@ -7,19 +7,19 @@ import inspect
 import textwrap
 from typing import TYPE_CHECKING, Callable, ClassVar
 
-from laboneq.dsl.experiment import builtins, section_context
-from laboneq.simple import (
-    ExecutionType,
-    QuantumElement,
-    Section,
-    SectionAlignment,
-    pulse_library,
-)
+from laboneq.dsl.experiment import builtins
 
-from .build_experiment import _qubits_from_args
+from laboneq_applications import dsl
+from laboneq_applications.core.build_experiment import _qubits_from_args
 
 if TYPE_CHECKING:
     from laboneq.dsl.experiment.pulse import Pulse
+    from laboneq.simple import (
+        ExecutionType,
+        QuantumElement,
+        Section,
+        SectionAlignment,
+    )
 
 
 # TODO: add support for broadcasting operations over lists of qubits
@@ -143,37 +143,6 @@ def create_pulse(
         pulse_cache.store(pulse, name, function, parameters)
 
     return pulse
-
-
-class _DSLBuiltinOperations:
-    """A convenience class for accessing explicitly supported LabOne Q DSL operations.
-
-    The DSL operations listed here are typically functions from
-    `laboneq.dsl.experiment.builtins`.
-
-    This class is only accessed via the ``dsl`` variable which holds a
-    singleton instance of the class.
-    """
-
-    acquire_loop_rt = staticmethod(builtins.acquire_loop_rt)
-    acquire = staticmethod(builtins.acquire)
-    add = staticmethod(builtins.add)
-    delay = staticmethod(builtins.delay)
-    experiment = staticmethod(builtins.experiment)
-    experiment_calibration = staticmethod(builtins.experiment_calibration)
-    measure = staticmethod(builtins.measure)
-    play = staticmethod(builtins.play)
-    reserve = staticmethod(builtins.reserve)
-    section = staticmethod(builtins.section)
-    sweep = staticmethod(builtins.sweep)
-    uid = staticmethod(builtins.uid)
-
-    active_section = staticmethod(section_context.active_section)
-
-    pulse_library = pulse_library
-
-
-dsl = _DSLBuiltinOperations()
 
 
 UNSET = object()  # default sentinel

@@ -8,8 +8,8 @@ import pytest
 from laboneq.simple import SectionAlignment, Session, SweepParameter
 
 import tests.helpers.dsl as tsl
+from laboneq_applications import dsl
 from laboneq_applications.core.build_experiment import build, qubit_experiment
-from laboneq_applications.core.quantum_operations import dsl
 from laboneq_applications.qpu_types.tunable_transmon import (
     TunableTransmonOperations,
     TunableTransmonQubit,

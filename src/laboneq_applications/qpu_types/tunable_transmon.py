@@ -15,10 +15,10 @@ from laboneq.dsl.quantum import (
     TransmonParameters,
 )
 
+from laboneq_applications import dsl
 from laboneq_applications.core.quantum_operations import (
     QuantumOperations,
     create_pulse,
-    dsl,
     quantum_operation,
 )
 

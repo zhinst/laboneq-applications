@@ -8,6 +8,7 @@ from laboneq.simple import (
 )
 
 import tests.helpers.dsl as tsl
+from laboneq_applications import dsl
 from laboneq_applications.core.build_experiment import (
     ExperimentBuilder,
     build,
@@ -15,7 +16,6 @@ from laboneq_applications.core.build_experiment import (
 )
 from laboneq_applications.core.quantum_operations import (
     QuantumOperations,
-    dsl,
     quantum_operation,
 )
 
@@ -125,7 +125,11 @@ class TestExperimentBuilder:
         shots = 5
         acquire_range = 12
         exp = builder(
-            dummy_ops, dummy_q, amplitudes, shots=shots, acquire_range=acquire_range,
+            dummy_ops,
+            dummy_q,
+            amplitudes,
+            shots=shots,
+            acquire_range=acquire_range,
         )
 
         assert exp.get_calibration() == tsl.calibration(

@@ -14,12 +14,12 @@ from laboneq.simple import (
 )
 
 import tests.helpers.dsl as tsl
+from laboneq_applications import dsl
 from laboneq_applications.core.build_experiment import qubit_experiment
 from laboneq_applications.core.quantum_operations import (
     QuantumOperations,
     _PulseCache,
     create_pulse,
-    dsl,
     quantum_operation,
 )
 
