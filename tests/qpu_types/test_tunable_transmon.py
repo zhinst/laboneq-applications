@@ -354,6 +354,7 @@ class TestTunableTransmonOperations:
         def exp_set_freq(q):
             # set_frequency requires an experiment context to access the calibration
             qops.set_frequency(q, freq, rf=rf)
+            qops.x90(q)
 
         exp = exp_set_freq(q0)
 
@@ -387,6 +388,7 @@ class TestTunableTransmonOperations:
         def exp_set_freq(q):
             # set_frequency requires an experiment context to access the calibration
             qops.set_frequency(q, 1.8e9, transition="ef")
+            qops.x90(q, transition="ef")
 
         exp = exp_set_freq(q0)
 
@@ -416,7 +418,9 @@ class TestTunableTransmonOperations:
         @qubit_experiment
         def exp_set_freq(q):
             # set_frequency requires an experiment context to access the calibration
-            qops.set_frequency(q, freq, readout=True, rf=rf)
+            with dsl.acquire_loop_rt(count=10):
+                qops.set_frequency(q, freq, readout=True, rf=rf)
+                qops.measure(q, handle="measure")
 
         exp = exp_set_freq(q0)
 
@@ -463,6 +467,7 @@ class TestTunableTransmonOperations:
         oscillator_freqs,
         single_tunable_transmon,
     ):
+        # TODO: Why do the rf=True cases not fail here?
         [q0] = single_tunable_transmon.qubits
 
         @qubit_experiment
@@ -470,11 +475,83 @@ class TestTunableTransmonOperations:
             # set_frequency requires an experiment context to access the calibration
             with dsl.sweep(parameter=SweepParameter(values=frequencies)) as frequency:
                 qops.set_frequency(q, frequency, rf=rf)
+                qops.x90(q)
 
         exp = exp_set_freq(q0, freqs)
 
         calibration = exp.get_calibration()
         signal_calibration = calibration[q0.signals["drive"]]
+        frequency = signal_calibration.oscillator.frequency
+        assert isinstance(frequency, SweepParameter)
+        np.testing.assert_equal(frequency.values, oscillator_freqs)
+
+        self.check_exp_compiles(exp, single_tunable_transmon)
+
+    @pytest.mark.parametrize(
+        ("rf", "freqs", "oscillator_freqs"),
+        [
+            pytest.param(
+                True,
+                [2.0e9, 2.1e9, 2.2e9],
+                [0.0e9, 0.1e9, 0.2e9],
+                id="rf-positive",
+                marks=pytest.mark.xfail(
+                    reason=(
+                        "LabOne Q does not support derived sweep parameters"
+                        " in experiment calibration"
+                    ),
+                ),
+            ),
+            pytest.param(
+                True,
+                [2.1e9, 1.9e9, 2.1e9],
+                [0.1e9, -0.1e9, 0.1e9],
+                id="rf-negative",
+                marks=pytest.mark.xfail(
+                    reason=(
+                        "LabOne Q does not support derived sweep parameters"
+                        " in experiment calibration"
+                    ),
+                ),
+            ),
+            pytest.param(
+                False,
+                [1.5e9, 1.6e9, 1.7e9],
+                [1.5e9, 1.6e9, 1.7e9],
+                id="oscillator-positive",
+            ),
+            pytest.param(
+                False,
+                [-0.1e9, -0.2e9, -0.3e9],
+                [-0.1e9, -0.2e9, -0.3e9],
+                id="oscillator-positive",
+            ),
+        ],
+    )
+    def test_set_frequency_readout_sweep(  # noqa: PLR0913
+        self,
+        qops,
+        rf,
+        freqs,
+        oscillator_freqs,
+        single_tunable_transmon,
+    ):
+        [q0] = single_tunable_transmon.qubits
+
+        @qubit_experiment
+        def exp_set_freq(q):
+            # set_frequency requires an experiment context to access the calibration
+            with dsl.acquire_loop_rt(count=10):
+                with dsl.sweep(
+                    parameter=SweepParameter(values=freqs),
+                ) as frequency:
+                    qops.set_frequency(q, frequency, readout=True, rf=rf)
+                    qops.measure(q, handle="measure")
+
+        exp = exp_set_freq(q0)
+
+        calibration = exp.get_calibration()
+        signal_calibration = calibration[q0.signals["measure"]]
         frequency = signal_calibration.oscillator.frequency
         assert isinstance(frequency, SweepParameter)
         np.testing.assert_equal(frequency.values, oscillator_freqs)
@@ -596,6 +673,80 @@ class TestTunableTransmonOperations:
         with dsl.section(name="measure_twice") as section:
             qops.measure(q0, "result_1")
             qops.measure(q0, "result_2")
+
+        self.check_op_builds_and_compiles(section, single_tunable_transmon)
+
+    def test_acquire(self, qops, single_tunable_transmon):
+        [q0] = single_tunable_transmon.qubits
+        section = qops.acquire(q0, "result")
+
+        assert section == tsl.section(
+            uid="__acquire_q0_0",
+            alignment=SectionAlignment.LEFT,
+        ).children(
+            self.reserve_ops(q0),
+            tsl.acquire_op(
+                signal="/logical_signal_groups/q0/acquire",
+                handle="result",
+                kernel=[
+                    tsl.pulse(
+                        function="const",
+                        uid="__integration_kernel_q0_0",
+                        amplitude=1.0,
+                        length=2e-6,
+                        pulse_parameters=None,
+                    ),
+                ],
+                length=2e-6,
+                pulse_parameters=None,
+            ),
+        )
+
+        self.check_op_builds_and_compiles(section, single_tunable_transmon)
+
+    def test_acquire_with_kernel_pulses(self, qops, single_tunable_transmon):
+        [q0] = single_tunable_transmon.qubits
+        kernel_pulses = [
+            {"function": "const", "amplitude": 0.5},
+            {"function": "const", "amplitude": 0.6},
+        ]
+        section = qops.acquire(q0, "result", kernel_pulses=kernel_pulses)
+
+        assert section == tsl.section(
+            uid="__acquire_q0_0",
+            alignment=SectionAlignment.LEFT,
+        ).children(
+            self.reserve_ops(q0),
+            tsl.acquire_op(
+                signal="/logical_signal_groups/q0/acquire",
+                handle="result",
+                kernel=[
+                    tsl.pulse(
+                        function="const",
+                        uid="__integration_kernel_q0_0",
+                        amplitude=0.5,
+                        pulse_parameters=None,
+                    ),
+                    tsl.pulse(
+                        function="const",
+                        uid="__integration_kernel_q0_1",
+                        amplitude=0.6,
+                        pulse_parameters=None,
+                    ),
+                ],
+                length=2e-6,
+                pulse_parameters=None,
+            ),
+        )
+
+        self.check_op_builds_and_compiles(section, single_tunable_transmon)
+
+    def test_acquire_twice(self, qops, single_tunable_transmon):
+        # if the integration kernels are created twice, this will fail to compile.
+        [q0] = single_tunable_transmon.qubits
+        with dsl.section(name="measure_twice") as section:
+            qops.acquire(q0, "result_1")
+            qops.acquire(q0, "result_2")
 
         self.check_op_builds_and_compiles(section, single_tunable_transmon)
 

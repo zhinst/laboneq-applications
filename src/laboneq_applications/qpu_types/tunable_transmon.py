@@ -487,10 +487,12 @@ class TunableTransmonOperations(QuantumOperations):
         q: TunableTransmonQubit,
         handle: str,
         readout_pulse: dict | None = None,
-        # TODO: Update type annotation and docstring to mention "default":
-        kernel_pulses: list[dict] | None = None,
+        kernel_pulses: list[dict] | Literal["default"] | None = None,
     ) -> None:
         """Perform a measurement on the qubit.
+
+        The measurement operation plays a readout pulse and performs an acquistion.
+        If you wish to perform only an acquisition, use the `acquire` operation.
 
         Arguments:
             q:
@@ -510,11 +512,19 @@ class TunableTransmonOperations(QuantumOperations):
                 Otherwise the values override or extend the existing ones.
             kernel_pulses:
                 A list of dictionaries describing the pulse parameters for
-                the integration kernels.
+                the integration kernels, or "default" or `None`.
 
-                Each dictionary must completely specify a kernel pulse and
-                its parameters (i.e. they must include the `function`
-                parameter and all of its arguments).
+                If a list of dictionaries is past, each dictionary must
+                completely specify a kernel pulse and its parameters (i.e.
+                they must include the `function` parameter and all of its
+                arguments).
+
+                If the string "default" is passed, a constant integration
+                kernel of length equal to the qubit's
+                `readout_integration_parameters.length` parameter is used.
+
+                If not specified or `None`, the kernels specified in the
+                qubit's `readout_integration_parameters.kernels` are used.
         """
         ro_params = q.parameters.readout_parameters
         ro_pulse = create_pulse(ro_params["pulse"], readout_pulse, name="readout_pulse")
@@ -532,6 +542,49 @@ class TunableTransmonOperations(QuantumOperations):
             integration_kernel=kernels,
             integration_length=integration_params["length"],
             reset_delay=None,
+        )
+
+    @quantum_operation
+    def acquire(
+        self,
+        q: TunableTransmonQubit,
+        handle: str,
+        kernel_pulses: list[dict] | Literal["default"] | None = None,
+    ) -> None:
+        """Perform an acquistion on the qubit.
+
+        The acquire operation performs only an acquisition. If you wish to play
+        a readout pulse and perform an acquisition, use the `measure` operation.
+
+        Arguments:
+            q:
+                The qubit to measure.
+            handle:
+                The handle to store the acquisition results in.
+            kernel_pulses:
+                A list of dictionaries describing the pulse parameters for
+                the integration kernels, or "default" or `None`.
+
+                If a list of dictionaries is past, each dictionary must
+                completely specify a kernel pulse and its parameters (i.e.
+                they must include the `function` parameter and all of its
+                arguments).
+
+                If the string "default" is passed, a constant integration
+                kernel of length equal to the qubit's
+                `readout_integration_parameters.length` parameter is used.
+
+                If not specified or `None`, the kernels specified in the
+                qubit's `readout_integration_parameters.kernels` are used.
+        """
+        integration_params = q.parameters.readout_integration_parameters
+        kernels = q.get_integration_kernels(kernel_pulses)
+
+        dsl.acquire(
+            signal=q.signals["acquire"],
+            handle=handle,
+            kernel=kernels,
+            length=integration_params["length"],
         )
 
     @quantum_operation

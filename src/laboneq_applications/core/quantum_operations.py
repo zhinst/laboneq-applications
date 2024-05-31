@@ -156,6 +156,7 @@ class _DSLBuiltinOperations:
     """
 
     acquire_loop_rt = staticmethod(builtins.acquire_loop_rt)
+    acquire = staticmethod(builtins.acquire)
     add = staticmethod(builtins.add)
     delay = staticmethod(builtins.delay)
     experiment = staticmethod(builtins.experiment)
