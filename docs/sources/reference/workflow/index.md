@@ -4,6 +4,7 @@ This is the `laboneq_applications.workflow` reference documentation.
 
 ## Contents
 
-* [engine](engine.md)
 * [task](task.md)
+* [taskbook](taskbook.md)
+* [engine](engine.md)
 * [exceptions](exceptions.md)
