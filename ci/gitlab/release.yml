@@ -1,0 +1,30 @@
+deploy:build-distribution:
+  stage: deploy
+  image: $DEFAULT_PYTHON_IMAGE
+  tags:
+    - linux
+    - docker
+  script:
+    - pip install build
+    - python -m build --sdist --wheel
+  only:
+    variables:
+      - $CI_COMMIT_TAG =~ /^v\d+.\d+.\d+-?.*$/
+  artifacts:
+    paths:
+      - dist
+    expire_in: 21 days
+
+deploy:deploy-internal:
+  stage: deploy
+  image: $DEFAULT_PYTHON_IMAGE
+  tags:
+    - linux
+    - docker
+  needs: ["deploy:build-distribution"]
+  script:
+    - pip install twine
+    - TWINE_PASSWORD=${CI_JOB_TOKEN} TWINE_USERNAME=gitlab-ci-token python -m twine upload --repository-url ${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/pypi dist/*
+  only:
+    variables:
+      - $CI_COMMIT_TAG =~ /^v\d+.\d+.\d+-?.*$/
