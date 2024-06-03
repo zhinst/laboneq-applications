@@ -142,6 +142,42 @@ class TestTunableTransmonQubit:
             == _original_drive_parameters_ge["pulse"]
         )
 
+    def test_nonexisting_params(self, q0):
+        # test that updating non-existing parameters raises an error
+
+        original_params = copy.deepcopy(q0.parameters)
+        with pytest.raises(ValueError) as err:
+            q0.update(
+                {
+                    "non_existing_param": 10,
+                    "readout_parameters.non_existing_param": 10,
+                    "readout_range_out": 10,
+                },
+            )
+
+        assert str(err.value) == f"Cannot update {q0.uid}"
+        # assert no parameters were updated
+        assert q0.parameters == original_params
+
+    def test_invalid_params_reported_correctly(self, q0):
+        non_existing_params = [
+            "non_existing_param",
+            "readout_parameters.non_existing_param",
+        ]
+        with pytest.raises(ValueError) as err:
+            q0.parameters._override(
+                {
+                    "non_existing_param": 10,
+                    "readout_parameters.non_existing_param": 10,
+                    "readout_range_out": 10,
+                },
+            )
+
+        assert str(err.value) == (
+            f"Update parameters do not match the qubit "
+            f"parameters: {non_existing_params}"
+        )
+
 
 class TestOverrideParameters:
     def _equal_except(self, q0, q0_temp, key):
@@ -180,6 +216,27 @@ class TestOverrideParameters:
         assert q0_temp.parameters.drive_parameters_ge["pulse"]["beta"] == 0.1
         assert original_q0 == q0
         self._equal_except(q0, q0_temp, "drive_parameters_ge")
+
+    def test_nonexisting_params(self, q0):
+        # test that updating non-existing parameters raises an error
+        original_params = copy.deepcopy(q0)
+        with pytest.raises(ValueError) as err:
+            modify_qubits(
+                [
+                    (
+                        q0,
+                        {
+                            "non_existing_param": 10,
+                            "readout_parameters.non_existing_param": 10,
+                            "readout_range_out": 10,
+                        },
+                    ),
+                ],
+            )
+
+        assert str(err.value) == f"Cannot update {q0.uid}"
+        # assert no parameters were updated
+        assert q0 == original_params
 
     def test_return_same_qubits(self, multi_qubits):
         q0, q1 = multi_qubits
@@ -229,6 +286,38 @@ class TestOverrideParameters:
         assert original_q1 == q1
         self._equal_except(q0, q0_temp, "drive_parameters_ge")
         self._equal_except(q1, q1_temp, "drive_parameters_ef")
+
+    def test_nonexisting_params_multiqubits(self, multi_qubits):
+        q0, q1 = multi_qubits
+        # test that updating non-existing parameters raises an error
+        with pytest.raises(ValueError) as err:
+            _ = modify_qubits(
+                zip(
+                    multi_qubits,
+                    [
+                        {
+                            "non_existing_param": 10,
+                            "readout_parameters.non_existing_param": 1,
+                            "reset_delay_length": 1,
+                        },
+                        {"reset_delay_length": 10},
+                    ],
+                ),
+            )
+        assert str(err.value) == (f"Cannot update {q0.uid}")
+
+        with pytest.raises(ValueError) as err:
+            _ = modify_qubits(
+                zip(
+                    multi_qubits,
+                    [
+                        {"readout_range_out": 10},
+                        {"non_existing_param": 1},
+                    ],
+                ),
+            )
+
+        assert str(err.value) == (f"Cannot update {q1.uid}")
 
     def test_temporary_qubits_context(self, multi_qubits):
         q0, q1 = multi_qubits

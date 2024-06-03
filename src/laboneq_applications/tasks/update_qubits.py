@@ -18,6 +18,9 @@ def update_qubits(
         qubit_parameter_pairs: A sequence of tuples, each consists of a qubit and
             a parameter dictionary to update.
 
+    Raises:
+        ValueError: If any of the parameters are invalid.
+
     Example:
         ```python
         from laboneq_applications.qpu_types.tunable_transmon import TunableTransmonQubit
@@ -33,5 +36,16 @@ def update_qubits(
         )
         ```
     """
+    invalid_params = []
+    for qubit, parameter_updates in qubit_parameter_pairs:
+        invalid_param = qubit._get_invalid_params_to_update(parameter_updates)
+        if invalid_param:
+            invalid_params.append((qubit.uid, invalid_param))
+    if invalid_params:
+        raise ValueError(
+            f"Qubits were not updated due to the following parameters "
+            f"being invalid: {invalid_params}",
+        )
+
     for qubit, parameter_updates in qubit_parameter_pairs:
         qubit.update(parameter_updates)

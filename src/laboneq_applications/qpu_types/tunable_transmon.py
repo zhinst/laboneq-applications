@@ -44,7 +44,7 @@ if TYPE_CHECKING:
 
 
 def modify_qubits(
-    temporary_qubit_parameters: Sequence[tuple[TunableTransmonQubit, dict]],
+    parameters: Sequence[tuple[TunableTransmonQubit, dict]],
 ) -> Sequence[TunableTransmonQubit]:
     """Create new qubits with replaced parameter values.
 
@@ -52,7 +52,7 @@ def modify_qubits(
     the parameter values.
 
     Args:
-        temporary_qubit_parameters:
+        parameters:
             A sequence of pairs of qubits and dictionaries of qubit-parameter
             values to override. If a qubit-parameter dictionary is empty, the
             unmodified qubit is returned.
@@ -63,57 +63,65 @@ def modify_qubits(
             A list of new qubits with the replaced values. The list is in the
             same order as the input qubits.
 
+    Raises:
+        ValueError:
+            No updates are made if any of the parameters is not found in the qubit.
+
     Examples:
         ```python
         [q0, q1, q2] = [TunableTransmonQubit() for _ in range(3)]
-        temporary_qubit_parameters = [
+        parameters = [
             (q0, {"readout_range_out": 10, "drive_parameters_ge.length": 100e-9}),
             (q1, {"readout_range_out": 20, "drive_parameters_ge.length": 200e-9}),
             (q2, {"readout_range_out": 30, "drive_parameters_ge.length": 300e-9}),
         ]
-        new_qubits = modify_qubits(temporary_qubit_parameters)
+        new_qubits = modify_qubits(parameters)
         # same qubits returned if parameters are empty
         [q0, q1, q2] = [TunableTransmonQubit() for _ in range(3)]
-        temporary_qubit_parameters = [
+        parameters = [
             (q0,{}),
             (q1,{}),
             (q2,{}),
         ]
-        same_qubits = modify_qubits(temporary_qubit_parameters)
+        same_qubits = modify_qubits(parameters)
         ```
     """
     new_qubits = []
-    for qubit, temp_value in temporary_qubit_parameters:
+    for qubit, temp_value in parameters:
         new_qubits.append(qubit.replace(temp_value))
     return new_qubits
 
 
 @contextmanager
 def modify_qubits_context(
-    temporary_qubit_parameters: Sequence[tuple[TunableTransmonQubit, dict]],
+    parameters: Sequence[tuple[TunableTransmonQubit, dict]],
 ) -> Generator[TunableTransmonQubit, None, None]:
     """Context manager for creating temporary qubits.
 
     Args:
-        temporary_qubit_parameters: A sequence of pair of qubits and dictionaries of
+        parameters: A sequence of pair of qubits and dictionaries of
                                     parameter and values to override.
 
     Yields:
         new_qubits: A generator that yields new qubits with the replaced values.
 
+    Raises:
+        ValueError:
+            No updates are made if any of the parameters is not found in the qubit.
+
     Examples:
         ```python
         [q0,q1,q2] = [TunableTransmonQubit() for _ in range(3)]
-        temporary_qubit_parameters = [
+        parameters = [
             (q0,{"readout_range_out": 10, "drive_parameters_ge.length": 100e-9}),
             (q1,{"readout_range_out": 20, "drive_parameters_ge.length": 200e-9}),
             (q2,{"readout_range_out": 30, "drive_parameters_ge.length": 300e-9}),
         ]
-        with modify_qubits_context(temporary_qubit_parameters) as new_qubits:
+        with modify_qubits_context(parameters) as new_qubits:
             # do something with new_qubits
         ```
     """
-    new_qubits = modify_qubits(temporary_qubit_parameters)
+    new_qubits = modify_qubits(parameters)
     yield new_qubits
 
 
@@ -181,15 +189,37 @@ class TunableTransmonQubitParameters(TransmonParameters):
     readout_integration_kernels_type: str = "default"
 
     def _override(self, overrides: dict) -> None:
+        invalid_params = self._get_invalid_param_paths(overrides)
+        if invalid_params:
+            raise ValueError(
+                f"Update parameters do not match the qubit "
+                f"parameters: {invalid_params}",
+            )
+
         for param_path, value in overrides.items():
             keys = param_path.split(".")
             obj = self
             for key in keys[:-1]:
                 obj = obj[key] if isinstance(obj, dict) else getattr(obj, key)
             if isinstance(obj, dict):
-                obj[keys[-1]] = value
-            else:
+                if keys[-1] in obj:
+                    obj[keys[-1]] = value
+            elif hasattr(obj, keys[-1]):
                 setattr(obj, keys[-1], value)
+
+    def _get_invalid_param_paths(self, overrides: dict[str, Any]) -> Sequence:
+        invalid_params = []
+        for param_path in overrides:
+            keys = param_path.split(".")
+            obj = self
+            for key in keys:
+                if isinstance(obj, dict):
+                    obj = obj.get(key, None)
+                else:
+                    obj = getattr(obj, key, None)
+                if not obj:
+                    invalid_params.append(param_path)
+        return invalid_params
 
 
 @classformatter
@@ -314,31 +344,39 @@ class TunableTransmonQubit(Transmon):
 
     def replace(
         self,
-        temporary_qubit_parameters: dict,
+        parameters: dict,
     ) -> TunableTransmonQubit:
         """Return a new qubit with replaced parameters.
 
         Args:
-            temporary_qubit_parameters: A dictionary of parameter and values to replace.
+            parameters: A dictionary of parameter and values to replace.
 
         Returns:
-            A new_qubit with the replaced values.
+            A new_qubit with the replaced values. If a qubit-parameter dictionary is
+            empty, the unmodified qubit is returned.
+
+        Raises:
+            ValueError:
+                Update parameters do not match the qubit parameters.
 
         Examples:
             ```python
             qubit = TunableTransmonQubit()
-            temporary_qubit_parameters = {
+            parameters = {
                 "readout_range_out":10,
                 "drive_parameters_ge.length": 100e-9,
             }
-            new_qubit = qubit.replace(temporary_qubit_parameters)
+            new_qubit = qubit.replace(parameters)
             ```
 
         """
-        if not temporary_qubit_parameters:
+        if not parameters:
             return self
         new_qubit = copy.deepcopy(self)
-        new_qubit.parameters._override(temporary_qubit_parameters)
+        try:
+            new_qubit.parameters._override(parameters)
+        except ValueError as err:
+            raise ValueError(f"Cannot update {self.uid}") from err
         return new_qubit
 
     def update(
@@ -350,16 +388,34 @@ class TunableTransmonQubit(Transmon):
         Args:
             parameters: A dictionary of parameter and values to update.
 
+        Raises:
+            ValueError:
+                No updates are made if any of the parameters is not found in the qubit.
+
         Examples:
             ```python
             qubit = TunableTransmonQubit()
-            temporary_qubit_parameters = {
+            parameters = {
                 "readout_range_out":10,
                 "drive_parameters_ge.length": 100e-9,
             }
-            qubit.update(temporary_qubit_parameters)
+            qubit.update(parameters)
         """
-        self.parameters._override(parameters)
+        try:
+            self.parameters._override(parameters)
+        except ValueError as err:
+            raise ValueError(f"Cannot update {self.uid}") from err
+
+    def _get_invalid_params_to_update(self, parameters: dict) -> Sequence:
+        """Check if the parameters to update exist in the qubit.
+
+        Args:
+            parameters: A dictionary of parameter and values to update.
+
+        Returns:
+            invalid_params: A list of parameters that are not found in the qubit.
+        """
+        return self.parameters._get_invalid_param_paths(parameters)
 
 
 class TunableTransmonOperations(QuantumOperations):
