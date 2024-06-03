@@ -28,3 +28,4 @@ include:
   - local: ci/gitlab/pre-build.yml
   - local: ci/gitlab/test.yml
   - local: ci/gitlab/doc.yml
+  - local: ci/gitlab/release.yml
