@@ -214,11 +214,15 @@ class TunableTransmonQubitParameters(TransmonParameters):
             obj = self
             for key in keys:
                 if isinstance(obj, dict):
-                    obj = obj.get(key, None)
-                else:
-                    obj = getattr(obj, key, None)
-                if not obj:
+                    if key not in obj:
+                        invalid_params.append(param_path)
+                        break
+                    obj = obj[key]
+                elif not hasattr(obj, key):
                     invalid_params.append(param_path)
+                    break
+                else:
+                    obj = getattr(obj, key)
         return invalid_params
 
 

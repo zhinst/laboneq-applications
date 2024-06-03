@@ -126,6 +126,11 @@ class TestTunableTransmonQubit:
         q0.update({"readout_parameters": {"length": 10e-6}})
         assert q0.parameters.readout_parameters["length"] == 10e-6
 
+        # test update existing params but with None value
+        q0.parameters.readout_parameters["pulse"] = None
+        q0.update({"readout_parameters.pulse": {"function": "const"}})
+        assert q0.parameters.readout_parameters["pulse"] == {"function": "const"}
+
         _original_drive_parameters_ge = copy.deepcopy(q0.parameters.drive_parameters_ge)
         q0.update({"drive_parameters_ge.amplitude_pi": 0.1})
         assert q0.parameters.drive_parameters_ge["amplitude_pi"] == 0.1
@@ -142,16 +147,16 @@ class TestTunableTransmonQubit:
             == _original_drive_parameters_ge["pulse"]
         )
 
-    def test_nonexisting_params(self, q0):
+    def test_update_nonexisting_params(self, q0):
         # test that updating non-existing parameters raises an error
 
         original_params = copy.deepcopy(q0.parameters)
         with pytest.raises(ValueError) as err:
             q0.update(
                 {
+                    "readout_range_out": 10,
                     "non_existing_param": 10,
                     "readout_parameters.non_existing_param": 10,
-                    "readout_range_out": 10,
                 },
             )
 
@@ -167,9 +172,27 @@ class TestTunableTransmonQubit:
         with pytest.raises(ValueError) as err:
             q0.parameters._override(
                 {
+                    "readout_range_out": 10,
                     "non_existing_param": 10,
                     "readout_parameters.non_existing_param": 10,
-                    "readout_range_out": 10,
+                },
+            )
+
+        assert str(err.value) == (
+            f"Update parameters do not match the qubit "
+            f"parameters: {non_existing_params}"
+        )
+
+        # nested invalid parameters are reported correctly
+        non_existing_params = [
+            "drive_parameters_ge.non_existing.not_existing",
+            "non_existing.not_existing",
+        ]
+        with pytest.raises(ValueError) as err:
+            q0.parameters._override(
+                {
+                    "drive_parameters_ge.non_existing.not_existing": 10,
+                    "non_existing.not_existing": 10,
                 },
             )
 
