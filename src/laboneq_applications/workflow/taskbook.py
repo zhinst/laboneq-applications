@@ -112,7 +112,7 @@ class TaskBook:
         return self._tasks
 
     @property
-    def result(self) -> list[TaskEntry]:
+    def result(self) -> object:
         """Result of the taskbook."""
         return self._result
 

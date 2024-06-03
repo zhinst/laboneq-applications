@@ -69,6 +69,7 @@ class FunctionTask(Task):
     ) -> None:
         super().__init__(name if name is not None else func.__name__)
         self._func = func
+        self.__doc__ = func.__doc__
 
     @property
     def src(self) -> str:
@@ -89,7 +90,8 @@ TaskFunction = TypeVar("TaskFunction", bound=Callable)
 
 
 @overload
-def task(func: TaskFunction, *, name: str | None = None) -> TaskFunction: ...
+def task(func: TaskFunction, *, name: str | None = None) -> TaskFunction:
+    ...
 
 
 def task(func: TaskFunction | None = None, *, name: str | None = None):  # noqa: D417
