@@ -17,5 +17,4 @@ The `update_qubits()` task is used to update the parameters of qubits in the qua
 
 * [compile_experiment](compile_experiment.md)
 * [run_experiment](run_experiment.md)
-* [extract_sweep_results](extract_sweep_results.md)
 * [update_qubits](update_qubits.md)

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Iterator, Mapping
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any
 
@@ -46,9 +47,104 @@ class RunExperimentResults:
         execution_errors:
             The errors that occurred during running the experiment. Each
             item in the list is a tuple of
-           `(sweep indices, realt-time section uid, error message)`.
+            `(sweep indices, realt-time section uid, error message)`.
     """
 
     acquired_results: dict[str, AcquiredResult] = field(default_factory=dict)
     neartime_callback_results: dict[str, list[Any]] = field(default=None)
     execution_errors: list[tuple[list[int], str, str]] = field(default=None)
+
+    @property
+    def results(self) -> AttributeWrapper:
+        """The acquired results of the experiment, accessible in dot notation.
+
+        Returns:
+            A wrapper for the acquired results, which allows to access them in
+            dot notation, where the levels are separated by slashes in the handle.
+
+        Example:
+        ```python
+        results = RunExperimentResults(
+            acquired_results={
+                "cal_trace/q0/g": AcquiredResult(
+                    data=numpy.array([1, 2, 3]),
+                    axis_name=["Amplitude"],
+                    axis=[numpy.array([0, 1, 2])],
+                ),
+            },
+        )
+        assert results.cal_trace.q0.g is results.acquired_results["cal_trace/q0/g"]
+        assert list(results.cal_trace.q0.keys()) == ["g"]
+        ```
+        """
+        return AttributeWrapper(self.acquired_results)
+
+
+class AttributeWrapper(Mapping[str, Any]):
+    """A wrapper for accessing members of a dict in dot notation.
+
+    Input data is a dict, where each key is a string, where levels are separated by
+    slashes. The wrapper allows to access the data in dot notation, where the levels
+    are separated by dots. The wrapper also provides a read-only dict interface.
+
+    Attributes:
+        data: The dict to wrap.
+        path: The path to the current level in the dict.
+
+    Example:
+    ```python
+    data = {
+        "cal_trace/q0/g": 12345,
+    }
+    wrapper = AttributeWrapper(data)
+    assert wrapper.cal_trace.q0.g == 12345
+    assert len(wrapper.cal_trace) == 1
+    assert set(wrapper.cal_trace.keys()) == {"q0"}
+    ```
+    """
+
+    def _get_subkey(self, key: str) -> str:
+        prefix_len = len(self.path)
+        return key[prefix_len + 1 :].split(self.separator, 1)[0]
+
+    def _add_path(self, key: str) -> str:
+        return (self.path + self.separator + key) if self.path else key
+
+    def __init__(self, data: dict[str, Any], path: str | None = None) -> None:
+        self.data = data
+        self.path = path or ""
+        self.separator = "/"
+        self._key_cache = [
+            self._get_subkey(k) for k in self.data if k.startswith(self.path)
+        ]
+        if not self._key_cache:
+            raise AttributeError(f"Key '{self.path}' not found in the data.")
+
+    def __len__(self) -> int:
+        return len(self._key_cache)
+
+    def __iter__(self) -> Iterator[str]:
+        return iter(self._key_cache)
+
+    def keys(self) -> list[str]:
+        """Return the keys of the current path in the data."""
+        return (k for k in self._key_cache)
+
+    def __getitem__(self, key: str) -> AttributeWrapper:
+        path = self._add_path(key)
+        try:
+            return self.data[path]
+        except KeyError:
+            return AttributeWrapper(self.data, path)
+
+    def __getattr__(self, key: str) -> AttributeWrapper:
+        return self.__getitem__(key)
+
+    def __eq__(self, value: object) -> bool:
+        if not isinstance(value, AttributeWrapper):
+            return NotImplemented
+        return (
+            self.data == value.data
+            and self.path == value.path
+            and self.separator == value.separator
+        )

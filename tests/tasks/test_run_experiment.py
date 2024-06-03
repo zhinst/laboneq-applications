@@ -2,8 +2,9 @@
 
 import pytest
 from laboneq.dsl.experiment import Experiment
+from laboneq.dsl.result.results import Results
 
-from laboneq_applications.tasks import run_experiment
+from laboneq_applications.tasks import RunExperimentResults, run_experiment
 from laboneq_applications.workflow.engine import Workflow
 
 
@@ -24,43 +25,23 @@ class TestRunExperiment:
             compiled_experiment=self.compiled_experiment,
         )
         # Then the session should run the compiled experiment
-        assert results.single_qubit_data == {}
-
-    def test_run_experiment_with_empty_options(self, simple_session):
-        """Test that the run_experiment task runs the compiled
-        experiment in the session when called directly with empty options."""
-
-        results = run_experiment(
-            session=simple_session,
-            compiled_experiment=self.compiled_experiment,
-            options={},
-        )
-        # Then the session should run the compiled experiment
-        assert results.single_qubit_data == {}
-
-    def test_run_experiment_with_options_none(self, simple_session):
-        """Test that the run_experiment task runs the compiled
-        experiment in the session when called directly with empty options."""
-
-        results = run_experiment(
-            session=simple_session,
-            compiled_experiment=self.compiled_experiment,
-            options={"extractor": None, "postprocessor": None},
-        )
-        # Then the session should run the compiled experiment
+        assert isinstance(results, RunExperimentResults)
         assert "ac0" in results.acquired_results
 
-    def test_run_experiment_with_options_not_none(self, simple_session):
+    def test_run_experiment_standalone_with_raw(self, simple_session):
         """Test that the run_experiment task runs the compiled
-        experiment in the session when called directly with empty options."""
+        experiment in the session when called directly."""
 
         results = run_experiment(
             session=simple_session,
             compiled_experiment=self.compiled_experiment,
-            options={"extractor": lambda x: x, "postprocessor": lambda x: x},
+            return_raw_results=True,
         )
         # Then the session should run the compiled experiment
-        assert "ac0" in results.acquired_results
+        assert isinstance(results[0], RunExperimentResults)
+        assert isinstance(results[1], Results)
+        assert "ac0" in results[0].acquired_results
+        assert "ac0" in results[1].acquired_results
 
     def test_run_experiment_as_task(self, simple_session):
         """Test that the run_experiment task runs the compiled
@@ -70,7 +51,6 @@ class TestRunExperiment:
             run_experiment(
                 session=simple_session,
                 compiled_experiment=self.compiled_experiment,
-                options={"extractor": lambda x: x, "postprocessor": lambda x: x},
             )
         assert len(wf.run().tasklog) == 1
         [results] = wf.run().tasklog["run_experiment"]

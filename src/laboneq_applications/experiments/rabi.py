@@ -14,7 +14,7 @@ from laboneq_applications.core.options import (
 from laboneq_applications.core.quantum_operations import QuantumOperations, dsl
 from laboneq_applications.core.validation import validate_and_convert_qubits_sweeps
 from laboneq_applications.tasks import compile_experiment, run_experiment
-from laboneq_applications.utils.handle_helpers import (
+from laboneq_applications.utils.handle_formatters import (
     calibration_trace_handle,
     result_handle,
 )

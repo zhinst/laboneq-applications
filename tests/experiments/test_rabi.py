@@ -202,10 +202,14 @@ class TestWorkflow:
         assert compiled_exp.device_setup.uid == "test"
 
         [exp_result] = result.tasklog["run_experiment"]
-        assert len(exp_result.sweep_data("q0")) > 0
-        assert exp_result.calibration_traces("q0", "g") is not None
-        assert exp_result.calibration_traces("q0", "e") is not None
-        traces = exp_result.calibration_traces("q0", ("g", "e"))
+        results = exp_result.results
+        np.testing.assert_array_almost_equal(
+            results.result.q0.axis,
+            [[0.1, 0.2]],
+        )
+        np.testing.assert_almost_equal(results.cal_trace.q0.g.data, 4.2 + 0.2j)
+        np.testing.assert_almost_equal(results.cal_trace.q0.e.data, 4.2 + 0.3j)
+        traces = results.cal_trace.q0
         assert len(traces) == 2
 
 
