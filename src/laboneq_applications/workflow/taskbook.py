@@ -141,6 +141,7 @@ class _TaskBookExecutor(ExecutorContext):
         r = task._run(*args, **kwargs)
         entry = TaskEntry(task=task, result=r, args=args, kwargs=kwargs)
         self.taskbook.add_entry(entry)
+        return r
 
 
 def taskbook(func: Callable) -> Callable[..., TaskBook]:

@@ -88,3 +88,11 @@ class TestTaskBookDecorator:
 
         with pytest.raises(NotImplementedError, match="Taskbooks cannot be nested."):
             book_b()
+
+    def test_task_return_value_is_returned(self):
+        @taskbook
+        def book():
+            return task_a()
+
+        res = book()
+        assert res.result == 1
