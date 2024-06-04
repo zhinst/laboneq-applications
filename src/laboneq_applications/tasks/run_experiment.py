@@ -9,8 +9,7 @@ from laboneq_applications.workflow.task import task
 
 if TYPE_CHECKING:
     from laboneq.core.types import CompiledExperiment
-
-    from laboneq_applications.dsl import Results, Session
+    from laboneq.simple import Results, Session
 
 
 def extract_results(results: Results) -> RunExperimentResults:
@@ -69,18 +68,6 @@ def run_experiment(
                 (returned from `Session.run()`) and an instance of
                 `RunExperimentResults` if `return_raw_results` is `True`.
             ... an instance of RunExperimentResults if `return_raw_results` is `False`.
-
-    Example:
-        ```python
-        from laboneq_library.tasks import run_experiment
-        from laboneq_library.workflow.engine import Workflow
-
-        with Workflow() as wf:
-            results = run_experiment(
-                session=session,
-                compiled_experiment=compiled_experiment,
-            )
-        ```
     """
     laboneq_results = session.run(compiled_experiment)
     extracted_results = extract_results(laboneq_results)

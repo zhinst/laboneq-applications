@@ -18,7 +18,7 @@ def compile_experiment(
     experiment: Experiment,
     compiler_settings: dict | None = None,
 ) -> CompiledExperiment:
-    """Workflow task to compile the specified experiment for a given setup.
+    """A task to compile the specified experiment for a given setup.
 
     This task is used to prepare a LabOne Q DSL experiment for execution on a quantum
     processor. It will return the results of a LabOneQ Session.compile() call.
@@ -34,12 +34,6 @@ def compile_experiment(
     Returns:
         [CompiledExperiment][laboneq.core.types.compiled_experiment.CompiledExperiment]
             The `laboneq` compiled experiment.
-
-    Example:
-        >>> from laboneq_library.tasks.compile_experiment import compile_experiment
-        >>> from laboneq_library.workflow.engine import Workflow
-        >>> with Workflow() as wf:
-        >>>   compiled_experiment = compile_experiment(session, experiment)
     """
     return session.compile(
         experiment=experiment,
