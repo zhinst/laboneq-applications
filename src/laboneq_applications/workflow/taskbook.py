@@ -148,13 +148,15 @@ def taskbook(func: Callable) -> Callable[..., TaskBook]:
     """A decorator to turn a function into a taskbook.
 
     When a function is marked as a taskbook, it will record
-    each task's information.
+    each task's information. Otherwise the taskbook behaves just
+    like an ordinary Python function.
 
     Arguments:
         func: Function to be marked as a taskbook.
 
     Returns:
-        A taskbook which holds the records of each executed task.
+        A taskbook which holds the records of each executed task and
+            the return value of the taskbook function.
     """
 
     @wraps(func)

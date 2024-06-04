@@ -96,3 +96,21 @@ class TestTaskBookDecorator:
 
         res = book()
         assert res.result == 1
+
+    def test_normal_function_with_task(self):
+        @task
+        def add_1(x):
+            return x + 1
+
+        def sum_2(x):
+            return x + 2
+
+        @taskbook
+        def book(x, y=None):
+            for value in [1, x, y]:
+                latest_record = add_1(value)
+            return sum_2(latest_record)
+
+        res = book(5, y=10)
+        assert [r.result for r in res.tasks] == [2, 6, 11]
+        assert res.result == 10 + 1 + 2
