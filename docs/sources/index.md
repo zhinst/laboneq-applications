@@ -8,3 +8,4 @@ Welcome to the LabOne Q Applications Library documentation.
 
 * [Home](index.md)
 * [Reference](reference/)
+* [Release Notes](release_notes.md)
