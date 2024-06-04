@@ -59,7 +59,7 @@ This also works if you wish to save only specific calls to the function.
 ```python
 @taskbook
 def my_taskbook(x):
-    x = task(addition(1, x))  # Record will be saved
+    x = task(addition)(1, x)  # Record will be saved
     y = addition(2, x)  # No record saved
 ```
 
