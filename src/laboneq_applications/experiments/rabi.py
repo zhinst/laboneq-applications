@@ -80,11 +80,11 @@ def amplitude_rabi_workflow(
 
         ```python
         options = {
-            count: 10,
-            transition: "ge",
-            averaging_mode: "cyclic",
-            acquisition_type: "integration_trigger",
-            cal_traces: True
+            "count": 10,
+            "transition": "ge",
+            "averaging_mode": "cyclic",
+            "acquisition_type": "integration_trigger",
+            "cal_traces": True
         }
         result = amplitude_rabi_workflow(
             session=session,
@@ -168,11 +168,11 @@ def amplitude_rabi(
     Example:
         ```python
         options = {
-            count: 10,
-            transition: "ge",
-            averaging_mode: "cyclic",
-            acquisition_type: "integration_trigger",
-            cal_traces: True
+            "count": 10,
+            "transition": "ge",
+            "averaging_mode": "cyclic",
+            "acquisition_type": "integration_trigger",
+            "cal_traces": True
         }
         amplitude_rabi(
             qop=TunableTransmonOperations(),
