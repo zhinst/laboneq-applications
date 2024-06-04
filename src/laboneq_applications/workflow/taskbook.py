@@ -13,12 +13,16 @@ saved into the taskbook records.
 ```python
 from laboneq.workflow import task, taskbook
 
+def addition(x, y):
+    return x + y
+
 @task
 def my_task(x):
    return x + 1
 
 @taskbook
 def my_taskbook(x):
+    x = addition(1, x)
     my_task(x)
     return "success"
 
@@ -37,10 +41,30 @@ can be accessed from the result object:
 >>> result.result
 "success"
 >>> result.tasks[0].result
-6
+7
 >>> result.tasks[0].args
-(5,)
+(6,)
 ```
+
+As `addition()` was not marked as a task, it has no records in the taskbook.
+
+### Running functions as tasks
+
+If a function is a normal Python function and you'd wish to run it as a task within the
+taskbook without adding the `task()` decorator, it can be done by wrapping the
+function with it.
+
+This also works if you wish to save only specific calls to the function.
+
+```python
+@taskbook
+def my_taskbook(x):
+    x = task(addition(1, x))  # Record will be saved
+    y = addition(2, x)  # No record saved
+```
+
+Now the normal Python function `addition()` wrapped in `task()` will have records
+within the taskbook.
 """
 
 from __future__ import annotations
