@@ -97,6 +97,20 @@ class TestTaskBookDecorator:
         res = book()
         assert res.result == 1
 
+    def test_run_normal_function_as_task(self):
+        def normal_function(x):
+            return x + 2
+
+        @taskbook
+        def book():
+            task(normal_function)(1)
+            return normal_function(3)
+
+        res = book()
+        assert len(res.tasks) == 1
+        assert res.tasks[0].result == 3
+        assert res.result == 5
+
     def test_normal_function_with_task(self):
         @task
         def add_1(x):
