@@ -1,5 +1,4 @@
-""" Tests for laboneq_applications.experiments amplitude Rabi. """
-
+"""Tests for laboneq_applications.experiments amplitude Rabi."""
 
 from laboneq.simple import (
     LinearSweepParameter,
@@ -8,7 +7,6 @@ from laboneq.simple import (
 )
 
 import tests.helpers.dsl as tsl
-from laboneq_applications.core.build_experiment import qubit_experiment
 from laboneq_applications.core.quantum_operations import dsl
 from laboneq_applications.experiments_legacy.qubit_calibration_experiments import (
     AmplitudeRabi,
@@ -20,7 +18,7 @@ from laboneq_applications.qpu_types.tunable_transmon import (
 
 class AmplitudeRabiOps(AmplitudeRabi):
     @staticmethod
-    @qubit_experiment
+    @dsl.qubit_experiment
     def rabi_exp(qop, qubits, qubit_amplitudes, count=10, transition="ge"):
         with dsl.acquire_loop_rt(count=count):
             for q, q_amplitudes in zip(qubits, qubit_amplitudes):

@@ -1,4 +1,4 @@
-""" Tests for laboneq_applications.core.build_experiment. """
+"""Tests for laboneq_applications.core.build_experiment."""
 
 import numpy as np
 import pytest
@@ -12,7 +12,6 @@ from laboneq_applications import dsl
 from laboneq_applications.core.build_experiment import (
     ExperimentBuilder,
     build,
-    qubit_experiment,
 )
 from laboneq_applications.core.quantum_operations import (
     QuantumOperations,
@@ -143,7 +142,7 @@ class TestExperimentBuilder:
 
 class TestQubitExperiment:
     def test_decorator(self, dummy_ops, dummy_q):
-        @qubit_experiment
+        @dsl.qubit_experiment
         def exp_1(qop, q, amplitude):
             qop.x(q, amplitude)
 
@@ -157,7 +156,7 @@ class TestQubitExperiment:
         )
 
     def test_partial_decorator(self, dummy_ops, dummy_q):
-        @qubit_experiment(name="custom_name")
+        @dsl.qubit_experiment(name="custom_name")
         def exp_2(qop, q, amplitude):
             qop.x(q, amplitude)
 

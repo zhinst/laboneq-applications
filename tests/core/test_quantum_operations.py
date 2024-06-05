@@ -1,4 +1,4 @@
-""" Tests for laboneq_applications.core.quantum_operations. """
+"""Tests for laboneq_applications.core.quantum_operations."""
 
 import numpy as np
 import pytest
@@ -15,7 +15,6 @@ from laboneq.simple import (
 
 import tests.helpers.dsl as tsl
 from laboneq_applications import dsl
-from laboneq_applications.core.build_experiment import qubit_experiment
 from laboneq_applications.core.quantum_operations import (
     QuantumOperations,
     _PulseCache,
@@ -178,7 +177,7 @@ class TestDsl:
 
 class TestQuantumOperations:
     @staticmethod
-    @qubit_experiment
+    @dsl.qubit_experiment
     def simple_exp(qop, q, amplitudes, shots, prep=None):
         with dsl.acquire_loop_rt(count=shots):
             with dsl.sweep(parameter=SweepParameter(values=amplitudes)) as amplitude:
@@ -187,7 +186,7 @@ class TestQuantumOperations:
                 qop.x(q, amplitude)
 
     @staticmethod
-    @qubit_experiment
+    @dsl.qubit_experiment
     def single_op_exp(qop, q, op_name):
         qop[op_name](q)
 

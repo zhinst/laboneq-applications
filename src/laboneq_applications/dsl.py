@@ -22,6 +22,7 @@ __all__ = [
     "active_section",
     # pulse_library:
     "pulse_library",
+    "qubit_experiment",
 ]
 
 from laboneq.dsl.experiment.builtins import (
@@ -40,3 +41,5 @@ from laboneq.dsl.experiment.builtins import (
 )
 from laboneq.dsl.experiment.section_context import active_section
 from laboneq.simple import pulse_library
+
+from laboneq_applications.core.build_experiment import qubit_experiment

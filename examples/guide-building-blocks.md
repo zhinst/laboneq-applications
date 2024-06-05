@@ -41,7 +41,7 @@ The three main building blocks are:
   A `taskbook` is an ordinary Python function that calls tasks. When a task is called
   inside a task book function, the inputs and outputs of the tasks are automatically
   saved. The task book also provides the tasks inside it with their options,
-  allowing you to control the details of task behaviour at run time. 
+  allowing you to control the details of task behaviour at run time.
 
 This guide will introduce you to these three building blocks.
 
@@ -111,7 +111,6 @@ We'll need to import some things are the start. We'll explain what each of them 
 import numpy as np
 
 from laboneq_applications import dsl
-from laboneq_applications.core.build_experiment import qubit_experiment
 from laboneq_applications.core.quantum_operations import QuantumOperations
 from laboneq_applications.qpu_types.tunable_transmon import (
     TunableTransmonOperations,
@@ -122,7 +121,7 @@ from laboneq_applications.qpu_types.tunable_transmon import (
 Let's start with a tiny experiment that rotates a qubit a given angle about the x-axis and performs a measurement:
 
 ```{code-cell} ipython3
-@qubit_experiment
+@dsl.qubit_experiment
 def rotate_and_measure(qop, q, angle, count=10):
     """Rotate q by the given angle and measure it."""
     with dsl.acquire_loop_rt(count=count):
@@ -132,7 +131,7 @@ def rotate_and_measure(qop, q, angle, count=10):
 
 and break down the code line by line:
 
-* `@qubit_experiment`: This decorator creates a new experiment object and makes it accessible inside the `rotate_and_measure` function. It also finds the qubits in the function arguments (i.e. `q`) and sets the experiment calibration using them.
+* `@dsl.qubit_experiment`: This decorator creates a new experiment object and makes it accessible inside the `rotate_and_measure` function. It also finds the qubits in the function arguments (i.e. `q`) and sets the experiment calibration using them.
 
 * `def rotate_and_measure(qop, q, angle, count=10):`: These are ordinary function arguments, except for the detection of the qubit objects just mentioned. The `qop` argument supplies the set of quantum operations to use. The same function can be used to build an experiment for any qubit platform that provides the same operations.
 
@@ -380,7 +379,7 @@ from laboneq.dsl.parameter import SweepParameter
 
 ```{code-cell} ipython3
 @task
-@qubit_experiment
+@dsl.qubit_experiment
 def duration_rabi(
     qop,
     q,

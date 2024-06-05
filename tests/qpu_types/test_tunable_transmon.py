@@ -9,7 +9,7 @@ from laboneq.simple import SectionAlignment, Session, SweepParameter
 
 import tests.helpers.dsl as tsl
 from laboneq_applications import dsl
-from laboneq_applications.core.build_experiment import build, qubit_experiment
+from laboneq_applications.core.build_experiment import build
 from laboneq_applications.qpu_types.tunable_transmon import (
     TunableTransmonOperations,
     TunableTransmonQubit,
@@ -462,7 +462,7 @@ class TestTunableTransmonOperations:
     ):
         [q0] = single_tunable_transmon.qubits
 
-        @qubit_experiment
+        @dsl.qubit_experiment
         def exp_set_freq(q):
             # set_frequency requires an experiment context to access the calibration
             qops.set_frequency(q, freq, rf=rf)
@@ -479,7 +479,7 @@ class TestTunableTransmonOperations:
     def test_set_frequency_twice(self, qops, single_tunable_transmon):
         [q0] = single_tunable_transmon.qubits
 
-        @qubit_experiment
+        @dsl.qubit_experiment
         def exp_set_freq(q):
             # set_frequency requires an experiment context to access the calibration
             qops.set_frequency(q, 1.5e9)
@@ -496,7 +496,7 @@ class TestTunableTransmonOperations:
     def test_set_frequency_transition(self, qops, single_tunable_transmon):
         [q0] = single_tunable_transmon.qubits
 
-        @qubit_experiment
+        @dsl.qubit_experiment
         def exp_set_freq(q):
             # set_frequency requires an experiment context to access the calibration
             qops.set_frequency(q, 1.8e9, transition="ef")
@@ -527,7 +527,7 @@ class TestTunableTransmonOperations:
     ):
         [q0] = single_tunable_transmon.qubits
 
-        @qubit_experiment
+        @dsl.qubit_experiment
         def exp_set_freq(q):
             # set_frequency requires an experiment context to access the calibration
             with dsl.acquire_loop_rt(count=10):
@@ -582,7 +582,7 @@ class TestTunableTransmonOperations:
         # TODO: Why do the rf=True cases not fail here?
         [q0] = single_tunable_transmon.qubits
 
-        @qubit_experiment
+        @dsl.qubit_experiment
         def exp_set_freq(q, frequencies):
             # set_frequency requires an experiment context to access the calibration
             with dsl.sweep(parameter=SweepParameter(values=frequencies)) as frequency:
@@ -650,7 +650,7 @@ class TestTunableTransmonOperations:
     ):
         [q0] = single_tunable_transmon.qubits
 
-        @qubit_experiment
+        @dsl.qubit_experiment
         def exp_set_freq(q):
             # set_frequency requires an experiment context to access the calibration
             with dsl.acquire_loop_rt(count=10):
