@@ -111,6 +111,7 @@ class AttributeWrapper(Mapping[str, Any]):
         return (self.path + self.separator + key) if self.path else key
 
     def __init__(self, data: dict[str, Any], path: str | None = None) -> None:
+        super().__init__()
         self.data = data
         self.path = path or ""
         self.separator = "/"
@@ -118,17 +119,14 @@ class AttributeWrapper(Mapping[str, Any]):
             self._get_subkey(k) for k in self.data if k.startswith(self.path)
         ]
         if not self._key_cache:
-            raise AttributeError(f"Key '{self.path}' not found in the data.")
+            raise KeyError(f"Key '{self.path}' not found in the data.")
 
+    # Mapping interface
     def __len__(self) -> int:
         return len(self._key_cache)
 
     def __iter__(self) -> Iterator[str]:
         return iter(self._key_cache)
-
-    def keys(self) -> list[str]:
-        """Return the keys of the current path in the data."""
-        return (k for k in self._key_cache)
 
     def __getitem__(self, key: str) -> AttributeWrapper:
         path = self._add_path(key)
@@ -137,8 +135,15 @@ class AttributeWrapper(Mapping[str, Any]):
         except KeyError:
             return AttributeWrapper(self.data, path)
 
+    # End of Mapping interface
+
     def __getattr__(self, key: str) -> AttributeWrapper:
-        return self.__getitem__(key)
+        try:
+            return self.__getitem__(key)
+        except KeyError as e:
+            raise AttributeError(
+                f"Key '{self._add_path(key)}' not found in the data.",
+            ) from e
 
     def __eq__(self, value: object) -> bool:
         if not isinstance(value, AttributeWrapper):
