@@ -7,9 +7,8 @@ import pytest
 from laboneq.dsl.session import Session
 
 import tests.helpers.dsl as tsl
-from laboneq_applications.experiments import amplitude_rabi, amplitude_rabi_workflow
+from laboneq_applications.experiments.rabi import amplitude_rabi, create_experiment
 from laboneq_applications.qpu_types.tunable_transmon import TunableTransmonOperations
-from laboneq_applications.workflow.engine import Workflow
 
 
 def reserve_ops(q):
@@ -160,9 +159,8 @@ def reference_rabi_exp(qubits, count, amplitudes, transition):
     return exp
 
 
-class TestWorkflow:
-    @pytest.mark.parametrize("create", [True, False])
-    def test_create_and_run(self, single_tunable_transmon, create):
+class TestTaskbook:
+    def test_create_and_run(self, single_tunable_transmon):
         session = Session(single_tunable_transmon.setup)
         session.connect(do_emulation=True)
 
@@ -170,15 +168,7 @@ class TestWorkflow:
         [q0] = single_tunable_transmon.qubits
         amplitudes = [0.1, 0.2]
         options = {"count": 10, "transition": "ge"}
-
-        if create:
-
-            def run_wf(**kw):
-                wf = amplitude_rabi_workflow.create()
-                return wf.run(**kw)
-
-        else:
-            run_wf = amplitude_rabi_workflow
+        run_wf = amplitude_rabi
 
         result = run_wf(
             session=session,
@@ -188,20 +178,16 @@ class TestWorkflow:
             options=options,
         )
 
-        assert list(result.tasklog.keys()) == [
-            "amplitude_rabi",
-            "compile_experiment",
-            "run_experiment",
-        ]
+        assert len(result.tasks) == 3
 
-        [exp] = result.tasklog["amplitude_rabi"]
-        assert exp.uid == "amplitude_rabi"
+        exp = result.tasks[0].result
+        assert exp.uid == "create_experiment"
 
-        [compiled_exp] = result.tasklog["compile_experiment"]
-        assert compiled_exp.experiment.uid == "amplitude_rabi"
+        compiled_exp = result.tasks[1].result
+        assert compiled_exp.experiment.uid == "create_experiment"
         assert compiled_exp.device_setup.uid == "test"
 
-        [exp_result] = result.tasklog["run_experiment"]
+        exp_result = result.tasks[2].result
         results = exp_result.results
         np.testing.assert_array_almost_equal(
             results.result.q0.axis,
@@ -225,7 +211,7 @@ class TestAmplitudeRabiSingleQubit:
         self.qop = TunableTransmonOperations()
 
     def test_run_standalone_single_qubit_passed(self):
-        exp = amplitude_rabi(
+        exp = create_experiment(
             self.qop,
             self.q0,
             self.amplitude,
@@ -241,25 +227,9 @@ class TestAmplitudeRabiSingleQubit:
         session.connect(do_emulation=True)
         session.compile(exp)
 
-    def test_run_task(self):
-        exp = amplitude_rabi(
-            self.qop,
-            self.q0,
-            self.amplitude,
-            options=self.options,
-        )
-        with Workflow() as wf:
-            amplitude_rabi(
-                self.qop,
-                self.q0,
-                self.amplitude,
-                options=self.options,
-            )
-        assert wf.run().tasklog == {"amplitude_rabi": [exp]}
-
     def test_invalid_input_raises_error(self):
         with pytest.raises(ValueError):
-            amplitude_rabi(
+            create_experiment(
                 self.qop,
                 self.q0,
                 [[0.1, 0.5], [0.1, 0.5]],
@@ -267,14 +237,14 @@ class TestAmplitudeRabiSingleQubit:
             )
 
         with pytest.raises(ValueError):
-            amplitude_rabi(
+            create_experiment(
                 self.qop,
                 [self.q0],
                 [0.1, 0.5],
                 options=self.options,
             )
         with pytest.raises(ValueError):
-            amplitude_rabi(
+            create_experiment(
                 self.qop,
                 self.q0,
                 [0.1, None, 0.5],
@@ -282,7 +252,7 @@ class TestAmplitudeRabiSingleQubit:
             )
 
     def test_amplitude_is_nparray(self):
-        exp = amplitude_rabi(
+        exp = create_experiment(
             self.qop,
             self.q0,
             np.array(self.amplitude),
@@ -308,7 +278,7 @@ class TestAmplitudeRabiTwoQubit:
         self.qop = TunableTransmonOperations()
 
     def test_run_standalone(self):
-        exp = amplitude_rabi(
+        exp = create_experiment(
             self.qop,
             [self.q0, self.q1],
             self.amplitudes,
@@ -324,25 +294,9 @@ class TestAmplitudeRabiTwoQubit:
         session.connect(do_emulation=True)
         session.compile(exp)
 
-    def test_run_task(self):
-        exp = amplitude_rabi(
-            self.qop,
-            [self.q0, self.q1],
-            self.amplitudes,
-            options=self.options,
-        )
-        with Workflow() as wf:
-            amplitude_rabi(
-                self.qop,
-                [self.q0, self.q1],
-                self.amplitudes,
-                options=self.options,
-            )
-        assert wf.run().tasklog == {"amplitude_rabi": [exp]}
-
     def test_invalid_input_raises_error(self):
         with pytest.raises(ValueError):
-            amplitude_rabi(
+            create_experiment(
                 self.qop,
                 [self.q0, self.q1],
                 [0.1, 0.5],
@@ -350,14 +304,14 @@ class TestAmplitudeRabiTwoQubit:
             )
 
         with pytest.raises(ValueError):
-            amplitude_rabi(
+            create_experiment(
                 self.qop,
                 [self.q0, self.q1],
                 [[0.1, 0.5]],
                 options=self.options,
             )
         with pytest.raises(ValueError):
-            amplitude_rabi(
+            create_experiment(
                 self.qop,
                 [self.q0, self.q1],
                 [[0.1, 0.5], [0.1, None]],
@@ -365,7 +319,7 @@ class TestAmplitudeRabiTwoQubit:
             )
 
     def test_amplitude_is_nparray(self):
-        exp = amplitude_rabi(
+        exp = create_experiment(
             self.qop,
             [self.q0, self.q1],
             [np.array([0, 1, 2]), np.array([0, 1, 2])],

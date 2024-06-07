@@ -18,8 +18,7 @@ from laboneq_applications.utils.handle_formatters import (
     calibration_trace_handle,
     result_handle,
 )
-from laboneq_applications.workflow import task
-from laboneq_applications.workflow.engine import workflow
+from laboneq_applications.workflow import task, taskbook
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
@@ -28,22 +27,22 @@ if TYPE_CHECKING:
     from laboneq.dsl.quantum.quantum_element import QuantumElement
     from numpy import ndarray
 
-    from laboneq_applications.workflow.engine import WorkflowResult
+    from laboneq_applications.workflow.taskbook import TaskBook
 
 
-@workflow
-def amplitude_rabi_workflow(
+@taskbook
+def amplitude_rabi(
     session: Session,
     qop: QuantumOperations,
     qubits: QuantumElement | Sequence[QuantumElement],
     amplitudes: Sequence[float] | Sequence[Sequence[float] | ndarray] | ndarray,
     options: dict,
-) -> tuple[WorkflowResult]:
-    """Amplitude Rabi workflow builder.
+) -> TaskBook:
+    """Amplitude Rabi Experiment as a TaskBook.
 
-    The amplitude Rabi workflow consists of the following steps:
+    The amplitude Rabi TaskBook consists of the following steps:
 
-    - [amplitude_rabi]()
+    - [create_experiment]()
     - [compile_experiment]()
     - [run_experiment]()
 
@@ -73,11 +72,9 @@ def amplitude_rabi_workflow(
 
     Returns:
         result:
-            The result of the workflow.
+            The result of the taskbook.
 
     Example:
-        The workflow builder may be called directly to create and run the workflow:
-
         ```python
         options = {
             "count": 10,
@@ -94,22 +91,8 @@ def amplitude_rabi_workflow(
             options=options,
         )
         ```
-
-        Or its `.create` method may be used to build a workflow instance and run it
-        separately:
-
-        ```python
-        wf = amplitude_rabi_workflow.create()
-        result = wf.run(
-            session=session,
-            qop=qop,
-            qubits=q0,
-            amplitudes=[0.1, 0.2, 0.3],
-            options=options,
-        )
-        ```
     """
-    exp = amplitude_rabi(
+    exp = create_experiment(
         qop,
         qubits,
         amplitudes=amplitudes,
@@ -121,13 +104,13 @@ def amplitude_rabi_workflow(
 
 @task
 @qubit_experiment
-def amplitude_rabi(
+def create_experiment(
     qop: QuantumOperations,
     qubits: QuantumElement | Sequence[QuantumElement],
     amplitudes: Sequence[float] | Sequence[Sequence[float] | ndarray] | ndarray,
     options: dict,
 ) -> Experiment:
-    """Amplitude Rabi experiment.
+    """Creates an Amplitude Rabi Experiment.
 
     Arguments:
         qop:
