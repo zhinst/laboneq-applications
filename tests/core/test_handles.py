@@ -1,6 +1,6 @@
 """Test parsing and formatting the default acquisition handles."""
 
-from laboneq_applications.utils.handle_formatters import (
+from laboneq_applications.core.handles import (
     active_reset_handle,
     calibration_trace_handle,
     result_handle,

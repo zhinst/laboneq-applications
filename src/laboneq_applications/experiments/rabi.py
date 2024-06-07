@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING, Literal
 
 from laboneq.simple import Experiment, SweepParameter
 
+from laboneq_applications.core import handles
 from laboneq_applications.core.build_experiment import qubit_experiment
 from laboneq_applications.core.options import (
     BaseExperimentOptions,
@@ -14,17 +15,13 @@ from laboneq_applications.core.options import (
 from laboneq_applications.core.quantum_operations import QuantumOperations, dsl
 from laboneq_applications.core.validation import validate_and_convert_qubits_sweeps
 from laboneq_applications.tasks import compile_experiment, run_experiment
-from laboneq_applications.utils.handle_formatters import (
-    calibration_trace_handle,
-    result_handle,
-)
 from laboneq_applications.workflow import task, taskbook
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
 
-    from laboneq.dsl.experiment import Session
     from laboneq.dsl.quantum.quantum_element import QuantumElement
+    from laboneq.dsl.session import Session
     from numpy import ndarray
 
     from laboneq_applications.workflow.taskbook import TaskBook
@@ -187,7 +184,7 @@ def create_experiment(
             ) as amplitude:
                 qop.prepare_state(q, opts.transition[0])
                 qop.x180(q, amplitude=amplitude, transition=opts.transition)
-                qop.measure(q, result_handle(q.uid))
+                qop.measure(q, handles.result_handle(q.uid))
                 qop.passive_reset(q)
             if opts.cal_traces:
                 with dsl.section(
@@ -195,5 +192,5 @@ def create_experiment(
                 ):
                     for state in opts.transition:
                         qop.prepare_state(q, state)
-                        qop.measure(q, calibration_trace_handle(q.uid, state))
+                        qop.measure(q, handles.calibration_trace_handle(q.uid, state))
                         qop.passive_reset(q)
