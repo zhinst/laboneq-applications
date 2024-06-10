@@ -41,7 +41,7 @@ The three main building blocks are:
   A `taskbook` is an ordinary Python function that calls tasks. When a task is called
   inside a task book function, the inputs and outputs of the tasks are automatically
   saved. The task book also provides the tasks inside it with their options,
-  allowing you to control the details of task behaviour at run time.
+  allowing you to control the details of task behaviour at run time. 
 
 This guide will introduce you to these three building blocks.
 
@@ -74,7 +74,7 @@ Build your LabOne Q `DeviceSetup`, qubits and `Session` as normal. Here we impor
 import sys
 sys.path.insert(0, "..")
 
-from laboneq.dsl.session import Session
+from laboneq.simple import *
 
 from tests.helpers.device_setups import single_tunable_transmon_setup, single_tunable_transmon_qubits
 ```
@@ -111,6 +111,7 @@ We'll need to import some things are the start. We'll explain what each of them 
 import numpy as np
 
 from laboneq_applications import dsl
+from laboneq_applications.core.build_experiment import qubit_experiment
 from laboneq_applications.core.quantum_operations import QuantumOperations
 from laboneq_applications.qpu_types.tunable_transmon import (
     TunableTransmonOperations,
@@ -121,7 +122,7 @@ from laboneq_applications.qpu_types.tunable_transmon import (
 Let's start with a tiny experiment that rotates a qubit a given angle about the x-axis and performs a measurement:
 
 ```{code-cell} ipython3
-@dsl.qubit_experiment
+@qubit_experiment
 def rotate_and_measure(qop, q, angle, count=10):
     """Rotate q by the given angle and measure it."""
     with dsl.acquire_loop_rt(count=count):
@@ -131,7 +132,7 @@ def rotate_and_measure(qop, q, angle, count=10):
 
 and break down the code line by line:
 
-* `@dsl.qubit_experiment`: This decorator creates a new experiment object and makes it accessible inside the `rotate_and_measure` function. It also finds the qubits in the function arguments (i.e. `q`) and sets the experiment calibration using them.
+* `@qubit_experiment`: This decorator creates a new experiment object and makes it accessible inside the `rotate_and_measure` function. It also finds the qubits in the function arguments (i.e. `q`) and sets the experiment calibration using them.
 
 * `def rotate_and_measure(qop, q, angle, count=10):`: These are ordinary function arguments, except for the detection of the qubit objects just mentioned. The `qop` argument supplies the set of quantum operations to use. The same function can be used to build an experiment for any qubit platform that provides the same operations.
 
@@ -231,7 +232,7 @@ In addition to `.src` each quantum operation also has two special methods:
 Let's try them out:
 
 ```{code-cell} ipython3
-x180 = qop.rx.partial(angle=np.pi)
+x180 = qop.rx.partial(angle=np.pi/5)
 section = x180(qubits[0])
 print(section)
 ```
@@ -379,7 +380,7 @@ from laboneq.dsl.parameter import SweepParameter
 
 ```{code-cell} ipython3
 @task
-@dsl.qubit_experiment
+@qubit_experiment
 def duration_rabi(
     qop,
     q,
@@ -423,7 +424,7 @@ Quite a few new constructions and quantum operations have been introduced here, 
 
 * `if cal_traces:`: An ordinary Python `if` statement. It allows the calibration traces to be omitted if requested by the parameters.
 
-* `dsl.section`: This creates a new section in the experiment. Here it's purpose is just to create some nice structure in the produced experiment.
+* `dsl.section`: This creates a new section in the experiment. Sections are important to create timing-consistent and reproducible behavior.
 
 ```{code-cell} ipython3
 qop = TunableTransmonOperations()
@@ -457,10 +458,11 @@ At the moment tasks don't provide much beyond encouraging some structure. Encour
 
 +++
 
-## Taskbooks
+## Experiments as Taskbooks
 
 ```{code-cell} ipython3
 from laboneq_applications.experiments.rabi import amplitude_rabi
+from laboneq_applications.tasks import compile_experiment, run_experiment
 from laboneq_applications.workflow import task, taskbook
 ```
 
@@ -479,31 +481,79 @@ def amplitude_rabi_taskbook(qop, qubits, amplitudes, options):
 ```
 
 ```{code-cell} ipython3
+qop = TunableTransmonOperations()
 amplitudes = np.linspace(0.0, 0.9, 10)
+# pass experiment options as a flat dictionary 
+options = {"count": 10, "averaging_mode": AveragingMode.CYCLIC}
 
 logbook = amplitude_rabi_taskbook(
     qop,
     qubits[0],
+    amplitudes,
+    options=options,
+)
+```
+
+```{code-cell} ipython3
+logbook.result.acquired_results
+```
+
+```{code-cell} ipython3
+logbook.result.results.result.q0
+```
+
+### Inspect tasks
+
++++
+
+Task names
+
+```{code-cell} ipython3
+for task in logbook.tasks:
+    print(f"{task.task.name}")
+```
+
+Task input arguments
+
+```{code-cell} ipython3
+task = logbook.tasks[0]
+print("Args:")
+for arg in task.args:
+    print(f"    {type(arg)}")
+print("Kwargs:")
+for k, v in task.kwargs.items():
+    print(f"    {k}={type(v)}")
+```
+
+Task results
+
+```{code-cell} ipython3
+for task in logbook.tasks:
+    print(f"{task.task.name}")
+    print("Result:")
+    print(f"        {type(task.result)}")
+    print()
+```
+
+### Use temporary qubit parameters
+
+```{code-cell} ipython3
+from laboneq_applications.qpu_types.tunable_transmon import modify_qubits
+amplitudes = np.linspace(0.0, 0.9, 10)
+temporary_qubit_parameters = [
+    (qubits[0], {
+        "reset_delay_length": 10e-6,
+    }),
+]
+
+logbook = amplitude_rabi_taskbook(
+    qop,
+    modify_qubits(temporary_qubit_parameters)[0],
     amplitudes,
     options={"count": 10},
 )
 ```
 
 ```{code-cell} ipython3
-result.results.result.q0
-```
 
-```{code-cell} ipython3
-for task in logbook.tasks:
-    print(f"{task.task.name}")
-    print("=" * len(task.task.name))
-    print("Args:")
-    for arg in task.args:
-        print(f"    {type(arg)}")
-    print("Kwargs:")
-    for k, v in task.kwargs.items():
-        print(f"    {k}={type(v)}")
-    print("Result:")
-    print(f"        {type(task.result)}")
-    print()
 ```
