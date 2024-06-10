@@ -1,6 +1,6 @@
 import textwrap
 
-from laboneq_applications.workflow.task import FunctionTask, Task
+from laboneq_applications.workflow.task import FunctionTask, Task, task
 
 
 class MyTestTask(Task):
@@ -40,3 +40,17 @@ class TestFunctionTask:
             def foobar(x, y):
                 return x + y
         """)
+
+
+def test_task_reinitialized():
+    task1 = FunctionTask(foobar, "foobar")
+    task2 = task(task1)
+    assert task2.name == "foobar"
+    assert task1._func == task2._func
+    assert task1 is not task2
+
+    task1 = FunctionTask(foobar, "foobar")
+    task2 = task(task1, name="foobar2")
+    assert task2.name == "foobar2"
+    assert task1._func == task2._func
+    assert task1 is not task2

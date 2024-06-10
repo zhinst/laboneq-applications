@@ -90,8 +90,7 @@ TaskFunction = TypeVar("TaskFunction", bound=Callable)
 
 
 @overload
-def task(func: TaskFunction, *, name: str | None = None) -> TaskFunction:
-    ...
+def task(func: TaskFunction, *, name: str | None = None) -> TaskFunction: ...
 
 
 def task(func: TaskFunction | None = None, *, name: str | None = None):  # noqa: D417
@@ -117,6 +116,8 @@ def task(func: TaskFunction | None = None, *, name: str | None = None):  # noqa:
     """
 
     def wrapper(func):  # noqa: ANN001, ANN202
+        if isinstance(func, FunctionTask):
+            return FunctionTask(func=func._func, name=name)
         return FunctionTask(func, name=name)
 
     return wrapper(func) if func else wrapper
