@@ -151,7 +151,18 @@ class TestOptions:
         assert deserialized_options == opt
 
 
+@pytest.mark.parametrize("empty_options", [{}, None])
 class TestBaseExperimentOptions:
+    @pytest.fixture(autouse=True)
+    def _test_base_options(self, empty_options):
+        opt = create_validate_opts(empty_options, base=BaseExperimentOptions)
+        assert opt.count == 4096
+        assert opt.acquisition_type == AcquisitionType.INTEGRATION
+        assert opt.averaging_mode == AveragingMode.CYCLIC
+        assert opt.repetition_mode == RepetitionMode.FASTEST
+        assert opt.repetition_time is None
+        assert not opt.reset_oscillator_phase
+
     def test_create_options(self):
         input_options = {
             "count": 10,

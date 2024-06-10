@@ -37,6 +37,7 @@ class BaseExperimentOptions(BaseOptions):
     Attributes:
         count (NonNegativeInt):
             The number of repetitions.
+            Default: A common choice in practice, 4096.
         averaging_mode (AveragingMode):
             Averaging mode to use for the experiment.
             Default: `AveragingMode.CYCLIC`.
@@ -54,7 +55,7 @@ class BaseExperimentOptions(BaseOptions):
             Default: False.
     """
 
-    count: NonNegativeInt
+    count: NonNegativeInt = 4096
     acquisition_type: str | AcquisitionType = AcquisitionType.INTEGRATION
     averaging_mode: str | AveragingMode = AveragingMode.CYCLIC
     repetition_mode: str | RepetitionMode = RepetitionMode.FASTEST
@@ -78,6 +79,7 @@ class BaseExperimentOptions(BaseOptions):
     def _parse_repetition_mode(cls, v: str) -> RepetitionMode:
         # parse string to RepetitionMode
         return RepetitionMode(v)
+
 
 def create_validate_opts(
     input_options: dict | None,

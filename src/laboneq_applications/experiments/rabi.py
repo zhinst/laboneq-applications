@@ -33,7 +33,7 @@ def amplitude_rabi(
     qop: QuantumOperations,
     qubits: QuantumElement | Sequence[QuantumElement],
     amplitudes: Sequence[float] | Sequence[Sequence[float] | ndarray] | ndarray,
-    options: dict,
+    options: dict |  None = None,
 ) -> TaskBook:
     """Amplitude Rabi Experiment as a TaskBook.
 
@@ -105,7 +105,7 @@ def create_experiment(
     qop: QuantumOperations,
     qubits: QuantumElement | Sequence[QuantumElement],
     amplitudes: Sequence[float] | Sequence[Sequence[float] | ndarray] | ndarray,
-    options: dict,
+    options: dict | None = None,
 ) -> Experiment:
     """Creates an Amplitude Rabi Experiment.
 
