@@ -149,8 +149,8 @@ def single_tunable_transmon_qubits(setup):
             readout_lo_frequency=2.0e9,
             readout_resonator_frequency=2.1e9,
             drive_parameters_ge={
-                "amplitude_pi": 0.4,
-                "amplitude_pi2": 0.8,
+                "amplitude_pi": 0.8,
+                "amplitude_pi2": 0.4,
                 "length": 51e-9,
                 "pulse": {
                     "function": "drag",
@@ -159,8 +159,8 @@ def single_tunable_transmon_qubits(setup):
                 },
             },
             drive_parameters_ef={
-                "amplitude_pi": 0.35,
-                "amplitude_pi2": 0.7,
+                "amplitude_pi": 0.7,
+                "amplitude_pi2": 0.35,
                 "length": 52e-9,
                 "pulse": {
                     "function": "drag",
@@ -184,9 +184,12 @@ def two_tunable_transmon_qubits(setup):
             resonance_frequency_ef=1.7e9,
             readout_lo_frequency=2.0e9,
             readout_resonator_frequency=2.1e9,
+            # Note that the pi/2 pulse amplitudes are not exactly half of the pi pulse
+            # amplitudes to allow to test the pulse amplitude computation for arbitrary
+            # angles vs selecting the calibrated pi/2 pulse amplitudes.
             drive_parameters_ge={
-                "amplitude_pi": 0.4,
-                "amplitude_pi2": 0.8,
+                "amplitude_pi": 0.8,
+                "amplitude_pi2": 0.41,
                 "length": 51e-9,
                 "pulse": {
                     "function": "drag",
@@ -195,8 +198,8 @@ def two_tunable_transmon_qubits(setup):
                 },
             },
             drive_parameters_ef={
-                "amplitude_pi": 0.35,
-                "amplitude_pi2": 0.7,
+                "amplitude_pi": 0.7,
+                "amplitude_pi2": 0.36,
                 "length": 52e-9,
                 "pulse": {
                     "function": "drag",
@@ -217,7 +220,7 @@ def two_tunable_transmon_qubits(setup):
             readout_resonator_frequency=2.1e9,
             drive_parameters_ge={
                 "amplitude_pi": 0.5,
-                "amplitude_pi2": 0.25,
+                "amplitude_pi2": 0.26,
                 "length": 51e-9,
                 "pulse": {
                     "function": "drag",
@@ -227,7 +230,7 @@ def two_tunable_transmon_qubits(setup):
             },
             drive_parameters_ef={
                 "amplitude_pi": 0.4,
-                "amplitude_pi2": 0.2,
+                "amplitude_pi2": 0.21,
                 "length": 52e-9,
                 "pulse": {
                     "function": "drag",

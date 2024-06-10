@@ -43,17 +43,17 @@ class TestTunableTransmonQubit:
     def test_transition_parameters_default(self, q0):
         drive_line, params = q0.transition_parameters()
         assert drive_line == "drive"
-        assert params["amplitude_pi"] == 0.4
+        assert params["amplitude_pi"] == 0.8
 
     def test_transition_parameters_ge(self, q0):
         drive_line, params = q0.transition_parameters("ge")
         assert drive_line == "drive"
-        assert params["amplitude_pi"] == 0.4
+        assert params["amplitude_pi"] == 0.8
 
     def test_transition_parameters_ef(self, q0):
         drive_line, params = q0.transition_parameters("ef")
         assert drive_line == "drive_ef"
-        assert params["amplitude_pi"] == 0.35
+        assert params["amplitude_pi"] == 0.7
 
     def test_transition_parameters_error(self, q0):
         with pytest.raises(ValueError) as err:
@@ -888,7 +888,7 @@ class TestTunableTransmonOperations:
                 self.reserve_ops(q0),
                 tsl.play_pulse_op(
                     signal="/logical_signal_groups/q0/drive",
-                    amplitude=0.4,
+                    amplitude=0.8,
                 ),
             ),
         )
@@ -908,14 +908,14 @@ class TestTunableTransmonOperations:
                 self.reserve_ops(q0),
                 tsl.play_pulse_op(
                     signal="/logical_signal_groups/q0/drive",
-                    amplitude=0.4,
+                    amplitude=0.8,
                 ),
             ),
             tsl.section(uid="__x180_q0_1").children(
                 self.reserve_ops(q0),
                 tsl.play_pulse_op(
                     signal="/logical_signal_groups/q0/drive_ef",
-                    amplitude=0.35,
+                    amplitude=0.7,
                 ),
             ),
         )
@@ -1016,9 +1016,9 @@ class TestTunableTransmonOperations:
     @pytest.mark.parametrize(
         ("angle", "expected_amplitude"),
         [
-            pytest.param(np.pi, 0.4, id="pi"),
-            pytest.param(np.pi / 2, 0.8, id="pi_by_2"),
-            pytest.param(np.pi / 3, 0.4 / 3, id="pi_by_3"),
+            pytest.param(np.pi, 0.8, id="pi"),
+            pytest.param(np.pi / 2, 0.4, id="pi_by_2"),
+            pytest.param(np.pi / 3, 0.8 / 3, id="pi_by_3"),
         ],
     )
     def test_rx(self, angle, expected_amplitude, qops, single_tunable_transmon):
@@ -1049,6 +1049,40 @@ class TestTunableTransmonOperations:
         )
 
         self.check_op_builds_and_compiles(section, single_tunable_transmon)
+
+    @pytest.mark.parametrize("pi2", [1, 2])
+    def test_interpolation(self, pi2, qops, single_tunable_transmon):
+        def amp(section):
+            return section.children[-1].amplitude
+
+        [q0] = single_tunable_transmon.qubits
+        my_qubit: TunableTransmonQubit = copy.deepcopy(q0)
+        my_qubit.update(
+            {
+                "drive_parameters_ge.amplitude_pi": 4,
+                "drive_parameters_ge.amplitude_pi2": pi2,
+            },
+        )
+        for angle in np.linspace(0, 1, 9):
+            section = qops.rx(my_qubit, np.pi * angle)
+            assert amp(section) / 4 == angle
+            section = qops.ry(my_qubit, np.pi * angle)
+            assert amp(section) / 4 == angle
+        section = qops.rx(my_qubit, np.pi / 2)
+        section2 = qops.rx(my_qubit, np.pi / 2 + 0.000001)
+        assert abs(amp(section) - amp(section2)) < 0.0001
+        section = qops.x90(my_qubit)
+        assert amp(section) == pi2
+        section = qops.x180(my_qubit)
+        assert amp(section) == 4
+
+        section = qops.ry(my_qubit, np.pi / 2)
+        section2 = qops.ry(my_qubit, np.pi / 2 + 0.000001)
+        assert abs(amp(section) - amp(section2)) < 0.0001
+        section = qops.y90(my_qubit)
+        assert amp(section) == pi2
+        section = qops.y180(my_qubit)
+        assert amp(section) == 4
 
     @pytest.mark.parametrize(
         ("transition", "expected_signal"),
@@ -1180,7 +1214,7 @@ class TestTunableTransmonOperations:
             self.reserve_ops(q0),
             tsl.play_pulse_op(
                 signal="/logical_signal_groups/q0/drive",
-                amplitude=0.8,
+                amplitude=0.4,
                 length=51e-9,
                 increment_oscillator_phase=None,
                 phase=0.0,
@@ -1243,7 +1277,7 @@ class TestTunableTransmonOperations:
             self.reserve_ops(q0),
             tsl.play_pulse_op(
                 signal="/logical_signal_groups/q0/drive",
-                amplitude=0.4,
+                amplitude=0.8,
                 length=51e-9,
                 increment_oscillator_phase=None,
                 phase=0.0,
@@ -1297,9 +1331,9 @@ class TestTunableTransmonOperations:
     @pytest.mark.parametrize(
         ("angle", "expected_amplitude"),
         [
-            pytest.param(np.pi, 0.4, id="pi"),
-            pytest.param(np.pi / 2, 0.8, id="pi_by_2"),
-            pytest.param(np.pi / 3, 0.4 / 3, id="pi_by_3"),
+            pytest.param(np.pi, 0.8, id="pi"),
+            pytest.param(np.pi / 2, 0.4, id="pi_by_2"),
+            pytest.param(np.pi / 3, 0.8 / 3, id="pi_by_3"),
         ],
     )
     def test_ry(self, angle, expected_amplitude, qops, single_tunable_transmon):
@@ -1466,7 +1500,7 @@ class TestTunableTransmonOperations:
             self.reserve_ops(q0),
             tsl.play_pulse_op(
                 signal="/logical_signal_groups/q0/drive",
-                amplitude=0.8,
+                amplitude=0.4,
                 length=51e-9,
                 increment_oscillator_phase=None,
                 phase=np.pi / 2,
@@ -1529,7 +1563,7 @@ class TestTunableTransmonOperations:
             self.reserve_ops(q0),
             tsl.play_pulse_op(
                 signal="/logical_signal_groups/q0/drive",
-                amplitude=0.4,
+                amplitude=0.8,
                 length=51e-9,
                 increment_oscillator_phase=None,
                 phase=np.pi / 2,

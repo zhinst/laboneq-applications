@@ -733,7 +733,8 @@ class TunableTransmonOperations(QuantumOperations):
                 (i.e. the 0-1 transition).
             amplitude:
                 The amplitude of the rotation pulse. By default this
-                is determined by the angle and the qubit parameters.
+                is determined by the angle and the π pulse amplitude
+                qubit parameter "amplitude_pi" by linear interpolation.
             phase:
                 The phase of the rotation pulse in radians. By default
                 this is 0.0.
@@ -759,12 +760,9 @@ class TunableTransmonOperations(QuantumOperations):
             section.on_system_grid = True
 
         if amplitude is None:
-            if angle == self._PI_BY_2:
-                amplitude = params["amplitude_pi2"]
-            elif angle == self._PI:
-                amplitude = params["amplitude_pi"]
-            else:
-                amplitude = (angle / self._PI) * params["amplitude_pi"]
+            # always do a linear scaling with respect to the pi pulse amplitude from the
+            # qubit
+            amplitude = (angle / self._PI) * params["amplitude_pi"]
         if length is None:
             length = params["length"]
 
@@ -800,7 +798,7 @@ class TunableTransmonOperations(QuantumOperations):
                 (i.e. the 0-1 transition).
             amplitude:
                 The amplitude of the rotation pulse. By default this
-                is determined by the angle and the qubit parameters.
+                is determined from the qubit parameter "amplitude_pi2".
             phase:
                 The phase of the rotation pulse in radians. By default
                 this is 0.0.
@@ -819,6 +817,10 @@ class TunableTransmonOperations(QuantumOperations):
 
                 Otherwise the values override or extend the existing ones.
         """
+        if amplitude is None:
+            _, params = q.transition_parameters(transition)
+            amplitude = params["amplitude_pi2"]
+
         self.rx.section(omit=True)(
             q,
             self._PI_BY_2,
@@ -851,7 +853,7 @@ class TunableTransmonOperations(QuantumOperations):
                 (i.e. the 0-1 transition).
             amplitude:
                 The amplitude of the rotation pulse. By default this
-                is determined by the angle and the qubit parameters.
+                is determined from the qubit parameter "amplitude_pi".
             phase:
                 The phase of the rotation pulse in radians. By default
                 this is 0.0.
@@ -870,6 +872,10 @@ class TunableTransmonOperations(QuantumOperations):
 
                 Otherwise the values override or extend the existing ones.
         """
+        if amplitude is None:
+            _, params = q.transition_parameters(transition)
+            amplitude = params["amplitude_pi"]
+
         self.rx.section(omit=True)(
             q,
             self._PI,
@@ -903,7 +909,8 @@ class TunableTransmonOperations(QuantumOperations):
                 (i.e. the 0-1 transition).
             amplitude:
                 The amplitude of the rotation pulse. By default this
-                is determined by the angle and the qubit parameters.
+                is determined by the angle and the π pulse amplitude
+                qubit parameter "amplitude_pi" by linear interpolation.
             phase:
                 The phase of the rotation pulse in radians. By default
                 this is `π / 2`.
@@ -929,12 +936,9 @@ class TunableTransmonOperations(QuantumOperations):
             section.on_system_grid = True
 
         if amplitude is None:
-            if angle == self._PI_BY_2:
-                amplitude = params["amplitude_pi2"]
-            elif angle == self._PI:
-                amplitude = params["amplitude_pi"]
-            else:
-                amplitude = (angle / self._PI) * params["amplitude_pi"]
+            # always do a linear scaling with respect to the pi pulse amplitude from the
+            # qubit
+            amplitude = (angle / self._PI) * params["amplitude_pi"]
         if length is None:
             length = params["length"]
 
@@ -970,7 +974,7 @@ class TunableTransmonOperations(QuantumOperations):
                 (i.e. the 0-1 transition).
             amplitude:
                 The amplitude of the rotation pulse. By default this
-                is determined by the angle and the qubit parameters.
+                is determined from the qubit parameter "amplitude_pi2".
             phase:
                 The phase of the rotation pulse in radians. By default
                 this is `π / 2`.
@@ -989,6 +993,10 @@ class TunableTransmonOperations(QuantumOperations):
 
                 Otherwise the values override or extend the existing ones.
         """
+        if amplitude is None:
+            _, params = q.transition_parameters(transition)
+            amplitude = params["amplitude_pi2"]
+
         self.ry.section(omit=True)(
             q,
             self._PI_BY_2,
@@ -1021,7 +1029,7 @@ class TunableTransmonOperations(QuantumOperations):
                 (i.e. the 0-1 transition).
             amplitude:
                 The amplitude of the rotation pulse. By default this
-                is determined by the angle and the qubit parameters.
+                is determined from the qubit parameter "amplitude_pi".
             phase:
                 The phase of the rotation pulse in radians. By default
                 this is `π / 2`.
@@ -1040,6 +1048,10 @@ class TunableTransmonOperations(QuantumOperations):
 
                 Otherwise the values override or extend the existing ones.
         """
+        if amplitude is None:
+            _, params = q.transition_parameters(transition)
+            amplitude = params["amplitude_pi"]
+
         self.ry.section(omit=True)(
             q,
             self._PI,
