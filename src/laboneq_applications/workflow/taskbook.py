@@ -34,13 +34,13 @@ result = my_taskbook(x=5)
 The results of all tasks are recorded and may be inspected later
 using the result object returned by the taskbook.
 
-The taskbook return value and the information of each task execution
+The taskbook output and the information of each task execution
 can be accessed from the result object:
 
 ```python
->>> result.result
+>>> result.output
 "success"
->>> result.tasks[0].result
+>>> result.tasks[0].output
 7
 >>> result.tasks[0].args
 (6,)
@@ -128,7 +128,7 @@ class TaskBook:
 
     def __init__(self) -> None:
         self._tasks: list[TaskEntry] = []
-        self._result = None
+        self._output = None
 
     @property
     def tasks(self) -> list[TaskEntry]:
@@ -136,9 +136,9 @@ class TaskBook:
         return self._tasks
 
     @property
-    def result(self) -> object:
-        """Result of the taskbook."""
-        return self._result
+    def output(self) -> object:
+        """Output of the taskbook."""
+        return self._output
 
     def add_entry(self, entry: TaskEntry) -> None:
         """Add an entry to the taskbook.
@@ -150,7 +150,7 @@ class TaskBook:
 
 
 class _TaskBookExecutor(ExecutorContext):
-    """Taskbook executor."""
+    """A taskbook executor."""
 
     def __init__(self, taskbook: TaskBook) -> None:
         self.taskbook = taskbook
@@ -191,7 +191,7 @@ def taskbook(func: Callable) -> Callable[..., TaskBook]:
             raise NotImplementedError("Taskbooks cannot be nested.")
         book = TaskBook()
         with LocalContext.scoped(_TaskBookExecutor(book)):
-            book._result = func(*args, **kwargs)
+            book._output = func(*args, **kwargs)
         return book
 
     return inner

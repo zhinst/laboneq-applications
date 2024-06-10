@@ -495,11 +495,11 @@ logbook = amplitude_rabi_taskbook(
 ```
 
 ```{code-cell} ipython3
-logbook.result.acquired_results
+logbook.output.acquired_results
 ```
 
 ```{code-cell} ipython3
-logbook.result.results.result.q0
+logbook.output.results.result.q0
 ```
 
 ### Inspect tasks

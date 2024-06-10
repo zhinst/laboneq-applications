@@ -18,7 +18,7 @@ def task_b():
 class TestTaskbook:
     def test_init(self):
         book = TaskBook()
-        assert book.result is None
+        assert book.output is None
         assert book.tasks == []
 
     def test_add_entry(self):
@@ -52,7 +52,7 @@ class TestTaskBookDecorator:
             return 123
 
         res = book()
-        assert res.result == 123
+        assert res.output == 123
 
     def test_task_called_multiple_times(self):
         @taskbook
@@ -95,7 +95,7 @@ class TestTaskBookDecorator:
             return task_a()
 
         res = book()
-        assert res.result == 1
+        assert res.output == 1
 
     def test_run_normal_function_as_task(self):
         def normal_function(x):
@@ -109,7 +109,7 @@ class TestTaskBookDecorator:
         res = book()
         assert len(res.tasks) == 1
         assert res.tasks[0].result == 3
-        assert res.result == 5
+        assert res.output == 5
 
     def test_normal_function_with_task(self):
         @task
@@ -127,4 +127,4 @@ class TestTaskBookDecorator:
 
         res = book(5, y=10)
         assert [r.result for r in res.tasks] == [2, 6, 11]
-        assert res.result == 10 + 1 + 2
+        assert res.output == 10 + 1 + 2
