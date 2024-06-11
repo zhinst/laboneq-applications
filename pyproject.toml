@@ -32,6 +32,7 @@ classifiers = [
     "Topic :: Scientific/Engineering",
 ]
 dependencies = [
+    "typing_extensions",
     "ruamel.yaml>=0.17",
     "uncertainties==3.1.7",  # Not actively maintained
     "laboneq",

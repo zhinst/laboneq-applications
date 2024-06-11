@@ -76,9 +76,13 @@ within the taskbook.
 from __future__ import annotations
 
 import copy
+import inspect
+import textwrap
 from collections.abc import Sequence
-from functools import wraps
-from typing import TYPE_CHECKING, overload
+from functools import update_wrapper
+from typing import TYPE_CHECKING, Callable, Generic, TypeVar, overload
+
+from typing_extensions import ParamSpec
 
 from laboneq_applications.workflow._context import (
     ExecutorContext,
@@ -233,11 +237,11 @@ class TaskBook:
 
     def __init__(self, options: dict | None = None) -> None:
         self._tasks: list[Task] = []
-        self._output = None
         if options is None:
             self._task_options = TaskBookOptions()
         else:
             self._task_options = TaskBookOptions(**options)
+        self._output: object | None = None
 
     @property
     def tasks(self) -> TasksView:
@@ -268,7 +272,7 @@ class TaskBook:
         return self._task_options
 
     @property
-    def output(self) -> object:
+    def output(self) -> object | None:
         """Output of the taskbook."""
         return self._output
 
@@ -282,6 +286,64 @@ class TaskBook:
 
     def __repr__(self):
         return f"TaskBook(tasks={self.tasks})"
+
+
+Parameters = ParamSpec("Parameters")
+ReturnType = TypeVar("ReturnType")
+
+
+class taskbook_(Generic[Parameters, ReturnType]):  # noqa: N801
+    """Task book wrapper for a function."""
+
+    def __init__(self, func: Callable[Parameters, ReturnType]) -> None:
+        self._func = func
+        self.__doc__ = self._func.__doc__
+
+    @property
+    def func(self) -> Callable[Parameters, ReturnType]:
+        """The underlying function."""
+        return self._func
+
+    @property
+    def src(self) -> str:
+        """Source code of the underlying function."""
+        src = inspect.getsource(self._func)
+        return textwrap.dedent(src)
+
+    def __call__(self, *args: Parameters.args, **kwargs: Parameters.kwargs) -> TaskBook:  # noqa: D102
+        ctx = get_active_context()
+        if isinstance(ctx, _TaskBookExecutor):
+            # TODO: Should nested books append to the top level or?
+            raise NotImplementedError("Taskbooks cannot be nested.")
+        book = TaskBook(options=kwargs.get("options", None))
+        with LocalContext.scoped(_TaskBookExecutor(book)):
+            book._output = self._func(*args, **kwargs)
+        return book
+
+
+def taskbook(
+    func: Callable[Parameters, ReturnType],
+) -> taskbook_[Parameters, ReturnType]:
+    """A decorator to turn a function into a taskbook.
+
+    When a function is marked as a taskbook, it will record
+    each task's information.
+
+    Arguments:
+        func: Function to be marked as a taskbook.
+    """
+    return update_wrapper(
+        taskbook_(func),
+        func,
+        assigned=(
+            "__module__",
+            "__name__",
+            "__qualname__",
+            "__annotations__",
+            "__type_params__",
+            "__doc__",
+        ),
+    )
 
 
 class _TaskBookExecutor(ExecutorContext):
@@ -317,36 +379,6 @@ class _TaskBookExecutor(ExecutorContext):
         )
         self.taskbook.add_entry(entry)
         return r
-
-
-def taskbook(func: Callable) -> Callable[..., TaskBook]:
-    """A decorator to turn a function into a taskbook.
-
-    When a function is marked as a taskbook, it will record
-    each task's information. Otherwise the taskbook behaves just
-    like an ordinary Python function.
-
-    Arguments:
-        func: Function to be marked as a taskbook.
-
-    Returns:
-        A taskbook which holds the records of each executed task and
-            the return value of the taskbook function.
-    """
-
-    @wraps(func)
-    def inner(*args: object, **kwargs: object) -> TaskBook:
-        ctx = get_active_context()
-        if isinstance(ctx, _TaskBookExecutor):
-            # TODO: Should nested books append to the top level or?
-            raise NotImplementedError("Taskbooks cannot be nested.")
-        opts = kwargs.get("options", None)
-        book = TaskBook(options=opts)
-        with LocalContext.scoped(_TaskBookExecutor(book)):
-            book._output = func(*args, **kwargs)
-        return book
-
-    return inner
 
 
 class TaskBookOptions:

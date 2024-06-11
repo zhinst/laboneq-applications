@@ -1,3 +1,4 @@
+import inspect
 import textwrap
 
 import pytest
@@ -160,6 +161,38 @@ class TestTasksView:
 
 
 class TestTaskBookDecorator:
+    def test_doc(self):
+        @taskbook
+        def book():
+            """foobar"""
+
+        assert book.__doc__ == "foobar"
+
+    def test_signature_matches_function(self):
+        def myfunc(x: int) -> str:
+            return str(x)
+
+        assert inspect.signature(taskbook(myfunc)) == inspect.signature(myfunc)
+
+    def test_src(self):
+        @taskbook
+        def book():
+            """foobar"""
+            return 123
+
+        assert book.src == textwrap.dedent('''\
+            @taskbook
+            def book():
+                """foobar"""
+                return 123
+        ''')
+
+    def test_func(self):
+        def foo(): ...
+
+        tb = taskbook(foo)
+        assert tb.func is foo
+
     def test_result(self):
         @taskbook
         def book():
