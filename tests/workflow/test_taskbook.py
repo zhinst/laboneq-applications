@@ -1,7 +1,7 @@
 import pytest
 
 from laboneq_applications.workflow import task
-from laboneq_applications.workflow.taskbook import TaskBook, TaskEntry, taskbook
+from laboneq_applications.workflow.taskbook import Task, TaskBook, taskbook
 
 
 @task
@@ -23,26 +23,46 @@ class TestTaskbook:
 
     def test_add_entry(self):
         book = TaskBook()
-        entry_a = TaskEntry(task=task_a, result=1, args=(), kwargs={})
-        entry_b = TaskEntry(task=task_a, result=5, args=(), kwargs={})
+        entry_a = Task(task=task_a, output=1, args=(), kwargs={})
+        entry_b = Task(task=task_a, output=5, args=(), kwargs={})
         book.add_entry(entry_a)
         book.add_entry(entry_b)
         assert book.tasks == [entry_a, entry_b]
 
+    def test_repr(self):
+        book = TaskBook()
+        entry_a = Task(task=task_a, output=1, args=(), kwargs={})
+        entry_b = Task(task=task_a, output=5, args=(), kwargs={})
+        book.add_entry(entry_a)
+        book.add_entry(entry_b)
+        assert str(book) == "TaskBook(tasks=[Task(name=task_a), Task(name=task_a)])"
 
-class TestTaskEntry:
+
+class TestTask:
+    def test_name(self):
+        t = Task(task_a, 2, 3, 4)
+        assert t.name == "task_a"
+
+    def test_func(self):
+        t = Task(task_a, 2, 3, 4)
+        assert t.func == task_a.func
+
     def test_eq(self):
-        e1 = TaskEntry(task_a, 2, 3, 4)
-        e2 = TaskEntry(task_a, 2, 3, 4)
+        e1 = Task(task_a, 2, 3, 4)
+        e2 = Task(task_a, 2, 3, 4)
         assert e1 == e2
 
-        e1 = TaskEntry(task_a, 2, 3, 4)
-        e2 = TaskEntry(task_b, 2, 3, 4)
+        e1 = Task(task_a, 2, 3, 4)
+        e2 = Task(task_b, 2, 3, 4)
         assert e1 != e2
 
-        e1 = TaskEntry(task_a, 2, 3, 4)
+        e1 = Task(task_a, 2, 3, 4)
         assert e1 != 2
         assert e1 != "bar"
+
+    def test_repr(self):
+        t = Task(task_a, 2, 3, 4)
+        assert str(t) == "Task(name=task_a)"
 
 
 class TestTaskBookDecorator:
@@ -62,8 +82,8 @@ class TestTaskBookDecorator:
 
         result = book()
         assert result.tasks == [
-            TaskEntry(task=task_a, result=1, args=(), kwargs={}),
-            TaskEntry(task=task_a, result=1, args=(), kwargs={}),
+            Task(task=task_a, output=1, args=(), kwargs={}),
+            Task(task=task_a, output=1, args=(), kwargs={}),
         ]
 
     def test_nested_task_recorded(self):
@@ -73,8 +93,8 @@ class TestTaskBookDecorator:
 
         result = book()
         assert result.tasks == [
-            TaskEntry(task=task_a, result=1, args=(), kwargs={}),
-            TaskEntry(task=task_b, result=2, args=(), kwargs={}),
+            Task(task=task_a, output=1, args=(), kwargs={}),
+            Task(task=task_b, output=2, args=(), kwargs={}),
         ]
 
     def test_nested_taskbooks(self):
@@ -108,7 +128,7 @@ class TestTaskBookDecorator:
 
         res = book()
         assert len(res.tasks) == 1
-        assert res.tasks[0].result == 3
+        assert res.tasks[0].output == 3
         assert res.output == 5
 
     def test_normal_function_with_task(self):
@@ -126,5 +146,5 @@ class TestTaskBookDecorator:
             return sum_2(latest_record)
 
         res = book(5, y=10)
-        assert [r.result for r in res.tasks] == [2, 6, 11]
+        assert [r.output for r in res.tasks] == [2, 6, 11]
         assert res.output == 10 + 1 + 2

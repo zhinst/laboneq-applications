@@ -180,14 +180,14 @@ class TestTaskbook:
 
         assert len(result.tasks) == 3
 
-        exp = result.tasks[0].result
+        exp = result.tasks[0].output
         assert exp.uid == "create_experiment"
 
-        compiled_exp = result.tasks[1].result
+        compiled_exp = result.tasks[1].output
         assert compiled_exp.experiment.uid == "create_experiment"
         assert compiled_exp.device_setup.uid == "test"
 
-        exp_result = result.tasks[2].result
+        exp_result = result.tasks[2].output
         results = exp_result.results
         np.testing.assert_array_almost_equal(
             results.result.q0.axis,

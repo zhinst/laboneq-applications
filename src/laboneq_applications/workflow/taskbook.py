@@ -81,43 +81,62 @@ from laboneq_applications.workflow._context import (
 if TYPE_CHECKING:
     from typing import Callable
 
-    from laboneq_applications.workflow.task import Task
+    from laboneq_applications.workflow.task import task_
 
 
-class TaskEntry:
-    """A task entry.
+class Task:
+    """A task.
 
     The instance holds execution information of an task when it
     was executed in a taskbook.
 
     Attributes:
-        task: Task associated with the entry.
-        result: The result produced by the task.
+        name: The name of the task.
+        func: Underlying Python function.
+        output: The output of the function.
         args: Arguments of the task.
         kwargs: Keyword arguments of the task.
     """
 
     def __init__(
         self,
-        task: Task,
-        result: object,
+        task: task_,
+        output: object,
         args: object,
         kwargs: object,
     ) -> None:
-        self.task = task
-        self.result = result
+        self._task = task
+        self._output = output
         self.args = args
         self.kwargs = kwargs
 
+    @property
+    def name(self) -> str:
+        """Task name."""
+        return self._task.name
+
+    @property
+    def func(self) -> Callable:
+        """Underlying function."""
+        return self._task.func
+
+    @property
+    def output(self) -> object:
+        """Output of the task."""
+        return self._output
+
     def __eq__(self, value: object) -> bool:
-        if not isinstance(value, TaskEntry):
+        if not isinstance(value, Task):
             return NotImplemented
         return (
-            self.task == value.task
-            and self.result == value.result
+            self._task == value._task
+            and self.output == value.output
             and self.args == value.args
             and self.kwargs == value.kwargs
         )
+
+    def __repr__(self) -> str:
+        return f"Task(name={self.name})"
 
 
 class TaskBook:
@@ -127,11 +146,11 @@ class TaskBook:
     """
 
     def __init__(self) -> None:
-        self._tasks: list[TaskEntry] = []
+        self._tasks: list[Task] = []
         self._output = None
 
     @property
-    def tasks(self) -> list[TaskEntry]:
+    def tasks(self) -> list[Task]:
         """Task entries of the taskbook."""
         return self._tasks
 
@@ -140,13 +159,16 @@ class TaskBook:
         """Output of the taskbook."""
         return self._output
 
-    def add_entry(self, entry: TaskEntry) -> None:
+    def add_entry(self, entry: Task) -> None:
         """Add an entry to the taskbook.
 
         Arguments:
             entry: Task entry.
         """
         self._tasks.append(entry)
+
+    def __repr__(self):
+        return f"TaskBook(tasks={self.tasks})"
 
 
 class _TaskBookExecutor(ExecutorContext):
@@ -157,13 +179,18 @@ class _TaskBookExecutor(ExecutorContext):
 
     def execute_task(
         self,
-        task: Task,
+        task: task_,
         *args: object,
         **kwargs: object,
     ) -> None:
         # TODO: Error handling and saving of the exception during execution
         r = task._run(*args, **kwargs)
-        entry = TaskEntry(task=task, result=r, args=args, kwargs=kwargs)
+        entry = Task(
+            task=task,
+            output=r,
+            args=args,
+            kwargs=kwargs,
+        )
         self.taskbook.add_entry(entry)
         return r
 

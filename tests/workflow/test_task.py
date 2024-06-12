@@ -1,14 +1,14 @@
 import textwrap
 
-from laboneq_applications.workflow.task import FunctionTask, Task, task
+from laboneq_applications.workflow.task import _BaseTask, task, task_
 
 
-class MyTestTask(Task):
+class MyTestTask(_BaseTask):
     def _run(self):
         return 123
 
 
-class TestTask:
+class TestBaseTask:
     def test_repr(self):
         task = MyTestTask(name="test")
         assert str(task) == "Task(name=test)"
@@ -29,28 +29,34 @@ def foobar(x, y):
     return x + y
 
 
-class TestFunctionTask:
+class TestTaskWrapper:
     def test_result(self):
-        task_ = FunctionTask(foobar, "foobar")
-        assert task_(1, 2) == 3
+        t = task_(foobar, "foobar")
+        assert t(1, 2) == 3
 
     def test_src(self):
-        task_ = FunctionTask(foobar, "foobar")
-        assert task_.src == textwrap.dedent("""\
+        t = task_(foobar, "foobar")
+        assert t.src == textwrap.dedent("""\
             def foobar(x, y):
                 return x + y
         """)
 
+    def test_doc(self):
+        @task(name="test")
+        def foo(x):
+            """Best doc"""
 
-def test_task_reinitialized():
-    task1 = FunctionTask(foobar, "foobar")
-    task2 = task(task1)
-    assert task2.name == "foobar"
-    assert task1._func == task2._func
-    assert task1 is not task2
+        assert foo.__doc__ == "Best doc"
 
-    task1 = FunctionTask(foobar, "foobar")
-    task2 = task(task1, name="foobar2")
-    assert task2.name == "foobar2"
-    assert task1._func == task2._func
-    assert task1 is not task2
+    def test_task_reinitialized(self):
+        task1 = task_(foobar, "foobar")
+        task2 = task(task1)
+        assert task2.name == "foobar"
+        assert task1._func == task2._func
+        assert task1 is not task2
+
+        task1 = task_(foobar, "foobar")
+        task2 = task(task1, name="foobar2")
+        assert task2.name == "foobar2"
+        assert task1._func == task2._func
+        assert task1 is not task2

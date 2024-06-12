@@ -5,12 +5,15 @@ from __future__ import annotations
 import abc
 import inspect
 import textwrap
-from typing import Any, Callable, TypeVar, overload
+from functools import partial, update_wrapper
+from typing import Any, Callable, Generic, TypeVar, overload
+
+from typing_extensions import ParamSpec
 
 from laboneq_applications.workflow._context import get_active_context
 
 
-class Task(abc.ABC):
+class _BaseTask(abc.ABC):
     """A base class for a workflow task.
 
     Classes that subclass this class must implement:
@@ -50,10 +53,11 @@ class Task(abc.ABC):
         return ctx.execute_task(self, *args, **kwargs)
 
 
-T = TypeVar("T")
+T = ParamSpec("T")
+B = TypeVar("B")
 
 
-class FunctionTask(Task):
+class task_(Generic[T, B], _BaseTask):  # noqa: N801
     """A task that wraps a Python function.
 
     Arguments:
@@ -64,7 +68,7 @@ class FunctionTask(Task):
 
     def __init__(
         self,
-        func: Callable[..., T],
+        func: Callable[T, B],
         name: str | None = None,
     ) -> None:
         super().__init__(name if name is not None else func.__name__)
@@ -77,29 +81,40 @@ class FunctionTask(Task):
         src = inspect.getsource(self._func)
         return textwrap.dedent(src)
 
-    def __call__(self, *args: object, **kwargs: object) -> T:
-        """Run the task."""
+    @property
+    def func(self) -> Callable:
+        """Underlying Python function."""
+        return self._func
+
+    def __call__(self, *args: T.args, **kwargs: T.kwargs) -> B:  # noqa: D102
         return self.run(*args, **kwargs)
 
-    def _run(self, *args: object, **kwargs: object) -> T:
-        """Run the task."""
+    def _run(self, *args: T.args, **kwargs: T.kwargs) -> B:
         return self._func(*args, **kwargs)
 
 
-TaskFunction = TypeVar("TaskFunction", bound=Callable)
+@overload
+def task(func: Callable[T, B], name: str) -> task_[T, B]: ...
 
 
 @overload
-def task(func: TaskFunction, *, name: str | None = None) -> TaskFunction: ...
+def task(func: Callable[T, B]) -> task_[T, B]: ...
 
 
-def task(func: TaskFunction | None = None, *, name: str | None = None):  # noqa: D417
+@overload
+def task(
+    name: str | None = None,
+) -> Callable[[Callable[T, B]], task_[T, B]]: ...
+
+
+def task(func: Callable[T, B] | None = None, name: str | None = None):
     """Mark a function as a task.
 
     If the decorated function is used outside of an workflow context, or
     within another task, the underlying behaviour does not change.
 
     Arguments:
+        func: Function to be wrapped as a task.
         name: Name of the task.
             Defaults to function name.
 
@@ -114,10 +129,30 @@ def task(func: TaskFunction | None = None, *, name: str | None = None):  # noqa:
         my_task(1, 1)
         ```
     """
-
-    def wrapper(func):  # noqa: ANN001, ANN202
-        if isinstance(func, FunctionTask):
-            return FunctionTask(func=func._func, name=name)
-        return FunctionTask(func, name=name)
-
-    return wrapper(func) if func else wrapper
+    if func is None:
+        return partial(task_, name=name)
+    if isinstance(func, task_):
+        return update_wrapper(
+            task_(func=func.func, name=name),
+            func.func,
+            assigned=(
+                "__module__",
+                "__name__",
+                "__qualname__",
+                "__annotations__",
+                "__type_params__",
+                "__doc__",
+            ),
+        )
+    return update_wrapper(
+        task_(func=func, name=name),
+        func,
+        assigned=(
+            "__module__",
+            "__name__",
+            "__qualname__",
+            "__annotations__",
+            "__type_params__",
+            "__doc__",
+        ),
+    )
