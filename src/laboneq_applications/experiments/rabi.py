@@ -2,14 +2,14 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Literal
+from typing import TYPE_CHECKING
 
 from laboneq.simple import Experiment, SweepParameter
 
 from laboneq_applications.core import handles
 from laboneq_applications.core.build_experiment import qubit_experiment
 from laboneq_applications.core.options import (
-    BaseExperimentOptions,
+    TuneupExperimentOptions,
     create_validate_opts,
 )
 from laboneq_applications.core.quantum_operations import QuantumOperations, dsl
@@ -33,7 +33,7 @@ def amplitude_rabi(
     qop: QuantumOperations,
     qubits: QuantumElement | Sequence[QuantumElement],
     amplitudes: Sequence[float] | Sequence[Sequence[float] | ndarray] | ndarray,
-    options: dict |  None = None,
+    options: dict | None = None,
 ) -> TaskBook:
     """Amplitude Rabi Experiment as a TaskBook.
 
@@ -121,15 +121,10 @@ def create_experiment(
             it must be a list of lists of numbers or arrays.
         options:
             The options for building the experiment.
-            In addition to options from [BaseExperimentOptions], the following
-            custom options are supported:
-                transition:
-                    Transition to perform the experiment on. May be any
-                    transition supported by the quantum operations.
-                    Default: `"ge"` (i.e. ground to first excited state).
-                cal_traces (optional):
-                    Whether to include calibration traces in the experiment.
-                    Default: `True`.
+            See [TuneupExperimentOptions] and [BaseExperimentOptions] for
+            accepted options.
+            Overwrites the options from [TuneupExperimentOptions] and
+            [BaseExperimentOptions].
 
     Returns:
         experiment:
@@ -163,11 +158,8 @@ def create_experiment(
         ```
     """
     # Define the custom options for the experiment
-    option_fields = {
-        "transition": (Literal["ge", "ef"], "ge"),
-        "cal_traces": (bool, True),
-    }
-    opts = create_validate_opts(options, option_fields, base=BaseExperimentOptions)
+    option_fields = {}
+    opts = create_validate_opts(options, option_fields, base=TuneupExperimentOptions)
     qubits, amplitudes = validate_and_convert_qubits_sweeps(qubits, amplitudes)
     with dsl.acquire_loop_rt(
         count=opts.count,
@@ -186,11 +178,11 @@ def create_experiment(
                 qop.x180(q, amplitude=amplitude, transition=opts.transition)
                 qop.measure(q, handles.result_handle(q.uid))
                 qop.passive_reset(q)
-            if opts.cal_traces:
+            if opts.use_cal_traces:
                 with dsl.section(
                     name=f"cal_{q.uid}",
                 ):
-                    for state in opts.transition:
+                    for state in opts.cal_states:
                         qop.prepare_state(q, state)
                         qop.measure(q, handles.calibration_trace_handle(q.uid, state))
                         qop.passive_reset(q)

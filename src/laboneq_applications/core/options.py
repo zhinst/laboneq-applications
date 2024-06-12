@@ -2,12 +2,20 @@
 
 from __future__ import annotations
 
-from typing import Annotated
+from typing import Annotated, Literal, TypeVar
 
 from laboneq.simple import AcquisitionType, AveragingMode, RepetitionMode
-from pydantic import BaseModel, ConfigDict, Field, create_model, field_validator
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    create_model,
+    field_validator,
+    model_validator,
+)
 
 NonNegativeInt = Annotated[int, Field(ge=0)]
+T = TypeVar("T")
 
 
 class BaseOptions(BaseModel):
@@ -79,6 +87,38 @@ class BaseExperimentOptions(BaseOptions):
     def _parse_repetition_mode(cls, v: str) -> RepetitionMode:
         # parse string to RepetitionMode
         return RepetitionMode(v)
+
+
+class TuneupExperimentOptions(BaseExperimentOptions):
+    """Base options for a tune-up experiment.
+
+    Attributes:
+        transition:
+            Transition to perform the experiment on. May be any
+            transition supported by the quantum operations.
+            Default: `"ge"` (i.e. ground to first excited state).
+        use_cal_traces:
+            Whether to include calibration traces in the experiment.
+            Default: `True`.
+        cal_states:
+            The states to prepare in the calibration traces. Can be any
+            string or tuple made from combining the characters 'g', 'e', 'f'.
+            Default: same as transition
+    """
+
+    transition: Literal["ge", "ef"] = "ge"
+    use_cal_traces: bool = True
+    cal_states: str | tuple = "ge"
+
+    @model_validator(mode="before")
+    @classmethod
+    def _set_cal_states(cls, values: dict[str, T]) -> dict[str, T]:
+        id_value = values.get("cal_states")
+        transition = values.get("transition")
+
+        if id_value is None and transition is not None:
+            values["cal_states"] = transition
+        return values
 
 
 def create_validate_opts(

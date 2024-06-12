@@ -7,6 +7,7 @@ from pydantic import ValidationError
 from laboneq_applications.core.options import (
     BaseExperimentOptions,
     BaseOptions,
+    TuneupExperimentOptions,
     create_validate_opts,
 )
 
@@ -202,3 +203,83 @@ class TestBaseExperimentOptions:
         assert not opt.reset_oscillator_phase
         assert opt.extra_field == 20
         assert opt.active_reset
+
+
+class TestTuneupExperimentOptions:
+    def test_create_options(self):
+        # explicitly pass cal_states
+        input_options = {
+            "count": 2**12,
+            "transition": "ge",
+            "use_cal_traces": False,
+            "cal_states": "gef",
+        }
+        opt = create_validate_opts(input_options, base=TuneupExperimentOptions)
+        assert opt.count == 2**12
+        assert opt.transition == "ge"
+        assert not opt.use_cal_traces
+        assert opt.cal_states == "gef"
+
+    def test_create_options_default_transition(self):
+        # test cal_states different to default transition
+        input_options = {
+            "count": 2**12,
+            "use_cal_traces": True,
+            "cal_states": "ef",
+        }
+        opt = create_validate_opts(input_options, base=TuneupExperimentOptions)
+        assert opt.count == 2**12
+        assert opt.transition == "ge"
+        assert opt.use_cal_traces
+        assert opt.cal_states == "ef"
+
+    def test_create_options_default_cal_states(self):
+        # test cal_states created from transition
+        input_options = {
+            "count": 2**12,
+            "transition": "ef",
+            "use_cal_traces": True,
+        }
+        opt = create_validate_opts(input_options, base=TuneupExperimentOptions)
+        assert opt.count == 2**12
+        assert opt.transition == "ef"
+        assert opt.use_cal_traces
+        assert opt.cal_states == "ef"
+
+    def test_create_options_default_transition_cal_states(self):
+        # test default cal_states and transition
+        input_options = {
+            "count": 2**12,
+            "use_cal_traces": True,
+        }
+        opt = create_validate_opts(input_options, base=TuneupExperimentOptions)
+        assert opt.count == 2**12
+        assert opt.transition == "ge"
+        assert opt.use_cal_traces
+        assert opt.cal_states == "ge"
+
+    def test_create_options_with_extra_fields(self):
+        custom_fields = {
+            "extra_field": (int, ...),
+            "active_reset": (bool, True),
+        }
+        input_options = {
+            "count": 2**12,
+            "transition": "ge",
+            "use_cal_traces": False,
+            "cal_states": "gef",
+            "extra_field": 20,
+            "extra_optional_field": "extra",
+        }
+        opt = create_validate_opts(
+            input_options,
+            custom_fields,
+            base=TuneupExperimentOptions,
+        )
+        assert opt.count == 2**12
+        assert opt.transition == "ge"
+        assert opt.use_cal_traces is False
+        assert opt.cal_states == "gef"
+        assert opt.extra_field == 20
+        assert opt.active_reset
+        assert "extra_optional_field" not in opt.model_fields
