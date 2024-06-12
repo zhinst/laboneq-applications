@@ -44,6 +44,12 @@ can be accessed from the result object:
 7
 >>> result.tasks[0].args
 (6,)
+>>> result.tasks["addition"]
+Task(name="addition")
+>>> taskbook.tasks["addition", :]
+[Task(name="addition")]
+>>> taskbook.tasks.unique()
+["addition", "my_task"]
 ```
 
 As `addition()` was not marked as a task, it has no records in the taskbook.
@@ -69,8 +75,9 @@ within the taskbook.
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from functools import wraps
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, overload
 
 from laboneq_applications.workflow._context import (
     ExecutorContext,
@@ -144,6 +151,79 @@ class Task:
         return f"Task(name={self.name})"
 
 
+class TasksView(Sequence):
+    """A view of tasks.
+
+    This class provides a view into tasks.
+
+    Arguments:
+        tasks: List of tasks.
+
+    The class is a `Sequence` of tasks, however item lookup
+    is modified to support the following cases:
+
+        - Lookup by index and slicing
+        - Lookup by name (string)
+        - Lookup by name and slicing
+    """
+
+    def __init__(self, tasks: list[Task] | None = None) -> None:
+        self._tasks = tasks or []
+
+    def unique(self) -> set[str]:
+        """Return unique names of the tasks."""
+        return {t.name for t in self._tasks}
+
+    def __repr__(self) -> str:
+        return str(self._tasks)
+
+    @overload
+    def __getitem__(self, item: tuple[str, int | slice] | slice) -> list[Task]: ...
+
+    @overload
+    def __getitem__(self, item: str | int) -> Task: ...
+
+    def __getitem__(
+        self,
+        item: str | int | tuple[str, int | slice] | slice,
+    ) -> Task | list[Task]:
+        """Get a single or multiple tasks.
+
+        Arguments:
+            item: Index, name of the task, slice or a tuple.
+
+                If index or name is given, the return value will be a single `Task`,
+                the first one found in the sequence.
+
+                tuple: A tuple of format (<name>, <index/slice>) will return
+                    list of tasks.
+
+        Returns:
+            Task or list of tasks, depending on the input filter.
+
+        Raises:
+            KeyError: Task by name was not found.
+            IndexError: Task by index was not found.
+        """
+        if isinstance(item, str):
+            try:
+                return next(t for t in self._tasks if t.name == item)
+            except StopIteration:
+                raise KeyError(item) from None
+        if isinstance(item, tuple):
+            items = [t for t in self._tasks if t.name == item[0]]
+            if not items:
+                raise KeyError(item[0])
+            return items[item[1]]
+        return self._tasks[item]
+
+    def __len__(self) -> int:
+        return len(self._tasks)
+
+    def __eq__(self, other: object) -> bool:
+        return self._tasks == other
+
+
 class TaskBook:
     """A taskbook.
 
@@ -155,9 +235,27 @@ class TaskBook:
         self._output = None
 
     @property
-    def tasks(self) -> list[Task]:
-        """Task entries of the taskbook."""
-        return self._tasks
+    def tasks(self) -> TasksView:
+        """Task entries of the taskbook.
+
+        The ordering of the tasks is the order of the execution.
+
+        Tasks is a `Sequence` of tasks, however item lookup
+        is modified to support the following cases:
+
+        Example:
+            ```python
+            taskbook = my_taskbook()
+            taskbook.tasks["run_experiment"]  # First task of name 'run_experiment'
+            taskbook.tasks["run_experiment", :]  # All tasks named 'run_experiment'
+            taskbook.tasks["run_experiment", 1:5]  # Slice tasks named 'run_experiment'
+            taskbook.tasks[0]  # First executed task
+            taskbook.tasks[0:5]  # Slicing
+
+            taskbook.tasks.unique() # Unique task names
+            ```
+        """
+        return TasksView(self._tasks)
 
     @property
     def output(self) -> object:

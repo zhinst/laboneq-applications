@@ -3,7 +3,7 @@ import textwrap
 import pytest
 
 from laboneq_applications.workflow import task
-from laboneq_applications.workflow.taskbook import Task, TaskBook, taskbook
+from laboneq_applications.workflow.taskbook import Task, TaskBook, TasksView, taskbook
 
 
 @task
@@ -21,7 +21,7 @@ class TestTaskbook:
     def test_init(self):
         book = TaskBook()
         assert book.output is None
-        assert book.tasks == []
+        assert book.tasks == TasksView()
 
     def test_add_entry(self):
         book = TaskBook()
@@ -79,6 +79,80 @@ class TestTask:
         """)
 
 
+class TestTasksView:
+    @pytest.fixture()
+    def view(self):
+        return TasksView(
+            [
+                Task(task=task_a, output=1, args=(), kwargs={}),
+                Task(task=task_b, output=2, args=(), kwargs={}),
+                Task(task=task_b, output=3, args=(), kwargs={}),
+            ],
+        )
+
+    def test_no_copy(self):
+        t = Task(task=task_a, output=1, args=(), kwargs={})
+        tasks = [t]
+        view = TasksView(tasks)
+        assert view[0] is tasks[0]
+        assert view["task_a"] is tasks[0]
+
+    def test_unique(self, view):
+        assert view.unique() == {"task_a", "task_b"}
+
+    def test_repr(self, view):
+        assert str(view) == "[Task(name=task_a), Task(name=task_b), Task(name=task_b)]"
+
+    def test_len(self, view):
+        assert len(view) == 3
+
+    def test_getitem(self, view):
+        # Test index
+        assert view[1] == Task(task=task_b, output=2, args=(), kwargs={})
+        # Test slice
+        assert view[0:2] == [
+            Task(task=task_a, output=1, args=(), kwargs={}),
+            Task(task=task_b, output=2, args=(), kwargs={}),
+        ]
+        # Test string
+        assert view["task_b"] == Task(task=task_b, output=2, args=(), kwargs={})
+        # Test slice
+        assert view["task_b", 0] == Task(task=task_b, output=2, args=(), kwargs={})
+        assert view["task_b", 1] == Task(task=task_b, output=3, args=(), kwargs={})
+        assert view["task_b", 0:4] == [
+            Task(task=task_b, output=2, args=(), kwargs={}),
+            Task(task=task_b, output=3, args=(), kwargs={}),
+        ]
+        assert view["task_b", :] == [
+            Task(task=task_b, output=2, args=(), kwargs={}),
+            Task(task=task_b, output=3, args=(), kwargs={}),
+        ]
+
+        with pytest.raises(IndexError):
+            view[123]
+        with pytest.raises(KeyError):
+            view["i do not exist"]
+        with pytest.raises(KeyError):
+            view["i do not exist", 0]
+        with pytest.raises(IndexError):
+            view["task_b", 12345]
+
+    def test_eq(self):
+        assert TasksView(
+            [
+                Task(task=task_b, output=2, args=(), kwargs={}),
+                Task(task=task_b, output=3, args=(), kwargs={}),
+            ],
+        ) == [
+            Task(task=task_b, output=2, args=(), kwargs={}),
+            Task(task=task_b, output=3, args=(), kwargs={}),
+        ]
+        assert TasksView() == []
+        assert TasksView() != [1, 2]
+        assert TasksView() == TasksView()
+        assert TasksView([1]) != TasksView([5])
+
+
 class TestTaskBookDecorator:
     def test_result(self):
         @taskbook
@@ -106,10 +180,12 @@ class TestTaskBookDecorator:
             task_b()
 
         result = book()
-        assert result.tasks == [
-            Task(task=task_a, output=1, args=(), kwargs={}),
-            Task(task=task_b, output=2, args=(), kwargs={}),
-        ]
+        assert result.tasks == TasksView(
+            [
+                Task(task=task_a, output=1, args=(), kwargs={}),
+                Task(task=task_b, output=2, args=(), kwargs={}),
+            ],
+        )
 
     def test_nested_taskbooks(self):
         @taskbook
