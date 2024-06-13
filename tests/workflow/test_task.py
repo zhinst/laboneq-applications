@@ -1,3 +1,4 @@
+import inspect
 import textwrap
 
 from laboneq_applications.workflow.task import _BaseTask, task, task_
@@ -47,6 +48,12 @@ class TestTaskWrapper:
             """Best doc"""
 
         assert foo.__doc__ == "Best doc"
+
+    def test_signature_matches_function(self):
+        def myfunc(x: int) -> str:
+            return str(x)
+
+        assert inspect.signature(task(myfunc)) == inspect.signature(myfunc)
 
     def test_task_reinitialized(self):
         task1 = task_(foobar, "foobar")
