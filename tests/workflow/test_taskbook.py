@@ -1,3 +1,5 @@
+import textwrap
+
 import pytest
 
 from laboneq_applications.workflow import task
@@ -63,6 +65,18 @@ class TestTask:
     def test_repr(self):
         t = Task(task_a, 2, 3, 4)
         assert str(t) == "Task(name=task_a)"
+
+    def test_src(self):
+        @task
+        def task_():
+            return 1
+
+        t = Task(task_, 2, 3, 4)
+        assert t.src == textwrap.dedent("""\
+            @task
+            def task_():
+                return 1
+        """)
 
 
 class TestTaskBookDecorator:

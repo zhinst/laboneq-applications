@@ -121,6 +121,11 @@ class Task:
         return self._task.func
 
     @property
+    def src(self) -> str:
+        """Source code of the task."""
+        return self._task.src
+
+    @property
     def output(self) -> object:
         """Output of the task."""
         return self._output
