@@ -37,6 +37,11 @@ class _BaseTask(abc.ABC):
         src = inspect.getsource(self._run)
         return textwrap.dedent(src)
 
+    @property
+    def has_opts(self) -> bool:
+        """Return `True` if the task has options in its arguments."""
+        return False
+
     @abc.abstractmethod
     def _run(self, *args: object, **kwargs: object) -> Any:  # noqa: ANN401
         """Run the task."""
@@ -85,6 +90,11 @@ class task_(Generic[T, B], _BaseTask):  # noqa: N801
     def func(self) -> Callable:
         """Underlying Python function."""
         return self._func
+
+    @property
+    def has_opts(self) -> bool:
+        """Return `True` if the task has options in its arguments."""
+        return "options" in inspect.signature(self._func).parameters
 
     def __call__(self, *args: T.args, **kwargs: T.kwargs) -> B:  # noqa: D102
         return self.run(*args, **kwargs)

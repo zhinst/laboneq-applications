@@ -3,7 +3,13 @@ import textwrap
 import pytest
 
 from laboneq_applications.workflow import task
-from laboneq_applications.workflow.taskbook import Task, TaskBook, TasksView, taskbook
+from laboneq_applications.workflow.taskbook import (
+    Task,
+    TaskBook,
+    TaskBookOptions,
+    TasksView,
+    taskbook,
+)
 
 
 @task
@@ -238,3 +244,529 @@ class TestTaskBookDecorator:
         res = book(5, y=10)
         assert [r.output for r in res.tasks] == [2, 6, 11]
         assert res.output == 10 + 1 + 2
+
+
+@task
+def task_alice(bar, options=None):
+    return bar
+
+
+@task
+def task_bob(foo, options=None):
+    return foo
+
+
+@task
+def task_charles(fred):
+    return fred
+
+
+class TestTaskbookRunWithOptions:
+    def test_empty_options(self):
+        @task
+        def task_print_options(options=None):
+            if options is None:
+                options = {"count": 1}
+            return options
+
+        @taskbook
+        def book(options=None):
+            task_alice(1)
+            task_bob(2)
+            task_charles(3)
+            task_print_options()
+
+        res = book()
+        assert res.tasks == TasksView(
+            [
+                Task(task=task_alice, output=1, args=(1,), kwargs={}),
+                Task(task=task_bob, output=2, args=(2,), kwargs={}),
+                Task(task=task_charles, output=3, args=(3,), kwargs={}),
+                Task(task=task_print_options, output={"count": 1}, args=(), kwargs={}),
+            ],
+        )
+
+    def test_broadcast_options(self):
+        @taskbook
+        def book(options=None):
+            task_alice(1)
+            task_bob(2)
+            task_charles(3)
+
+        # broadcast options
+        options = {"count": 1}
+        res = book(options=options)
+
+        # count is broadcasted to all tasks requiring options
+        assert res.tasks == TasksView(
+            [
+                Task(
+                    task=task_alice,
+                    output=1,
+                    args=(1,),
+                    kwargs={"options": {"count": 1}},
+                ),
+                Task(
+                    task=task_bob,
+                    output=2,
+                    args=(2,),
+                    kwargs={"options": {"count": 1}},
+                ),
+                Task(task=task_charles, output=3, args=(3,), kwargs={}),
+            ],
+        )
+
+    def test_options_not_required(self):
+        @taskbook
+        def book(options=None):
+            task_alice(1)
+            task_charles(3)
+
+        options = {"count": 1, "task.task_charles": {"fred": 4}}
+        res = book(options=options)
+
+        # task_c does not require options
+        assert res.tasks == TasksView(
+            [
+                Task(
+                    task=task_alice,
+                    output=1,
+                    args=(1,),
+                    kwargs={"options": {"count": 1}},
+                ),
+                Task(
+                    task=task_charles,
+                    output=3,
+                    args=(3,),
+                    kwargs={},
+                ),
+            ],
+        )
+
+    def test_options_normal_func(self):
+        # test that a normal function does not receive options
+        def some_func(options=None):
+            return options
+
+        @taskbook
+        def book(options=None):
+            return some_func()
+
+        options = {"foo": 1}
+        res = book(options=options)
+        assert res.output is None
+
+    def test_override_options(self):
+        @taskbook
+        def taskbook_a(options=None):
+            task_alice(1)
+            task_bob(2)
+            task_charles(3)
+
+        options = {
+            "count": 1,
+            "task.task_alice": {"foo": "bar", "count": 3},
+            "task.task_bob": {"bar": "foo"},
+        }
+
+        res = taskbook_a(options=options)
+        assert res.tasks == [
+            Task(
+                task=task_alice,
+                output=1,
+                args=(1,),
+                kwargs={"options": {"foo": "bar", "count": 3}},
+            ),
+            Task(
+                task=task_bob,
+                output=2,
+                args=(2,),
+                kwargs={"options": {"bar": "foo", "count": 1}},
+            ),
+            Task(
+                task=task_charles,
+                output=3,
+                args=(3,),
+                kwargs={},
+            ),
+        ]
+
+    def test_options_called_explicitly_in_taskbook(self):
+        # when options are explicitly called in the taskbook
+        # it should be overridden only for keys that exist
+        # in the options propagated from the taskbook
+        @taskbook
+        def taskbook_a(options=None):
+            task_alice(1, options={"count": 1, "foo": "bar"})
+
+        options = {
+            "count": 2,
+            "task.task_alice": {"count": 3},
+        }
+
+        res = taskbook_a(options=options)
+        assert res.tasks == [
+            Task(
+                task=task_alice,
+                output=1,
+                args=(1,),
+                kwargs={"options": {"count": 3, "foo": "bar"}},
+            ),
+        ]
+
+        res = taskbook_a()
+        assert res.tasks == [
+            Task(
+                task=task_alice,
+                output=1,
+                args=(1,),
+                kwargs={"options": {"count": 1, "foo": "bar"}},
+            ),
+        ]
+
+    def test_task_name_in_options(self):
+        # one of the broadcasted options matches
+        # to one of the task name
+        @taskbook
+        def taskbook_a(options=None):
+            task_alice(1)
+            task_bob(2)
+            task_charles(3)
+
+        options = {
+            "count": 1,
+            "task_alice": 1,
+            "task.task_alice": {"foo": "bar", "count": 3},
+            "task.task_bob": {"bar": "foo", "task_alice": 2},
+        }
+
+        res = taskbook_a(options=options)
+        assert res.tasks == [
+            Task(
+                task=task_alice,
+                output=1,
+                args=(1,),
+                kwargs={"options": {"foo": "bar", "count": 3, "task_alice": 1}},
+            ),
+            Task(
+                task=task_bob,
+                output=2,
+                args=(2,),
+                kwargs={"options": {"bar": "foo", "count": 1, "task_alice": 2}},
+            ),
+            Task(
+                task=task_charles,
+                output=3,
+                args=(3,),
+                kwargs={},
+            ),
+        ]
+
+    def test_options_with_funky_name(self):
+        @task(name="funky.wendy")
+        def task_funky(arg, options=None):
+            return arg
+
+        @taskbook
+        def taskbook_a(options=None):
+            task_funky(1)
+
+        options = {
+            "count": 1,
+            "task.funky.wendy": {"bar": "foo"},
+            "foo.bar": 1,  # broadcast option
+            "foo.bar.fred": 1,  # broadcast option
+            "foo.": 1,  # broadcast option
+        }
+
+        res = taskbook_a(options=options)
+        assert res.tasks == [
+            Task(
+                task=task_funky,
+                output=1,
+                args=(1,),
+                kwargs={
+                    "options": {
+                        "bar": "foo",
+                        "count": 1,
+                        "foo.bar.fred": 1,
+                        "foo.bar": 1,
+                        "foo.": 1,
+                    },
+                },
+            ),
+        ]
+
+    def test_options_used_separately(self):
+        opts = {"common": 1, "task.my_task": {"a": 5}}
+
+        @taskbook
+        def foobar(options=None):
+            task_alice(options["task.my_task"])
+
+        res = foobar(options=opts)
+        assert res.tasks == [
+            Task(
+                task=task_alice,
+                output={"a": 5},
+                args=({"a": 5},),
+                kwargs={"options": {"common": 1}},
+            ),
+        ]
+
+    @pytest.mark.xfail(reason="Not implemented")
+    def test_update_options_between_calls(self):
+        @taskbook
+        def taskbook_invalid(options=None):
+            task_alice(1)
+            options["count"] = "updated"
+            task_bob(2)
+            task_charles(3)
+
+        options = {
+            "count": 1,
+            "task.task_alice": {"foo": "bar", "count": 3},
+            "task.task_bob": {"bar": "foo", "count": 2},
+        }
+        with pytest.raises(
+            RuntimeError,
+            match="Cannot update options during taskbook execution.",
+        ):
+            taskbook_invalid(options=options)
+
+        # nested dict assignment
+        @taskbook
+        def taskbook_invalid(options=None):
+            task_alice(1)
+            options["task.task_alice"]["foo"] = 3
+            task_bob(2)
+            task_charles(3)
+
+        options = {
+            "count": 1,
+            "task.task_alice": {"foo": "bar", "count": 3},
+            "task.task_bob": {"bar": "foo", "count": 2},
+        }
+        with pytest.raises(
+            RuntimeError,
+            match="Cannot update options during taskbook execution.",
+        ):
+            taskbook_invalid(options=options)
+
+        # test that options can be updated outside of the taskbook
+        def taskbook_valid(options=None):
+            task_alice(1)
+            options["count"] = "updated"
+            task_bob(2)
+            task_charles(3)
+            return options
+
+        res = taskbook_valid(options=options)
+        assert res["count"] == "updated"
+
+    def test_priority_options(self):
+        """Options are ranked in the following order of priority:
+        1. task-specific option
+        2. broadcast option
+        3. option set in taskbook
+        4. default option in definition of tasks
+        """
+
+        @task
+        def task_alice(options=None):
+            if options is None:
+                options = {"count": 4}
+            return options["count"]
+
+        @taskbook
+        def taskbook_a(options=None):
+            task_alice(options={"count": 3})
+
+        # test 1>2>3>4
+        options = {
+            "count": 2,
+            "task.task_alice": {"count": 1},
+        }
+        res = taskbook_a(options=options)
+        assert res.tasks == [
+            Task(
+                task=task_alice,
+                output=1,
+                args=(),
+                kwargs={"options": {"count": 1}},
+            ),
+        ]
+
+        options = {
+            "task.task_alice": {"count": 1},
+        }
+        res = taskbook_a(options=options)
+        assert res.tasks == [
+            Task(
+                task=task_alice,
+                output=1,
+                args=(),
+                kwargs={"options": {"count": 1}},
+            ),
+        ]
+
+        # test 2>3>4
+        options = {
+            "count": 2,
+        }
+        res = taskbook_a(options=options)
+        assert res.tasks == [
+            Task(
+                task=task_alice,
+                output=2,
+                args=(),
+                kwargs={"options": {"count": 2}},
+            ),
+        ]
+
+        # test 3>4
+        res = taskbook_a()
+        assert res.tasks == [
+            Task(
+                task=task_alice,
+                output=3,
+                args=(),
+                kwargs={"options": {"count": 3}},
+            ),
+        ]
+
+    def test_support_options_identical_tasks(self):
+        def task_alice(bar, options=None):
+            return bar
+
+        @taskbook
+        def taskbook_a(options):
+            task(task_alice, name="task_alice_1")(1)
+            task(task_alice, name="task_alice_2")(2)
+
+        options = {
+            "count": 0,
+            "task.task_alice_1": {"foo": "bar", "count": 1},
+            "task.task_alice_2": {"bar": "foo", "count": 2},
+        }
+
+        res = taskbook_a(options=options)
+
+        assert res.tasks[0].output == 1
+        assert res.tasks[0].args == (1,)
+        assert res.tasks[0].kwargs == {"options": {"foo": "bar", "count": 1}}
+
+        assert res.tasks[1].output == 2
+        assert res.tasks[1].args == (2,)
+        assert res.tasks[1].kwargs == {"options": {"bar": "foo", "count": 2}}
+
+    def test_partial_update_default_options(self):
+        @task
+        def task_alice(bar, options=None):
+            default_options = {"foo": 0, "not_supply": 0}
+            if options is not None:
+                options = default_options | options
+            else:
+                options = default_options
+
+            return bar, options["foo"], options["not_supply"]
+
+        @taskbook
+        def taskbook_a(options=None):
+            task_alice(1)
+
+        # only foo is updated, "not_supply" remains default
+        options = {"bar": 2, "task.task_alice": {"foo": 2}}
+        res = taskbook_a(options=options)
+
+        assert res.tasks[0] == Task(
+            task=task_alice,
+            output=(1, 2, 0),
+            args=(1,),
+            kwargs={"options": {"bar": 2, "foo": 2}},
+        )
+
+        # default options used
+        res = taskbook_a()
+        assert res.tasks[0] == Task(
+            task=task_alice,
+            output=(1, 0, 0),
+            args=(1,),
+            kwargs={},
+        )
+
+
+class TestTaskBookOptions:
+    def test_init(self):
+        task_options = {"foo": 1, "task.bar": {"bar1": 1, "bar2": 2}}
+        options = TaskBookOptions(**task_options)
+        assert options._broadcast == {"foo": 1}
+        assert options._specific == {"bar": {"bar1": 1, "bar2": 2}}
+
+    def test_init_empty(self):
+        task_options = {}
+        options = TaskBookOptions(**task_options)
+        assert options._broadcast == {}
+        assert options._specific == {}
+
+    def test_process_options(self):
+        task_options = {
+            "foo": 1,
+            "task.bar": {"bar1": 1, "bar2": 2},
+            "task.foo": {"foo": "override"},
+        }
+        options = TaskBookOptions(**task_options)
+        res_bar = options.task_options("bar")
+        assert res_bar == {"bar1": 1, "bar2": 2, "foo": 1}
+
+        res_foo = options.task_options("foo")
+        assert res_foo == {"foo": "override"}
+
+        res_baz = options.task_options("baz")
+        assert res_baz == {"foo": 1}
+
+    def test_process_funky_options(self):
+        options = {
+            "count": 1,
+            "task.funky.wendy": {"bar": "foo", "foo.bar": 0},
+            "foo.bar": 1,  # broadcast option
+            "foo.bar.fred": 1,  # broadcast option
+            "foo.": 1,  # broadcast option
+        }
+        options = TaskBookOptions(**options)
+        res_funky_wendy = options.task_options("funky.wendy")
+        assert res_funky_wendy == {
+            "bar": "foo",
+            "foo.bar": 0,
+            "foo.bar.fred": 1,
+            "foo.": 1,
+            "count": 1,
+        }
+
+        res_funky_wendy = options.task_options("funky")
+        assert res_funky_wendy == {
+            "foo.bar": 1,
+            "foo.bar.fred": 1,
+            "foo.": 1,
+            "count": 1,
+        }
+
+        res_funky_wendy = options.task_options("foo.bar")
+        assert res_funky_wendy == {
+            "foo.bar": 1,
+            "foo.bar.fred": 1,
+            "foo.": 1,
+            "count": 1,
+        }
+
+    def test_mutability(self):
+        # test that returned options from process_options
+        # are not mutable
+
+        task_options = {"foo": 1}
+        options = TaskBookOptions(**task_options)
+        res_foo = options.task_options("foo")
+        assert res_foo == {"foo": 1}
+        res_foo["foo"] = 2
+        res_bar = options.task_options("bar")
+        assert res_bar == {"foo": 1}

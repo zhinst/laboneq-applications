@@ -67,3 +67,14 @@ class TestTaskWrapper:
         assert task2.name == "foobar2"
         assert task1._func == task2._func
         assert task1 is not task2
+
+
+class TestTaskOptions:
+    """Test tasks called with options outside of taskbook."""
+
+    def test_task_options(self):
+        @task
+        def task_a(a, options=None):
+            return a, options["count"]
+
+        assert task_a(1, options={"count": 2}) == (1, 2)

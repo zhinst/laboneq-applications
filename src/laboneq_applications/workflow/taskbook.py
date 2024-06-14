@@ -75,6 +75,7 @@ within the taskbook.
 
 from __future__ import annotations
 
+import copy
 from collections.abc import Sequence
 from functools import wraps
 from typing import TYPE_CHECKING, overload
@@ -230,9 +231,13 @@ class TaskBook:
     A taskbook is a collection of executed tasks and their results.
     """
 
-    def __init__(self) -> None:
+    def __init__(self, options: dict | None = None) -> None:
         self._tasks: list[Task] = []
         self._output = None
+        if options is None:
+            self._task_options = TaskBookOptions()
+        else:
+            self._task_options = TaskBookOptions(**options)
 
     @property
     def tasks(self) -> TasksView:
@@ -256,6 +261,11 @@ class TaskBook:
             ```
         """
         return TasksView(self._tasks)
+
+    @property
+    def task_options(self) -> TaskBookOptions:
+        """Task options of the taskbook."""
+        return self._task_options
 
     @property
     def output(self) -> object:
@@ -287,6 +297,17 @@ class _TaskBookExecutor(ExecutorContext):
         **kwargs: object,
     ) -> None:
         # TODO: Error handling and saving of the exception during execution
+
+        opts = self.taskbook.task_options
+
+        if opts.task_options(task.name) and task.has_opts:
+            # if a task is called with options explicitly in the taskbook,
+            # update the options with the task options.
+            # Otherwise use the task options.
+            # If no options are provided at the taskbook level,
+            # don't update the options.
+            kwargs.setdefault("options", {}).update(opts.task_options(task.name))
+
         r = task._run(*args, **kwargs)
         entry = Task(
             task=task,
@@ -319,9 +340,48 @@ def taskbook(func: Callable) -> Callable[..., TaskBook]:
         if isinstance(ctx, _TaskBookExecutor):
             # TODO: Should nested books append to the top level or?
             raise NotImplementedError("Taskbooks cannot be nested.")
-        book = TaskBook()
+        opts = kwargs.get("options", None)
+        book = TaskBook(options=opts)
         with LocalContext.scoped(_TaskBookExecutor(book)):
             book._output = func(*args, **kwargs)
         return book
 
     return inner
+
+
+class TaskBookOptions:
+    """A class for organizing options for the taskbook."""
+
+    _DELIMITER = "."
+    _PREFIX = "task"
+
+    def __init__(self, **kwargs) -> None:
+        self._broadcast = {}  # contain broadcast options
+        self._specific = {}  # contain task specific options
+        for k, v in kwargs.items():
+            key_prefix, key_sep, key_suffix = k.partition(self._DELIMITER)
+            if key_prefix == self._PREFIX and key_sep == self._DELIMITER:
+                self._specific[key_suffix] = v
+            else:
+                self._broadcast[k] = v
+
+    def task_options(self, task_name: str) -> dict:
+        """Return an option dict for a specific task following these rules.
+
+        The original options include broadcast options and task-specific options.
+        1. If the task_name is a not in the specific options, return a
+        broadcast options dict.
+        2. Otherwise, return a dict with broadcast options but overridden
+        by the task-specific options.
+
+        Args:
+            task_name: The name of the task.
+
+        Returns:
+            dict: The options for the task.
+        """
+        res = copy.deepcopy(self._broadcast)
+        if task_name not in self._specific:
+            return res
+        res.update(self._specific[task_name])
+        return res
