@@ -11,7 +11,7 @@ saved into the taskbook records.
 ### Building and running the taskbook
 
 ```python
-from laboneq.workflow import task, taskbook
+from laboneq_applications.workflow import task, taskbook
 
 def addition(x, y):
     return x + y
