@@ -78,9 +78,10 @@ from __future__ import annotations
 import copy
 import inspect
 import textwrap
+import threading
 from collections.abc import Sequence
 from functools import update_wrapper
-from typing import TYPE_CHECKING, Callable, Generic, TypeVar, overload
+from typing import TYPE_CHECKING, Callable, ClassVar, Generic, TypeVar, overload
 
 from typing_extensions import ParamSpec
 
@@ -332,6 +333,13 @@ class TaskBook:
         return f"TaskBook(tasks={self.tasks})"
 
 
+class _ContextStorage(threading.local):
+    # NOTE: Subclassed for type hinting
+    results: ClassVar[dict[str, TaskBook]] = {}
+
+
+_results = _ContextStorage()
+
 Parameters = ParamSpec("Parameters")
 ReturnType = TypeVar("ReturnType")
 
@@ -354,6 +362,9 @@ class taskbook_(Generic[Parameters, ReturnType]):  # noqa: N801
         src = inspect.getsource(self._func)
         return textwrap.dedent(src)
 
+    def _func_full_path(self) -> str:
+        return ".".join([self.func.__module__, self.func.__qualname__])
+
     def __call__(self, *args: Parameters.args, **kwargs: Parameters.kwargs) -> TaskBook:  # noqa: D102
         ctx = get_active_context()
         if isinstance(ctx, _TaskBookExecutor):
@@ -365,8 +376,31 @@ class taskbook_(Generic[Parameters, ReturnType]):  # noqa: N801
         with LocalContext.scoped(
             _TaskBookExecutor(book, options=kwargs.get("options", None)),
         ):
-            book._output = self._func(*args, **kwargs)
+            try:
+                book._output = self._func(*args, **kwargs)
+            except Exception:
+                _results.results[self._func_full_path()] = book
+                raise
         return book
+
+    def recover(self) -> TaskBook:
+        """Recover the taskbook of the latest run that raised an exception.
+
+        The value will be populated only if an exception is raised
+        from the taskbook function.
+        Getting the latest value will pop it from the memory and only one
+        result is stored per taskbook.
+
+        Returns:
+            Latest taskbook that raised an exception.
+
+        Raises:
+            WorkflowError: Taskbook has no previous record.
+        """
+        try:
+            return _results.results.pop(self._func_full_path())
+        except KeyError as error:
+            raise WorkflowError("Taskbook has no previous record.") from error
 
 
 def taskbook(
@@ -376,6 +410,12 @@ def taskbook(
 
     When a function is marked as a taskbook, it will record
     each task's information.
+
+    ### Storing the results in case of an error
+
+    When a function wrapped as a taskbook raises an Exception,
+    the partial result up until that point can be retrieved by using
+    `.pop_latest_failed_result()` method.
 
     Arguments:
         func: Function to be marked as a taskbook.

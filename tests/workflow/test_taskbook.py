@@ -351,6 +351,34 @@ class TestTaskBookDecorator:
             Task(task=task_a, output=4, parameters={"x": 1, "y": 3}),
         ]
 
+    def test_partial_results_stored_on_exception(self):
+        @task
+        def no_error():
+            return 1
+
+        def error(x):
+            raise RuntimeError
+
+        @taskbook
+        def testbook(x):
+            no_error()
+            error(x)
+            return 123
+
+        try:
+            testbook(5)
+        except RuntimeError:
+            book = testbook.recover()
+        assert len(book.tasks) == 1
+        assert book.output is None
+
+    def test_latest_result_do_not_exists(self):
+        @taskbook
+        def testbook(): ...
+
+        with pytest.raises(WorkflowError):
+            testbook.recover()
+
 
 @task
 def task_alice(bar, options=None):
