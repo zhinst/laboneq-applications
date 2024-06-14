@@ -84,6 +84,7 @@ from typing import TYPE_CHECKING, Callable, Generic, TypeVar, overload
 
 from typing_extensions import ParamSpec
 
+from laboneq_applications.workflow import _utils
 from laboneq_applications.workflow._context import (
     ExecutorContext,
     LocalContext,
@@ -235,12 +236,9 @@ class TaskBook:
     A taskbook is a collection of executed tasks and their results.
     """
 
-    def __init__(self, options: dict | None = None) -> None:
+    def __init__(self, parameters: dict | None = None) -> None:
+        self._parameters = parameters or {}
         self._tasks: list[Task] = []
-        if options is None:
-            self._task_options = TaskBookOptions()
-        else:
-            self._task_options = TaskBookOptions(**options)
         self._output: object | None = None
 
     @property
@@ -267,9 +265,9 @@ class TaskBook:
         return TasksView(self._tasks)
 
     @property
-    def task_options(self) -> TaskBookOptions:
-        """Task options of the taskbook."""
-        return self._task_options
+    def parameters(self) -> dict:
+        """Input parameters of the taskbook."""
+        return self._parameters
 
     @property
     def output(self) -> object | None:
@@ -315,8 +313,12 @@ class taskbook_(Generic[Parameters, ReturnType]):  # noqa: N801
         if isinstance(ctx, _TaskBookExecutor):
             # TODO: Should nested books append to the top level or?
             raise NotImplementedError("Taskbooks cannot be nested.")
-        book = TaskBook(options=kwargs.get("options", None))
-        with LocalContext.scoped(_TaskBookExecutor(book)):
+        book = TaskBook(
+            parameters=_utils.create_argument_map(self.func, *args, **kwargs),
+        )
+        with LocalContext.scoped(
+            _TaskBookExecutor(book, options=kwargs.get("options", None)),
+        ):
             book._output = self._func(*args, **kwargs)
         return book
 
@@ -349,8 +351,12 @@ def taskbook(
 class _TaskBookExecutor(ExecutorContext):
     """A taskbook executor."""
 
-    def __init__(self, taskbook: TaskBook) -> None:
+    def __init__(self, taskbook: TaskBook, options: dict | None) -> None:
         self.taskbook = taskbook
+        if options is None:
+            self._options = TaskBookOptions()
+        else:
+            self._options = TaskBookOptions(**options)
 
     def execute_task(
         self,
@@ -359,16 +365,15 @@ class _TaskBookExecutor(ExecutorContext):
         **kwargs: object,
     ) -> None:
         # TODO: Error handling and saving of the exception during execution
-
-        opts = self.taskbook.task_options
-
-        if opts.task_options(task.name) and task.has_opts:
+        if self._options.task_options(task.name) and task.has_opts:
             # if a task is called with options explicitly in the taskbook,
             # update the options with the task options.
             # Otherwise use the task options.
             # If no options are provided at the taskbook level,
             # don't update the options.
-            kwargs.setdefault("options", {}).update(opts.task_options(task.name))
+            kwargs.setdefault("options", {}).update(
+                self._options.task_options(task.name),
+            )
 
         r = task._run(*args, **kwargs)
         entry = Task(

@@ -168,6 +168,24 @@ class TestTaskBookDecorator:
 
         assert book.__doc__ == "foobar"
 
+    def test_parameters(self):
+        @taskbook
+        def testbook(a, b, options: dict, default=True): ...  # noqa: FBT002
+
+        book = testbook(1, 2, options={"foo": 123})
+        assert book.parameters == {
+            "a": 1,
+            "b": 2,
+            "options": {"foo": 123},
+            "default": True,
+        }
+
+        @taskbook
+        def empty_testbook(): ...
+
+        book = empty_testbook()
+        assert book.parameters == {}
+
     def test_signature_matches_function(self):
         def myfunc(x: int) -> str:
             return str(x)
