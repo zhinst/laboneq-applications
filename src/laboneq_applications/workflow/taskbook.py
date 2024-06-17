@@ -198,7 +198,15 @@ class Task:
         )
 
     def __repr__(self) -> str:
-        return f"Task(name={self.name})"
+        attrs = ", ".join(
+            [
+                f"name={self.name}",
+                f"output={self.output}",
+                f"parameters={self.parameters}",
+                f"func={self.func}",
+            ],
+        )
+        return f"Task({attrs})"
 
 
 class TasksView(Sequence):
@@ -225,7 +233,7 @@ class TasksView(Sequence):
         return {t.name for t in self._tasks}
 
     def __repr__(self) -> str:
-        return str(self._tasks)
+        return self._tasks.__repr__()
 
     @overload
     def __getitem__(self, item: tuple[str, int | slice] | slice) -> list[Task]: ...
@@ -329,8 +337,15 @@ class TaskBook:
         entry._taskbook = self
         self._tasks.append(entry)
 
-    def __repr__(self):
-        return f"TaskBook(tasks={self.tasks})"
+    def __repr__(self) -> str:
+        attrs = ", ".join(
+            [
+                f"output={self.output}",
+                f"parameters={self.parameters}",
+                f"tasks={self.tasks}",
+            ],
+        )
+        return f"TaskBook({attrs})"
 
 
 class _ContextStorage(threading.local):

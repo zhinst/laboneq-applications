@@ -57,7 +57,10 @@ class TestTaskbook:
         entry_b = Task(task=task_a, output=5)
         book.add_entry(entry_a)
         book.add_entry(entry_b)
-        assert str(book) == "TaskBook(tasks=[Task(name=task_a), Task(name=task_a)])"
+        tasks_repr = repr(book.tasks)
+        assert (
+            repr(book) == f"TaskBook(output=None, parameters={{}}, tasks={tasks_repr})"
+        )
 
 
 class TestTask:
@@ -84,7 +87,7 @@ class TestTask:
 
     def test_repr(self):
         t = Task(task_a, 2)
-        assert str(t) == "Task(name=task_a)"
+        assert repr(t) == f"Task(name=task_a, output=2, parameters={{}}, func={t.func})"
 
     def test_src(self):
         @task
@@ -121,7 +124,12 @@ class TestTasksView:
         assert view.unique() == {"task_a", "task_b"}
 
     def test_repr(self, view):
-        assert str(view) == "[Task(name=task_a), Task(name=task_b), Task(name=task_b)]"
+        t = Task(task=task_a, output=1)
+        view = TasksView([t])
+        assert (
+            repr(view)
+            == f"[Task(name=task_a, output=1, parameters={{}}, func={task_a.func})]"
+        )
 
     def test_len(self, view):
         assert len(view) == 3
