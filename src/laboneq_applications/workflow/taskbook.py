@@ -107,21 +107,18 @@ class Task:
         name: The name of the task.
         func: Underlying Python function.
         output: The output of the function.
-        args: Arguments of the task.
-        kwargs: Keyword arguments of the task.
+        parameters: Input parameters of the task.
     """
 
     def __init__(
         self,
         task: task_,
         output: object,
-        args: object,
-        kwargs: object,
+        parameters: dict | None = None,
     ) -> None:
         self._task = task
         self._output = output
-        self.args = args
-        self.kwargs = kwargs
+        self._parameters = parameters or {}
 
     @property
     def name(self) -> str:
@@ -143,14 +140,18 @@ class Task:
         """Output of the task."""
         return self._output
 
+    @property
+    def parameters(self) -> dict:
+        """Input parameters of the task."""
+        return self._parameters
+
     def __eq__(self, value: object) -> bool:
         if not isinstance(value, Task):
             return NotImplemented
         return (
             self._task == value._task
             and self.output == value.output
-            and self.args == value.args
-            and self.kwargs == value.kwargs
+            and self.parameters == value.parameters
         )
 
     def __repr__(self) -> str:
@@ -379,8 +380,7 @@ class _TaskBookExecutor(ExecutorContext):
         entry = Task(
             task=task,
             output=r,
-            args=args,
-            kwargs=kwargs,
+            parameters=_utils.create_argument_map(task.func, *args, **kwargs),
         )
         self.taskbook.add_entry(entry)
         return r

@@ -32,16 +32,16 @@ class TestTaskbook:
 
     def test_add_entry(self):
         book = TaskBook()
-        entry_a = Task(task=task_a, output=1, args=(), kwargs={})
-        entry_b = Task(task=task_a, output=5, args=(), kwargs={})
+        entry_a = Task(task=task_a, output=1)
+        entry_b = Task(task=task_a, output=5)
         book.add_entry(entry_a)
         book.add_entry(entry_b)
         assert book.tasks == [entry_a, entry_b]
 
     def test_repr(self):
         book = TaskBook()
-        entry_a = Task(task=task_a, output=1, args=(), kwargs={})
-        entry_b = Task(task=task_a, output=5, args=(), kwargs={})
+        entry_a = Task(task=task_a, output=1)
+        entry_b = Task(task=task_a, output=5)
         book.add_entry(entry_a)
         book.add_entry(entry_b)
         assert str(book) == "TaskBook(tasks=[Task(name=task_a), Task(name=task_a)])"
@@ -49,28 +49,28 @@ class TestTaskbook:
 
 class TestTask:
     def test_name(self):
-        t = Task(task_a, 2, 3, 4)
+        t = Task(task_a, 2)
         assert t.name == "task_a"
 
     def test_func(self):
-        t = Task(task_a, 2, 3, 4)
+        t = Task(task_a, 2)
         assert t.func == task_a.func
 
     def test_eq(self):
-        e1 = Task(task_a, 2, 3, 4)
-        e2 = Task(task_a, 2, 3, 4)
+        e1 = Task(task_a, 2)
+        e2 = Task(task_a, 2)
         assert e1 == e2
 
-        e1 = Task(task_a, 2, 3, 4)
-        e2 = Task(task_b, 2, 3, 4)
+        e1 = Task(task_a, 2)
+        e2 = Task(task_b, 2)
         assert e1 != e2
 
-        e1 = Task(task_a, 2, 3, 4)
+        e1 = Task(task_a, 2)
         assert e1 != 2
         assert e1 != "bar"
 
     def test_repr(self):
-        t = Task(task_a, 2, 3, 4)
+        t = Task(task_a, 2)
         assert str(t) == "Task(name=task_a)"
 
     def test_src(self):
@@ -78,7 +78,7 @@ class TestTask:
         def task_():
             return 1
 
-        t = Task(task_, 2, 3, 4)
+        t = Task(task_, 2)
         assert t.src == textwrap.dedent("""\
             @task
             def task_():
@@ -91,14 +91,14 @@ class TestTasksView:
     def view(self):
         return TasksView(
             [
-                Task(task=task_a, output=1, args=(), kwargs={}),
-                Task(task=task_b, output=2, args=(), kwargs={}),
-                Task(task=task_b, output=3, args=(), kwargs={}),
+                Task(task=task_a, output=1),
+                Task(task=task_b, output=2),
+                Task(task=task_b, output=3),
             ],
         )
 
     def test_no_copy(self):
-        t = Task(task=task_a, output=1, args=(), kwargs={})
+        t = Task(task=task_a, output=1)
         tasks = [t]
         view = TasksView(tasks)
         assert view[0] is tasks[0]
@@ -115,24 +115,24 @@ class TestTasksView:
 
     def test_getitem(self, view):
         # Test index
-        assert view[1] == Task(task=task_b, output=2, args=(), kwargs={})
+        assert view[1] == Task(task=task_b, output=2)
         # Test slice
         assert view[0:2] == [
-            Task(task=task_a, output=1, args=(), kwargs={}),
-            Task(task=task_b, output=2, args=(), kwargs={}),
+            Task(task=task_a, output=1),
+            Task(task=task_b, output=2),
         ]
         # Test string
-        assert view["task_b"] == Task(task=task_b, output=2, args=(), kwargs={})
+        assert view["task_b"] == Task(task=task_b, output=2)
         # Test slice
-        assert view["task_b", 0] == Task(task=task_b, output=2, args=(), kwargs={})
-        assert view["task_b", 1] == Task(task=task_b, output=3, args=(), kwargs={})
+        assert view["task_b", 0] == Task(task=task_b, output=2)
+        assert view["task_b", 1] == Task(task=task_b, output=3)
         assert view["task_b", 0:4] == [
-            Task(task=task_b, output=2, args=(), kwargs={}),
-            Task(task=task_b, output=3, args=(), kwargs={}),
+            Task(task=task_b, output=2),
+            Task(task=task_b, output=3),
         ]
         assert view["task_b", :] == [
-            Task(task=task_b, output=2, args=(), kwargs={}),
-            Task(task=task_b, output=3, args=(), kwargs={}),
+            Task(task=task_b, output=2),
+            Task(task=task_b, output=3),
         ]
 
         with pytest.raises(IndexError):
@@ -147,12 +147,12 @@ class TestTasksView:
     def test_eq(self):
         assert TasksView(
             [
-                Task(task=task_b, output=2, args=(), kwargs={}),
-                Task(task=task_b, output=3, args=(), kwargs={}),
+                Task(task=task_b, output=2),
+                Task(task=task_b, output=3),
             ],
         ) == [
-            Task(task=task_b, output=2, args=(), kwargs={}),
-            Task(task=task_b, output=3, args=(), kwargs={}),
+            Task(task=task_b, output=2),
+            Task(task=task_b, output=3),
         ]
         assert TasksView() == []
         assert TasksView() != [1, 2]
@@ -185,6 +185,18 @@ class TestTaskBookDecorator:
 
         book = empty_testbook()
         assert book.parameters == {}
+
+    def test_task_parameters(self):
+        @task
+        def myfunc(x: int, foobar=123) -> str:
+            return str(x)
+
+        @taskbook
+        def testbook():
+            myfunc(5)
+
+        book = testbook()
+        assert book.tasks[0].parameters == {"x": 5, "foobar": 123}
 
     def test_signature_matches_function(self):
         def myfunc(x: int) -> str:
@@ -227,8 +239,8 @@ class TestTaskBookDecorator:
 
         result = book()
         assert result.tasks == [
-            Task(task=task_a, output=1, args=(), kwargs={}),
-            Task(task=task_a, output=1, args=(), kwargs={}),
+            Task(task=task_a, output=1),
+            Task(task=task_a, output=1),
         ]
 
     def test_nested_task_recorded(self):
@@ -239,8 +251,8 @@ class TestTaskBookDecorator:
         result = book()
         assert result.tasks == TasksView(
             [
-                Task(task=task_a, output=1, args=(), kwargs={}),
-                Task(task=task_b, output=2, args=(), kwargs={}),
+                Task(task=task_a, output=1),
+                Task(task=task_b, output=2),
             ],
         )
 
@@ -316,9 +328,7 @@ class TestTaskbookRunWithOptions:
     def test_empty_options(self):
         @task
         def task_print_options(options=None):
-            if options is None:
-                options = {"count": 1}
-            return options
+            return {"count": 1}
 
         @taskbook
         def book(options=None):
@@ -330,10 +340,14 @@ class TestTaskbookRunWithOptions:
         res = book()
         assert res.tasks == TasksView(
             [
-                Task(task=task_alice, output=1, args=(1,), kwargs={}),
-                Task(task=task_bob, output=2, args=(2,), kwargs={}),
-                Task(task=task_charles, output=3, args=(3,), kwargs={}),
-                Task(task=task_print_options, output={"count": 1}, args=(), kwargs={}),
+                Task(task=task_alice, output=1, parameters={"bar": 1, "options": None}),
+                Task(task=task_bob, output=2, parameters={"foo": 2, "options": None}),
+                Task(task=task_charles, output=3, parameters={"fred": 3}),
+                Task(
+                    task=task_print_options,
+                    output={"count": 1},
+                    parameters={"options": None},
+                ),
             ],
         )
 
@@ -354,16 +368,14 @@ class TestTaskbookRunWithOptions:
                 Task(
                     task=task_alice,
                     output=1,
-                    args=(1,),
-                    kwargs={"options": {"count": 1}},
+                    parameters={"bar": 1, "options": {"count": 1}},
                 ),
                 Task(
                     task=task_bob,
                     output=2,
-                    args=(2,),
-                    kwargs={"options": {"count": 1}},
+                    parameters={"foo": 2, "options": {"count": 1}},
                 ),
-                Task(task=task_charles, output=3, args=(3,), kwargs={}),
+                Task(task=task_charles, output=3, parameters={"fred": 3}),
             ],
         )
 
@@ -382,15 +394,9 @@ class TestTaskbookRunWithOptions:
                 Task(
                     task=task_alice,
                     output=1,
-                    args=(1,),
-                    kwargs={"options": {"count": 1}},
+                    parameters={"bar": 1, "options": {"count": 1}},
                 ),
-                Task(
-                    task=task_charles,
-                    output=3,
-                    args=(3,),
-                    kwargs={},
-                ),
+                Task(task=task_charles, output=3, parameters={"fred": 3}),
             ],
         )
 
@@ -425,21 +431,14 @@ class TestTaskbookRunWithOptions:
             Task(
                 task=task_alice,
                 output=1,
-                args=(1,),
-                kwargs={"options": {"foo": "bar", "count": 3}},
+                parameters={"bar": 1, "options": {"foo": "bar", "count": 3}},
             ),
             Task(
                 task=task_bob,
                 output=2,
-                args=(2,),
-                kwargs={"options": {"bar": "foo", "count": 1}},
+                parameters={"foo": 2, "options": {"bar": "foo", "count": 1}},
             ),
-            Task(
-                task=task_charles,
-                output=3,
-                args=(3,),
-                kwargs={},
-            ),
+            Task(task=task_charles, output=3, parameters={"fred": 3}),
         ]
 
     def test_options_called_explicitly_in_taskbook(self):
@@ -460,8 +459,7 @@ class TestTaskbookRunWithOptions:
             Task(
                 task=task_alice,
                 output=1,
-                args=(1,),
-                kwargs={"options": {"count": 3, "foo": "bar"}},
+                parameters={"bar": 1, "options": {"foo": "bar", "count": 3}},
             ),
         ]
 
@@ -470,8 +468,7 @@ class TestTaskbookRunWithOptions:
             Task(
                 task=task_alice,
                 output=1,
-                args=(1,),
-                kwargs={"options": {"count": 1, "foo": "bar"}},
+                parameters={"bar": 1, "options": {"foo": "bar", "count": 1}},
             ),
         ]
 
@@ -496,21 +493,20 @@ class TestTaskbookRunWithOptions:
             Task(
                 task=task_alice,
                 output=1,
-                args=(1,),
-                kwargs={"options": {"foo": "bar", "count": 3, "task_alice": 1}},
+                parameters={
+                    "bar": 1,
+                    "options": {"foo": "bar", "count": 3, "task_alice": 1},
+                },
             ),
             Task(
                 task=task_bob,
                 output=2,
-                args=(2,),
-                kwargs={"options": {"bar": "foo", "count": 1, "task_alice": 2}},
+                parameters={
+                    "foo": 2,
+                    "options": {"bar": "foo", "count": 1, "task_alice": 2},
+                },
             ),
-            Task(
-                task=task_charles,
-                output=3,
-                args=(3,),
-                kwargs={},
-            ),
+            Task(task=task_charles, output=3, parameters={"fred": 3}),
         ]
 
     def test_options_with_funky_name(self):
@@ -535,8 +531,8 @@ class TestTaskbookRunWithOptions:
             Task(
                 task=task_funky,
                 output=1,
-                args=(1,),
-                kwargs={
+                parameters={
+                    "arg": 1,
                     "options": {
                         "bar": "foo",
                         "count": 1,
@@ -560,8 +556,7 @@ class TestTaskbookRunWithOptions:
             Task(
                 task=task_alice,
                 output={"a": 5},
-                args=({"a": 5},),
-                kwargs={"options": {"common": 1}},
+                parameters={"bar": {"a": 5}, "options": {"common": 1}},
             ),
         ]
 
@@ -643,8 +638,7 @@ class TestTaskbookRunWithOptions:
             Task(
                 task=task_alice,
                 output=1,
-                args=(),
-                kwargs={"options": {"count": 1}},
+                parameters={"options": {"count": 1}},
             ),
         ]
 
@@ -653,12 +647,7 @@ class TestTaskbookRunWithOptions:
         }
         res = taskbook_a(options=options)
         assert res.tasks == [
-            Task(
-                task=task_alice,
-                output=1,
-                args=(),
-                kwargs={"options": {"count": 1}},
-            ),
+            Task(task=task_alice, output=1, parameters={"options": {"count": 1}}),
         ]
 
         # test 2>3>4
@@ -667,23 +656,13 @@ class TestTaskbookRunWithOptions:
         }
         res = taskbook_a(options=options)
         assert res.tasks == [
-            Task(
-                task=task_alice,
-                output=2,
-                args=(),
-                kwargs={"options": {"count": 2}},
-            ),
+            Task(task=task_alice, output=2, parameters={"options": {"count": 2}}),
         ]
 
         # test 3>4
         res = taskbook_a()
         assert res.tasks == [
-            Task(
-                task=task_alice,
-                output=3,
-                args=(),
-                kwargs={"options": {"count": 3}},
-            ),
+            Task(task=task_alice, output=3, parameters={"options": {"count": 3}}),
         ]
 
     def test_support_options_identical_tasks(self):
@@ -704,12 +683,16 @@ class TestTaskbookRunWithOptions:
         res = taskbook_a(options=options)
 
         assert res.tasks[0].output == 1
-        assert res.tasks[0].args == (1,)
-        assert res.tasks[0].kwargs == {"options": {"foo": "bar", "count": 1}}
+        assert res.tasks[0].parameters == {
+            "bar": 1,
+            "options": {"foo": "bar", "count": 1},
+        }
 
         assert res.tasks[1].output == 2
-        assert res.tasks[1].args == (2,)
-        assert res.tasks[1].kwargs == {"options": {"bar": "foo", "count": 2}}
+        assert res.tasks[1].parameters == {
+            "bar": 2,
+            "options": {"bar": "foo", "count": 2},
+        }
 
     def test_partial_update_default_options(self):
         @task
@@ -733,8 +716,7 @@ class TestTaskbookRunWithOptions:
         assert res.tasks[0] == Task(
             task=task_alice,
             output=(1, 2, 0),
-            args=(1,),
-            kwargs={"options": {"bar": 2, "foo": 2}},
+            parameters={"bar": 1, "options": {"bar": 2, "foo": 2}},
         )
 
         # default options used
@@ -742,8 +724,7 @@ class TestTaskbookRunWithOptions:
         assert res.tasks[0] == Task(
             task=task_alice,
             output=(1, 0, 0),
-            args=(1,),
-            kwargs={},
+            parameters={"bar": 1, "options": None},
         )
 
 
