@@ -90,6 +90,7 @@ from laboneq_applications.workflow._context import (
     LocalContext,
     get_active_context,
 )
+from laboneq_applications.workflow.exceptions import WorkflowError
 
 if TYPE_CHECKING:
     from typing import Callable
@@ -119,6 +120,7 @@ class Task:
         self._task = task
         self._output = output
         self._parameters = parameters or {}
+        self._taskbook: TaskBook | None = None
 
     @property
     def name(self) -> str:
@@ -144,6 +146,46 @@ class Task:
     def parameters(self) -> dict:
         """Input parameters of the task."""
         return self._parameters
+
+    def rerun(
+        self,
+        *args: object,
+        **kwargs: object,
+    ) -> object:
+        """Rerun the task.
+
+        Rerunning the task appends the results into the attached taskbook,
+        and returns the return value of the task.
+
+        The given parameters overwrite the original run parameters of the task,
+        which can be inspected with `Task.parameters`. Therefore it is possible
+        to supply only specific parameters that one wishes to change and rerun
+        the task.
+        It is recommended that in the case of an partial parameters, keyword
+        arguments are used.
+
+        Arguments:
+            *args: Arguments forwarded into the task.
+            **kwargs: Keyword arguments forwarded into the original task.
+
+        Returns:
+            The return value of the task.
+        """
+        # TODO: Fill args, kwargs with previous and overwrite with given arguments.
+        kwargs = kwargs if kwargs is not None else {}
+        args = args if args is not None else ()
+        sig = inspect.signature(self.func)
+        args_partial = sig.bind_partial(*args, **kwargs)
+        params = self.parameters | args_partial.arguments
+        r = self.func(**params)
+        if self._taskbook is not None:
+            entry = Task(
+                task=self._task,
+                output=r,
+                parameters=params,
+            )
+            self._taskbook.add_entry(entry)
+        return r
 
     def __eq__(self, value: object) -> bool:
         if not isinstance(value, Task):
@@ -281,6 +323,9 @@ class TaskBook:
         Arguments:
             entry: Task entry.
         """
+        if entry._taskbook is not None:
+            raise WorkflowError("Task is already attached to an taskbook.")
+        entry._taskbook = self
         self._tasks.append(entry)
 
     def __repr__(self):

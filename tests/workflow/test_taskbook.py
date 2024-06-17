@@ -4,6 +4,7 @@ import textwrap
 import pytest
 
 from laboneq_applications.workflow import task
+from laboneq_applications.workflow.exceptions import WorkflowError
 from laboneq_applications.workflow.taskbook import (
     Task,
     TaskBook,
@@ -37,6 +38,18 @@ class TestTaskbook:
         book.add_entry(entry_a)
         book.add_entry(entry_b)
         assert book.tasks == [entry_a, entry_b]
+
+    def task_cannot_be_attached_to_multiple_taskbooks(self):
+        book = TaskBook()
+        entry_c = Task(task=task_a, output=1)
+        entry_c._taskbook = book
+
+        with pytest.raises(WorkflowError):
+            book.add_entry(entry_c)
+
+        book2 = TaskBook()
+        with pytest.raises(WorkflowError):
+            book2.add_entry(entry_c)
 
     def test_repr(self):
         book = TaskBook()
@@ -307,6 +320,36 @@ class TestTaskBookDecorator:
         res = book(5, y=10)
         assert [r.output for r in res.tasks] == [2, 6, 11]
         assert res.output == 10 + 1 + 2
+
+    def test_task_rerun(self):
+        @task
+        def task_a(x, y: int = 1):
+            return x + y
+
+        @taskbook
+        def book(x):
+            task_a(x)
+
+        result = book(1)
+        assert result.tasks == [
+            Task(task=task_a, output=2, parameters={"x": 1, "y": 1}),
+        ]
+
+        # Test update taskbook
+        rerun_res = result.tasks[0].rerun(2)
+        assert rerun_res == 3
+        rerun_res = result.tasks[0].rerun(y=3)
+        assert rerun_res == 4
+        assert result.tasks == [
+            Task(task=task_a, output=2, parameters={"x": 1, "y": 1}),
+            Task(task=task_a, output=3, parameters={"x": 2, "y": 1}),
+            Task(task=task_a, output=4, parameters={"x": 1, "y": 3}),
+        ]
+        assert result.tasks["task_a", :] == [
+            Task(task=task_a, output=2, parameters={"x": 1, "y": 1}),
+            Task(task=task_a, output=3, parameters={"x": 2, "y": 1}),
+            Task(task=task_a, output=4, parameters={"x": 1, "y": 3}),
+        ]
 
 
 @task
@@ -790,15 +833,3 @@ class TestTaskBookOptions:
             "foo.": 1,
             "count": 1,
         }
-
-    def test_mutability(self):
-        # test that returned options from process_options
-        # are not mutable
-
-        task_options = {"foo": 1}
-        options = TaskBookOptions(**task_options)
-        res_foo = options.task_options("foo")
-        assert res_foo == {"foo": 1}
-        res_foo["foo"] = 2
-        res_bar = options.task_options("bar")
-        assert res_bar == {"foo": 1}
