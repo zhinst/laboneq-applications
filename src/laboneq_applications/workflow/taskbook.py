@@ -99,6 +99,10 @@ if TYPE_CHECKING:
     from laboneq_applications.workflow.task import task_
 
 
+class _TaskBookStopExecution(BaseException):
+    """Raised while a task book is running to end the execution."""
+
+
 class Task:
     """A task.
 
@@ -369,6 +373,61 @@ class TaskBook:
         p.text(str(self))
 
 
+class _TaskBookExecutor(ExecutorContext):
+    """A taskbook executor."""
+
+    def __init__(
+        self,
+        taskbook: TaskBook,
+        options: dict | None,
+    ) -> None:
+        self.taskbook = taskbook
+        if options is None:
+            self._options = TaskBookOptions()
+        else:
+            self._options = TaskBookOptions(**options)
+        ctx = get_active_context()
+        if isinstance(ctx, _TaskBookExecutor):
+            # TODO: Should nested books append to the top level or?
+            raise NotImplementedError("Taskbooks cannot be nested.")
+        self._run_until = self._options.taskbook.get("run_until")
+
+    def __enter__(self):
+        LocalContext.enter(self)
+
+    def __exit__(self, exc_type, exc_value, traceback):  # noqa: ANN001
+        LocalContext.exit()
+        return isinstance(exc_value, _TaskBookStopExecution)
+
+    def execute_task(
+        self,
+        task: task_,
+        *args: object,
+        **kwargs: object,
+    ) -> None:
+        # TODO: Error handling and saving of the exception during execution
+        if self._options.task_options(task.name) and task.has_opts:
+            # if a task is called with options explicitly in the taskbook,
+            # update the options with the task options.
+            # Otherwise use the task options.
+            # If no options are provided at the taskbook level,
+            # don't update the options.
+            kwargs.setdefault("options", {}).update(
+                self._options.task_options(task.name),
+            )
+
+        r = task._run(*args, **kwargs)
+        entry = Task(
+            task=task,
+            output=r,
+            parameters=_utils.create_argument_map(task.func, *args, **kwargs),
+        )
+        self.taskbook.add_entry(entry)
+        if self._run_until is not None and task.name == self._run_until:
+            raise _TaskBookStopExecution(task.name)
+        return r
+
+
 class _ContextStorage(threading.local):
     # NOTE: Subclassed for type hinting
     results: ClassVar[dict[str, TaskBook]] = {}
@@ -402,15 +461,12 @@ class taskbook_(Generic[Parameters, ReturnType]):  # noqa: N801
         return ".".join([self.func.__module__, self.func.__qualname__])
 
     def __call__(self, *args: Parameters.args, **kwargs: Parameters.kwargs) -> TaskBook:  # noqa: D102
-        ctx = get_active_context()
-        if isinstance(ctx, _TaskBookExecutor):
-            # TODO: Should nested books append to the top level or?
-            raise NotImplementedError("Taskbooks cannot be nested.")
         book = TaskBook(
             parameters=_utils.create_argument_map(self.func, *args, **kwargs),
         )
-        with LocalContext.scoped(
-            _TaskBookExecutor(book, options=kwargs.get("options", None)),
+        with _TaskBookExecutor(
+            book,
+            options=book.parameters.get("options", None),
         ):
             try:
                 book._output = self._func(*args, **kwargs)
@@ -470,58 +526,31 @@ def taskbook(
     )
 
 
-class _TaskBookExecutor(ExecutorContext):
-    """A taskbook executor."""
-
-    def __init__(self, taskbook: TaskBook, options: dict | None) -> None:
-        self.taskbook = taskbook
-        if options is None:
-            self._options = TaskBookOptions()
-        else:
-            self._options = TaskBookOptions(**options)
-
-    def execute_task(
-        self,
-        task: task_,
-        *args: object,
-        **kwargs: object,
-    ) -> None:
-        # TODO: Error handling and saving of the exception during execution
-        if self._options.task_options(task.name) and task.has_opts:
-            # if a task is called with options explicitly in the taskbook,
-            # update the options with the task options.
-            # Otherwise use the task options.
-            # If no options are provided at the taskbook level,
-            # don't update the options.
-            kwargs.setdefault("options", {}).update(
-                self._options.task_options(task.name),
-            )
-
-        r = task._run(*args, **kwargs)
-        entry = Task(
-            task=task,
-            output=r,
-            parameters=_utils.create_argument_map(task.func, *args, **kwargs),
-        )
-        self.taskbook.add_entry(entry)
-        return r
-
-
 class TaskBookOptions:
     """A class for organizing options for the taskbook."""
 
     _DELIMITER = "."
     _PREFIX = "task"
+    _PREFIX_TASKBOOK = "taskbook"
 
     def __init__(self, **kwargs) -> None:
         self._broadcast = {}  # contain broadcast options
         self._specific = {}  # contain task specific options
+        self._taskbook = {}  # Taskbook run options
+
         for k, v in kwargs.items():
             key_prefix, key_sep, key_suffix = k.partition(self._DELIMITER)
             if key_prefix == self._PREFIX and key_sep == self._DELIMITER:
                 self._specific[key_suffix] = v
+            elif key_prefix == self._PREFIX_TASKBOOK and key_sep == self._DELIMITER:
+                self._taskbook[key_suffix] = v
             else:
                 self._broadcast[k] = v
+
+    @property
+    def taskbook(self) -> dict:
+        """Options for taskbook."""
+        return self._taskbook
 
     def task_options(self, task_name: str) -> dict:
         """Return an option dict for a specific task following these rules.

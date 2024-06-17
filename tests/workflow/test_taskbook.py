@@ -427,6 +427,141 @@ class TestTaskBookDecorator:
             testbook.recover()
 
 
+class TestTaskBookRunUntil:
+    @task
+    def task_a():
+        return 1
+
+    @task
+    def task_b():
+        return 2
+
+    @task
+    def task_c():
+        return 3
+
+    task_a = task_a
+    task_b = task_b
+    task_c = task_c
+
+    @staticmethod
+    def make_run_until_option(task: str) -> dict:
+        return {"taskbook.run_until": task}
+
+    def test_with_arguments(self):
+        @task
+        def task_aa(x):
+            return x
+
+        @task
+        def task_bb(x):
+            return x
+
+        @taskbook
+        def bookk(a, b, options):
+            task_aa(a)
+            task_bb(b)
+
+        result = bookk(1, b=2, options=self.make_run_until_option("task_b"))
+        assert result.tasks == [
+            Task(task=task_aa, output=1, parameters={"x": 1}),
+            Task(task=task_bb, output=2, parameters={"x": 2}),
+        ]
+
+    @pytest.fixture()
+    def book(self):
+        @taskbook
+        def book(options):
+            self.task_a()
+            self.task_b()
+            self.task_c()
+
+        return book
+
+    def test_stop_during_execution(self, book):
+        result = book(options=self.make_run_until_option("task_b"))
+        assert result.tasks == [
+            Task(task=self.task_a, output=1),
+            Task(task=self.task_b, output=2),
+        ]
+
+    def test_stop_end_of_execution(self, book):
+        result = book(options=self.make_run_until_option("task_c"))
+        assert result.tasks == [
+            Task(task=self.task_a, output=1),
+            Task(task=self.task_b, output=2),
+            Task(task=self.task_c, output=3),
+        ]
+
+    def test_until_task_does_not_exists(self, book):
+        result = book(options=self.make_run_until_option("I am test!"))
+        assert result.tasks == [
+            Task(task=self.task_a, output=1),
+            Task(task=self.task_b, output=2),
+            Task(task=self.task_c, output=3),
+        ]
+
+    def test_duplicate_task_name(self):
+        @taskbook
+        def testbook(options):
+            self.task_a()
+            self.task_b()
+            self.task_c()
+            self.task_b()
+
+        # Exit after first task encounter
+        result = testbook(options=self.make_run_until_option("task_b"))
+        assert result.tasks == [
+            Task(task=self.task_a, output=1),
+            Task(task=self.task_b, output=2),
+        ]
+
+    def test_result_not_stored(self, book):
+        # Ensure result not stored due to internal exception
+        book(options=self.make_run_until_option("task_b"))
+        with pytest.raises(WorkflowError):
+            book.recover()
+
+    def test_task_raises_exception(self):
+        @task
+        def task_a():
+            return 123
+
+        @task
+        def task_b():
+            raise Exception  # noqa: TRY002
+
+        @taskbook
+        def book(options):
+            task_a()
+            task_b()
+
+        with pytest.raises(Exception):  # noqa: B017
+            book(options=self.make_run_until_option("task_b"))
+        assert book.recover().tasks == [
+            Task(task=task_a, output=123),
+        ]
+
+    def test_task_raises_system_exception(self):
+        @task
+        def task_a():
+            return 123
+
+        @task
+        def task_b():
+            raise SystemExit
+
+        @taskbook
+        def bookkkk(options):
+            task_a()
+            task_b()
+
+        with pytest.raises(SystemExit):
+            bookkkk(options=self.make_run_until_option("task_b"))
+        with pytest.raises(WorkflowError):
+            bookkkk.recover()
+
+
 @task
 def task_alice(bar, options=None):
     return bar
