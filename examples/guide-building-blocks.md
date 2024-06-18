@@ -311,7 +311,7 @@ Let's use some of the predefined tasks to run an amplitude Rabi experiment.
 ### Using provided tasks to run an experiment
 
 ```{code-cell} ipython3
-from laboneq_applications.experiments.rabi import amplitude_rabi
+from laboneq_applications.experiments.rabi import create_experiment
 from laboneq_applications.tasks import compile_experiment, run_experiment
 from laboneq_applications.workflow import task
 ```
@@ -321,7 +321,7 @@ qop = TunableTransmonOperations()
 amplitudes = np.linspace(0.0, 1.0, 10)
 options = {"count": 10}
 
-exp = amplitude_rabi(qop, qubits[0], amplitudes, options)
+exp = create_experiment(qop, qubits[0], amplitudes, options)
 compiled_exp = compile_experiment(session, exp)
 result = run_experiment(session, compiled_exp)
 ```
@@ -461,7 +461,7 @@ At the moment tasks don't provide much beyond encouraging some structure. Encour
 ## Experiments as Taskbooks
 
 ```{code-cell} ipython3
-from laboneq_applications.experiments.rabi import amplitude_rabi
+from laboneq_applications.experiments.rabi import create_experiment
 from laboneq_applications.tasks import compile_experiment, run_experiment
 from laboneq_applications.workflow import task, taskbook
 ```
@@ -469,7 +469,7 @@ from laboneq_applications.workflow import task, taskbook
 ```{code-cell} ipython3
 @taskbook
 def amplitude_rabi_taskbook(qop, qubits, amplitudes, options):
-    exp = amplitude_rabi(
+    exp = create_experiment(
         qop,
         qubits,
         amplitudes=amplitudes,
@@ -509,19 +509,14 @@ logbook.output.results.result.q0
 Task names
 
 ```{code-cell} ipython3
-for task in logbook.tasks:
-    print(f"{task.task.name}")
+str(logbook.tasks)
 ```
 
 Task input arguments
 
 ```{code-cell} ipython3
 task = logbook.tasks[0]
-print("Args:")
-for arg in task.args:
-    print(f"    {type(arg)}")
-print("Kwargs:")
-for k, v in task.kwargs.items():
+for k, v in task.parameters.items():
     print(f"    {k}={type(v)}")
 ```
 
@@ -529,9 +524,9 @@ Task results
 
 ```{code-cell} ipython3
 for task in logbook.tasks:
-    print(f"{task.task.name}")
+    print(f"{task.name}")
     print("Result:")
-    print(f"        {type(task.result)}")
+    print(f"        {type(task.output)}")
     print()
 ```
 
@@ -552,8 +547,4 @@ logbook = amplitude_rabi_taskbook(
     amplitudes,
     options={"count": 10},
 )
-```
-
-```{code-cell} ipython3
-
 ```

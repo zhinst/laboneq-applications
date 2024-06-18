@@ -50,15 +50,6 @@ except ValidationError as e:
     print(e)
 ```
 
-    2 validation errors for option_model
-    foo
-      Input should be a valid integer, unable to parse string as an integer [type=int_parsing, input_value='not a number', input_type=str]
-        For further information visit https://errors.pydantic.dev/2.7/v/int_parsing
-    bar
-      Input should be a valid string [type=string_type, input_value=1, input_type=int]
-        For further information visit https://errors.pydantic.dev/2.7/v/string_type
-
-
 # Extend the base model on the fly
 
 
@@ -85,17 +76,6 @@ options = {
 
 opt = create_validate_opts(options, custom_options, base=ExampleOptions)
 ```
-
-
-
-
-    option_model(foo=10, bar='ge', fred=20, default_fed='fed')
-
-
-
-# Override the base model.
-
-
 ```python
 class ExampleOptions(BaseOptions):
     """Example options."""
@@ -115,19 +95,6 @@ options = {
 
 opt = create_validate_opts(options, custom_options, base=ExampleOptions)
 ```
-
-
-
-
-    option_model(foo=1, bar='ge')
-
-
-
-# Use options inside a task
-
-Let's say we have a task that requires a few options to be set: `foo`, `bar`, and `baz`. 
-
-
 ```python
 @task
 def chore(options: dict):
@@ -144,22 +111,12 @@ def chore(options: dict):
 chore({"foo": 10, "bar": "ge", "baz": 20})
 ```
 
-    foo=10 bar='ge' baz=20
-
-
-
 ```python
 try:
     chore({"foo": 10, "bar": "ge", "baz": "not a number"})
 except ValidationError as e:
     print(e)
 ```
-
-    1 validation error for option_model
-    baz
-      Input should be a valid integer, unable to parse string as an integer [type=int_parsing, input_value='not a number', input_type=str]
-        For further information visit https://errors.pydantic.dev/2.7/v/int_parsing
-
 
 # Create a model option from BaseExperimentOptions and use it in a task
 
@@ -169,10 +126,6 @@ LaboneQ Applications provide a template options that can be used for creating a 
 ```python
 print(BaseExperimentOptions.model_fields)
 ```
-
-    {'count': FieldInfo(annotation=int, required=True, metadata=[Ge(ge=0)]), 'acquisition_type': FieldInfo(annotation=Union[str, AcquisitionType], required=False, default=AcquisitionType.INTEGRATION), 'averaging_mode': FieldInfo(annotation=Union[str, AveragingMode], required=False, default=AveragingMode.CYCLIC), 'repetition_mode': FieldInfo(annotation=Union[str, RepetitionMode], required=False, default=RepetitionMode.FASTEST), 'repetition_time': FieldInfo(annotation=Union[float, NoneType], required=False, default=None), 'reset_oscillator_phase': FieldInfo(annotation=bool, required=False, default=False)}
-
-
 
 ```python
 @task
@@ -196,6 +149,3 @@ options = {
 }
 rabi(options)
 ```
-
-    count=10 acquisition_type=AcquisitionType.INTEGRATION averaging_mode=AveragingMode.CYCLIC repetition_mode=RepetitionMode.FASTEST repetition_time=None reset_oscillator_phase=False transition='ef'
-

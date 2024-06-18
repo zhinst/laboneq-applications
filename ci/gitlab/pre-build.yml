@@ -6,7 +6,7 @@ lint:python:
     - docker
   script:
     - pip install -r requirements-lint.txt
-    - ruff check --exclude=  # Overwrite exclude set in pyproject toml
+    - ruff check --exclude= # Overwrite exclude set in pyproject toml
   allow_failure: true
 
 lint:python:core:
@@ -38,4 +38,4 @@ lint:notebooks:core:
     - docker
   script:
     - pip install -r requirements-lint.txt
-    - nbqa ruff --nbqa-exclude examples/demo/2024015_experiment_library_examples.ipynb examples --ignore "INP001,D100,ANN201,T201"
+    - nbqa ruff --nbqa-exclude examples/legacy examples --ignore "INP001,D100,ANN201,T201"

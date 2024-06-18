@@ -5,7 +5,7 @@ from laboneq_applications.qpu_types.tunable_transmon import (
     modify_qubits,
     modify_qubits_context,
 )
-from laboneq_applications.workflow.workflow import Workflow
+from laboneq_applications.workflow import taskbook
 ```
 
 LaboneQ Application library supports the following data manipulation on TunableTransmons objects:
@@ -89,10 +89,6 @@ print(q0.parameters.reset_delay_length)
 print(q0.parameters.drive_parameters_ge["amplitude_pi"])
 ```
 
-    1.2e-06
-    0.2
-
-
 ## Use tasks to update qubit parameters
 
 Task `update_qubits` was provided specifically for updating qubits parameters in a `workflow` or a `taskbook`
@@ -101,7 +97,9 @@ Task `update_qubits` was provided specifically for updating qubits parameters in
 ```python
 q0 = TunableTransmonQubit()
 q1 = TunableTransmonQubit()
-with Workflow() as wf:
+
+@taskbook
+def mytaskbook():
     update_qubits(
         [(q0, {"reset_delay_length": 1.2e-6}), (q1, {"reset_delay_length": 2.2e-6})],
     )
@@ -109,20 +107,11 @@ with Workflow() as wf:
 
 
 ```python
-run = wf.run()
+run = mytaskbook()
 ```
 
 
 ```python
 print(q0.parameters.reset_delay_length)
 print(q1.parameters.reset_delay_length)
-```
-
-    1.2e-06
-    2.2e-06
-
-
-
-```python
-
 ```
