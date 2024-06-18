@@ -430,7 +430,7 @@ def taskbook(
 
     When a function wrapped as a taskbook raises an Exception,
     the partial result up until that point can be retrieved by using
-    `.pop_latest_failed_result()` method.
+    `.recover()` method.
 
     Arguments:
         func: Function to be marked as a taskbook.
