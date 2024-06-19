@@ -36,12 +36,12 @@ def extract_results(results: Results) -> RunExperimentResults:
                 "in the acquired result.",
             )
     return RunExperimentResults(
-        acquired_results={
+        data={
             h: AcquiredResult(data=r.data, axis=r.axis, axis_name=r.axis_name)
             for h, r in results.acquired_results.items()
         },
-        neartime_callback_results=results.neartime_callback_results,
-        execution_errors=results.execution_errors,
+        neartime_callbacks=results.neartime_callback_results,
+        errors=results.execution_errors,
     )
 
 

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Iterator, Mapping
+from collections.abc import KeysView as BaseKeysView
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any
 
@@ -32,54 +33,6 @@ class AcquiredResult:
     axis: list[ArrayLike | list[ArrayLike]] = field(default_factory=list)
 
 
-@dataclass
-class RunExperimentResults:
-    """The results of running an experiment.
-
-    Attributes:
-        acquired_results:
-            The extracted sweep results from the experiment. The keys
-            are the acquisition handles.
-        neartime_callback_results:
-            The results of the near-time user callbacks. The keys are the
-            names of the near-time callback functions. The values are the
-            list of results in execution order.
-        execution_errors:
-            The errors that occurred during running the experiment. Each
-            item in the list is a tuple of
-            `(sweep indices, realt-time section uid, error message)`.
-    """
-
-    acquired_results: dict[str, AcquiredResult] = field(default_factory=dict)
-    neartime_callback_results: dict[str, list[Any]] = field(default=None)
-    execution_errors: list[tuple[list[int], str, str]] = field(default=None)
-
-    @property
-    def results(self) -> AttributeWrapper:
-        """The acquired results of the experiment, accessible in dot notation.
-
-        Returns:
-            A wrapper for the acquired results, which allows to access them in
-            dot notation, where the levels are separated by slashes in the handle.
-
-        Example:
-        ```python
-        results = RunExperimentResults(
-            acquired_results={
-                "cal_trace/q0/g": AcquiredResult(
-                    data=numpy.array([1, 2, 3]),
-                    axis_name=["Amplitude"],
-                    axis=[numpy.array([0, 1, 2])],
-                ),
-            },
-        )
-        assert results.cal_trace.q0.g is results.acquired_results["cal_trace/q0/g"]
-        assert list(results.cal_trace.q0.keys()) == ["g"]
-        ```
-        """
-        return AttributeWrapper(self.acquired_results)
-
-
 class AttributeWrapper(Mapping[str, Any]):
     """A wrapper for accessing members of a dict in dot notation.
 
@@ -103,23 +56,40 @@ class AttributeWrapper(Mapping[str, Any]):
     ```
     """
 
+    class KeysView(BaseKeysView):
+        """A view of the keys of an AttributeWrapper."""
+
+        def __str__(self) -> str:
+            return f"AttributesView({list(self._mapping.keys())})"
+
+        def __repr__(self) -> str:
+            return str(self)
+
     def _get_subkey(self, key: str) -> str:
-        prefix_len = len(self.path)
-        return key[prefix_len + 1 :].split(self.separator, 1)[0]
+        if len(self._path) == 0:
+            return key.split(self._separator, 1)[0]
+        prefix_len = len(self._path)
+        return key[prefix_len + 1 :].split(self._separator, 1)[0]
+
+    def _get_subkeys(self, key: str) -> str:
+        if len(self._path) == 0:
+            return key.replace(self._separator, ".")
+        prefix_len = len(self._path)
+        return key[prefix_len + 1 :].replace(self._separator, ".")
 
     def _add_path(self, key: str) -> str:
-        return (self.path + self.separator + key) if self.path else key
+        return (self._path + self._separator + key) if self._path else key
 
     def __init__(self, data: dict[str, Any], path: str | None = None) -> None:
         super().__init__()
-        self.data = data
-        self.path = path or ""
-        self.separator = "/"
-        self._key_cache = [
-            self._get_subkey(k) for k in self.data if k.startswith(self.path)
-        ]
+        self._data = data
+        self._path = path or ""
+        self._separator = "/"
+        self._key_cache = {
+            self._get_subkey(k) for k in self._data if k.startswith(self._path)
+        }
         if not self._key_cache:
-            raise KeyError(f"Key '{self.path}' not found in the data.")
+            raise KeyError(f"Key '{self._path}' not found in the data.")
 
     # Mapping interface
     def __len__(self) -> int:
@@ -131,9 +101,13 @@ class AttributeWrapper(Mapping[str, Any]):
     def __getitem__(self, key: str) -> AttributeWrapper:
         path = self._add_path(key)
         try:
-            return self.data[path]
+            return self._data[path]
         except KeyError:
-            return AttributeWrapper(self.data, path)
+            return AttributeWrapper(self._data, path)
+
+    def keys(self) -> AttributeWrapper.KeysView[str]:
+        """A set-like object providing a view on the available attributes."""
+        return AttributeWrapper.KeysView(self)
 
     # End of Mapping interface
 
@@ -149,7 +123,91 @@ class AttributeWrapper(Mapping[str, Any]):
         if not isinstance(value, AttributeWrapper):
             return NotImplemented
         return (
-            self.data == value.data
-            and self.path == value.path
-            and self.separator == value.separator
+            self._data == value._data
+            and self._path == value._path
+            and self._separator == value._separator
+        )
+
+    def __repr__(self) -> str:
+        return str(self)
+
+    def __str__(self) -> str:
+        return str(
+            {
+                self._get_subkeys(k): v
+                for k, v in self._data.items()
+                if k.startswith(self._path)
+            },
+        )
+
+    def __dir__(self):
+        return super().__dir__() + list(self._key_cache)
+
+
+class RunExperimentResults(AttributeWrapper):
+    """The results of running an experiment.
+
+    The results are accessible via dot notation, where the levels are separated by
+    slashes in the handle.
+
+    Example:
+    ```python
+    acquired = AcquiredResult(
+        data=numpy.array([1, 2, 3]),
+        axis_name=["Amplitude"],
+        axis=[numpy.array([0, 1, 2])],
+    )
+    results = RunExperimentResults(data={"cal_trace/q0/g": acquired})
+    assert results.cal_trace.q0.g is acquired
+    assert list(results.cal_trace.q0.keys()) == ["g"]
+    ```
+
+    Attributes:
+        data:
+            The extracted sweep results from the experiment. The keys
+            are the acquisition handles.
+        neartime_callbacks:
+            The results of the near-time user callbacks. The keys are the
+            names of the near-time callback functions. The values are the
+            list of results in execution order.
+        errors:
+            The errors that occurred during running the experiment. Each
+            item in the list is a tuple of
+            `(sweep indices, realt-time section uid, error message)`.
+    """
+
+    def __init__(
+        self,
+        data: dict[str, AcquiredResult],
+        neartime_callbacks: dict[str, list[Any]] | None = None,
+        errors: list[tuple[list[int], str, str]] | None = None,
+    ):
+        super().__init__(data)
+        self._neartime_callbacks = neartime_callbacks or {}
+        self.errors = errors
+        self._key_cache.update(["neartime_callbacks", "errors"])
+
+    @property
+    def neartime_callbacks(self) -> dict[str, list[Any]]:
+        """The results of the near-time user callbacks."""
+        return AttributeWrapper(self._neartime_callbacks)
+
+    def __getitem__(self, key: str) -> AttributeWrapper:
+        if key == "neartime_callbacks":
+            return AttributeWrapper(self._neartime_callbacks)
+        if key == "errors":
+            return AttributeWrapper(self._errors)
+        return super().__getitem__(key)
+
+    def __str__(self) -> str:
+        return str(
+            {
+                self._get_subkeys(k): v
+                for k, v in self._data.items()
+                if k.startswith(self._path)
+            }
+            | {
+                "neartime_callbacks": self._neartime_callbacks,
+                "errors": self.errors,
+            },
         )

@@ -188,14 +188,13 @@ class TestTaskbook:
         assert compiled_exp.device_setup.uid == "test"
 
         exp_result = result.tasks[2].output
-        results = exp_result.results
         np.testing.assert_array_almost_equal(
-            results.result.q0.axis,
+            exp_result.result.q0.axis,
             [[0.1, 0.2]],
         )
-        np.testing.assert_almost_equal(results.cal_trace.q0.g.data, 4.2 + 0.2j)
-        np.testing.assert_almost_equal(results.cal_trace.q0.e.data, 4.2 + 0.3j)
-        traces = results.cal_trace.q0
+        np.testing.assert_almost_equal(exp_result.cal_trace.q0.g.data, 4.2 + 0.2j)
+        np.testing.assert_almost_equal(exp_result.cal_trace.q0.e.data, 4.2 + 0.3j)
+        traces = exp_result.cal_trace.q0
         assert len(traces) == 2
 
 

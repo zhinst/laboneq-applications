@@ -329,17 +329,17 @@ result = run_experiment(session, compiled_exp)
 And let's examine the rabi measurement results:
 
 ```{code-cell} ipython3
-result.results.result.q0
+result.result.q0
 ```
 
 And the measurements of the 0 and 1 states for calibration:
 
 ```{code-cell} ipython3
-result.results.cal_trace.q0.g
+result.cal_trace.q0.g
 ```
 
 ```{code-cell} ipython3
-result.results.cal_trace.q0.e
+result.cal_trace.q0.e
 ```
 
 Each of `amplitude_rabi`, `compile_experiment` and `run_experiment` is a task. They are ordinary Python functions, but they provide some special hooks so that they can be incorporate into taskbooks and workflows later.
@@ -437,15 +437,15 @@ result = run_experiment(session, compiled_exp)
 ```
 
 ```{code-cell} ipython3
-result.results.result.q0
+result.result.q0
 ```
 
 ```{code-cell} ipython3
-result.results.cal_trace["q0"]["g"]
+result.cal_trace["q0"]["g"]
 ```
 
 ```{code-cell} ipython3
-result.results.cal_trace["q0"]["e"]
+result.cal_trace["q0"]["e"]
 ```
 
 ### Why have tasks at all?
@@ -495,11 +495,7 @@ logbook = amplitude_rabi_taskbook(
 ```
 
 ```{code-cell} ipython3
-logbook.output.acquired_results
-```
-
-```{code-cell} ipython3
-logbook.output.results.result.q0
+logbook.output.result.q0
 ```
 
 ### Inspect tasks

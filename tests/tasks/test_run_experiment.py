@@ -26,7 +26,7 @@ class TestRunExperiment:
         )
         # Then the session should run the compiled experiment
         assert isinstance(results, RunExperimentResults)
-        assert "ac0" in results.acquired_results
+        assert "ac0" in results
 
     def test_run_experiment_standalone_with_raw(self, simple_session):
         """Test that the run_experiment task runs the compiled
@@ -40,7 +40,7 @@ class TestRunExperiment:
         # Then the session should run the compiled experiment
         assert isinstance(results[0], RunExperimentResults)
         assert isinstance(results[1], Results)
-        assert "ac0" in results[0].acquired_results
+        assert "ac0" in results[0]
         assert "ac0" in results[1].acquired_results
 
     def test_run_experiment_as_task(self, simple_session):
@@ -54,4 +54,4 @@ class TestRunExperiment:
             )
         assert len(wf.run().tasklog) == 1
         [results] = wf.run().tasklog["run_experiment"]
-        assert "ac0" in results.acquired_results
+        assert "ac0" in results

@@ -2,7 +2,7 @@
 
 import pytest
 
-from laboneq_applications.tasks.datatypes import AttributeWrapper
+from laboneq_applications.tasks.datatypes import AttributeWrapper, RunExperimentResults
 
 
 def test_attribute_wrapper():
@@ -13,6 +13,17 @@ def test_attribute_wrapper():
         "result/q0": 345,
     }
     wrapper = AttributeWrapper(data)
+    assert (
+        str(wrapper)
+        == "{'cal_trace.q0.g': 12345, 'cal_trace.q1.g': 2345, 'result.q0': 345}"
+        == repr(wrapper)
+    )
+    assert (
+        str(wrapper.cal_trace)
+        == "{'q0.g': 12345, 'q1.g': 2345}"
+        == repr(wrapper.cal_trace)
+    )
+    assert "q0" in dir(wrapper.cal_trace)
     assert wrapper.cal_trace.q0.g == 12345
     subtree = wrapper.cal_trace
     assert len(subtree) == 2
@@ -38,3 +49,34 @@ def test_attribute_wrapper():
 
     with pytest.raises(AttributeError):
         _ = wrapper.results
+
+
+def test_run_experiment_results():
+    data = {"cal_trace/q0/g": 12345, "cal_trace/q1/g": 2345, "sweep_data/q0": 345}
+    neartime_results = {"nt1": 12345, "nt2": {"a": "b", "c": "d"}}
+    errors = [(0, "error1", "error1 message"), (1, "error2", "error2 message")]
+    results = RunExperimentResults(data, neartime_results, errors)
+    assert set(results.keys()) == {
+        "cal_trace",
+        "sweep_data",
+        "neartime_callbacks",
+        "errors",
+    }
+    assert set(results) == {"cal_trace", "sweep_data", "neartime_callbacks", "errors"}
+    assert all(
+        k in dir(results)
+        for k in ["cal_trace", "sweep_data", "neartime_callbacks", "errors"]
+    )
+    assert results.errors is errors
+    assert "nt1" in results.neartime_callbacks
+    assert results.neartime_callbacks.nt2["a"] == "b"
+    assert (
+        str(results)
+        == "{'cal_trace.q0.g': 12345, 'cal_trace.q1.g': 2345, 'sweep_data.q0': 345, "
+        f"'neartime_callbacks': {neartime_results}, 'errors': {errors}}}"
+    )
+    assert (
+        repr(results)
+        == "{'cal_trace.q0.g': 12345, 'cal_trace.q1.g': 2345, 'sweep_data.q0': 345, "
+        f"'neartime_callbacks': {neartime_results!r}, 'errors': {errors}}}"
+    )
