@@ -10,3 +10,5 @@ of the page.
 ## Contents
 
 <!--nav-->
+
+* [Building a taskbook](sources/build_taskbook.ipynb)
