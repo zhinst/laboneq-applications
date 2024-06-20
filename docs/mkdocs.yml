@@ -5,11 +5,11 @@ docs_dir: sources
 site_dir: ../site
 
 watch:
-- ../src/laboneq_applications
-- zi_mkdocs
+  - ../src/laboneq_applications
+  - zi_mkdocs
 
 nav:
-- Home: index.md
+  - Home: index.md
 
 plugins:
   literate-nav:
@@ -20,6 +20,10 @@ plugins:
   mkdocstrings:
     handlers:
       python:
-        import: [
-          "https://docs.zhinst.com/labone_q_user_manual/objects.inv"
-        ]
+        import: ["https://docs.zhinst.com/labone_q_user_manual/objects.inv"]
+  mkdocs-jupyter:
+    execute: true
+  # Overwrite zi-mkdocs gen-files scripts to enable mkdocs-jupyter
+  # to execute and render the output of source Notebook files
+  gen-files:
+    scripts: []
