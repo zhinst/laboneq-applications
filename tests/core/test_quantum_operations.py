@@ -26,13 +26,30 @@ from laboneq_applications.core.quantum_operations import (
 class DummyOperations(QuantumOperations):
     """Dummy operations for testing."""
 
-    QUBIT_TYPE = Transmon
+    QUBIT_TYPES = Transmon
 
     @quantum_operation
     def x(self, q, amplitude):
         """A dummy quantum operation."""
         pulse = dsl.pulse_library.const()
         dsl.play(q.signals["drive"], pulse, amplitude=amplitude)
+
+
+class DummyCoupler(Transmon):
+    """Dummy coupler qubit for testing."""
+
+
+class DummyMultiTypeOperations(DummyOperations):
+    """Dummy operations for testing multi qubit-type support."""
+
+    QUBIT_TYPES = (DummyCoupler, Transmon)
+
+    @quantum_operation
+    def cz(self, q0, q1, amplitude=1.0):
+        """A dummy two qubit quantum operation."""
+        pulse = dsl.pulse_library.const()
+        dsl.play(q0.signals["drive"], pulse, amplitude=amplitude)
+        dsl.play(q1.signals["drive"], pulse, amplitude=amplitude)
 
 
 class ForeignQubit(QuantumElement):
@@ -56,6 +73,23 @@ def dummy_q():
             "drive": "/lsg/q0/drive",
             "measure": "/lsg/q0/measure",
             "acquire": "/lsg/q0/acquire",
+        },
+    )
+
+
+@pytest.fixture()
+def dummy_multi_type_ops():
+    return DummyMultiTypeOperations()
+
+
+@pytest.fixture()
+def dummy_coupler_q():
+    return DummyCoupler(
+        uid="q1",
+        signals={
+            "drive": "/lsg/q1/drive",
+            "measure": "/lsg/q1/measure",
+            "acquire": "/lsg/q1/acquire",
         },
     )
 
@@ -191,10 +225,22 @@ class TestQuantumOperations:
         qop[op_name](q)
 
     def test_create(self, dummy_ops):
-        assert dummy_ops.QUBIT_TYPE is Transmon
+        assert dummy_ops.QUBIT_TYPES is Transmon
+
+    def test_create_multi_type(self, dummy_multi_type_ops):
+        assert (DummyCoupler, Transmon) == dummy_multi_type_ops.QUBIT_TYPES
 
     def test_quantum_operation(self, dummy_ops, dummy_q):
         section = dummy_ops.x(dummy_q, amplitude=1.5)
+        assert type(section) is Section
+
+    def test_quantum_operation_multi_type(
+        self, dummy_multi_type_ops, dummy_q, dummy_coupler_q,
+    ):
+        section = dummy_multi_type_ops.x(dummy_coupler_q, amplitude=1.5)
+        assert type(section) is Section
+
+        section = dummy_multi_type_ops.cz(dummy_coupler_q, dummy_q)
         assert type(section) is Section
 
     def test_quantum_operation_docstring(self, dummy_ops):
@@ -239,7 +285,7 @@ class TestQuantumOperations:
         public_attrs = [attr for attr in dir(dummy_ops) if not attr.startswith("_")]
         assert public_attrs == [
             "BASE_OPS",
-            "QUBIT_TYPE",
+            "QUBIT_TYPES",
             "register",
             "x",
         ]
@@ -343,13 +389,74 @@ class TestOperation:
             tsl.play_pulse_op(signal="/lsg/q0/drive", amplitude=3.0),
         )
 
+    def test_call_multi_type(self, dummy_multi_type_ops, dummy_q, dummy_coupler_q):
+        section_1 = dummy_multi_type_ops.x(dummy_q, amplitude=2.0)
+        section_2 = dummy_multi_type_ops.x(dummy_coupler_q, amplitude=3.0)
+        section_3 = dummy_multi_type_ops.cz(dummy_coupler_q, dummy_q, amplitude=4.0)
+
+        assert section_1 == tsl.section(uid="__x_q0_0").children(
+            tsl.reserve_op(signal="/lsg/q0/drive"),
+            tsl.reserve_op(signal="/lsg/q0/measure"),
+            tsl.reserve_op(signal="/lsg/q0/acquire"),
+            tsl.play_pulse_op(signal="/lsg/q0/drive", amplitude=2.0),
+        )
+
+        assert section_2 == tsl.section(uid="__x_q1_0").children(
+            tsl.reserve_op(signal="/lsg/q1/drive"),
+            tsl.reserve_op(signal="/lsg/q1/measure"),
+            tsl.reserve_op(signal="/lsg/q1/acquire"),
+            tsl.play_pulse_op(signal="/lsg/q1/drive", amplitude=3.0),
+        )
+
+        assert section_3 == tsl.section(uid="__cz_q1_q0_0").children(
+            tsl.reserve_op(signal="/lsg/q1/drive"),
+            tsl.reserve_op(signal="/lsg/q1/measure"),
+            tsl.reserve_op(signal="/lsg/q1/acquire"),
+            tsl.reserve_op(signal="/lsg/q0/drive"),
+            tsl.reserve_op(signal="/lsg/q0/measure"),
+            tsl.reserve_op(signal="/lsg/q0/acquire"),
+            tsl.play_pulse_op(signal="/lsg/q1/drive", amplitude=4.0),
+            tsl.play_pulse_op(signal="/lsg/q0/drive", amplitude=4.0),
+        )
+
     def test_call_with_foreign_qubits(self, dummy_ops):
         q = ForeignQubit(uid="q0")
         with pytest.raises(TypeError) as err:
             dummy_ops.x(q, amplitude=1.0)
         assert str(err.value) == (
-            "Quantum operation 'x' was passed the following qubits"
-            " that are not of type Transmon: q0"
+            "Quantum operation 'x' was passed the following qubits that are"
+            " not of a supported qubit type: q0. The supported qubit types are:"
+            " Transmon."
+        )
+
+    def test_call_with_foreign_qubits_for_multi_type(
+        self, dummy_multi_type_ops, dummy_q,
+    ):
+        q0 = ForeignQubit(uid="q0")
+        q1 = ForeignQubit(uid="q1")
+
+        with pytest.raises(TypeError) as err:
+            dummy_multi_type_ops.x(q0, amplitude=1.0)
+        assert str(err.value) == (
+            "Quantum operation 'x' was passed the following qubits that are"
+            " not of a supported qubit type: q0. The supported qubit types are:"
+            " DummyCoupler, Transmon."
+        )
+
+        with pytest.raises(TypeError) as err:
+            dummy_multi_type_ops.cz(q0, dummy_q)
+        assert str(err.value) == (
+            "Quantum operation 'cz' was passed the following qubits that are"
+            " not of a supported qubit type: q0. The supported qubit types are:"
+            " DummyCoupler, Transmon."
+        )
+
+        with pytest.raises(TypeError) as err:
+            dummy_multi_type_ops.cz(q0, q1)
+        assert str(err.value) == (
+            "Quantum operation 'cz' was passed the following qubits that are"
+            " not of a supported qubit type: q0, q1. The supported qubit types are:"
+            " DummyCoupler, Transmon."
         )
 
     def test_partial(self, dummy_ops, dummy_q):

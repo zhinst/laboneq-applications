@@ -152,21 +152,21 @@ class QuantumOperations:
     """Quantum operations for a given qubit type.
 
     Attributes:
-        QUBIT_TYPE:
-            (class attribute) The class of qubits supported by this set of
-            operations.
+        QUBIT_TYPES:
+            (class attribute) The classes of qubits supported by this set of
+            operations. The value may be a single class or a tuple of classes.
         BASE_OPS:
             (class attribute) A dictionary of names and functions that define
             the base operations provided.
     """
 
-    QUBIT_TYPE: type[QuantumElement] = None
+    QUBIT_TYPES: type[QuantumElement] | tuple[type[QuantumElement]] | None = None
     BASE_OPS: dict[str, Callable] = None
 
     def __init__(self):
-        if self.QUBIT_TYPE is None:
+        if self.QUBIT_TYPES is None:
             raise ValueError(
-                "Sub-classes of QuantumOperations must set the qubit type.",
+                "Sub-classes of QuantumOperations must set the supported QUBIT_TYPES.",
             )
 
         self._ops = {}
@@ -319,14 +319,21 @@ class Operation:
         """
         qubits = _qubits_from_args(args)
         qubits_with_incorrect_type = [
-            q.uid for q in qubits if not isinstance(q, self._quantum_ops.QUBIT_TYPE)
+            q.uid for q in qubits if not isinstance(q, self._quantum_ops.QUBIT_TYPES)
         ]
 
         if qubits_with_incorrect_type:
+            if isinstance(self._quantum_ops.QUBIT_TYPES, type):
+                supported_qubit_types = self._quantum_ops.QUBIT_TYPES.__name__
+            else:
+                supported_qubit_types = ", ".join(
+                    x.__name__ for x in self._quantum_ops.QUBIT_TYPES
+                )
+            unsupported_qubits = ", ".join(qubits_with_incorrect_type)
             raise TypeError(
                 f"Quantum operation {self._op_name!r} was passed the following"
-                f" qubits that are not of type {self._quantum_ops.QUBIT_TYPE.__name__}:"
-                f" {', '.join(qubits_with_incorrect_type)}",
+                f" qubits that are not of a supported qubit type: {unsupported_qubits}."
+                f" The supported qubit types are: {supported_qubit_types}.",
             )
 
         section_name = "_".join([self._op_name] + [q.uid for q in qubits])

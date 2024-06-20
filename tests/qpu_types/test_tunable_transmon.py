@@ -402,8 +402,8 @@ class TestTunableTransmonOperations:
     def test_create(self):
         qops = TunableTransmonOperations()
 
-        assert qops.QUBIT_TYPE is TunableTransmonQubit
-        assert qops.QUBIT_TYPE.TRANSITIONS == ("ge", "ef")
+        assert qops.QUBIT_TYPES is TunableTransmonQubit
+        assert qops.QUBIT_TYPES.TRANSITIONS == ("ge", "ef")
 
     def test_operation_docstring(self):
         qops = TunableTransmonOperations()

@@ -425,7 +425,7 @@ class TunableTransmonQubit(Transmon):
 class TunableTransmonOperations(QuantumOperations):
     """Operations for TunableTransmonQubits."""
 
-    QUBIT_TYPE = TunableTransmonQubit
+    QUBIT_TYPES = TunableTransmonQubit
 
     # common angles used by rx, ry and rz.
     _PI = np.pi

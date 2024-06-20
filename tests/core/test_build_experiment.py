@@ -22,7 +22,7 @@ from laboneq_applications.core.quantum_operations import (
 class DummyOperations(QuantumOperations):
     """Dummy operations for testing."""
 
-    QUBIT_TYPE = Transmon
+    QUBIT_TYPES = Transmon
 
     @quantum_operation
     def x(self, q, amplitude):

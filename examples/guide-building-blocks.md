@@ -175,11 +175,11 @@ So far we've treated the quantum operations as a black box. Now let's look insid
 [op for op in dir(qop) if not op.startswith("_")]
 ```
 
-The `QUBIT_TYPE` is the type of qubits support by the quantum operations object we've created.
+The `QUBIT_TYPES` specify the type of qubits support by the quantum operations object we've created.
 In our case, that's the `TunableTransmonQubit`:
 
 ```{code-cell} ipython3
-qop.QUBIT_TYPE
+qop.QUBIT_TYPES
 ```
 
 The `BASE_OPS` is an implementation detail -- they contain the original defintions of the quantum operations. We will ignore it for now except to mention that individual quantum operations can be overridden with alternative implementations if required.
