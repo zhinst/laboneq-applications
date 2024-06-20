@@ -2,6 +2,7 @@ import inspect
 import textwrap
 
 import pytest
+from IPython.lib.pretty import pretty
 
 from laboneq_applications.workflow import task
 from laboneq_applications.workflow.exceptions import WorkflowError
@@ -72,6 +73,16 @@ class TestTaskbook:
             Taskbook
             Tasks: Task(task_a), Task(task_a)""")
 
+    def test_ipython_pretty(self):
+        book = TaskBook()
+        entry_a = Task(task=task_a, output=1)
+        entry_b = Task(task=task_a, output=5)
+        book.add_entry(entry_a)
+        book.add_entry(entry_b)
+        assert str(book) == textwrap.dedent("""\
+            Taskbook
+            Tasks: Task(task_a), Task(task_a)""")
+
 
 class TestTask:
     def test_name(self):
@@ -102,6 +113,10 @@ class TestTask:
     def test_str(self):
         t = Task(task_a, 2)
         assert str(t) == "Task(task_a)"
+
+    def test_ipython_pretty(self):
+        t = Task(task_a, 2)
+        assert pretty(t) == "Task(task_a)"
 
     def test_src(self):
         @task
@@ -149,6 +164,11 @@ class TestTasksView:
         t = Task(task=task_a, output=1)
         view = TasksView([t])
         assert str(view) == "Task(task_a)"
+
+    def test_ipython_pretty(self):
+        t = Task(task=task_a, output=1)
+        view = TasksView([t])
+        assert pretty(view) == "Task(task_a)"
 
     def test_len(self, view):
         assert len(view) == 3

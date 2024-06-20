@@ -211,6 +211,10 @@ class Task:
     def __str__(self) -> str:
         return f"Task({self.name})"
 
+    def _repr_pretty_(self, p, cycle):  # noqa: ANN001, ANN202, ARG002
+        # For Notebooks
+        p.text(str(self))
+
 
 class TasksView(Sequence):
     """A view of tasks.
@@ -240,6 +244,10 @@ class TasksView(Sequence):
 
     def __str__(self) -> str:
         return ", ".join([str(t) for t in self._tasks])
+
+    def _repr_pretty_(self, p, cycle):  # noqa: ANN001, ANN202, ARG002
+        # For Notebooks
+        p.text(str(self))
 
     @overload
     def __getitem__(self, item: tuple[str, int | slice] | slice) -> list[Task]: ...
@@ -355,6 +363,10 @@ class TaskBook:
 
     def __str__(self) -> str:
         return f"Taskbook\nTasks: {self.tasks}"
+
+    def _repr_pretty_(self, p, cycle):  # noqa: ANN001, ANN202, ARG002
+        # For Notebooks
+        p.text(str(self))
 
 
 class _ContextStorage(threading.local):

@@ -2,5 +2,5 @@ nbmake
 pytest
 pytest-cov
 pytest-xdist
-
+ipython
 -r requirements-lint.txt
