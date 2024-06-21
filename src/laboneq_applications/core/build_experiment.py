@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import functools
-from typing import TYPE_CHECKING, Any, Callable
+from typing import TYPE_CHECKING, Callable
 
 from laboneq.core.exceptions import LabOneQException
 from laboneq.dsl.experiment import builtins
@@ -28,6 +28,18 @@ class ExperimentBuilder:
 
     If needed, the experiment calibration may be accessed within
     `exp_func` using [laboneq.dsl.experiment.builtins.experiment_calibration]().
+
+    The set of qubits is detected by inspecting the arguments supplied when the
+    builder is called and consists of:
+
+    - any qubit supplied directly as an argument
+    - all the qubits in any list or tuple supplied directly as an argument
+
+    Qubit in tuples or lists containing a mix of qubits and non-qubits are
+    ignored.
+
+    During the detection, any instance of [laboneq.simple.QuantumElement]()
+    or its sub-classes is considered a qubit.
 
     Arguments:
         exp_func:
@@ -67,7 +79,7 @@ class ExperimentBuilder:
         Returns:
             A LabOne Q experiment.
         """
-        qubits = _qubits_from_args(args)
+        qubits = _qubits_from_args_and_kws(args, kw)
         signals = _exp_signals_from_qubits(qubits)
         calibration = _calibration_from_qubits(qubits)
 
@@ -153,16 +165,38 @@ def build(exp_func: Callable, *args, name: str | None = None, **kw) -> Experimen
     return builder(*args, **kw)
 
 
-def _qubits_from_args(args: tuple[Any]) -> list[QuantumElement]:
-    """Return a list of qubits found in positional arguments."""
+def _is_qubit(obj: object) -> bool:
+    """Return True if an object is a qubit."""
+    return isinstance(obj, QuantumElement)
+
+
+def _is_qubit_list_or_tuple(obj: object) -> bool:
+    """Return True if an object is a list or tuple of qubits."""
+    if not isinstance(obj, (tuple, list)) or not obj:
+        return False
+    # all(...) short-circuits so long lists of qubits are not
+    # traversed:
+    return all(isinstance(x, QuantumElement) for x in obj)
+
+
+def _qubits_from_args(args: tuple[object]) -> list[QuantumElement]:
+    """Return a list of qubits found in a list of arguments."""
     qubits = []
     for arg in args:
-        if isinstance(arg, QuantumElement):
+        if _is_qubit(arg):
             qubits.append(arg)
-        elif isinstance(arg, (tuple, list)) and all(
-            isinstance(x, QuantumElement) for x in arg
-        ):
+        elif _is_qubit_list_or_tuple(arg):
             qubits.extend(arg)
+    return qubits
+
+
+def _qubits_from_args_and_kws(
+    args: tuple[object],
+    kws: dict[str, object],
+) -> list[QuantumElement]:
+    """Return a list of qubits found in either positional or keyword arguments."""
+    qubits = _qubits_from_args(args)
+    qubits.extend(_qubits_from_args(kws.values()))
     return qubits
 
 
