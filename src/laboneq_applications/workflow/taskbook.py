@@ -81,7 +81,7 @@ import textwrap
 import threading
 from collections.abc import Sequence
 from functools import update_wrapper
-from typing import TYPE_CHECKING, Callable, ClassVar, Generic, TypeVar, overload
+from typing import TYPE_CHECKING, Callable, ClassVar, Generic, TypeVar, cast, overload
 
 from typing_extensions import ParamSpec
 
@@ -300,7 +300,10 @@ class TasksView(Sequence):
         return self._tasks == other
 
 
-class TaskBook:
+ReturnType = TypeVar("ReturnType")
+
+
+class TaskBook(Generic[ReturnType]):
     """A taskbook.
 
     A taskbook is a collection of executed tasks and their results.
@@ -309,7 +312,7 @@ class TaskBook:
     def __init__(self, parameters: dict | None = None) -> None:
         self._parameters = parameters or {}
         self._tasks: list[Task] = []
-        self._output: object | None = None
+        self._output: ReturnType | None = None
 
     @property
     def tasks(self) -> TasksView:
@@ -340,9 +343,9 @@ class TaskBook:
         return self._parameters
 
     @property
-    def output(self) -> object | None:
+    def output(self) -> ReturnType:
         """Output of the taskbook."""
-        return self._output
+        return cast(ReturnType, self._output)
 
     def add_entry(self, entry: Task) -> None:
         """Add an entry to the taskbook.
@@ -436,7 +439,6 @@ class _ContextStorage(threading.local):
 _results = _ContextStorage()
 
 Parameters = ParamSpec("Parameters")
-ReturnType = TypeVar("ReturnType")
 
 
 class taskbook_(Generic[Parameters, ReturnType]):  # noqa: N801
@@ -460,7 +462,11 @@ class taskbook_(Generic[Parameters, ReturnType]):  # noqa: N801
     def _func_full_path(self) -> str:
         return ".".join([self.func.__module__, self.func.__qualname__])
 
-    def __call__(self, *args: Parameters.args, **kwargs: Parameters.kwargs) -> TaskBook:  # noqa: D102
+    def __call__(  # noqa: D102
+        self,
+        *args: Parameters.args,
+        **kwargs: Parameters.kwargs,
+    ) -> TaskBook[ReturnType]:
         book = TaskBook(
             parameters=_utils.create_argument_map(self.func, *args, **kwargs),
         )
@@ -475,7 +481,7 @@ class taskbook_(Generic[Parameters, ReturnType]):  # noqa: N801
                 raise
         return book
 
-    def recover(self) -> TaskBook:
+    def recover(self) -> TaskBook[ReturnType]:
         """Recover the taskbook of the latest run that raised an exception.
 
         The value will be populated only if an exception is raised
@@ -512,7 +518,7 @@ def taskbook(
     Arguments:
         func: Function to be marked as a taskbook.
     """
-    return update_wrapper(
+    out = update_wrapper(
         taskbook_(func),
         func,
         assigned=(
@@ -524,6 +530,7 @@ def taskbook(
             "__doc__",
         ),
     )
+    return cast(taskbook_[Parameters, ReturnType], out)
 
 
 class TaskBookOptions:
