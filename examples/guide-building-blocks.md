@@ -68,7 +68,7 @@ The `LogbookStore` and `Workflow` will not be covered here.
 
 ## Setting up a device and session
 
-Build your LabOne Q `DeviceSetup`, qubits and `Session` as normal. Here we import an example from the applications library's test suite:
+Build your LabOne Q `DeviceSetup`, qubits and `Session` as normal. Here we import an example from the applications library's test suite (this will change in the near future):
 
 ```{code-cell} ipython3
 import sys
@@ -82,7 +82,7 @@ from tests.helpers.device_setups import single_tunable_transmon_setup, single_tu
 ```{code-cell} ipython3
 # setup is an ordinary LabOne Q DeviceSetup:
 setup = single_tunable_transmon_setup()
-# qubits is a list of LabOne Q Application Library TunableTransmonQubit qubits:
+# qubits is a list of one signle LabOne Q Application Library TunableTransmonQubit qubit:
 qubits = single_tunable_transmon_qubits(setup)
 ```
 
@@ -90,6 +90,28 @@ qubits = single_tunable_transmon_qubits(setup)
 session = Session(setup)
 session.connect(do_emulation=True)
 ```
+
+## Qubits and qubit parameters
+
++++
+
+Inspect the qubit parameters
+
+```{code-cell} ipython3
+print(qubits[0].parameters)
+```
+
+The following qubit parameters are used by the Applications Library:
+
+* `drive_parameters_ge`/`drive_parameters_ef`: contain the pulse parameters for implementing a pi-pulse on the ge and ef transitions
+* `readout_parameters`: contains the parameters of the readout pulse
+* `readout_integration_parameters`: contains the parameters of the integration kernels. The key `kernels=default` indicates that a constant square pulse with the length specified will be used for the integration (created in `qubit.default_integration_kernels()`). The `kernels` entry can also be set to a list of pulse dictionaries of the form `{"function": pulse_functional_name, "func_par1": value, "func_par2": value, ... }`. `pulse_functional_name` must be the name of a function registered with the `pulse_library.register_pulse_functional` (decorator)[https://docs.zhinst.com/labone_q_user_manual/tutorials/reference/04_pulse_library/].
+* `reset_delay_length`: the waiting time for passive qubit reset
+* `resonance_frequency_ge`, `resonance_frequency_ef` ' `drive_lo_frequency`, `readout_resonator_frequency`, `readout_lo_frequency`, `drive_range`, `readout_range_out`, `readout_range_in`: used to configure the qubit calibration which then ends up in the `Experiment` calibration.
+
+The remaining qubit parameters are still there for legacy reasons and have no effect. These will be cleaned up soon.',
+
++++
 
 ## Quantum Operations
 
@@ -101,9 +123,9 @@ The experiments built using quantum operations are just ordinary LabOne Q experi
 
 +++
 
-### Building a first experiment
+### Building a first experiment pulse sequence
 
-Let's build our first experiment using quantum operations.
+Let's build our first experiment pulse sequence using quantum operations. The experiment pulse sequence is described by the LabOne Q `Experiment` object.
 
 We'll need to import some things are the start. We'll explain what each of them is as we go:
 
@@ -119,7 +141,7 @@ from laboneq_applications.qpu_types.tunable_transmon import (
 )
 ```
 
-Let's start with a tiny experiment that rotates a qubit a given angle about the x-axis and performs a measurement:
+Let's start with a tiny experiment sequence that rotates a qubit a given angle about the x-axis and performs a measurement:
 
 ```{code-cell} ipython3
 @qubit_experiment
@@ -138,9 +160,10 @@ and break down the code line by line:
 
 * `with dsl.acquire_loop_rt(count=count)`: This is just the `acquire_loop_rt` function from `laboneq.dsl.experiments.builtins`. The `laboneq_applications.dsl` module is just a convenient way to access the LabOne Q DSL functionality.
 
-* `qop.rx(q, angle)`: Here `qop` is a set of quantum operations. The `rx` operation rotates the qubit by the given angle (in radians).
+* `qop.rx(q, angle)`: Here `qop` is a set of quantum operations. The `rx` operation creates a pulse that rotates the qubit by the given angle (in radians) by linearly scaling the pulse amplitude with respect to the qubit pi-pulse amplitude stored in `qubit.parameters.drive_parameters_ge.amplitdue_pi`. The pulse type is specified in `qubit.parameters.drive_parameters_ge.pulse.function` and it uses the length in `qubit.parameters.drive_parameters_ge.length`.
+   * To implement a pi-pulse and a pi-half pulse, we provide the operations `qop.x180`, `qop.y180`, `qop.x90`, `qop.y90`, which use the pulse amplitdues values in `qubit.parameters.drive_parameters_ge.amplitdue_pi` and `qubit.parameters.drive_parameters_ge.amplitdue_pi2`, respectively,
 
-* `qop.measure(q, "measure_q")`: Performs a measurement on the qubit. `"measure_q"` is the handle to store the results under.
+* `qop.measure(q, "measure_q")`: Performs a measurement on the qubit, using the readout pulse and kernels specified by the qubit parameters `qubit.parameters.readout_parameters` and `qubit.parameters.readout_integration_parameters`. `"measure_q"` is the handle to store the results under.
 
 +++
 
@@ -205,9 +228,15 @@ One can write:
 * `qop.rx?` to view the documentation as usual, or
 * `print(qop.rx.src)` to easily see how a quantum operation is implemented.
 
-Take a moment to read the documentation of a few of the other operations and their source.
+Take a moment to read the documentation of a few of the other operations and their source, for example:
 
-+++
+```{code-cell} ipython3
+print(qop.x180.src)
+```
+
+```{code-cell} ipython3
+print(qop.x90.src)
+```
 
 Calling a quantum operation by itself produces a LabOne Q section:
 
@@ -256,7 +285,7 @@ def simple_rx(qop, q, angle):
     """A very simple implementation of an RX operation that varies pulse length."""
     # Determined via rigorously calibration ;) :
     amplitude = 0.6
-    length_for_pi = 10e-9
+    length_for_pi = 50e-9
     # Calculate the length of the pulse
     length = length_for_pi * (angle / np.pi)
     dsl.play(
@@ -317,6 +346,12 @@ from laboneq_applications.workflow import task
 ```
 
 ```{code-cell} ipython3
+print(create_experiment.src)
+```
+
+Let's create, compile and run the rabi experiment with some simple input parameters.
+
+```{code-cell} ipython3
 qop = TunableTransmonOperations()
 amplitudes = np.linspace(0.0, 1.0, 10)
 options = {"count": 10}
@@ -342,16 +377,18 @@ result.cal_trace.q0.g
 result.cal_trace.q0.e
 ```
 
-Each of `amplitude_rabi`, `compile_experiment` and `run_experiment` is a task. They are ordinary Python functions, but they provide some special hooks so that they can be incorporate into taskbooks and workflows later.
+Each of `create_experiment`, `compile_experiment` and `run_experiment` is a task. They are ordinary Python functions, but they provide some special hooks so that they can be incorporate into taskbooks and workflows later.
 
-Like quantum operations, they can be inspected:
+Like quantum operations, they can be inspected. Let's insepct the source code of the `create_experiment` task of the rabi to see how the rabi experiment is created. You can inspect the source code of any task.
 
 ```{code-cell} ipython3
-compile_experiment?
+# docstring
+create_experiment?
 ```
 
 ```{code-cell} ipython3
-print(compile_experiment.src)
+# source code
+print(create_experiment.src)
 ```
 
 ### Writing your own tasks
@@ -370,9 +407,9 @@ add(1, 2)
 
 ### Writing an experiment task
 
-Built-in tasks like `compile_experiment` and `run_experiment` are quite standard and you shouldn't need to write your own versions very often, but tasks that build experiments, such as `amplitude_rabi`, will often be written by you.
+Built-in tasks like `compile_experiment` and `run_experiment` are quite standard and you shouldn't need to write your own versions very often, but tasks that build experiments, such as `create_experiment` for the rabi, will often be written by you.
 
-Let's write our own version of the `amplitude_rabi` experiment that sweeps pulse lengths instead of amplitudes.
+Let's write our own version of the `create_experiment` for the rabi experiment that sweeps pulse lengths instead of amplitudes.
 
 ```{code-cell} ipython3
 from laboneq.dsl.parameter import SweepParameter
@@ -460,6 +497,16 @@ At the moment tasks don't provide much beyond encouraging some structure. Encour
 
 ## Experiments as Taskbooks
 
++++
+
+A `Taskbook` is a collection of logically connected `Tasks` whose inputs and outputs depend on each other. We use `Taskbooks` to implement experiments. Experiment taskbooks have a few standard tasks:
+
+- `create_experiment` for creating the experimental pulse sequence
+- `compile_experiment` for compiling the `Experiment` returned by `create_experiment`
+- `run_experiment` for running the `CompiledExperiment` returned by `compile_experiment`
+
+Let's see what the experiment `Taskbook` looks like for the amplitude Rabi.
+
 ```{code-cell} ipython3
 from laboneq_applications.experiments.rabi import create_experiment
 from laboneq_applications.tasks import compile_experiment, run_experiment
@@ -486,7 +533,7 @@ amplitudes = np.linspace(0.0, 0.9, 10)
 # pass experiment options as a flat dictionary 
 options = {"count": 10, "averaging_mode": AveragingMode.CYCLIC}
 
-logbook = amplitude_rabi_taskbook(
+exp_tb = amplitude_rabi_taskbook(
     qop,
     qubits[0],
     amplitudes,
@@ -494,36 +541,55 @@ logbook = amplitude_rabi_taskbook(
 )
 ```
 
+Inspect the inputs that were passed to the taskbook and the output of the taskbook
+
 ```{code-cell} ipython3
-logbook.output.result.q0
+exp_tb.parameters
 ```
 
-### Inspect tasks
-
-+++
-
-Task names
-
 ```{code-cell} ipython3
-str(logbook.tasks)
+exp_tb.output  # the acquired results
 ```
 
-Task input arguments
+Inspect the tasks inside the taskbook
 
 ```{code-cell} ipython3
-task = logbook.tasks[0]
-for k, v in task.parameters.items():
-    print(f"    {k}={type(v)}")
+exp_tb.tasks
 ```
 
-Task results
+```{code-cell} ipython3
+[t.name for t in exp_tb.tasks]
+```
+
+Inspect the LabOne Q Experiment object
 
 ```{code-cell} ipython3
-for task in logbook.tasks:
-    print(f"{task.name}")
-    print("Result:")
-    print(f"        {type(task.output)}")
-    print()
+print(exp_tb.tasks["create_experiment"].output)  
+# alternatively, print(exp_tb.tasks[0].output)
+```
+
+Inspect the LabOne Q CompiledExperiment object
+
+```{code-cell} ipython3
+print(exp_tb.tasks["compile_experiment"].output)  
+```
+
+```{code-cell} ipython3
+# inspect pulse sequence with plot_simulation
+from laboneq.contrib.example_helpers.plotting.plot_helpers import plot_simulation
+plot_simulation(exp_tb.tasks["compile_experiment"].output, signal_names_to_show=["drive", "measure"],
+                start_time=0, length=50e-6)
+```
+
+Inspect the acquired results
+
+```{code-cell} ipython3
+print(exp_tb.tasks["run_experiment"].output)  # the acquired results
+# same as exp_tb.output
+```
+
+```{code-cell} ipython3
+exp_tb.output.result.q0
 ```
 
 ### Use temporary qubit parameters
@@ -537,10 +603,21 @@ temporary_qubit_parameters = [
     }),
 ]
 
-logbook = amplitude_rabi_taskbook(
+exp_tb = amplitude_rabi_taskbook(
     qop,
     modify_qubits(temporary_qubit_parameters)[0],
     amplitudes,
     options={"count": 10},
 )
+```
+
+```{code-cell} ipython3
+# inspect pulse sequence with plot_simulation
+from laboneq.contrib.example_helpers.plotting.plot_helpers import plot_simulation
+plot_simulation(exp_tb.tasks["compile_experiment"].output, signal_names_to_show=["drive", "measure"],
+                start_time=0, length=50e-6)
+```
+
+```{code-cell} ipython3
+
 ```
