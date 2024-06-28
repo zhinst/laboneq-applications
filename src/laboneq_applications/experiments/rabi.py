@@ -9,8 +9,8 @@ from laboneq.simple import Experiment, SweepParameter
 from laboneq_applications.core import handles
 from laboneq_applications.core.build_experiment import qubit_experiment
 from laboneq_applications.core.options import (
+    TaskBookOptions,
     TuneupExperimentOptions,
-    create_validate_opts,
 )
 from laboneq_applications.core.quantum_operations import QuantumOperations, dsl
 from laboneq_applications.core.validation import validate_and_convert_qubits_sweeps
@@ -26,14 +26,22 @@ if TYPE_CHECKING:
 
     from laboneq_applications.workflow.taskbook import TaskBook
 
+ExperimentOptions = TuneupExperimentOptions
 
-@taskbook
+
+class TuneUpTaskBookOptions(TaskBookOptions):
+    """Option class for tune up taskbook."""
+    #TODO: Find a better name and better place for this class
+    create_experiment: ExperimentOptions = ExperimentOptions()
+
+
+@taskbook(options=TuneUpTaskBookOptions)
 def amplitude_rabi(
     session: Session,
     qop: QuantumOperations,
     qubits: QuantumElement | Sequence[QuantumElement],
     amplitudes: Sequence[float] | Sequence[Sequence[float] | ndarray] | ndarray,
-    options: dict | None = None,
+    options: TuneUpTaskBookOptions | None = None,
 ) -> TaskBook:
     """Amplitude Rabi Experiment as a TaskBook.
 
@@ -93,10 +101,9 @@ def amplitude_rabi(
         qop,
         qubits,
         amplitudes=amplitudes,
-        options=options,
     )
     compiled_exp = compile_experiment(session, exp)
-    _result = run_experiment(session, compiled_exp, options=options)
+    _result = run_experiment(session, compiled_exp)
 
 
 @task
@@ -105,7 +112,7 @@ def create_experiment(
     qop: QuantumOperations,
     qubits: QuantumElement | Sequence[QuantumElement],
     amplitudes: Sequence[float] | Sequence[Sequence[float] | ndarray] | ndarray,
-    options: dict | None = None,
+    options: ExperimentOptions | None = None,
 ) -> Experiment:
     """Creates an Amplitude Rabi Experiment.
 
@@ -158,8 +165,7 @@ def create_experiment(
         ```
     """
     # Define the custom options for the experiment
-    option_fields = {}
-    opts = create_validate_opts(options, option_fields, base=TuneupExperimentOptions)
+    opts = TuneupExperimentOptions() if options is None else options
     qubits, amplitudes = validate_and_convert_qubits_sweeps(qubits, amplitudes)
     with dsl.acquire_loop_rt(
         count=opts.count,

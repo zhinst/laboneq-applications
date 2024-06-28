@@ -7,7 +7,11 @@ import pytest
 from laboneq.dsl.session import Session
 
 import tests.helpers.dsl as tsl
-from laboneq_applications.experiments.rabi import amplitude_rabi, create_experiment
+from laboneq_applications.experiments.rabi import (
+    ExperimentOptions,
+    amplitude_rabi,
+    create_experiment,
+)
 from laboneq_applications.qpu_types.tunable_transmon import TunableTransmonOperations
 
 
@@ -167,10 +171,11 @@ class TestTaskbook:
         qop = TunableTransmonOperations()
         [q0] = single_tunable_transmon.qubits
         amplitudes = [0.1, 0.2]
-        options = {"count": 10, "transition": "ge"}
-        run_wf = amplitude_rabi
+        options = amplitude_rabi.options()
+        options.create_experiment.count = 10
+        options.create_experiment.transition = "ge"
 
-        result = run_wf(
+        result = amplitude_rabi(
             session=session,
             qop=qop,
             qubits=q0,
@@ -206,7 +211,7 @@ class TestAmplitudeRabiSingleQubit:
         self.single_tunable_transmon = single_tunable_transmon
         self.q0 = single_tunable_transmon.qubits[0]
         self.amplitude = [0.1, 0.5, 1]
-        self.options = {"count": count, "transition": transition}
+        self.options = ExperimentOptions(count=count, transition=transition)
         self.qop = TunableTransmonOperations()
 
     def test_run_standalone_single_qubit_passed(self):
@@ -218,9 +223,9 @@ class TestAmplitudeRabiSingleQubit:
         )
         assert exp == reference_rabi_exp(
             [self.q0],
-            self.options["count"],
+            self.options.count,
             self.amplitude,
-            self.options["transition"],
+            self.options.transition,
         )
         session = Session(self.single_tunable_transmon.setup)
         session.connect(do_emulation=True)
@@ -259,9 +264,9 @@ class TestAmplitudeRabiSingleQubit:
         )
         assert exp == reference_rabi_exp(
             [self.q0],
-            self.options["count"],
+            self.options.count,
             np.array(self.amplitude),
-            self.options["transition"],
+            self.options.transition,
         )
 
 
@@ -273,7 +278,7 @@ class TestAmplitudeRabiTwoQubit:
         self.two_tunable_transmon = two_tunable_transmon
         self.q0, self.q1 = two_tunable_transmon.qubits
         self.amplitudes = [[0.1, 0.5, 1], [0.1, 0.5, 1]]
-        self.options = {"count": count, "transition": transition}
+        self.options = ExperimentOptions(count=count, transition=transition)
         self.qop = TunableTransmonOperations()
 
     def test_run_standalone(self):
@@ -285,9 +290,9 @@ class TestAmplitudeRabiTwoQubit:
         )
         assert exp == reference_rabi_exp(
             [self.q0, self.q1],
-            self.options["count"],
+            self.options.count,
             self.amplitudes,
-            self.options["transition"],
+            self.options.transition,
         )
         session = Session(self.two_tunable_transmon.setup)
         session.connect(do_emulation=True)
@@ -326,7 +331,7 @@ class TestAmplitudeRabiTwoQubit:
         )
         assert exp == reference_rabi_exp(
             [self.q0, self.q1],
-            self.options["count"],
+            self.options.count,
             [np.array([0, 1, 2]), np.array([0, 1, 2])],
-            self.options["transition"],
+            self.options.transition,
         )

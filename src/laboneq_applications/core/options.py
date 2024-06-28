@@ -9,7 +9,6 @@ from pydantic import (
     BaseModel,
     ConfigDict,
     Field,
-    create_model,
     field_validator,
     model_validator,
 )
@@ -21,7 +20,11 @@ T = TypeVar("T")
 class BaseOptions(BaseModel):
     """Base class for all Option classes."""
 
-    model_config = ConfigDict(validate_assignment=True, validate_default=True)
+    model_config = ConfigDict(
+        validate_assignment=True,
+        validate_default=True,
+        extra="forbid",
+    )
 
     def to_dict(self) -> dict:
         """Generate a dictionary representation of the options."""
@@ -121,57 +124,7 @@ class TuneupExperimentOptions(BaseExperimentOptions):
         return values
 
 
-def create_validate_opts(
-    input_options: dict | None,
-    custom_options: dict | None = None,
-    base: BaseModel = BaseOptions,
-) -> BaseModel:
-    """Create an options template (model) and validate the input options against it.
+class TaskBookOptions(BaseOptions):
+    """Option for taskbook."""
 
-    The template contains options from the base model. Custom options, if provided, are
-    added and will override the base options if the field names are the same.
-
-    Arguments:
-        input_options:
-            The input options.
-        custom_options:
-            Options to define the model, in addition to the base options.
-            The keys are the field names and the values are tuples of the form
-            (type, default_value) or (type, ...), where ... indicates that the
-            field is required.
-            Override the base options if the field names are the same.
-            If None, no additional options are added to the base option.
-        base:
-            The base option model to built upon. Default: BaseOptions.
-
-    Returns:
-        BaseModel: The validated options.
-
-    Example:
-        ```python
-        class ExampleOption(BaseOptions):
-            foo: int
-            bar: str
-        custom_options = {
-            "fred": (int, ...),
-            "default_fed": (str, "fed"),
-        }
-        options = {
-            "foo": 10,
-            "bar": "ge",
-            "fred": 20,
-        }
-        opt = create_validate_opts(options, custom_options, base=BaseOptions)
-        ```
-    """
-    if input_options is None:
-        input_options = {}
-    if custom_options is None:
-        custom_options = {}
-    option_model = create_model(
-        "option_model",
-        **custom_options,
-        __base__=base,
-        __module__="laboneq_applications.core.options",
-    )
-    return option_model(**input_options)
+    run_until: str | None = None

@@ -75,16 +75,24 @@ within the taskbook.
 
 from __future__ import annotations
 
-import copy
 import inspect
 import textwrap
 import threading
 from collections.abc import Sequence
 from functools import update_wrapper
-from typing import TYPE_CHECKING, Callable, ClassVar, Generic, TypeVar, cast, overload
+from typing import (
+    TYPE_CHECKING,
+    Callable,
+    ClassVar,
+    Generic,
+    TypeVar,
+    cast,
+    overload,
+)
 
 from typing_extensions import ParamSpec
 
+from laboneq_applications.core.options import TaskBookOptions
 from laboneq_applications.workflow import _utils
 from laboneq_applications.workflow._context import (
     ExecutorContext,
@@ -382,18 +390,15 @@ class _TaskBookExecutor(ExecutorContext):
     def __init__(
         self,
         taskbook: TaskBook,
-        options: dict | None,
+        options: TaskBookOptions,
     ) -> None:
         self.taskbook = taskbook
-        if options is None:
-            self._options = TaskBookOptions()
-        else:
-            self._options = TaskBookOptions(**options)
         ctx = get_active_context()
         if isinstance(ctx, _TaskBookExecutor):
             # TODO: Should nested books append to the top level or?
             raise NotImplementedError("Taskbooks cannot be nested.")
-        self._run_until = self._options.taskbook.get("run_until")
+        self.options = options
+        self._run_until = self.options.run_until
 
     def __enter__(self):
         LocalContext.enter(self)
@@ -409,15 +414,11 @@ class _TaskBookExecutor(ExecutorContext):
         **kwargs: object,
     ) -> None:
         # TODO: Error handling and saving of the exception during execution
-        if self._options.task_options(task.name) and task.has_opts:
-            # if a task is called with options explicitly in the taskbook,
-            # update the options with the task options.
-            # Otherwise use the task options.
-            # If no options are provided at the taskbook level,
-            # don't update the options.
-            kwargs.setdefault("options", {}).update(
-                self._options.task_options(task.name),
-            )
+        if hasattr(self.options, task.name):
+            if task.has_opts:
+                kwargs["options"] = getattr(self.options, task.name)
+            else:
+                raise ValueError(f"Task {task.name} does not require options.")
 
         r = task._run(*args, **kwargs)
         entry = Task(
@@ -444,14 +445,37 @@ Parameters = ParamSpec("Parameters")
 class taskbook_(Generic[Parameters, ReturnType]):  # noqa: N801
     """Task book wrapper for a function."""
 
-    def __init__(self, func: Callable[Parameters, ReturnType]) -> None:
+    def __init__(
+        self,
+        func: Callable[Parameters, ReturnType],
+        options: type[TaskBookOptions] | None = None,
+    ) -> None:
         self._func = func
         self.__doc__ = self._func.__doc__
+        if options is None:
+            self._options = None
+        elif isinstance(options, type) and issubclass(options, TaskBookOptions):
+            self._options = options
+        else:
+            raise TypeError(
+                "Options must be a subclass of TaskBookOptions.",
+            )
 
     @property
     def func(self) -> Callable[Parameters, ReturnType]:
         """The underlying function."""
         return self._func
+
+    @property
+    def options(self) -> type[TaskBookOptions]:
+        """The options for the taskbook.
+
+        Raise:
+            AttributeError: If the taskbook does not have options declared.
+        """
+        if self._options is None:
+            raise AttributeError("Taskbook does not have options declared.")
+        return self._options
 
     @property
     def src(self) -> str:
@@ -467,12 +491,25 @@ class taskbook_(Generic[Parameters, ReturnType]):  # noqa: N801
         *args: Parameters.args,
         **kwargs: Parameters.kwargs,
     ) -> TaskBook[ReturnType]:
+        if self._options is not None:
+            opts_input = kwargs.get("options", self._options())
+            if isinstance(opts_input, dict):
+                opt = self._options(**opts_input)
+            elif isinstance(opts_input, self._options):
+                opt = opts_input
+            else:
+                raise TypeError(
+                    "Options must be a dictionary or an instance of TaskBookOptions.",
+                )
+        else:
+            opt = TaskBookOptions()
         book = TaskBook(
             parameters=_utils.create_argument_map(self.func, *args, **kwargs),
         )
+
         with _TaskBookExecutor(
             book,
-            options=book.parameters.get("options", None),
+            options=opt,
         ):
             try:
                 book._output = self._func(*args, **kwargs)
@@ -502,7 +539,8 @@ class taskbook_(Generic[Parameters, ReturnType]):  # noqa: N801
 
 
 def taskbook(
-    func: Callable[Parameters, ReturnType],
+    func: Callable[Parameters, ReturnType] | None = None,
+    options: type[TaskBookOptions] | None = None,
 ) -> taskbook_[Parameters, ReturnType]:
     """A decorator to turn a function into a taskbook.
 
@@ -517,7 +555,27 @@ def taskbook(
 
     Arguments:
         func: Function to be marked as a taskbook.
+        options: Options for the taskbook.
     """
+    if func is None:
+
+        def decorator(func):  # noqa: ANN202, ANN001
+            out = update_wrapper(
+                taskbook_(func, options=options),
+                func,
+                assigned=(
+                    "__module__",
+                    "__name__",
+                    "__qualname__",
+                    "__annotations__",
+                    "__type_params__",
+                    "__doc__",
+                ),
+            )
+            return cast(taskbook_[Parameters, ReturnType], out)
+
+        # TODO: Fix the type of the decorator
+        return decorator
     out = update_wrapper(
         taskbook_(func),
         func,
@@ -531,51 +589,3 @@ def taskbook(
         ),
     )
     return cast(taskbook_[Parameters, ReturnType], out)
-
-
-class TaskBookOptions:
-    """A class for organizing options for the taskbook."""
-
-    _DELIMITER = "."
-    _PREFIX = "task"
-    _PREFIX_TASKBOOK = "taskbook"
-
-    def __init__(self, **kwargs) -> None:
-        self._broadcast = {}  # contain broadcast options
-        self._specific = {}  # contain task specific options
-        self._taskbook = {}  # Taskbook run options
-
-        for k, v in kwargs.items():
-            key_prefix, key_sep, key_suffix = k.partition(self._DELIMITER)
-            if key_prefix == self._PREFIX and key_sep == self._DELIMITER:
-                self._specific[key_suffix] = v
-            elif key_prefix == self._PREFIX_TASKBOOK and key_sep == self._DELIMITER:
-                self._taskbook[key_suffix] = v
-            else:
-                self._broadcast[k] = v
-
-    @property
-    def taskbook(self) -> dict:
-        """Options for taskbook."""
-        return self._taskbook
-
-    def task_options(self, task_name: str) -> dict:
-        """Return an option dict for a specific task following these rules.
-
-        The original options include broadcast options and task-specific options.
-        1. If the task_name is a not in the specific options, return a
-        broadcast options dict.
-        2. Otherwise, return a dict with broadcast options but overridden
-        by the task-specific options.
-
-        Args:
-            task_name: The name of the task.
-
-        Returns:
-            dict: The options for the task.
-        """
-        res = copy.deepcopy(self._broadcast)
-        if task_name not in self._specific:
-            return res
-        res.update(self._specific[task_name])
-        return res
