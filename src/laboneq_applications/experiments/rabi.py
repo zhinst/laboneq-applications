@@ -26,13 +26,17 @@ if TYPE_CHECKING:
 
     from laboneq_applications.workflow.taskbook import TaskBook
 
-ExperimentOptions = TuneupExperimentOptions
-
 
 class TuneUpTaskBookOptions(TaskBookOptions):
-    """Option class for tune up taskbook."""
-    #TODO: Find a better name and better place for this class
-    create_experiment: ExperimentOptions = ExperimentOptions()
+    """Option class for tune-up taskbook.
+
+    Attributes:
+        create_experiment (TuneupExperimentOptions):
+            The options for creating the experiment.
+            Default: TuneupExperimentOptions().
+    """
+
+    create_experiment: TuneupExperimentOptions = TuneupExperimentOptions()
 
 
 @taskbook(options=TuneUpTaskBookOptions)
@@ -65,15 +69,9 @@ def amplitude_rabi(
             it must be a list of lists of numbers or arrays.
         options:
             The options for building the workflow.
-            In addition to options from [BaseExperimentOptions], the following
+            In addition to options from [TaskBookOptions], the following
             custom options are supported:
-                transition:
-                    Transition to perform the experiment on. May be any
-                    transition supported by the quantum operations.
-                    Default: `"ge"` (i.e. ground to first excited state).
-                cal_traces (optional):
-                    Whether to include calibration traces in the experiment.
-                    Default: `True`.
+                - create_experiment: The options for creating the experiment.
 
     Returns:
         result:
@@ -81,14 +79,10 @@ def amplitude_rabi(
 
     Example:
         ```python
-        options = {
-            "count": 10,
-            "transition": "ge",
-            "averaging_mode": "cyclic",
-            "acquisition_type": "integration_trigger",
-            "cal_traces": True
-        }
-        result = amplitude_rabi_workflow(
+        options = amplitude_rabi.options()
+        options.create_experiment.count = 10
+        options.create_experiment.transition = "ge"
+        result = amplitude_rabi(
             session=session,
             qop=qop,
             qubits=q0,
@@ -112,7 +106,7 @@ def create_experiment(
     qop: QuantumOperations,
     qubits: QuantumElement | Sequence[QuantumElement],
     amplitudes: Sequence[float] | Sequence[Sequence[float] | ndarray] | ndarray,
-    options: ExperimentOptions | None = None,
+    options: TuneupExperimentOptions | None = None,
 ) -> Experiment:
     """Creates an Amplitude Rabi Experiment.
 
@@ -156,6 +150,7 @@ def create_experiment(
             "acquisition_type": "integration_trigger",
             "cal_traces": True
         }
+        options = TuneupExperimentOptions(**options)
         amplitude_rabi(
             qop=TunableTransmonOperations(),
             qubits=[TunableTransmonQubit("q0"), TunableTransmonQubit("q1")],

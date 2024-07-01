@@ -340,7 +340,8 @@ Let's use some of the predefined tasks to run an amplitude Rabi experiment.
 ### Using provided tasks to run an experiment
 
 ```{code-cell} ipython3
-from laboneq_applications.experiments.rabi import create_experiment, ExperimentOptions
+from laboneq_applications.core.options import TuneupExperimentOptions
+from laboneq_applications.experiments.rabi import create_experiment
 from laboneq_applications.tasks import compile_experiment, run_experiment
 from laboneq_applications.workflow import task
 ```
@@ -354,7 +355,7 @@ Let's create, compile and run the rabi experiment with some simple input paramet
 ```{code-cell} ipython3
 qop = TunableTransmonOperations()
 amplitudes = np.linspace(0.0, 1.0, 10)
-options = ExperimentOptions(count=10)
+options = TuneupExperimentOptions(count=10)
 
 exp = create_experiment(qop, qubits[0], amplitudes, options)
 compiled_exp = compile_experiment(session, exp)
@@ -531,7 +532,7 @@ def amplitude_rabi_taskbook(qop, qubits, amplitudes, options):
 qop = TunableTransmonOperations()
 amplitudes = np.linspace(0.0, 0.9, 10)
 # pass experiment options as a flat dictionary 
-options = ExperimentOptions(count=10, averaging_mode=AveragingMode.CYCLIC)
+options = TuneupExperimentOptions(count=10, averaging_mode=AveragingMode.CYCLIC)
 
 exp_tb = amplitude_rabi_taskbook(
     qop,
@@ -607,7 +608,7 @@ exp_tb = amplitude_rabi_taskbook(
     qop,
     modify_qubits(temporary_qubit_parameters)[0],
     amplitudes,
-    options=ExperimentOptions(count=10),
+    options=TuneupExperimentOptions(count=10),
 )
 ```
 

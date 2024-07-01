@@ -12,3 +12,4 @@ of the page.
 <!--nav-->
 
 * [Building a taskbook](sources/build_taskbook.ipynb)
+* [Using options](sources/options.ipynb)

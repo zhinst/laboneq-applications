@@ -7,8 +7,8 @@ import pytest
 from laboneq.dsl.session import Session
 
 import tests.helpers.dsl as tsl
+from laboneq_applications.core.options import TuneupExperimentOptions
 from laboneq_applications.experiments.rabi import (
-    ExperimentOptions,
     amplitude_rabi,
     create_experiment,
 )
@@ -211,7 +211,7 @@ class TestAmplitudeRabiSingleQubit:
         self.single_tunable_transmon = single_tunable_transmon
         self.q0 = single_tunable_transmon.qubits[0]
         self.amplitude = [0.1, 0.5, 1]
-        self.options = ExperimentOptions(count=count, transition=transition)
+        self.options = TuneupExperimentOptions(count=count, transition=transition)
         self.qop = TunableTransmonOperations()
 
     def test_run_standalone_single_qubit_passed(self):
@@ -278,7 +278,7 @@ class TestAmplitudeRabiTwoQubit:
         self.two_tunable_transmon = two_tunable_transmon
         self.q0, self.q1 = two_tunable_transmon.qubits
         self.amplitudes = [[0.1, 0.5, 1], [0.1, 0.5, 1]]
-        self.options = ExperimentOptions(count=count, transition=transition)
+        self.options = TuneupExperimentOptions(count=count, transition=transition)
         self.qop = TunableTransmonOperations()
 
     def test_run_standalone(self):

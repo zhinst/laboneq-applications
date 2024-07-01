@@ -46,22 +46,22 @@ class BaseExperimentOptions(BaseOptions):
     """Base options for the experiment.
 
     Attributes:
-        count (NonNegativeInt):
+        count:
             The number of repetitions.
             Default: A common choice in practice, 4096.
-        averaging_mode (AveragingMode):
+        averaging_mode:
             Averaging mode to use for the experiment.
             Default: `AveragingMode.CYCLIC`.
-        acquisition_type (AcquisitionType):
+        acquisition_type:
             Acquisition type to use for the experiment.
             Default: `AcquisitionType.INTEGRATION`.
-        repetition_mode (str | RepetitionMode):
+        repetition_mode:
             The repetition mode to use for the experiment.
             Default: `RepetitionMode.FASTEST`.
-        repetition_time (float | None):
+        repetition_time:
             The repetition time.
             Default: None.
-        reset_oscillator_phase (bool):
+        reset_oscillator_phase:
             Whether to reset the oscillator phase.
             Default: False.
     """
@@ -125,6 +125,12 @@ class TuneupExperimentOptions(BaseExperimentOptions):
 
 
 class TaskBookOptions(BaseOptions):
-    """Option for taskbook."""
+    """Base option for taskbook.
+
+    Attributes:
+        run_until:
+            The task to run until.
+            Default: `None`.
+    """
 
     run_until: str | None = None
