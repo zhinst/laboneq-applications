@@ -1,3 +1,6 @@
+from __future__ import annotations
+
+import re
 from typing import Literal
 
 import pytest
@@ -57,6 +60,51 @@ class TestOptions:
         # direct method of deserialization
         deserialized_options = opt.from_dict(serialized_dict)
         assert deserialized_options == opt
+
+
+def minify_string(s):
+    return s.replace("\n", "").replace(" ", "").replace("│", "").replace("↳", "")
+
+
+def strip_ansi_codes(s):
+    """Remove all ANSI codes from the given string."""
+    ansi_escape = re.compile(r"\x1b[^m]*m")
+    return ansi_escape.sub("", s)
+
+
+class TestOptionPrinting:
+    class FullOption(BaseOptions):
+        number: int = 1
+        text: str = "This is a text"
+        d: dict
+        array: list
+        more: None | BaseOptions = None
+
+    class SimpleOption(BaseOptions):
+        a: int = 1
+
+    def test_str(self):
+        opt = self.FullOption(d={"a": 1}, array=[1, 2, 3])
+        expected_str = (
+            "FullOption(number=1,text='Thisisatext',d={'a':1},array=[1,2,3],more=None)"
+        )
+        assert expected_str == (strip_ansi_codes(minify_string(str(opt))))
+
+        opt = self.FullOption(d={"a": 1}, array=[], more=self.SimpleOption())
+        expected_str = (
+            "FullOption(number=1,text='Thisisatext',d={'a':1},array=[],"
+            "more=SimpleOption(a=1))"
+        )
+
+        assert expected_str == strip_ansi_codes(minify_string(str(opt)))
+
+    def test_fmt(self):
+        opt = self.FullOption(d={"a": 1}, array=[1, 2, 3])
+        expected_repr = (
+            "FullOption(number=1, text='This is a text', d={'a': 1}, array=[1, 2, 3], "
+            "more=None)"
+        )
+        assert f"{opt}" == expected_repr
 
 
 class TestBaseExperimentOptions:

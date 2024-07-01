@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-from typing import Annotated, Literal, TypeVar
+from io import StringIO
+from typing import Annotated, Literal, TypeVar, final
 
 from laboneq.simple import AcquisitionType, AveragingMode, RepetitionMode
 from pydantic import (
@@ -12,6 +13,8 @@ from pydantic import (
     field_validator,
     model_validator,
 )
+from rich.console import Console
+from rich.pretty import pprint
 
 NonNegativeInt = Annotated[int, Field(ge=0)]
 T = TypeVar("T")
@@ -40,6 +43,22 @@ class BaseOptions(BaseModel):
         if not isinstance(other, BaseOptions):
             return False
         return self.to_dict() == other.to_dict()
+
+    @final
+    def __str__(self):
+        with StringIO() as buffer:
+            console = Console(file=buffer)
+            pprint(self, console=console, expand_all=True, indent_guides=True)
+            return buffer.getvalue()
+
+    @final
+    def __format__(self, _):  # noqa: ANN001
+        return self.__repr__()
+
+    @final
+    def _repr_pretty_(self, p, _cycle):  # noqa: ANN001, ANN202
+        # For Notebooks
+        p.text(str(self))
 
 
 class BaseExperimentOptions(BaseOptions):
