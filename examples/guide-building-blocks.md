@@ -72,11 +72,14 @@ Build your LabOne Q `DeviceSetup`, qubits and `Session` as normal. Here we impor
 
 ```{code-cell} ipython3
 import sys
+
 sys.path.insert(0, "..")
 
 from laboneq.simple import *
-
-from tests.helpers.device_setups import single_tunable_transmon_setup, single_tunable_transmon_qubits
+from tests.helpers.device_setups import (
+    single_tunable_transmon_qubits,
+    single_tunable_transmon_setup,
+)
 ```
 
 ```{code-cell} ipython3
@@ -134,10 +137,8 @@ import numpy as np
 
 from laboneq_applications import dsl
 from laboneq_applications.core.build_experiment import qubit_experiment
-from laboneq_applications.core.quantum_operations import QuantumOperations
 from laboneq_applications.qpu_types.tunable_transmon import (
     TunableTransmonOperations,
-    TunableTransmonQubit
 )
 ```
 
@@ -261,14 +262,14 @@ In addition to `.src` each quantum operation also has two special methods:
 Let's try them out:
 
 ```{code-cell} ipython3
-x180 = qop.rx.partial(angle=np.pi/5)
+x180 = qop.rx.partial(angle=np.pi / 5)
 section = x180(qubits[0])
 print(section)
 ```
 
 ```{code-cell} ipython3
 rx_on_grid = qop.rx.section(on_system_grid=True)
-section = rx_on_grid(qubits[0], np.pi/2)
+section = rx_on_grid(qubits[0], np.pi / 2)
 print(section)
 ```
 
@@ -279,8 +280,6 @@ Often you'll want to write your own quantum operation, either to create a new op
 Let's write our own very simple implementation of an `rx` operation that varies the pulse length instead of the amplitude:
 
 ```{code-cell} ipython3
-from laboneq_applications.core.quantum_operations import quantum_operation
-
 def simple_rx(qop, q, angle):
     """A very simple implementation of an RX operation that varies pulse length."""
     # Determined via rigorously calibration ;) :
@@ -313,7 +312,7 @@ print(section)
 To end off our look at quantum operations, let's replace the original `rx` gate with our own one and then use our existing experiment definition to produce a new experiment with the operation we've just written.
 
 ```{code-cell} ipython3
-qop["rx"] = simple_rx   # replace the rx gate
+qop["rx"] = simple_rx  # replace the rx gate
 exp = rotate_and_measure(qop, qubits[0], np.pi / 2)
 print(exp)
 ```
@@ -509,32 +508,26 @@ A `Taskbook` is a collection of logically connected `Tasks` whose inputs and out
 Let's see what the experiment `Taskbook` looks like for the amplitude Rabi.
 
 ```{code-cell} ipython3
-from laboneq_applications.experiments.rabi import create_experiment
-from laboneq_applications.tasks import compile_experiment, run_experiment
-from laboneq_applications.workflow import task, taskbook
+from laboneq_applications.experiments.rabi import amplitude_rabi
+from laboneq_applications.qpu_types.tunable_transmon import TunableTransmonOperations
 ```
 
+Inspect the source code of the `amplitude_rabi` `TaskBook` to see what tasks it has.
+
 ```{code-cell} ipython3
-@taskbook
-def amplitude_rabi_taskbook(qop, qubits, amplitudes, options):
-    exp = create_experiment(
-        qop,
-        qubits,
-        amplitudes=amplitudes,
-        options=options,
-    )
-    compiled_exp = compile_experiment(session, exp)
-    result = run_experiment(session, compiled_exp)
-    return result
+print(amplitude_rabi.src)
 ```
+
+### Run the experiment
 
 ```{code-cell} ipython3
 qop = TunableTransmonOperations()
 amplitudes = np.linspace(0.0, 0.9, 10)
-# pass experiment options as a flat dictionary 
-options = TuneupExperimentOptions(count=10, averaging_mode=AveragingMode.CYCLIC)
-
-exp_tb = amplitude_rabi_taskbook(
+options = amplitude_rabi.options()
+options.create_experiment.count = 10
+options.create_experiment.averaging_mode = "cyclic"
+rabi_tb = amplitude_rabi(
+    session,
     qop,
     qubits[0],
     amplitudes,
@@ -542,81 +535,161 @@ exp_tb = amplitude_rabi_taskbook(
 )
 ```
 
-Inspect the inputs that were passed to the taskbook and the output of the taskbook
+### Inspect the experiment TaskBook
+
++++
+
+Inspect the input parameters to the `amplitude_rabi` `Taskbook`
 
 ```{code-cell} ipython3
-exp_tb.parameters
-```
-
-```{code-cell} ipython3
-exp_tb.output  # the acquired results
+rabi_tb.parameters
 ```
 
 Inspect the tasks inside the taskbook
 
 ```{code-cell} ipython3
-exp_tb.tasks
+rabi_tb.tasks
 ```
 
 ```{code-cell} ipython3
-[t.name for t in exp_tb.tasks]
+[t.name for t in rabi_tb.tasks]
 ```
 
-Inspect the LabOne Q Experiment object
+Inspect the source code of `create_experiment` to see how the experiment pulse sequence was created.
 
 ```{code-cell} ipython3
-print(exp_tb.tasks["create_experiment"].output)  
-# alternatively, print(exp_tb.tasks[0].output)
+print(rabi_tb.tasks["create_experiment"].src)
 ```
 
-Inspect the LabOne Q CompiledExperiment object
+Inspect the LabOne Q Experiment object returned by `create_experiment`
 
 ```{code-cell} ipython3
-print(exp_tb.tasks["compile_experiment"].output)  
+print(rabi_tb.tasks["create_experiment"].output)
+# alternatively, print(rabi_tb.tasks[0].output)
+```
+
+Inspect the LabOne Q CompiledExperiment object returend by `compile_experiment`
+
+```{code-cell} ipython3
+print(rabi_tb.tasks["compile_experiment"].output)
 ```
 
 ```{code-cell} ipython3
 # inspect pulse sequence with plot_simulation
 from laboneq.contrib.example_helpers.plotting.plot_helpers import plot_simulation
-plot_simulation(exp_tb.tasks["compile_experiment"].output, signal_names_to_show=["drive", "measure"],
-                start_time=0, length=50e-6)
+
+plot_simulation(
+    rabi_tb.tasks["compile_experiment"].output,
+    signal_names_to_show=["drive", "measure"],
+    start_time=0,
+    length=50e-6,
+)
 ```
 
 Inspect the acquired results
 
 ```{code-cell} ipython3
-print(exp_tb.tasks["run_experiment"].output)  # the acquired results
-# same as exp_tb.output
+acquired_data = rabi_tb.tasks["run_experiment"].output  # the acquired results
+acquired_data
 ```
 
 ```{code-cell} ipython3
-exp_tb.output.result.q0
+acquired_data.result.q0
 ```
 
 ### Use temporary qubit parameters
 
 ```{code-cell} ipython3
 from laboneq_applications.qpu_types.tunable_transmon import modify_qubits
+
 amplitudes = np.linspace(0.0, 0.9, 10)
 temporary_qubit_parameters = [
-    (qubits[0], {
-        "reset_delay_length": 10e-6,
-    }),
+    (
+        qubits[0],
+        {
+            "reset_delay_length": 10e-6,
+        },
+    ),
 ]
 
-exp_tb = amplitude_rabi_taskbook(
+options = amplitude_rabi.options()
+rabi_tb = amplitude_rabi(
+    session,
     qop,
     modify_qubits(temporary_qubit_parameters)[0],
     amplitudes,
-    options=TuneupExperimentOptions(count=10),
+    options=options,
 )
 ```
 
 ```{code-cell} ipython3
 # inspect pulse sequence with plot_simulation
 from laboneq.contrib.example_helpers.plotting.plot_helpers import plot_simulation
-plot_simulation(exp_tb.tasks["compile_experiment"].output, signal_names_to_show=["drive", "measure"],
-                start_time=0, length=50e-6)
+
+plot_simulation(
+    rabi_tb.tasks["compile_experiment"].output,
+    signal_names_to_show=["drive", "measure"],
+    start_time=0,
+    length=50e-6,
+)
+```
+
+### Run until a task
+
+We can run `amplitude_rabi` only up to a specific task. Let's exclude the `run_measurement` task in order to first check if the experiment compiles sucessfully before running the measurement.
+
+```{code-cell} ipython3
+qop = TunableTransmonOperations()
+amplitudes = np.linspace(0.0, 0.9, 10)
+options = amplitude_rabi.options()
+options.create_experiment.count = 10
+options.run_until = "compile_experiment"
+rabi_tb = amplitude_rabi(
+    session,
+    qop,
+    qubits[0],
+    amplitudes,
+    options=options,
+)
+```
+
+```{code-cell} ipython3
+rabi_tb
+```
+
+### Inspect taskbook after an error
+
+If an error occurs during the execution of `amplitude_rabi`, we can inspect the tasks that have run up to the task that produced the error using `recover()`. This is particularly useful to inspect the experiment pulse sequence in case of a compilation or measurement error.
+
+Let's introduce a compilation error by sweeping the ampltude to values larger than 1, which is not allowed.
+
+```{code-cell} ipython3
+qop = TunableTransmonOperations()
+amplitudes = np.linspace(0.0, 1.5, 10)
+options = amplitude_rabi.options()
+options.create_experiment.count = 10
+
+# here we catch the exception such that the notebook runs through
+try:
+    rabi_tb = amplitude_rabi(
+        session,
+        qop,
+        qubits[0],
+        amplitudes,
+        options=options,
+    )
+except Exception as e:
+    print("ERROR: ", e)
+```
+
+```{code-cell} ipython3
+rabi_tb = amplitude_rabi.recover()
+rabi_tb
+```
+
+```{code-cell} ipython3
+# inspect the experiment section tree
+print(rabi_tb.tasks["create_experiment"].output)
 ```
 
 ```{code-cell} ipython3
