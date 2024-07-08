@@ -410,7 +410,7 @@ class TestTaskBookRunUntil:
         def task_bb(x):
             return x
 
-        @taskbook(options=TaskBookOptions)
+        @taskbook
         def bookk(a, b, options: TaskBookOptions | None = None):
             task_aa(a)
             task_bb(b)
@@ -423,7 +423,7 @@ class TestTaskBookRunUntil:
 
     @pytest.fixture()
     def book(self):
-        @taskbook(options=TaskBookOptions)
+        @taskbook
         def book(options: TaskBookOptions | None = None):
             self.task_a()
             self.task_b()
@@ -455,7 +455,7 @@ class TestTaskBookRunUntil:
         ]
 
     def test_duplicate_task_name(self):
-        @taskbook(options=TaskBookOptions)
+        @taskbook
         def testbook(options: TaskBookOptions | None = None):
             self.task_a()
             self.task_b()
@@ -484,7 +484,7 @@ class TestTaskBookRunUntil:
         def task_b():
             raise Exception  # noqa: TRY002
 
-        @taskbook(options=TaskBookOptions)
+        @taskbook
         def book(options: TaskBookOptions | None = None):
             task_a()
             task_b()
@@ -504,7 +504,7 @@ class TestTaskBookRunUntil:
         def task_b():
             raise SystemExit
 
-        @taskbook(options=TaskBookOptions)
+        @taskbook
         def bookkkk(options: TaskBookOptions | None = None):
             task_a()
             task_b()
@@ -526,6 +526,19 @@ class BarOpt(BaseOptions):
 class OptionFooBar(TaskBookOptions):
     task_foo: FooOpt = FooOpt()
     task_bar: BarOpt = BarOpt()
+
+
+class OptionFooBarInvalid(TaskBookOptions):
+    task_foo: FooOpt = FooOpt()
+    task_no_opt: BarOpt = BarOpt()
+
+
+class OptionNotExisting(OptionFooBar):
+    task_not_existing: BarOpt = BarOpt()
+
+
+class FooOptTaskBook(TaskBookOptions):
+    task_foo: FooOpt = FooOpt()
 
 
 @task
@@ -561,11 +574,11 @@ class TestTaskBookOption:
         used conditioned on results of previous tasks.
     """
 
-    def test_create_opts_model(self):
+    def test_create_options(self):
         # taskbook options is declared
 
-        @taskbook(options=OptionFooBar)
-        def taskbook_a(options: OptionFooBar = None):
+        @taskbook
+        def taskbook_a(options: OptionFooBar | None = None):
             task_foo(1)
             task_bar(2)
 
@@ -582,21 +595,10 @@ class TestTaskBookOption:
         assert opts.task_foo.foo == 2
         assert opts.task_bar.bar == 3
 
-    def test_create_opts_invalid_type(self):
-        with pytest.raises(
-            TypeError,
-            match="Options must be a subclass of TaskBookOptions.",
-        ):
-
-            @taskbook(options="invalid")
-            def taskbook_a(options: TaskBookOptions = None):
-                task_foo(1)
-
     def test_validate_options(self):
         # Initialize option with non-existing attributes will raises error
-
-        @taskbook(options=OptionFooBar)
-        def taskbook_a(options: TaskBookOptions = None):
+        @taskbook
+        def taskbook_a(options: TaskBookOptions | None = None):
             task_foo(1)
             task_bar(2)
 
@@ -604,8 +606,8 @@ class TestTaskBookOption:
             _ = taskbook_a.options(non_existing=1)
 
     def test_run_taskbook_with_invalid_options(self):
-        @taskbook(options=OptionFooBar)
-        def taskbook_a(options: TaskBookOptions = None):
+        @taskbook
+        def taskbook_a(options: TaskBookOptions | None = None):
             task_foo(1)
             task_bar(2)
 
@@ -626,8 +628,8 @@ class TestTaskBookOption:
             taskbook_a.options()
 
     def test_run_with_option_class(self):
-        @taskbook(options=OptionFooBar)
-        def taskbook_a(options: OptionFooBar = None):
+        @taskbook
+        def taskbook_a(options: OptionFooBar | None = None):
             task_foo(1)
             task_bar(2)
 
@@ -652,7 +654,7 @@ class TestTaskBookOption:
 
     def test_run_with_options(self):
         # Case 3.3
-        @taskbook(options=OptionFooBar)
+        @taskbook
         def taskbook_a(options: OptionFooBar | None = None):
             task_foo(1)
             task_bar(2)
@@ -675,7 +677,7 @@ class TestTaskBookOption:
         )
 
     def test_run_with_dict_options(self):
-        @taskbook(options=OptionFooBar)
+        @taskbook
         def taskbook_a(options: OptionFooBar | None = None):
             task_foo(1)
             task_bar(2)
@@ -694,11 +696,7 @@ class TestTaskBookOption:
 
     def test_opts_not_needed(self):
         # Case 3.1
-        class OptionFooBarInvalid(TaskBookOptions):
-            task_foo: FooOpt = FooOpt()
-            task_no_opt: BarOpt = BarOpt()
-
-        @taskbook(options=OptionFooBarInvalid)
+        @taskbook
         def taskbook_a(options: OptionFooBarInvalid | None = None):
             task_foo(1)
             task_no_opt(3)
@@ -715,13 +713,8 @@ class TestTaskBookOption:
 
     def test_task_not_existing(self):
         # Case 3.2
-        class OptionFooBarNew(OptionFooBar):
-            task_not_existing: BarOpt = BarOpt()
-
-        @taskbook(
-            options=OptionFooBarNew,
-        )
-        def taskbook_a(options: OptionFooBarNew | None = None):
+        @taskbook
+        def taskbook_a(options: OptionNotExisting | None = None):
             task_foo(1)
             task_bar(2)
 
@@ -759,10 +752,7 @@ class TestTaskBookOption:
         ]
 
     def test_task_requires_options_but_not_provided(self):
-        class FooOptTaskBook(TaskBookOptions):
-            task_foo: FooOpt = FooOpt()
-
-        @taskbook(options=FooOptTaskBook)
+        @taskbook
         def taskbook_a(options: FooOptTaskBook | None = None):
             task_foo(1)
             task_bar(2)
@@ -792,8 +782,8 @@ class TestTaskBookOption:
             options = BarOpt() if options is None else options
             return bar, options.bar
 
-        @taskbook(options=OptionFooBar)
-        def taskbook_a(options=None):
+        @taskbook
+        def taskbook_a(options: OptionFooBar | None = None):
             task_foo(1)
             task_bar(2)
 
@@ -841,6 +831,18 @@ class TestTaskBookOption:
     def test_taskbook_manual_handling_options(self):
         @taskbook
         def taskbook_a(options=None):
+            task_foo(1, options[0])
+            task_bar(2, options=options[1])
+
+        options = [FooOpt(), BarOpt()]
+        res = taskbook_a(options)
+        assert res.tasks == [
+            Task(task=task_foo, output=1, parameters={"foo": 1, "options": options[0]}),
+            Task(task=task_bar, output=2, parameters={"bar": 2, "options": options[1]}),
+        ]
+
+        @taskbook
+        def taskbook_a(options: list | None = None):
             task_foo(1, options[0])
             task_bar(2, options=options[1])
 

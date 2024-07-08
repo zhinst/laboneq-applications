@@ -39,7 +39,7 @@ class TuneUpTaskBookOptions(TaskBookOptions):
     create_experiment: TuneupExperimentOptions = TuneupExperimentOptions()
 
 
-@taskbook(options=TuneUpTaskBookOptions)
+@taskbook
 def amplitude_rabi(
     session: Session,
     qop: QuantumOperations,

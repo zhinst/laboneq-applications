@@ -26,7 +26,7 @@ from typing import (
 
 from typing_extensions import ParamSpec
 
-from laboneq_applications.core.options import TaskBookOptions
+from laboneq_applications.core.options import TaskBookOptions, get_option_type
 from laboneq_applications.workflow import _utils
 from laboneq_applications.workflow._context import (
     TaskExecutor,
@@ -255,18 +255,10 @@ class taskbook_(Generic[Parameters, ReturnType]):  # noqa: N801
     def __init__(
         self,
         func: Callable[Parameters, ReturnType],
-        options: type[TaskBookOptions] | None = None,
     ) -> None:
         self._func = func
         self.__doc__ = self._func.__doc__
-        if options is None:
-            self._options = None
-        elif isinstance(options, type) and issubclass(options, TaskBookOptions):
-            self._options = options
-        else:
-            raise TypeError(
-                "Options must be a subclass of TaskBookOptions.",
-            )
+        self._options = get_option_type(func)
 
     @property
     def func(self) -> Callable[Parameters, ReturnType]:
@@ -347,7 +339,6 @@ class taskbook_(Generic[Parameters, ReturnType]):  # noqa: N801
 
 def taskbook(
     func: Callable[Parameters, ReturnType] | None = None,
-    options: type[TaskBookOptions] | None = None,
 ) -> taskbook_[Parameters, ReturnType]:
     """A decorator to turn a function into a taskbook.
 
@@ -362,27 +353,7 @@ def taskbook(
 
     Arguments:
         func: Function to be marked as a taskbook.
-        options: Options for the taskbook.
     """
-    if func is None:
-
-        def decorator(func):  # noqa: ANN202, ANN001
-            out = update_wrapper(
-                taskbook_(func, options=options),
-                func,
-                assigned=(
-                    "__module__",
-                    "__name__",
-                    "__qualname__",
-                    "__annotations__",
-                    "__type_params__",
-                    "__doc__",
-                ),
-            )
-            return cast(taskbook_[Parameters, ReturnType], out)
-
-        # TODO: Fix the type of the decorator
-        return decorator
     out = update_wrapper(
         taskbook_(func),
         func,

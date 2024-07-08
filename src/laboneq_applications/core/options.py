@@ -2,8 +2,20 @@
 
 from __future__ import annotations
 
+import sys
+import typing
 from io import StringIO
-from typing import Annotated, Literal, TypeVar, final
+from typing import (
+    Annotated,
+    Any,
+    Callable,
+    Literal,
+    TypeVar,
+    Union,
+    final,
+    get_args,
+    get_origin,
+)
 
 from laboneq.simple import AcquisitionType, AveragingMode, RepetitionMode
 from pydantic import (
@@ -15,6 +27,11 @@ from pydantic import (
 )
 from rich.console import Console
 from rich.pretty import pprint
+
+_PY_V39 = sys.version_info < (3, 10)
+
+if not _PY_V39:
+    from types import UnionType
 
 NonNegativeInt = Annotated[int, Field(ge=0)]
 T = TypeVar("T")
@@ -153,3 +170,94 @@ class TaskBookOptions(BaseOptions):
     """
 
     run_until: str | None = None
+
+
+def _get_argument_types(
+    fn: Callable,
+    arg_name: str,
+) -> set[type]:
+    """Get the type of the parameter for a function-like object.
+
+    Return:
+        Set of the type of the parameter. Empty set if the parameter
+        does not exist or does not have a type hint.
+    """
+    _globals = getattr(fn, "__globals__", {})
+    _locals = _globals
+
+    # typing.get_type_hints does not work on 3.9 with A | None = None.
+    # It is also overkill for retrieving type of a single parameter of
+    # only function-like objects, and will cause problems
+    # when other parameters have no type hint or type hint imported
+    # conditioned on type_checking.
+    hint = getattr(fn, "__annotations__", {}).get(arg_name, None)
+    if hint is None:
+        return set()
+
+    if _PY_V39:
+        return _get_argument_types_v39(hint, _globals, _locals)
+
+    return _parse_types(hint, _globals, _locals, _PY_V39)
+
+
+def _get_argument_types_v39(hint: str | type, _globals, _locals) -> set[type]:  # noqa: ANN001
+    return_types: set[type]
+    args = hint.split("|")
+    if len(args) > 1:
+        args = [arg.strip() for arg in args]
+        return_types = {
+            typing._eval_type(typing.ForwardRef(arg), _globals, _locals) for arg in args
+        }
+        return return_types
+
+    return _parse_types(hint, _globals, _locals, is_py_39=True)
+
+
+def _parse_types(
+    type_hint: str | type,
+    _globals,  # noqa: ANN001
+    _locals,  # noqa: ANN001
+    is_py_39: bool,  # noqa: FBT001
+) -> set[type]:
+    if isinstance(type_hint, str):
+        opt_type = typing._eval_type(typing.ForwardRef(type_hint), _globals, _locals)
+    else:
+        opt_type = type_hint
+    if _is_union_type(opt_type, is_py_39):
+        return set(get_args(opt_type))
+    return {opt_type}
+
+
+def _is_union_type(opt_type: type, is_py_39: bool) -> bool:  # noqa: FBT001
+    if (
+        is_py_39
+        and get_origin(opt_type) == Union
+        or (not is_py_39 and get_origin(opt_type) in (UnionType, Union))
+    ):
+        return True
+    return False
+
+
+def get_option_type(
+    fn: Callable[[Any], Any],
+    type_check: type = TaskBookOptions,
+) -> type[TaskBookOptions] | None:
+    """Get the type of the options parameter for a function-like object.
+
+    The function-like object must have an options parameter with a type hint,
+    following the pattern `Union[Type, None]` or `Type | None` or `Optional[Type]`,
+    where `Type` must be a subclass of `TaskBookOptions`.
+
+    Return:
+        Type of the options parameter if it exists and satisfies the above
+        conditions, otherwise `None`.
+    """
+    expected_args_length = 2
+    opt_type = _get_argument_types(fn, "options")
+    if len(opt_type) != expected_args_length or type(None) not in opt_type:
+        return None
+
+    for t in opt_type:
+        if isinstance(t, type) and issubclass(t, type_check):  # ignore typevars
+            return t
+    return None

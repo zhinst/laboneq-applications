@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import re
-from typing import Literal
+from typing import Literal, Optional, TypeVar, Union
 
 import pytest
 from laboneq.simple import AcquisitionType, AveragingMode, RepetitionMode
@@ -10,7 +10,9 @@ from pydantic import ValidationError
 from laboneq_applications.core.options import (
     BaseExperimentOptions,
     BaseOptions,
+    TaskBookOptions,
     TuneupExperimentOptions,
+    get_option_type,
 )
 
 
@@ -184,3 +186,56 @@ class TestTuneupExperimentOptions:
         assert opt.transition == "ge"
         assert opt.use_cal_traces
         assert opt.cal_states == "ge"
+
+
+class A(TaskBookOptions): ...
+
+
+class AA(TaskBookOptions): ...
+
+
+class B: ...
+
+
+T = TypeVar("T")
+
+
+# allowed
+def f(a: int, options: A | None = None): ...
+def fbar(a: int, options: None | A = None): ...
+def g(a: int, options: Union[A, None] = None): ...  # noqa: UP007
+def h(a: int, options: Optional[A] = None): ...  # noqa: UP007
+
+
+# not allowed
+def noopt(a: int): ...
+def notype(a: int, options): ...
+def r(a: int, options: A | B | None = None): ...
+def neg_g(a: int, options: Union[A, B, None] = None): ...  # noqa: UP007
+def neg_g2(a: int, options: Union[A, B] = None): ...  # noqa: UP007
+def x(a: int, options: A): ...
+def y(a: int, options: str): ...
+def z(a: int, options: T | None = None): ...
+def aa(a: int, options: AA | A = None): ...  # both AA and A are TaskBookOptions
+
+
+class TestGetOptType:
+    def test_get_valid_option(self):
+        assert get_option_type(f) == A
+        assert get_option_type(fbar) == A
+        assert get_option_type(g) == A
+        assert get_option_type(h) == A
+
+    def test_get_invalid_option(self):
+        assert get_option_type(noopt) is None
+        assert get_option_type(notype) is None
+        assert get_option_type(neg_g) is None
+        assert get_option_type(neg_g2) is None
+        assert get_option_type(r) is None
+        assert get_option_type(x) is None
+        assert get_option_type(y) is None
+        assert get_option_type(z) is None
+        assert get_option_type(aa) is None
+
+    def test_failed(self):
+        assert get_option_type(g) == A
