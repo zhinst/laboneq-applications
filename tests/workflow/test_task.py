@@ -1,7 +1,9 @@
 import inspect
 import textwrap
 
-from laboneq_applications.workflow.task import _BaseTask, task, task_
+from IPython.lib.pretty import pretty
+
+from laboneq_applications.workflow.task import Task, _BaseTask, task, task_
 
 
 class MyTestTask(_BaseTask):
@@ -78,3 +80,62 @@ class TestTaskOptions:
             return a, options["count"]
 
         assert task_a(1, options={"count": 2}) == (1, 2)
+
+
+class TestTask:
+    @task
+    def task_a():
+        return 1
+
+    @task
+    def task_b():
+        TestTask.task_a()
+        return 2
+
+    def test_name(self):
+        t = Task(self.task_a, 2)
+        assert t.name == "task_a"
+
+    def test_func(self):
+        t = Task(self.task_a, 2)
+        assert t.func == self.task_a.func
+
+    def test_eq(self):
+        e1 = Task(self.task_a, 2)
+        e2 = Task(self.task_a, 2)
+        assert e1 == e2
+
+        e1 = Task(self.task_a, 2)
+        e2 = Task(self.task_b, 2)
+        assert e1 != e2
+
+        e1 = Task(self.task_a, 2)
+        assert e1 != 2
+        assert e1 != "bar"
+
+        assert Task(self.task_a, 1) != Task(self.task_a, 2)
+        assert Task(self.task_a, 1, {"param": 1}) != Task(self.task_a, 1, {"param": 2})
+
+    def test_repr(self):
+        t = Task(self.task_a, 2)
+        assert repr(t) == f"Task(name=task_a, output=2, parameters={{}}, func={t.func})"
+
+    def test_str(self):
+        t = Task(self.task_a, 2)
+        assert str(t) == "Task(task_a)"
+
+    def test_ipython_pretty(self):
+        t = Task(self.task_a, 2)
+        assert pretty(t) == "Task(task_a)"
+
+    def test_src(self):
+        @task
+        def task_():
+            return 1
+
+        t = Task(task_, 2)
+        assert t.src == textwrap.dedent("""\
+            @task
+            def task_():
+                return 1
+        """)

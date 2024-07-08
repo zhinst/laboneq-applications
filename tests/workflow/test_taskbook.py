@@ -8,10 +8,9 @@ from IPython.lib.pretty import pretty
 from pydantic import ValidationError
 
 from laboneq_applications.core.options import BaseOptions
-from laboneq_applications.workflow import task
 from laboneq_applications.workflow.exceptions import WorkflowError
+from laboneq_applications.workflow.task import Task, task
 from laboneq_applications.workflow.taskbook import (
-    Task,
     TaskBook,
     TaskBookOptions,
     TasksView,
@@ -44,13 +43,10 @@ class TestTaskbook:
         book.add_entry(entry_b)
         assert book.tasks == [entry_a, entry_b]
 
-    def task_cannot_be_attached_to_multiple_taskbooks(self):
+    def test_task_cannot_be_attached_to_multiple_taskbooks(self):
         book = TaskBook()
         entry_c = Task(task=task_a, output=1)
-        entry_c._taskbook = book
-
-        with pytest.raises(WorkflowError):
-            book.add_entry(entry_c)
+        book.add_entry(entry_c)
 
         book2 = TaskBook()
         with pytest.raises(WorkflowError):
@@ -86,53 +82,6 @@ class TestTaskbook:
         assert str(book) == textwrap.dedent("""\
             Taskbook
             Tasks: Task(task_a), Task(task_a)""")
-
-
-class TestTask:
-    def test_name(self):
-        t = Task(task_a, 2)
-        assert t.name == "task_a"
-
-    def test_func(self):
-        t = Task(task_a, 2)
-        assert t.func == task_a.func
-
-    def test_eq(self):
-        e1 = Task(task_a, 2)
-        e2 = Task(task_a, 2)
-        assert e1 == e2
-
-        e1 = Task(task_a, 2)
-        e2 = Task(task_b, 2)
-        assert e1 != e2
-
-        e1 = Task(task_a, 2)
-        assert e1 != 2
-        assert e1 != "bar"
-
-    def test_repr(self):
-        t = Task(task_a, 2)
-        assert repr(t) == f"Task(name=task_a, output=2, parameters={{}}, func={t.func})"
-
-    def test_str(self):
-        t = Task(task_a, 2)
-        assert str(t) == "Task(task_a)"
-
-    def test_ipython_pretty(self):
-        t = Task(task_a, 2)
-        assert pretty(t) == "Task(task_a)"
-
-    def test_src(self):
-        @task
-        def task_():
-            return 1
-
-        t = Task(task_, 2)
-        assert t.src == textwrap.dedent("""\
-            @task
-            def task_():
-                return 1
-        """)
 
 
 class TestTasksView:

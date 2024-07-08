@@ -4,9 +4,12 @@ from __future__ import annotations
 
 import abc
 from collections import defaultdict
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, cast
 
-from laboneq_applications.workflow._context import ExecutorContext, LocalContext
+from laboneq_applications.workflow._context import (
+    TaskExecutor,
+    TaskExecutorContext,
+)
 from laboneq_applications.workflow.engine.promise import (
     PromiseResultNotResolvedError,
     ReferencePromise,
@@ -17,7 +20,7 @@ from laboneq_applications.workflow.exceptions import WorkflowError
 if TYPE_CHECKING:
     from laboneq_applications.workflow.engine.block import Block
     from laboneq_applications.workflow.engine.promise import Promise
-    from laboneq_applications.workflow.task import Task
+    from laboneq_applications.workflow.task import _BaseTask
 
 
 class BlockResult:
@@ -79,12 +82,12 @@ class Block(abc.ABC):
         return self._body
 
     def __enter__(self):
-        LocalContext.enter(WorkflowBlockExecutorContext())
+        TaskExecutorContext.enter(WorkflowBlockExecutorContext())
 
     def __exit__(self, exc_type, exc_value, traceback):  # noqa: ANN001
-        register = LocalContext.exit()
+        register = cast(WorkflowBlockExecutorContext, TaskExecutorContext.exit())
         self._body.extend(register.blocks)
-        active_ctx = LocalContext.active_context()
+        active_ctx = TaskExecutorContext.get_active()
         if isinstance(active_ctx, WorkflowBlockExecutorContext):
             active_ctx.register(self)
 
@@ -122,7 +125,7 @@ class TaskBlock(Block):
         **kwargs: Keyword arguments of the task.
     """
 
-    def __init__(self, task: Task, *args: object, **kwargs: object):
+    def __init__(self, task: _BaseTask, *args: object, **kwargs: object):
         super().__init__(*args, **kwargs)
         self._promise = ReferencePromise(self)
         self.task = task
@@ -154,7 +157,7 @@ class TaskBlock(Block):
         return r
 
 
-class WorkflowBlockExecutorContext(ExecutorContext):
+class WorkflowBlockExecutorContext(TaskExecutor):
     """Workflow context executor for blocks."""
 
     def __init__(self):
@@ -167,7 +170,7 @@ class WorkflowBlockExecutorContext(ExecutorContext):
 
     def execute_task(
         self,
-        task: Task,
+        task: _BaseTask,
         *args: object,
         **kwargs: object,
     ) -> Promise:

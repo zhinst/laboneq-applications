@@ -5,72 +5,6 @@ A taskbook is a collection of tasks and their records.
 Whenever a task is executed within a taskbook, its'
 arguments, result and other relevant information is
 saved into the taskbook records.
-
-## Example
-
-### Building and running the taskbook
-
-```python
-from laboneq_applications.workflow import task, taskbook
-
-def addition(x, y):
-    return x + y
-
-@task
-def my_task(x):
-   return x + 1
-
-@taskbook
-def my_taskbook(x):
-    x = addition(1, x)
-    my_task(x)
-    return "success"
-
-result = my_taskbook(x=5)
-```
-
-### Inspecting the results
-
-The results of all tasks are recorded and may be inspected later
-using the result object returned by the taskbook.
-
-The taskbook output and the information of each task execution
-can be accessed from the result object:
-
-```python
->>> result.output
-"success"
->>> result.tasks[0].output
-7
->>> result.tasks[0].args
-(6,)
->>> result.tasks["addition"]
-Task(name="addition")
->>> taskbook.tasks["addition", :]
-[Task(name="addition")]
->>> taskbook.tasks.unique()
-["addition", "my_task"]
-```
-
-As `addition()` was not marked as a task, it has no records in the taskbook.
-
-### Running functions as tasks
-
-If a function is a normal Python function and you'd wish to run it as a task within the
-taskbook without adding the `task()` decorator, it can be done by wrapping the
-function with it.
-
-This also works if you wish to save only specific calls to the function.
-
-```python
-@taskbook
-def my_taskbook(x):
-    x = task(addition)(1, x)  # Record will be saved
-    y = addition(2, x)  # No record saved
-```
-
-Now the normal Python function `addition()` wrapped in `task()` will have records
-within the taskbook.
 """
 
 from __future__ import annotations
@@ -95,137 +29,18 @@ from typing_extensions import ParamSpec
 from laboneq_applications.core.options import TaskBookOptions
 from laboneq_applications.workflow import _utils
 from laboneq_applications.workflow._context import (
-    ExecutorContext,
-    LocalContext,
-    get_active_context,
+    TaskExecutor,
+    TaskExecutorContext,
 )
 from laboneq_applications.workflow.exceptions import WorkflowError
+from laboneq_applications.workflow.task import Task, attach_storage_callback, task_
 
 if TYPE_CHECKING:
     from typing import Callable
 
-    from laboneq_applications.workflow.task import task_
-
 
 class _TaskBookStopExecution(BaseException):
     """Raised while a task book is running to end the execution."""
-
-
-class Task:
-    """A task.
-
-    The instance holds execution information of an task when it
-    was executed in a taskbook.
-
-    Attributes:
-        name: The name of the task.
-        func: Underlying Python function.
-        output: The output of the function.
-        parameters: Input parameters of the task.
-    """
-
-    def __init__(
-        self,
-        task: task_,
-        output: object,
-        parameters: dict | None = None,
-    ) -> None:
-        self._task = task
-        self._output = output
-        self._parameters = parameters or {}
-        self._taskbook: TaskBook | None = None
-
-    @property
-    def name(self) -> str:
-        """Task name."""
-        return self._task.name
-
-    @property
-    def func(self) -> Callable:
-        """Underlying function."""
-        return self._task.func
-
-    @property
-    def src(self) -> str:
-        """Source code of the task."""
-        return self._task.src
-
-    @property
-    def output(self) -> object:
-        """Output of the task."""
-        return self._output
-
-    @property
-    def parameters(self) -> dict:
-        """Input parameters of the task."""
-        return self._parameters
-
-    def rerun(
-        self,
-        *args: object,
-        **kwargs: object,
-    ) -> object:
-        """Rerun the task.
-
-        Rerunning the task appends the results into the attached taskbook,
-        and returns the return value of the task.
-
-        The given parameters overwrite the original run parameters of the task,
-        which can be inspected with `Task.parameters`. Therefore it is possible
-        to supply only specific parameters that one wishes to change and rerun
-        the task.
-        It is recommended that in the case of an partial parameters, keyword
-        arguments are used.
-
-        Arguments:
-            *args: Arguments forwarded into the task.
-            **kwargs: Keyword arguments forwarded into the original task.
-
-        Returns:
-            The return value of the task.
-        """
-        # TODO: Fill args, kwargs with previous and overwrite with given arguments.
-        kwargs = kwargs if kwargs is not None else {}
-        args = args if args is not None else ()
-        sig = inspect.signature(self.func)
-        args_partial = sig.bind_partial(*args, **kwargs)
-        params = self.parameters | args_partial.arguments
-        r = self.func(**params)
-        if self._taskbook is not None:
-            entry = Task(
-                task=self._task,
-                output=r,
-                parameters=params,
-            )
-            self._taskbook.add_entry(entry)
-        return r
-
-    def __eq__(self, value: object) -> bool:
-        if not isinstance(value, Task):
-            return NotImplemented
-        return (
-            self._task == value._task
-            and self.output == value.output
-            and self.parameters == value.parameters
-        )
-
-    def __repr__(self) -> str:
-        attrs = ", ".join(
-            [
-                f"name={self.name}",
-                f"output={self.output}",
-                f"parameters={self.parameters}",
-                f"func={self.func}",
-            ],
-        )
-        return f"Task({attrs})"
-
-    def __str__(self) -> str:
-        return f"Task({self.name})"
-
-    def _repr_pretty_(self, p, cycle):  # noqa: ANN001, ANN202, ARG002
-        # For Notebooks
-        p.text(str(self))
 
 
 class TasksView(Sequence):
@@ -355,16 +170,14 @@ class TaskBook(Generic[ReturnType]):
         """Output of the taskbook."""
         return cast(ReturnType, self._output)
 
-    def add_entry(self, entry: Task) -> None:
+    def add_entry(self, task: Task) -> None:
         """Add an entry to the taskbook.
 
         Arguments:
-            entry: Task entry.
+            task: Task entry.
         """
-        if entry._taskbook is not None:
-            raise WorkflowError("Task is already attached to an taskbook.")
-        entry._taskbook = self
-        self._tasks.append(entry)
+        attach_storage_callback(task, self)
+        self._tasks.append(task)
 
     def __repr__(self) -> str:
         attrs = ", ".join(
@@ -384,7 +197,7 @@ class TaskBook(Generic[ReturnType]):
         p.text(str(self))
 
 
-class _TaskBookExecutor(ExecutorContext):
+class _TaskBookExecutor(TaskExecutor):
     """A taskbook executor."""
 
     def __init__(
@@ -393,18 +206,17 @@ class _TaskBookExecutor(ExecutorContext):
         options: TaskBookOptions,
     ) -> None:
         self.taskbook = taskbook
-        ctx = get_active_context()
-        if isinstance(ctx, _TaskBookExecutor):
+        if isinstance(TaskExecutorContext.get_active(), _TaskBookExecutor):
             # TODO: Should nested books append to the top level or?
             raise NotImplementedError("Taskbooks cannot be nested.")
         self.options = options
         self._run_until = self.options.run_until
 
     def __enter__(self):
-        LocalContext.enter(self)
+        TaskExecutorContext.enter(self)
 
     def __exit__(self, exc_type, exc_value, traceback):  # noqa: ANN001
-        LocalContext.exit()
+        TaskExecutorContext.exit()
         return isinstance(exc_value, _TaskBookStopExecution)
 
     def execute_task(
@@ -412,7 +224,7 @@ class _TaskBookExecutor(ExecutorContext):
         task: task_,
         *args: object,
         **kwargs: object,
-    ) -> None:
+    ) -> object:
         # TODO: Error handling and saving of the exception during execution
         if hasattr(self.options, task.name):
             if task.has_opts:
@@ -420,16 +232,11 @@ class _TaskBookExecutor(ExecutorContext):
             else:
                 raise ValueError(f"Task {task.name} does not require options.")
 
-        r = task._run(*args, **kwargs)
-        entry = Task(
-            task=task,
-            output=r,
-            parameters=_utils.create_argument_map(task.func, *args, **kwargs),
-        )
-        self.taskbook.add_entry(entry)
+        result = task._run(*args, **kwargs)
+        self.taskbook.add_entry(result)
         if self._run_until is not None and task.name == self._run_until:
             raise _TaskBookStopExecution(task.name)
-        return r
+        return result.output
 
 
 class _ContextStorage(threading.local):
