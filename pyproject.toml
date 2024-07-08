@@ -127,7 +127,10 @@ lint.ignore = [
   # part of an implicit namespace package
   "INP001"
 ]
-
+"ci/*" = [
+    # part of an implicit namespace package
+    "INP001"
+]
 [tool.ruff.lint.pydocstyle]
 convention = "google"
 

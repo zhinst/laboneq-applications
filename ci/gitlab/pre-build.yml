@@ -39,3 +39,13 @@ lint:notebooks:core:
   script:
     - pip install -r requirements-lint.txt
     - nbqa ruff --nbqa-exclude examples/legacy examples --ignore "INP001,D100,ANN201,T201"
+
+notebooks:check_no_outputs:
+  stage: pre-build
+  image: $DEFAULT_PYTHON_IMAGE
+  tags:
+    - linux
+    - docker
+  script:
+    - python3 ci/scripts/notebook_check.py examples
+    - python3 ci/scripts/notebook_check.py docs
