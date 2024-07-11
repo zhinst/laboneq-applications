@@ -617,15 +617,36 @@ class TestTaskBookOption:
         ):
             _ = taskbook_a(options=1)
 
-    def test_create_options_not_declare(self):
-        # taskbook options is not declared
+    def test_access_options_not_enabled(self):
         @taskbook
-        def taskbook_a(options: TaskBookOptions = None):
+        def taskbook_a(options: str | int | BaseOptions):
             task_foo(1)
             task_bar(2)
 
         with pytest.raises(AttributeError, match="Taskbook does not have options."):
             taskbook_a.options()
+
+    def test_wrong_options_type(self):
+        # attempt to use taskbook options but in a wrong way
+        error_msg = (
+            "It seems like you want to use the taskbook feature of automatically"
+            "passing options to the tasks, but the type provided is wrong. "
+            "Please use either OptionFooBar | None, "
+            "Option[OptionFooBar] or "
+            "Union[OptionFooBar,None]"
+            "to enable this feature. Use any other type if you don't want to use"
+            "this feature but still want pass options manually to the taskbook "
+            "and its tasks."
+        )
+        with pytest.raises(ValueError, match=error_msg):
+
+            @taskbook
+            def taskbook_a(options: OptionFooBar): ...
+
+        with pytest.raises(ValueError, match=error_msg):
+
+            @taskbook
+            def taskbook_b(options: OptionFooBar | BaseOptions): ...
 
     def test_run_with_option_class(self):
         @taskbook

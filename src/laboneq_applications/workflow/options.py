@@ -114,13 +114,29 @@ def get_parameter_type(
     Return:
         Type of the parameter if it exists and satisfies the above
         conditions, otherwise `None`.
+
+    Raises:
+        ValueError: When the type hint contains a subclass of `type_check`, but
+        does not follow the pattern `Union[Type, None]` or `Type | None` or
+        `Optional[Type]`.
     """
     expected_args_length = 2
     opt_type = _get_argument_types(fn, parameter)
-    if len(opt_type) != expected_args_length or type(None) not in opt_type:
-        return None
+    compatible_types = [
+        t for t in opt_type if isinstance(t, type) and issubclass(t, type_check)
+    ]
 
-    for t in opt_type:
-        if isinstance(t, type) and issubclass(t, type_check):  # ignore typevars
-            return t
+    if compatible_types:
+        if len(opt_type) != expected_args_length or type(None) not in opt_type:
+            raise ValueError(
+                "It seems like you want to use the taskbook feature of automatically"
+                "passing options to the tasks, but the type provided is wrong. "
+                f"Please use either {compatible_types[0].__name__} | None, "
+                f"Option[{compatible_types[0].__name__}] or "
+                f"Union[{compatible_types[0].__name__},None]"
+                "to enable this feature. Use any other type if you don't want to use"
+                "this feature but still want pass options manually to the taskbook "
+                "and its tasks.",
+            )
+        return compatible_types[0]
     return None
