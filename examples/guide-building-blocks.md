@@ -508,7 +508,7 @@ A `Taskbook` is a collection of logically connected `Tasks` whose inputs and out
 Let's see what the experiment `Taskbook` looks like for the amplitude Rabi.
 
 ```{code-cell} ipython3
-from laboneq_applications.experiments.rabi import amplitude_rabi
+from laboneq_applications.experiments.rabi import amplitude_rabi, TuneUpTaskBookOptions
 from laboneq_applications.qpu_types.tunable_transmon import TunableTransmonOperations
 ```
 
@@ -523,7 +523,7 @@ print(amplitude_rabi.src)
 ```{code-cell} ipython3
 qop = TunableTransmonOperations()
 amplitudes = np.linspace(0.0, 0.9, 10)
-options = amplitude_rabi.options()
+options = TuneUpTaskBookOptions()
 options.create_experiment.count = 10
 options.create_experiment.averaging_mode = "cyclic"
 rabi_tb = amplitude_rabi(
@@ -612,7 +612,7 @@ temporary_qubit_parameters = [
     ),
 ]
 
-options = amplitude_rabi.options()
+options = TuneUpTaskBookOptions()
 rabi_tb = amplitude_rabi(
     session,
     qop,
@@ -641,7 +641,7 @@ We can run `amplitude_rabi` only up to a specific task. Let's exclude the `run_m
 ```{code-cell} ipython3
 qop = TunableTransmonOperations()
 amplitudes = np.linspace(0.0, 0.9, 10)
-options = amplitude_rabi.options()
+options = TuneUpTaskBookOptions()
 options.create_experiment.count = 10
 options.run_until = "compile_experiment"
 rabi_tb = amplitude_rabi(
@@ -666,7 +666,7 @@ Let's introduce a compilation error by sweeping the ampltude to values larger th
 ```{code-cell} ipython3
 qop = TunableTransmonOperations()
 amplitudes = np.linspace(0.0, 1.5, 10)
-options = amplitude_rabi.options()
+options = TuneUpTaskBookOptions()
 options.create_experiment.count = 10
 
 # here we catch the exception such that the notebook runs through

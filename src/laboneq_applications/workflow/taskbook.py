@@ -266,17 +266,6 @@ class taskbook_(Generic[Parameters, ReturnType]):  # noqa: N801
         return self._func
 
     @property
-    def options(self) -> type[TaskBookOptions]:
-        """The options for the taskbook.
-
-        Raise:
-            AttributeError: If the taskbook does not have options declared.
-        """
-        if self._options is None:
-            raise AttributeError("Taskbook does not have options declared.")
-        return self._options
-
-    @property
     def src(self) -> str:
         """Source code of the underlying function."""
         src = inspect.getsource(self._func)

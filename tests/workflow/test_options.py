@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import Optional, TypeVar, Union
 
 import pytest
+from pydantic import ValidationError
 
 from laboneq_applications.workflow.options import (
     TaskBookOptions,
@@ -64,3 +65,41 @@ class TestGetOptType:
     def test_attempt_to_use_taskbook_options_wrong(self):
         for fn in (aa, x, neg_g, neg_g2, r):
             pytest.raises(ValueError, get_parameter_type, fn)
+
+
+class TestTaskBookOptions:
+    def test_create_opt(self):
+        class A(TaskBookOptions):
+            alice: int = 1
+
+        a = A()
+        assert a.alice == 1
+        assert a.run_until is None
+
+        # option attributes can be updated
+        a.alice = 2
+        assert a.alice == 2
+
+    def test_create_nested(self):
+        class Nested(TaskBookOptions):
+            bob: int = 1
+
+        class A(TaskBookOptions):
+            alice: int = 1
+            nested: Nested = Nested()
+
+        a = A()
+        assert a.alice == 1
+        assert a.run_until is None
+        assert isinstance(a.nested, Nested)
+        assert a.nested.bob == 1
+        # option attributes can be updated
+        a.alice = 2
+        a.nested.bob = 2
+        assert a.alice == 2
+        assert a.nested.bob == 2
+
+    def test_validate_options(self):
+        # Initialize option with non-existing attributes will raises error
+        with pytest.raises(ValidationError):
+            TaskBookOptions(non_existing=1)

@@ -9,6 +9,7 @@ from laboneq.dsl.session import Session
 import tests.helpers.dsl as tsl
 from laboneq_applications.core.options import TuneupExperimentOptions
 from laboneq_applications.experiments.rabi import (
+    TuneUpTaskBookOptions,
     amplitude_rabi,
     create_experiment,
 )
@@ -171,7 +172,7 @@ class TestTaskbook:
         qop = TunableTransmonOperations()
         [q0] = single_tunable_transmon.qubits
         amplitudes = [0.1, 0.2]
-        options = amplitude_rabi.options()
+        options = TuneUpTaskBookOptions()
         options.create_experiment.count = 10
         options.create_experiment.transition = "ge"
 

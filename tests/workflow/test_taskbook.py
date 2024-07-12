@@ -5,7 +5,6 @@ import textwrap
 
 import pytest
 from IPython.lib.pretty import pretty
-from pydantic import ValidationError
 
 from laboneq_applications.core.options import BaseOptions
 from laboneq_applications.workflow.exceptions import WorkflowError
@@ -574,37 +573,6 @@ class TestTaskBookOption:
         used conditioned on results of previous tasks.
     """
 
-    def test_create_options(self):
-        # taskbook options is declared
-
-        @taskbook
-        def taskbook_a(options: OptionFooBar | None = None):
-            task_foo(1)
-            task_bar(2)
-
-        opts = taskbook_a.options()
-        assert isinstance(opts, OptionFooBar)
-        assert isinstance(opts.task_foo, FooOpt)
-        assert isinstance(opts.task_bar, BarOpt)
-        assert opts.task_foo.foo == 1
-        assert opts.task_bar.bar == 2
-
-        # options can be updated
-        opts.task_foo.foo = 2
-        opts.task_bar.bar = 3
-        assert opts.task_foo.foo == 2
-        assert opts.task_bar.bar == 3
-
-    def test_validate_options(self):
-        # Initialize option with non-existing attributes will raises error
-        @taskbook
-        def taskbook_a(options: TaskBookOptions | None = None):
-            task_foo(1)
-            task_bar(2)
-
-        with pytest.raises(ValidationError):
-            _ = taskbook_a.options(non_existing=1)
-
     def test_run_taskbook_with_invalid_options(self):
         @taskbook
         def taskbook_a(options: TaskBookOptions | None = None):
@@ -616,15 +584,6 @@ class TestTaskBookOption:
             match="Options must be a dictionary or an instance of TaskBookOptions.",
         ):
             _ = taskbook_a(options=1)
-
-    def test_access_options_not_enabled(self):
-        @taskbook
-        def taskbook_a(options: str | int | BaseOptions):
-            task_foo(1)
-            task_bar(2)
-
-        with pytest.raises(AttributeError, match="Taskbook does not have options."):
-            taskbook_a.options()
 
     def test_wrong_options_type(self):
         # attempt to use taskbook options but in a wrong way
@@ -654,7 +613,7 @@ class TestTaskBookOption:
             task_foo(1)
             task_bar(2)
 
-        opt = taskbook_a.options()
+        opt = OptionFooBar()
         assert isinstance(opt, OptionFooBar)
         assert isinstance(opt.task_foo, FooOpt)
         assert isinstance(opt.task_bar, BarOpt)
@@ -683,7 +642,7 @@ class TestTaskBookOption:
 
         opt1 = FooOpt()
         opt2 = BarOpt()
-        opts = taskbook_a.options(task_foo=opt1, task_bar=opt2)
+        opts = OptionFooBar(task_foo=opt1, task_bar=opt2)
 
         res = taskbook_a(options=opts)
         assert res.tasks[0] == Task(
@@ -724,7 +683,7 @@ class TestTaskBookOption:
 
         opt1 = FooOpt()
         opt2 = BarOpt()
-        opts = taskbook_a.options(task_foo=opt1, task_no_opt=opt2)
+        opts = OptionFooBarInvalid(task_foo=opt1, task_no_opt=opt2)
 
         with pytest.raises(
             ValueError,
@@ -741,7 +700,7 @@ class TestTaskBookOption:
 
         opt1 = FooOpt()
         opt2 = BarOpt()
-        opts = taskbook_a.options(task_foo=opt1, task_not_existing=opt2)
+        opts = OptionNotExisting(task_foo=opt1, task_not_existing=opt2)
 
         res = taskbook_a(options=opts)
         assert res.tasks[0] == Task(
@@ -764,7 +723,7 @@ class TestTaskBookOption:
 
         opt1 = FooOpt(foo=11)
         opt2 = BarOpt(bar=12)
-        opts = taskbook_a.options(task_foo=opt1, task_bar=opt2)
+        opts = OptionFooBar(task_foo=opt1, task_bar=opt2)
 
         res = taskbook_a(opts)
         assert res.tasks == [
@@ -778,7 +737,7 @@ class TestTaskBookOption:
             task_foo(1)
             task_bar(2)
 
-        opts = taskbook_a.options(task_foo=FooOpt(foo=11))
+        opts = FooOptTaskBook(task_foo=FooOpt(foo=11))
         res = taskbook_a(options=opts)
         assert res.tasks[0] == Task(
             task=task_foo,
@@ -883,7 +842,7 @@ class TestTaskBookOption:
             options.task_foo.foo = 1234
             task_bar(2)
 
-        opts = taskbook_a.options(task_foo=FooOpt(), task_bar=BarOpt())
+        opts = OptionFooBar(task_foo=FooOpt(), task_bar=BarOpt())
 
         res = taskbook_a(options=opts)
 
