@@ -78,7 +78,7 @@ def amplitude_rabi(
 
     Example:
         ```python
-        options = amplitude_rabi.options()
+        options = TuneUpTaskBookOptions()
         options.create_experiment.count = 10
         options.create_experiment.transition = "ge"
         result = amplitude_rabi(
