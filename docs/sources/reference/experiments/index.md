@@ -6,4 +6,4 @@ This is the `laboneq_applications.experiments` reference documentation.
 
 <!--nav-->
 
-* [rabi](rabi.md)
+* [amplitude_rabi](amplitude_rabi.md)

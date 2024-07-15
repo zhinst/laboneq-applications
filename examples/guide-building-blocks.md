@@ -340,7 +340,7 @@ Let's use some of the predefined tasks to run an amplitude Rabi experiment.
 
 ```{code-cell} ipython3
 from laboneq_applications.core.options import TuneupExperimentOptions
-from laboneq_applications.experiments.rabi import create_experiment
+from laboneq_applications.experiments.amplitude_rabi import create_experiment
 from laboneq_applications.tasks import compile_experiment, run_experiment
 from laboneq_applications.workflow import task
 ```
@@ -508,14 +508,14 @@ A `Taskbook` is a collection of logically connected `Tasks` whose inputs and out
 Let's see what the experiment `Taskbook` looks like for the amplitude Rabi.
 
 ```{code-cell} ipython3
-from laboneq_applications.experiments.rabi import amplitude_rabi, TuneUpTaskBookOptions
+from laboneq_applications.experiments import amplitude_rabi
 from laboneq_applications.qpu_types.tunable_transmon import TunableTransmonOperations
 ```
 
-Inspect the source code of the `amplitude_rabi` `TaskBook` to see what tasks it has.
+Inspect the source code of the `amplitude_rabi.run` `TaskBook` to see what tasks it has.
 
 ```{code-cell} ipython3
-print(amplitude_rabi.src)
+print(amplitude_rabi.run.src)
 ```
 
 ### Run the experiment
@@ -523,10 +523,10 @@ print(amplitude_rabi.src)
 ```{code-cell} ipython3
 qop = TunableTransmonOperations()
 amplitudes = np.linspace(0.0, 0.9, 10)
-options = TuneUpTaskBookOptions()
+options = amplitude_rabi.options()
 options.create_experiment.count = 10
 options.create_experiment.averaging_mode = "cyclic"
-rabi_tb = amplitude_rabi(
+rabi_tb = amplitude_rabi.run(
     session,
     qop,
     qubits[0],
@@ -539,7 +539,7 @@ rabi_tb = amplitude_rabi(
 
 +++
 
-Inspect the input parameters to the `amplitude_rabi` `Taskbook`
+Inspect the input parameters to the `amplitude_rabi.run` `Taskbook`
 
 ```{code-cell} ipython3
 rabi_tb.parameters
@@ -612,8 +612,8 @@ temporary_qubit_parameters = [
     ),
 ]
 
-options = TuneUpTaskBookOptions()
-rabi_tb = amplitude_rabi(
+options = amplitude_rabi.options()
+rabi_tb = amplitude_rabi.run(
     session,
     qop,
     modify_qubits(temporary_qubit_parameters)[0],
@@ -641,10 +641,10 @@ We can run `amplitude_rabi` only up to a specific task. Let's exclude the `run_m
 ```{code-cell} ipython3
 qop = TunableTransmonOperations()
 amplitudes = np.linspace(0.0, 0.9, 10)
-options = TuneUpTaskBookOptions()
+options = amplitude_rabi.options()
 options.create_experiment.count = 10
 options.run_until = "compile_experiment"
-rabi_tb = amplitude_rabi(
+rabi_tb = amplitude_rabi.run(
     session,
     qop,
     qubits[0],
@@ -666,12 +666,12 @@ Let's introduce a compilation error by sweeping the ampltude to values larger th
 ```{code-cell} ipython3
 qop = TunableTransmonOperations()
 amplitudes = np.linspace(0.0, 1.5, 10)
-options = TuneUpTaskBookOptions()
+options = amplitude_rabi.options()
 options.create_experiment.count = 10
 
 # here we catch the exception such that the notebook runs through
 try:
-    rabi_tb = amplitude_rabi(
+    rabi_tb = amplitude_rabi.run(
         session,
         qop,
         qubits[0],
@@ -683,7 +683,7 @@ except Exception as e:
 ```
 
 ```{code-cell} ipython3
-rabi_tb = amplitude_rabi.recover()
+rabi_tb = amplitude_rabi.run.recover()
 rabi_tb
 ```
 

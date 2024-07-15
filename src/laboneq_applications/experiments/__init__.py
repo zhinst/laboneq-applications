@@ -2,4 +2,4 @@
 
 __all__ = ["amplitude_rabi"]
 
-from .rabi import amplitude_rabi
+from . import amplitude_rabi

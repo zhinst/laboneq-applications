@@ -8,11 +8,7 @@ from laboneq.dsl.session import Session
 
 import tests.helpers.dsl as tsl
 from laboneq_applications.core.options import TuneupExperimentOptions
-from laboneq_applications.experiments.rabi import (
-    TuneUpTaskBookOptions,
-    amplitude_rabi,
-    create_experiment,
-)
+from laboneq_applications.experiments import amplitude_rabi
 from laboneq_applications.qpu_types.tunable_transmon import TunableTransmonOperations
 
 
@@ -172,11 +168,11 @@ class TestTaskbook:
         qop = TunableTransmonOperations()
         [q0] = single_tunable_transmon.qubits
         amplitudes = [0.1, 0.2]
-        options = TuneUpTaskBookOptions()
+        options = amplitude_rabi.options()
         options.create_experiment.count = 10
         options.create_experiment.transition = "ge"
 
-        result = amplitude_rabi(
+        result = amplitude_rabi.run(
             session=session,
             qop=qop,
             qubits=q0,
@@ -216,7 +212,7 @@ class TestAmplitudeRabiSingleQubit:
         self.qop = TunableTransmonOperations()
 
     def test_run_standalone_single_qubit_passed(self):
-        exp = create_experiment(
+        exp = amplitude_rabi.create_experiment(
             self.qop,
             self.q0,
             self.amplitude,
@@ -234,7 +230,7 @@ class TestAmplitudeRabiSingleQubit:
 
     def test_invalid_input_raises_error(self):
         with pytest.raises(ValueError):
-            create_experiment(
+            amplitude_rabi.create_experiment(
                 self.qop,
                 self.q0,
                 [[0.1, 0.5], [0.1, 0.5]],
@@ -242,14 +238,14 @@ class TestAmplitudeRabiSingleQubit:
             )
 
         with pytest.raises(ValueError):
-            create_experiment(
+            amplitude_rabi.create_experiment(
                 self.qop,
                 [self.q0],
                 [0.1, 0.5],
                 options=self.options,
             )
         with pytest.raises(ValueError):
-            create_experiment(
+            amplitude_rabi.create_experiment(
                 self.qop,
                 self.q0,
                 [0.1, None, 0.5],
@@ -257,7 +253,7 @@ class TestAmplitudeRabiSingleQubit:
             )
 
     def test_amplitude_is_nparray(self):
-        exp = create_experiment(
+        exp = amplitude_rabi.create_experiment(
             self.qop,
             self.q0,
             np.array(self.amplitude),
@@ -283,7 +279,7 @@ class TestAmplitudeRabiTwoQubit:
         self.qop = TunableTransmonOperations()
 
     def test_run_standalone(self):
-        exp = create_experiment(
+        exp = amplitude_rabi.create_experiment(
             self.qop,
             [self.q0, self.q1],
             self.amplitudes,
@@ -301,7 +297,7 @@ class TestAmplitudeRabiTwoQubit:
 
     def test_invalid_input_raises_error(self):
         with pytest.raises(ValueError):
-            create_experiment(
+            amplitude_rabi.create_experiment(
                 self.qop,
                 [self.q0, self.q1],
                 [0.1, 0.5],
@@ -309,14 +305,14 @@ class TestAmplitudeRabiTwoQubit:
             )
 
         with pytest.raises(ValueError):
-            create_experiment(
+            amplitude_rabi.create_experiment(
                 self.qop,
                 [self.q0, self.q1],
                 [[0.1, 0.5]],
                 options=self.options,
             )
         with pytest.raises(ValueError):
-            create_experiment(
+            amplitude_rabi.create_experiment(
                 self.qop,
                 [self.q0, self.q1],
                 [[0.1, 0.5], [0.1, None]],
@@ -324,7 +320,7 @@ class TestAmplitudeRabiTwoQubit:
             )
 
     def test_amplitude_is_nparray(self):
-        exp = create_experiment(
+        exp = amplitude_rabi.create_experiment(
             self.qop,
             [self.q0, self.q1],
             [np.array([0, 1, 2]), np.array([0, 1, 2])],

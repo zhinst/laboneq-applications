@@ -1,4 +1,15 @@
-"""Tasks for generating experiments."""
+"""This module defines the amplitude-rabi experiment.
+
+In this experiment, we sweep the amplitude of a drive pulse on a given qubit transition
+in order to determine the pulse amplitude that induces a rotation of pi.
+
+The amplitude-rabi experiment has the following pulse sequence:
+
+    qb --- [ prep transition ] --- [ x180_transition ] --- [ measure ]
+
+If multiple qubits are passed to the `run` taskbook, the above pulses are applied
+in parallel on all the qubits.
+"""
 
 from __future__ import annotations
 
@@ -14,7 +25,7 @@ from laboneq_applications.core.options import (
 from laboneq_applications.core.quantum_operations import QuantumOperations, dsl
 from laboneq_applications.core.validation import validate_and_convert_qubits_sweeps
 from laboneq_applications.tasks import compile_experiment, run_experiment
-from laboneq_applications.workflow import TaskBookOptions, task, taskbook
+from laboneq_applications.workflow import TuneUpTaskBookOptions, task, taskbook
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
@@ -26,29 +37,20 @@ if TYPE_CHECKING:
     from laboneq_applications.workflow.taskbook import TaskBook
 
 
-class TuneUpTaskBookOptions(TaskBookOptions):
-    """Option class for tune-up taskbook.
-
-    Attributes:
-        create_experiment (TuneupExperimentOptions):
-            The options for creating the experiment.
-            Default: TuneupExperimentOptions().
-    """
-
-    create_experiment: TuneupExperimentOptions = TuneupExperimentOptions()
+options = TuneUpTaskBookOptions
 
 
 @taskbook
-def amplitude_rabi(
+def run(
     session: Session,
     qop: QuantumOperations,
     qubits: QuantumElement | Sequence[QuantumElement],
     amplitudes: Sequence[float] | Sequence[Sequence[float] | ndarray] | ndarray,
     options: TuneUpTaskBookOptions | None = None,
 ) -> TaskBook:
-    """Amplitude Rabi Experiment as a TaskBook.
+    """The Amplitude Rabi TaskBook.
 
-    The amplitude Rabi TaskBook consists of the following steps:
+    The taskbook consists of the following steps:
 
     - [create_experiment]()
     - [compile_experiment]()
@@ -81,7 +83,7 @@ def amplitude_rabi(
         options = TuneUpTaskBookOptions()
         options.create_experiment.count = 10
         options.create_experiment.transition = "ge"
-        result = amplitude_rabi(
+        result = run(
             session=session,
             qop=qop,
             qubits=q0,
@@ -150,7 +152,7 @@ def create_experiment(
             "cal_traces": True
         }
         options = TuneupExperimentOptions(**options)
-        amplitude_rabi(
+        create_experiment(
             qop=TunableTransmonOperations(),
             qubits=[TunableTransmonQubit("q0"), TunableTransmonQubit("q1")],
             amplitudes=[[0.1, 0.5, 1], [0.1, 0.5, 1]],

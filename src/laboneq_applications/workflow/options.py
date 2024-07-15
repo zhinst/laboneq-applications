@@ -13,7 +13,7 @@ from typing import (
     get_origin,
 )
 
-from laboneq_applications.core.options import BaseOptions
+from laboneq_applications.core.options import BaseOptions, TuneupExperimentOptions
 
 
 class TaskBookOptions(BaseOptions):
@@ -26,6 +26,18 @@ class TaskBookOptions(BaseOptions):
     """
 
     run_until: str | None = None
+
+
+class TuneUpTaskBookOptions(TaskBookOptions):
+    """Option class for tune-up taskbook.
+
+    Attributes:
+        create_experiment (TuneupExperimentOptions):
+            The options for creating the experiment.
+            Default: TuneupExperimentOptions().
+    """
+
+    create_experiment: TuneupExperimentOptions = TuneupExperimentOptions()
 
 
 _PY_V39 = sys.version_info < (3, 10)
