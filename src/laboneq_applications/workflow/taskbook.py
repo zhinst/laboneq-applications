@@ -132,8 +132,11 @@ class TaskBook(Generic[ReturnType]):
     A taskbook is a collection of executed tasks and their results.
     """
 
-    def __init__(self, parameters: dict | None = None) -> None:
-        self._parameters = parameters or {}
+    def __init__(
+        self,
+        input: dict | None = None,  # noqa: A002
+    ) -> None:
+        self._input = input or {}
         self._tasks: list[Task] = []
         self._output: ReturnType | None = None
 
@@ -161,9 +164,9 @@ class TaskBook(Generic[ReturnType]):
         return TasksView(self._tasks)
 
     @property
-    def parameters(self) -> dict:
+    def input(self) -> dict:
         """Input parameters of the taskbook."""
-        return self._parameters
+        return self._input
 
     @property
     def output(self) -> ReturnType:
@@ -183,7 +186,7 @@ class TaskBook(Generic[ReturnType]):
         attrs = ", ".join(
             [
                 f"output={self.output}",
-                f"parameters={self.parameters}",
+                f"input={self.input}",
                 f"tasks={self.tasks!r}",
             ],
         )
@@ -292,7 +295,7 @@ class taskbook_(Generic[Parameters, ReturnType]):  # noqa: N801
         else:
             opt = TaskBookOptions()
         book = TaskBook(
-            parameters=_utils.create_argument_map(self.func, *args, **kwargs),
+            input=_utils.create_argument_map(self.func, *args, **kwargs),
         )
 
         with _TaskBookExecutor(

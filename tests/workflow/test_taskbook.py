@@ -59,7 +59,7 @@ class TestTaskbook:
         book.add_entry(entry_b)
         tasks_repr = repr(book.tasks)
         assert (
-            repr(book) == f"TaskBook(output=None, parameters={{}}, tasks={tasks_repr})"
+            repr(book) == f"TaskBook(output=None, input={{}}, tasks={tasks_repr})"
         )
 
     def test_str(self):
@@ -109,7 +109,7 @@ class TestTasksView:
         view = TasksView([t])
         assert (
             repr(view)
-            == f"[Task(name=task_a, output=1, parameters={{}}, func={task_a.func})]"
+            == f"[Task(name=task_a, output=1, input={{}}, func={task_a.func})]"
         )
 
     def test_str(self):
@@ -180,12 +180,24 @@ class TestTaskBookDecorator:
 
         assert book.__doc__ == "foobar"
 
-    def test_parameters(self):
+    def test_task_input(self):
+        @task
+        def myfunc(x: int, foobar=123) -> str:
+            return str(x)
+
+        @taskbook
+        def testbook():
+            myfunc(5)
+
+        book = testbook()
+        assert book.tasks[0].input == {"x": 5, "foobar": 123}
+
+    def test_input(self):
         @taskbook
         def testbook(a, b, options: dict, default=True): ...  # noqa: FBT002
 
         book = testbook(1, 2, options={"foo": 123})
-        assert book.parameters == {
+        assert book.input == {
             "a": 1,
             "b": 2,
             "options": {"foo": 123},
@@ -196,19 +208,7 @@ class TestTaskBookDecorator:
         def empty_testbook(): ...
 
         book = empty_testbook()
-        assert book.parameters == {}
-
-    def test_task_parameters(self):
-        @task
-        def myfunc(x: int, foobar=123) -> str:
-            return str(x)
-
-        @taskbook
-        def testbook():
-            myfunc(5)
-
-        book = testbook()
-        assert book.tasks[0].parameters == {"x": 5, "foobar": 123}
+        assert book.input == {}
 
     def test_signature_matches_function(self):
         def myfunc(x: int) -> str:
@@ -331,7 +331,7 @@ class TestTaskBookDecorator:
 
         result = book(1)
         assert result.tasks == [
-            Task(task=task_a, output=2, parameters={"x": 1, "y": 1}),
+            Task(task=task_a, output=2, input={"x": 1, "y": 1}),
         ]
 
         # Test update taskbook
@@ -340,14 +340,14 @@ class TestTaskBookDecorator:
         rerun_res = result.tasks[0].rerun(y=3)
         assert rerun_res == 4
         assert result.tasks == [
-            Task(task=task_a, output=2, parameters={"x": 1, "y": 1}),
-            Task(task=task_a, output=3, parameters={"x": 2, "y": 1}),
-            Task(task=task_a, output=4, parameters={"x": 1, "y": 3}),
+            Task(task=task_a, output=2, input={"x": 1, "y": 1}),
+            Task(task=task_a, output=3, input={"x": 2, "y": 1}),
+            Task(task=task_a, output=4, input={"x": 1, "y": 3}),
         ]
         assert result.tasks["task_a", :] == [
-            Task(task=task_a, output=2, parameters={"x": 1, "y": 1}),
-            Task(task=task_a, output=3, parameters={"x": 2, "y": 1}),
-            Task(task=task_a, output=4, parameters={"x": 1, "y": 3}),
+            Task(task=task_a, output=2, input={"x": 1, "y": 1}),
+            Task(task=task_a, output=3, input={"x": 2, "y": 1}),
+            Task(task=task_a, output=4, input={"x": 1, "y": 3}),
         ]
 
     def test_partial_results_stored_on_exception(self):
@@ -416,8 +416,8 @@ class TestTaskBookRunUntil:
 
         result = bookk(1, b=2, options=self.make_run_until_option("task_b"))
         assert result.tasks == [
-            Task(task=task_aa, output=1, parameters={"x": 1}),
-            Task(task=task_bb, output=2, parameters={"x": 2}),
+            Task(task=task_aa, output=1, input={"x": 1}),
+            Task(task=task_bb, output=2, input={"x": 2}),
         ]
 
     @pytest.fixture()
@@ -624,12 +624,12 @@ class TestTaskBookOption:
         assert res.tasks[0] == Task(
             task=task_foo,
             output=1,
-            parameters={"foo": 1, "options": opt.task_foo},
+            input={"foo": 1, "options": opt.task_foo},
         )
         assert res.tasks[1] == Task(
             task=task_bar,
             output=2,
-            parameters={"bar": 2, "options": opt.task_bar},
+            input={"bar": 2, "options": opt.task_bar},
         )
 
     def test_run_with_options(self):
@@ -648,12 +648,12 @@ class TestTaskBookOption:
         assert res.tasks[0] == Task(
             task=task_foo,
             output=1,
-            parameters={"foo": 1, "options": opt1},
+            input={"foo": 1, "options": opt1},
         )
         assert res.tasks[1] == Task(
             task=task_bar,
             output=2,
-            parameters={"bar": 2, "options": opt2},
+            input={"bar": 2, "options": opt2},
         )
 
     def test_run_with_dict_options(self):
@@ -666,12 +666,12 @@ class TestTaskBookOption:
         assert res.tasks[0] == Task(
             task=task_foo,
             output=1,
-            parameters={"foo": 1, "options": FooOpt()},
+            input={"foo": 1, "options": FooOpt()},
         )
         assert res.tasks[1] == Task(
             task=task_bar,
             output=2,
-            parameters={"bar": 2, "options": BarOpt()},
+            input={"bar": 2, "options": BarOpt()},
         )
 
     def test_opts_not_needed(self):
@@ -706,12 +706,12 @@ class TestTaskBookOption:
         assert res.tasks[0] == Task(
             task=task_foo,
             output=1,
-            parameters={"foo": 1, "options": opt1},
+            input={"foo": 1, "options": opt1},
         )
         assert res.tasks[1] == Task(
             task=task_bar,
             output=2,
-            parameters={"bar": 2, "options": opt2},
+            input={"bar": 2, "options": opt2},
         )
 
     @pytest.mark.xfail(reason="Do we allow to pass options as a position argument?")
@@ -727,8 +727,8 @@ class TestTaskBookOption:
 
         res = taskbook_a(opts)
         assert res.tasks == [
-            Task(task=task_foo, output=1, parameters={"foo": 1, "options": opt1}),
-            Task(task=task_bar, output=2, parameters={"bar": 2, "options": opt2}),
+            Task(task=task_foo, output=1, input={"foo": 1, "options": opt1}),
+            Task(task=task_bar, output=2, input={"bar": 2, "options": opt2}),
         ]
 
     def test_task_requires_options_but_not_provided(self):
@@ -742,12 +742,12 @@ class TestTaskBookOption:
         assert res.tasks[0] == Task(
             task=task_foo,
             output=1,
-            parameters={"foo": 1, "options": FooOpt(foo=11)},
+            input={"foo": 1, "options": FooOpt(foo=11)},
         )
         assert res.tasks[1] == Task(
             task=task_bar,
             output=2,
-            parameters={"bar": 2, "options": None},
+            input={"bar": 2, "options": None},
         )
 
     def test_options_is_declared_but_not_provided(self):
@@ -773,12 +773,12 @@ class TestTaskBookOption:
             Task(
                 task=task_foo,
                 output=(1, FooOpt().foo),
-                parameters={"foo": 1, "options": FooOpt()},
+                input={"foo": 1, "options": FooOpt()},
             ),
             Task(
                 task=task_bar,
                 output=(2, BarOpt().bar),
-                parameters={"bar": 2, "options": BarOpt()},
+                input={"bar": 2, "options": BarOpt()},
             ),
         ]
 
@@ -791,8 +791,8 @@ class TestTaskBookOption:
 
         res = taskbook_a()
         assert res.tasks == [
-            Task(task=task_foo, output=1, parameters={"foo": 1, "options": None}),
-            Task(task=task_bar, output=2, parameters={"bar": 2, "options": None}),
+            Task(task=task_foo, output=1, input={"foo": 1, "options": None}),
+            Task(task=task_bar, output=2, input={"bar": 2, "options": None}),
         ]
 
         @task
@@ -805,7 +805,7 @@ class TestTaskBookOption:
 
         res = taskbook_b()
         assert res.tasks == [
-            Task(task=task_fed, output=0, parameters={"options": 0}),
+            Task(task=task_fed, output=0, input={"options": 0}),
         ]
 
     def test_taskbook_manual_handling_options(self):
@@ -817,8 +817,8 @@ class TestTaskBookOption:
         options = [FooOpt(), BarOpt()]
         res = taskbook_a(options)
         assert res.tasks == [
-            Task(task=task_foo, output=1, parameters={"foo": 1, "options": options[0]}),
-            Task(task=task_bar, output=2, parameters={"bar": 2, "options": options[1]}),
+            Task(task=task_foo, output=1, input={"foo": 1, "options": options[0]}),
+            Task(task=task_bar, output=2, input={"bar": 2, "options": options[1]}),
         ]
 
         @taskbook
@@ -829,8 +829,8 @@ class TestTaskBookOption:
         options = [FooOpt(), BarOpt()]
         res = taskbook_a(options)
         assert res.tasks == [
-            Task(task=task_foo, output=1, parameters={"foo": 1, "options": options[0]}),
-            Task(task=task_bar, output=2, parameters={"bar": 2, "options": options[1]}),
+            Task(task=task_foo, output=1, input={"foo": 1, "options": options[0]}),
+            Task(task=task_bar, output=2, input={"bar": 2, "options": options[1]}),
         ]
 
     @pytest.mark.xfail(reason="Behaviour not finalized yet")
@@ -849,10 +849,10 @@ class TestTaskBookOption:
         assert res.tasks[0] == Task(
             task=task_foo,
             output=1,
-            parameters={"foo": 1, "options": FooOpt()},
+            input={"foo": 1, "options": FooOpt()},
         )
         assert res.tasks[1] == Task(
             task=task_bar,
             output=2,
-            parameters={"bar": 2, "options": BarOpt()},
+            input={"bar": 2, "options": BarOpt()},
         )

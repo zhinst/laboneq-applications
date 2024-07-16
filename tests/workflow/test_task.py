@@ -118,7 +118,7 @@ class TestTask:
 
     def test_repr(self):
         t = Task(self.task_a, 2)
-        assert repr(t) == f"Task(name=task_a, output=2, parameters={{}}, func={t.func})"
+        assert repr(t) == f"Task(name=task_a, output=2, input={{}}, func={t.func})"
 
     def test_str(self):
         t = Task(self.task_a, 2)

@@ -39,11 +39,11 @@ class Task:
         self,
         task: task_,
         output: object,
-        parameters: dict | None = None,
+        input: dict | None = None,  # noqa: A002
     ) -> None:
         self._task = task
         self._output = output
-        self._parameters = parameters or {}
+        self._input = input or {}
         self._task_store: TaskStorageProtocol | None = None
         self._figures = []
 
@@ -68,9 +68,9 @@ class Task:
         return self._output
 
     @property
-    def parameters(self) -> dict:
+    def input(self) -> dict:
         """Input parameters of the task."""
-        return self._parameters
+        return self._input
 
     def rerun(
         self,
@@ -82,11 +82,11 @@ class Task:
         Rerunning the task appends the results into the attached storage,
         and returns the return value of the task.
 
-        The given parameters overwrite the original run parameters of the task,
-        which can be inspected with `Task.parameters`. Therefore it is possible
+        The given input parameters overwrite the original run parameters of the task,
+        which can be inspected with `Task.input`. Therefore, it is possible
         to supply only specific parameters that one wishes to change and rerun
         the task.
-        It is recommended that in the case of an partial parameters, keyword
+        It is recommended that in the case of partial parameters, keyword
         arguments are used.
 
         Arguments:
@@ -100,13 +100,13 @@ class Task:
         args = args if args is not None else ()
         sig = inspect.signature(self.func)
         args_partial = sig.bind_partial(*args, **kwargs)
-        params = self.parameters | args_partial.arguments
+        params = self.input | args_partial.arguments
         r = self.func(**params)
         if self._task_store is not None:
             entry = Task(
                 task=self._task,
                 output=r,
-                parameters=params,
+                input=params,
             )
             self._task_store.add_entry(entry)
         return r
@@ -117,7 +117,7 @@ class Task:
         return (
             self._task == value._task
             and self.output == value.output
-            and self.parameters == value.parameters
+            and self.input == value.input
         )
 
     def __repr__(self) -> str:
@@ -125,7 +125,7 @@ class Task:
             [
                 f"name={self.name}",
                 f"output={self.output}",
-                f"parameters={self.parameters}",
+                f"input={self.input}",
                 f"func={self.func}",
             ],
         )
@@ -232,7 +232,7 @@ class task_(Generic[T, B], _BaseTask):  # noqa: N801
         task = Task(
             task=self,
             output=None,
-            parameters=_utils.create_argument_map(self._func, *args, **kwargs),
+            input=_utils.create_argument_map(self._func, *args, **kwargs),
         )
         r = self._func(*args, **kwargs)
         task._output = r

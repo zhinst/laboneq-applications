@@ -542,7 +542,7 @@ rabi_tb = amplitude_rabi.run(
 Inspect the input parameters to the `amplitude_rabi.run` `Taskbook`
 
 ```{code-cell} ipython3
-rabi_tb.parameters
+rabi_tb.input
 ```
 
 Inspect the tasks inside the taskbook
