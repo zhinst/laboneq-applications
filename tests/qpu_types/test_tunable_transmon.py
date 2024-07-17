@@ -452,7 +452,7 @@ class TestTunableTransmonOperations:
             pytest.param(False, -0.1e9, -0.1e9, id="oscillator-negative"),
         ],
     )
-    def test_set_frequency(  # noqa: PLR0913
+    def test_set_frequency(
         self,
         qops,
         rf,
@@ -517,7 +517,7 @@ class TestTunableTransmonOperations:
             pytest.param(False, 1.5e9, 1.5e9, id="oscillator"),
         ],
     )
-    def test_set_frequency_readout(  # noqa: PLR0913
+    def test_set_frequency_readout(
         self,
         qops,
         rf,
@@ -571,7 +571,7 @@ class TestTunableTransmonOperations:
             ),
         ],
     )
-    def test_set_frequency_sweep(  # noqa: PLR0913
+    def test_set_frequency_sweep(
         self,
         qops,
         rf,
@@ -640,7 +640,7 @@ class TestTunableTransmonOperations:
             ),
         ],
     )
-    def test_set_frequency_readout_sweep(  # noqa: PLR0913
+    def test_set_frequency_readout_sweep(
         self,
         qops,
         rf,

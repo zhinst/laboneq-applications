@@ -462,7 +462,7 @@ class TunableTransmonOperations(QuantumOperations):
         dsl.delay(q.signals["drive"], time=time)
 
     @quantum_operation
-    def set_frequency(  # noqa: PLR0913
+    def set_frequency(
         self,
         q: TunableTransmonQubit,
         frequency: float | SweepParameter,
@@ -711,7 +711,7 @@ class TunableTransmonOperations(QuantumOperations):
         self.delay.section(omit=True)(q, time=delay)
 
     @quantum_operation
-    def rx(  # noqa: PLR0913
+    def rx(
         self,
         q: TunableTransmonQubit,
         angle: float | SweepParameter | None,
@@ -777,7 +777,7 @@ class TunableTransmonOperations(QuantumOperations):
         )
 
     @quantum_operation
-    def x90(  # noqa: PLR0913
+    def x90(
         self,
         q: TunableTransmonQubit,
         transition: str | None = None,
@@ -832,7 +832,7 @@ class TunableTransmonOperations(QuantumOperations):
         )
 
     @quantum_operation
-    def x180(  # noqa: PLR0913
+    def x180(
         self,
         q: TunableTransmonQubit,
         transition: str | None = None,
@@ -887,7 +887,7 @@ class TunableTransmonOperations(QuantumOperations):
         )
 
     @quantum_operation
-    def ry(  # noqa: PLR0913
+    def ry(
         self,
         q: TunableTransmonQubit,
         angle: float | SweepParameter | None,
@@ -953,7 +953,7 @@ class TunableTransmonOperations(QuantumOperations):
         )
 
     @quantum_operation
-    def y90(  # noqa: PLR0913
+    def y90(
         self,
         q: TunableTransmonQubit,
         transition: str | None = None,
@@ -1008,7 +1008,7 @@ class TunableTransmonOperations(QuantumOperations):
         )
 
     @quantum_operation
-    def y180(  # noqa: PLR0913
+    def y180(
         self,
         q: TunableTransmonQubit,
         transition: str | None = None,

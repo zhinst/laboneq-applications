@@ -374,7 +374,7 @@ class Operation:
         partial_kw = {**self._partial_kw, **kw}
         return Operation(self._op, self._op_name, self._quantum_ops, partial_kw)
 
-    def section(  # noqa: PLR0913
+    def section(
         self,
         *,
         omit: bool = UNSET,

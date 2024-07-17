@@ -134,5 +134,8 @@ lint.ignore = [
 [tool.ruff.lint.pydocstyle]
 convention = "google"
 
+[tool.ruff.lint.pylint]
+max-args = 10
+
 [tool.black]
 target-version = ["py39"]
