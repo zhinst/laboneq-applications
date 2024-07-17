@@ -14,9 +14,12 @@ from laboneq_applications.utils.debugging import (
 
 def test_mock_acquired_results():
     device_setup = DeviceSetup()
-    exp = Experiment()
     session = Session(device_setup=device_setup)
     session.connect(do_emulation=True)
+
+    exp = Experiment()
+    with exp.acquire_loop_rt(count=10):
+        pass
 
     # Test initial state
     res = session.run(experiment=exp)

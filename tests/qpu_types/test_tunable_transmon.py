@@ -465,8 +465,9 @@ class TestTunableTransmonOperations:
         @dsl.qubit_experiment
         def exp_set_freq(q):
             # set_frequency requires an experiment context to access the calibration
-            qops.set_frequency(q, freq, rf=rf)
-            qops.x90(q)
+            with dsl.acquire_loop_rt(count=10):
+                qops.set_frequency(q, freq, rf=rf)
+                qops.x90(q)
 
         exp = exp_set_freq(q0)
 
@@ -482,8 +483,9 @@ class TestTunableTransmonOperations:
         @dsl.qubit_experiment
         def exp_set_freq(q):
             # set_frequency requires an experiment context to access the calibration
-            qops.set_frequency(q, 1.5e9)
-            qops.set_frequency(q, 1.7e9)
+            with dsl.acquire_loop_rt(count=10):
+                qops.set_frequency(q, 1.5e9)
+                qops.set_frequency(q, 1.7e9)
 
         with pytest.raises(RuntimeError) as err:
             exp_set_freq(q0)
@@ -499,8 +501,9 @@ class TestTunableTransmonOperations:
         @dsl.qubit_experiment
         def exp_set_freq(q):
             # set_frequency requires an experiment context to access the calibration
-            qops.set_frequency(q, 1.8e9, transition="ef")
-            qops.x90(q, transition="ef")
+            with dsl.acquire_loop_rt(count=10):
+                qops.set_frequency(q, 1.8e9, transition="ef")
+                qops.x90(q, transition="ef")
 
         exp = exp_set_freq(q0)
 
@@ -553,8 +556,8 @@ class TestTunableTransmonOperations:
             ),
             pytest.param(
                 True,
-                [1.6e9, 1.4e9, 1.6e9],
-                [0.1e9, -0.1e9, 0.1e9],
+                [1.6e9, 1.4e9, 1.2e9],
+                [0.1e9, -0.1e9, -0.3e9],
                 id="rf-negative",
             ),
             pytest.param(
@@ -567,7 +570,7 @@ class TestTunableTransmonOperations:
                 False,
                 [-0.1e9, -0.2e9, -0.3e9],
                 [-0.1e9, -0.2e9, -0.3e9],
-                id="oscillator-positive",
+                id="oscillator-negative",
             ),
         ],
     )
@@ -585,9 +588,12 @@ class TestTunableTransmonOperations:
         @dsl.qubit_experiment
         def exp_set_freq(q, frequencies):
             # set_frequency requires an experiment context to access the calibration
-            with dsl.sweep(parameter=SweepParameter(values=frequencies)) as frequency:
-                qops.set_frequency(q, frequency, rf=rf)
-                qops.x90(q)
+            with dsl.acquire_loop_rt(count=10):
+                with dsl.sweep(
+                    parameter=SweepParameter(values=frequencies),
+                ) as frequency:
+                    qops.set_frequency(q, frequency, rf=rf)
+                    qops.x90(q)
 
         exp = exp_set_freq(q0, freqs)
 
@@ -607,24 +613,12 @@ class TestTunableTransmonOperations:
                 [2.0e9, 2.1e9, 2.2e9],
                 [0.0e9, 0.1e9, 0.2e9],
                 id="rf-positive",
-                marks=pytest.mark.xfail(
-                    reason=(
-                        "LabOne Q does not support derived sweep parameters"
-                        " in experiment calibration"
-                    ),
-                ),
             ),
             pytest.param(
                 True,
                 [2.1e9, 1.9e9, 2.1e9],
                 [0.1e9, -0.1e9, 0.1e9],
                 id="rf-negative",
-                marks=pytest.mark.xfail(
-                    reason=(
-                        "LabOne Q does not support derived sweep parameters"
-                        " in experiment calibration"
-                    ),
-                ),
             ),
             pytest.param(
                 False,
