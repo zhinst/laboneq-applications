@@ -14,19 +14,19 @@ Type hints
 
 * [Qubits]()
 
-  Either a single qubit or a sequence of qubits.
+    Either a single qubit or a sequence of qubits.
 
 * [QubitSweepPoints]()
 
-  Sweep values for either a single qubit or multiple qubits. What
-  value is being swept is typically described by the parameter
-  name, e.g. `amplitudes`.
+    Sweep values for either a single qubit or multiple qubits. What
+    value is being swept is typically described by the parameter
+    name, e.g. `amplitudes`.
 
-  If the values are for a single qubit, [QubitSweepPoints]() is
-  sequence of floats or a numpy `ArrayLike`.
+    If the values are for a single qubit, [QubitSweepPoints]() is
+    sequence of floats or a numpy `ArrayLike`.
 
-  If the values are for multiple qubits, [QubitSweepPoints]() is
-  a sequence of such values, one for each qubit.
+    If the values are for multiple qubits, [QubitSweepPoints]() is
+    a sequence of such values, one for each qubit.
 """
 
 from __future__ import annotations
