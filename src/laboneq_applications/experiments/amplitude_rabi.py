@@ -28,12 +28,9 @@ from laboneq_applications.tasks import compile_experiment, run_experiment
 from laboneq_applications.workflow import TuneUpTaskBookOptions, task, taskbook
 
 if TYPE_CHECKING:
-    from collections.abc import Sequence
-
-    from laboneq.dsl.quantum.quantum_element import QuantumElement
     from laboneq.dsl.session import Session
-    from numpy import ndarray
 
+    from laboneq_applications.typing import Qubits, QubitSweepPoints
     from laboneq_applications.workflow.taskbook import TaskBook
 
 
@@ -44,8 +41,8 @@ options = TuneUpTaskBookOptions
 def run(
     session: Session,
     qop: QuantumOperations,
-    qubits: QuantumElement | Sequence[QuantumElement],
-    amplitudes: Sequence[float] | Sequence[Sequence[float] | ndarray] | ndarray,
+    qubits: Qubits,
+    amplitudes: QubitSweepPoints,
     options: TuneUpTaskBookOptions | None = None,
 ) -> TaskBook:
     """The Amplitude Rabi TaskBook.
@@ -105,8 +102,8 @@ def run(
 @qubit_experiment
 def create_experiment(
     qop: QuantumOperations,
-    qubits: QuantumElement | Sequence[QuantumElement],
-    amplitudes: Sequence[float] | Sequence[Sequence[float] | ndarray] | ndarray,
+    qubits: Qubits,
+    amplitudes: QubitSweepPoints,
     options: TuneupExperimentOptions | None = None,
 ) -> Experiment:
     """Creates an Amplitude Rabi Experiment.

@@ -1,4 +1,5 @@
 """This module provides utility functionality for debugging."""
+
 from __future__ import annotations
 
 import json
