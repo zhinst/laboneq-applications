@@ -15,10 +15,8 @@ from laboneq_applications.core.build_experiment import _qubits_from_args
 if TYPE_CHECKING:
     from laboneq.dsl.experiment.pulse import Pulse
     from laboneq.simple import (
-        ExecutionType,
         QuantumElement,
         Section,
-        SectionAlignment,
     )
 
 
@@ -278,8 +276,6 @@ class Operation:
             of the implementing function).
         quantum_ops:
             The quantum operations object the operation is for.
-        kw:
-            Dictionary of pre-filled keyword arguments for the operation.
     """
 
     def __init__(
@@ -287,17 +283,13 @@ class Operation:
         op: Callable,
         op_name: str,
         quantum_ops: QuantumOperations,
-        kw: dict | None = None,
     ):
         self._op = op
         self._op_name = op_name
         self._quantum_ops = quantum_ops
-        self._partial_kw = kw if kw is not None else {}
-        self._section_kw = {}
-        self._omit_section = False
         self.__doc__ = self._op.__doc__
 
-    def __call__(self, *args, **kw) -> Section | None:
+    def __call__(self, *args, **kw) -> Section:
         """Build a section using the operation.
 
         The operation is called in the context of a pre-built
@@ -308,14 +300,62 @@ class Operation:
 
         Arguments:
             *args:
-                Positional arguments to the operation.
+                Positional arguments for the operation.
             **kw:
                 Keyword parameters for the operation.
 
         Returns:
             A LabOne Q section built by the operation.
-            If `.section(omit=True)` is used, the operation
-            will return `None`.
+        """
+        return self._call(args, kw)
+
+    def omit_section(self, *args: object, **kw: object) -> None:
+        """Calls the operation but *without* building a new section.
+
+        Omitting the section causes the contents of the operation to be added directly
+        to the existing section context when the operation is called.
+
+        This is intended to reduce the number of sections created when one operation
+        consists entirely of calling another operation. In other cases it should be used
+        with care since omitting a section may affect the generated signals.
+
+        Arguments:
+            *args:
+                Positional arguments to the operation.
+            **kw:
+                Keyword parameters for the operation.
+
+        Returns:
+            None.
+
+        Raises:
+            LabOneQException:
+                If no active section context exists.
+        """
+        self._call(args, kw, omit_section=True)
+
+    def _call(
+        self,
+        args: tuple,
+        kw: dict,
+        *,
+        omit_section: bool = False,
+    ) -> Section | None:
+        """Calls the operation with the supplied parameters and additional options.
+
+        Arguments:
+            args:
+                Positional arguments to the operation.
+            kw:
+                Keyword parameters for the operation.
+            omit_section:
+                If omit_section is true, the operation is added to the existing
+                section context and no new section is created.
+
+        Returns:
+            If omit_section is false, a LabOne Q section containing the operation.
+            If omit_section is true, no section is returned and the operation is
+            added to the existing section context.
         """
         qubits = _qubits_from_args(args)
         qubits_with_incorrect_type = [
@@ -338,18 +378,17 @@ class Operation:
 
         section_name = "_".join([self._op_name] + [q.uid for q in qubits])
 
-        if not self._omit_section:
+        if not omit_section:
             maybe_section = dsl.section(
                 name=section_name,
-                **self._section_kw,
             )
         else:
             maybe_section = contextlib.nullcontext()
 
         with maybe_section as op_section:
-            if not self._omit_section:
+            if not omit_section:
                 self._reserve_signals(qubits)
-            self._op(self._quantum_ops, *args, **self._partial_kw, **kw)
+            self._op(self._quantum_ops, *args, **kw)
 
         return op_section
 
@@ -358,81 +397,6 @@ class Operation:
         for q in qubits:
             for signal in q.signals.values():
                 dsl.reserve(signal)
-
-    def partial(self, **kw) -> Operation:
-        """Return a copy of the operation with the specified parameters set.
-
-        Only keyword arguments may be specified.
-
-        Arguments:
-            **kw (dict):
-                The keyword parameters to supply.
-
-        Returns:
-            An operation with some or all keyword parameters set.
-        """
-        partial_kw = {**self._partial_kw, **kw}
-        return Operation(self._op, self._op_name, self._quantum_ops, partial_kw)
-
-    def section(
-        self,
-        *,
-        omit: bool = UNSET,
-        alignment: SectionAlignment = UNSET,
-        execution_type: ExecutionType | None = UNSET,
-        length: float | None = UNSET,
-        play_after: str | Section | list[str | Section] | None = UNSET,
-        on_system_grid: bool = UNSET,
-    ) -> Operation:
-        """Return a copy of the operation with the given section parameters set.
-
-        Arguments:
-            omit:
-                Omit creating a section and add the contents of the operation directly
-                to an existing section. This is intended to reduce the number of
-                sections created when one operation consists entirely of calling another
-                operation. In other cases it should be used with care since omitting a
-                section may affect the generated signals.
-
-                Calling an operation with omit set will return `None`.
-            alignment:
-                Specifies the time alignment of operations and sections within
-                this section.
-            execution_type:
-                Whether the section is near-time or real-time. By default the
-                execution type is automatically determined by the compiler.
-            length:
-                Minimum length of the section in seconds.
-            play_after:
-                A list of sections that must complete before this section
-                may be played.
-            on_system_grid:
-                If True, the section boundaries are always rounded to the system grid,
-                even if the contained signals would allow for tighter alignment.
-
-        Any section arguments not specified are left as they were in the existing
-        operation.
-
-        Returns:
-            An operation with the given section keyword arguments set.
-        """
-        op = Operation(self._op, self._op_name, self._quantum_ops, self._partial_kw)
-        op._section_kw = self._section_kw.copy()
-        op._omit_section = self._omit_section
-
-        if omit is not UNSET:
-            op._omit_section = omit
-        if alignment is not UNSET:
-            op._section_kw["alignment"] = alignment
-        if execution_type is not UNSET:
-            op._section_kw["execution_type"] = execution_type
-        if length is not UNSET:
-            op._section_kw["length"] = length
-        if play_after is not UNSET:
-            op._section_kw["play_after"] = play_after
-        if on_system_grid is not UNSET:
-            op._section_kw["on_system_grid"] = on_system_grid
-        return op
 
     @property
     def op(self) -> Callable:

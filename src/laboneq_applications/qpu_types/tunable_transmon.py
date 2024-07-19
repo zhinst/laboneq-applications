@@ -708,7 +708,7 @@ class TunableTransmonOperations(QuantumOperations):
         """
         if delay is None:
             delay = q.parameters.reset_delay_length
-        self.delay.section(omit=True)(q, time=delay)
+        self.delay.omit_section(q, time=delay)
 
     @quantum_operation
     def rx(
@@ -821,7 +821,7 @@ class TunableTransmonOperations(QuantumOperations):
             _, params = q.transition_parameters(transition)
             amplitude = params["amplitude_pi2"]
 
-        self.rx.section(omit=True)(
+        self.rx.omit_section(
             q,
             self._PI_BY_2,
             transition=transition,
@@ -876,7 +876,7 @@ class TunableTransmonOperations(QuantumOperations):
             _, params = q.transition_parameters(transition)
             amplitude = params["amplitude_pi"]
 
-        self.rx.section(omit=True)(
+        self.rx.omit_section(
             q,
             self._PI,
             transition=transition,
@@ -997,7 +997,7 @@ class TunableTransmonOperations(QuantumOperations):
             _, params = q.transition_parameters(transition)
             amplitude = params["amplitude_pi2"]
 
-        self.ry.section(omit=True)(
+        self.ry.omit_section(
             q,
             self._PI_BY_2,
             transition=transition,
@@ -1052,7 +1052,7 @@ class TunableTransmonOperations(QuantumOperations):
             _, params = q.transition_parameters(transition)
             amplitude = params["amplitude_pi"]
 
-        self.ry.section(omit=True)(
+        self.ry.omit_section(
             q,
             self._PI,
             transition=transition,
@@ -1101,7 +1101,7 @@ class TunableTransmonOperations(QuantumOperations):
                 The transition to rotate. By default this is "ge"
                 (i.e. the 0-1 transition).
         """
-        self.rz.section(omit=True)(q, self._PI_BY_2, transition=transition)
+        self.rz.omit_section(q, self._PI_BY_2, transition=transition)
 
     @quantum_operation
     def z180(self, q: TunableTransmonQubit, transition: str | None = None) -> None:
@@ -1116,4 +1116,4 @@ class TunableTransmonOperations(QuantumOperations):
                 The transition to rotate. By default this is "ge"
                 (i.e. the 0-1 transition).
         """
-        self.rz.section(omit=True)(q, self._PI, transition=transition)
+        self.rz.omit_section(q, self._PI, transition=transition)

@@ -254,23 +254,15 @@ Some things to note about the section:
 
 +++
 
-In addition to `.src` each quantum operation also has two special methods:
+In addition to `.src` each quantum operation also has two special attributes:
 
-* `.partial`: This allows one to create a new quantum operation with some parameter values already specified.
-* `.section`: This allows one to create a new quantum operation and override some of the section parameters (e.g. section alignment, section length).
+* `.op`: This returns the function that implements the quantum operation.
+* `.omit_section(...)`: This method builds the quantum operation but without a containing section. This is useful if one wants to define a quantum operation in terms of another, but not have deeply nested sections.
 
-Let's try them out:
-
-```{code-cell} ipython3
-x180 = qop.rx.partial(angle=np.pi / 5)
-section = x180(qubits[0])
-print(section)
-```
+Let's look at `.op` now. We'll use `.omit_section` once we've seen how to write our own operations.
 
 ```{code-cell} ipython3
-rx_on_grid = qop.rx.section(on_system_grid=True)
-section = rx_on_grid(qubits[0], np.pi / 2)
-print(section)
+qop.rx.op
 ```
 
 ### Writing a quantum operation
@@ -280,7 +272,8 @@ Often you'll want to write your own quantum operation, either to create a new op
 Let's write our own very simple implementation of an `rx` operation that varies the pulse length instead of the amplitude:
 
 ```{code-cell} ipython3
-def simple_rx(qop, q, angle):
+@qop.register
+def simple_rx(self, q, angle):
     """A very simple implementation of an RX operation that varies pulse length."""
     # Determined via rigorously calibration ;) :
     amplitude = 0.6
@@ -296,14 +289,70 @@ def simple_rx(qop, q, angle):
     )
 ```
 
-And register the operation with our existing set of quantum operations:
+Applying the decorator `qop.register` wraps our function `simple_rx` in a quantum operation and registers it with our current set of operations, `qop`.
+
+We can confirm that it's registered by checking that its in our set of operations, or by looking it up as an attribute or element of our operations:
 
 ```{code-cell} ipython3
-qop["simple_rx"] = simple_rx
+"simple_rx" in qop
 ```
 
 ```{code-cell} ipython3
+qop.simple_rx
+```
+
+```{code-cell} ipython3
+qop["simple_rx"]
+```
+
+If an operation with the same name already exists it will be replaced.
+
+Let's run our new operations and examine the section it produces:
+
+```{code-cell} ipython3
 section = qop.simple_rx(qubits[0], np.pi)
+print(section)
+```
+
+We can also create aliases for existing quantum operations that are already registered by assigning additional names for them:
+
+```{code-cell} ipython3
+qop["rx_length"] = qop.simple_rx
+```
+
+```{code-cell} ipython3
+"rx_length" in qop
+```
+
+### Using omit_section
+
+Let's imagine that we'd like to write an `x90_length` operation that calls our new `rx_length` but always specifies an angle of $\frac{\pi}{2}$. We can write this as:
+
+```{code-cell} ipython3
+@qop.register
+def x90_length(self, q):
+    return self.rx_length(q, np.pi / 2)
+```
+
+However, when we call this we will have deeply nested sections and many signal lines reserved. This obscures the structure of our experiment:
+
+```{code-cell} ipython3
+section = qop.x90_length(qubits[0])
+print(section)
+```
+
+We can remove the extra section and signal reservations by call our inner operation using `.omit_section` instead:
+
+```{code-cell} ipython3
+@qop.register
+def x90_length(self, q):
+    return self.rx_length.omit_section(q, np.pi / 2)
+```
+
+Note how much simpler the section structure looks now:
+
+```{code-cell} ipython3
+section = qop.x90_length(qubits[0])
 print(section)
 ```
 
@@ -312,12 +361,75 @@ print(section)
 To end off our look at quantum operations, let's replace the original `rx` gate with our own one and then use our existing experiment definition to produce a new experiment with the operation we've just written.
 
 ```{code-cell} ipython3
-qop["rx"] = simple_rx  # replace the rx gate
+qop["rx"] = qop.simple_rx  # replace the rx gate
 exp = rotate_and_measure(qop, qubits[0], np.pi / 2)
 print(exp)
 ```
 
 Confirm that the generated experiment contains the new implementation of the RX gate.
+
++++
+
+### Setting section attributes
+
+Sometimes an operation will need to set special section attributes such as `on_system_grid`.
+
+This can be done by retrieving the current section and directly manipulating it.
+
+To demonstrate, we'll create an operation whose section is required to be on the system grid:
+
+```{code-cell} ipython3
+@qop.register
+def op_on_system_grid(self, q):
+    section = dsl.active_section()
+    section.on_system_grid = True
+    # ... play pulses, etc.
+```
+
+And then call it to confirm that the section has indeed been set to be on the grid:
+
+```{code-cell} ipython3
+section = qop.op_on_system_grid(qubits[0])
+section.on_system_grid
+```
+
+### Accessing experiment calibration
+
+When a qubit experiment is created by the library its calibration is initialized from the qubits it operates on. Typically oscillator frequencies and other signal calibration are set.
+
+Sometimes it may be useful for quantum operations to access or manipulate this configuration using `experiment_calibration` which returns the calibration set for the current experiment.
+
+**Note**:
+
+* The experiment calibration is only accessible if there is an experiment, so quantum operations that call `experiment_calibration` can only be called inside an experiment and will raise an exception otherwise.
+
+* There is only a single experiment calibration per experiment, so if mutliple quantum operations modify the same calibration items, only the last modification will be retained.
+
+Here is how we define a quantum operation that accesses the calibration:
+
+```{code-cell} ipython3
+@qop.register
+def op_that_examines_signal_calibration(self, q):
+    calibration = dsl.experiment_calibration()
+    signal_calibration = calibration[q.signals["drive"]]
+    # ... examine or set calibration, play pulses, etc, e.g.:
+    signal_calibration.oscillator.frequency = 0.2121e9
+```
+
+To use it we will have to build an experiment. For now, just ignore the pieces we haven't covered. Writing a complete experiment will be covered shortly:
+
+```{code-cell} ipython3
+@qubit_experiment
+def exp_for_checking_op(qop, q):
+    """Simple experiment to test the operation we've just written."""
+    with dsl.acquire_loop_rt(count=1):
+        qop.op_that_examines_signal_calibration(q)
+
+exp = exp_for_checking_op(qop, qubits[0])
+exp.get_calibration().calibration_items["/logical_signal_groups/q0/drive"]
+```
+
+Note above that the oscillator frequency has been set to the value we specified, `0.2121e9` Hz.
 
 +++
 

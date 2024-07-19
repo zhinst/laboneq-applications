@@ -1,14 +1,14 @@
 """Tests for laboneq_applications.core.quantum_operations."""
 
+import functools
+
 import numpy as np
 import pytest
 from laboneq.core.exceptions import LabOneQException
 from laboneq.dsl.experiment import builtins
 from laboneq.simple import (
-    ExecutionType,
     QuantumElement,
     Section,
-    SectionAlignment,
     SweepParameter,
     Transmon,
 )
@@ -235,7 +235,10 @@ class TestQuantumOperations:
         assert type(section) is Section
 
     def test_quantum_operation_multi_type(
-        self, dummy_multi_type_ops, dummy_q, dummy_coupler_q,
+        self,
+        dummy_multi_type_ops,
+        dummy_q,
+        dummy_coupler_q,
     ):
         section = dummy_multi_type_ops.x(dummy_coupler_q, amplitude=1.5)
         assert type(section) is Section
@@ -328,7 +331,7 @@ class TestQuantumOperations:
         )
 
     def test_build_with_prep(self, dummy_ops, dummy_q):
-        prep = dummy_ops.x.partial(amplitude=2)
+        prep = functools.partial(dummy_ops.x, amplitude=2)
         amplitudes = np.linspace(0.1, 1, 10)
 
         exp = self.simple_exp(dummy_ops, dummy_q, amplitudes, 5, prep=prep)
@@ -430,7 +433,9 @@ class TestOperation:
         )
 
     def test_call_with_foreign_qubits_for_multi_type(
-        self, dummy_multi_type_ops, dummy_q,
+        self,
+        dummy_multi_type_ops,
+        dummy_q,
     ):
         q0 = ForeignQubit(uid="q0")
         q1 = ForeignQubit(uid="q1")
@@ -459,8 +464,8 @@ class TestOperation:
             " DummyCoupler, Transmon."
         )
 
-    def test_partial(self, dummy_ops, dummy_q):
-        x_with_amp = dummy_ops.x.partial(amplitude=1.5)
+    def test_functools_partial(self, dummy_ops, dummy_q):
+        x_with_amp = functools.partial(dummy_ops.x, amplitude=1.5)
 
         section = x_with_amp(dummy_q)
 
@@ -471,12 +476,11 @@ class TestOperation:
             tsl.play_pulse_op(signal="/lsg/q0/drive", amplitude=1.5),
         )
 
-    def test_section_omit(self, dummy_ops, dummy_q):
-        x = dummy_ops.x.partial(amplitude=1.0)
+    def test_omit_section(self, dummy_ops, dummy_q):
         q = dummy_q
 
         with dsl.section(uid="top") as section:
-            result = x.section(omit=True)(q)
+            result = dummy_ops.x.omit_section(q, amplitude=1.0)
 
         assert section == tsl.section(uid="top").children(
             tsl.play_pulse_op(),
@@ -484,107 +488,8 @@ class TestOperation:
         assert result is None
 
         with pytest.raises(LabOneQException) as err:
-            x.section(omit=True)(q)
+            dummy_ops.x.omit_section(q, amplitude=1.0)
         assert str(err.value) == "Must be in a section context"
-
-    def test_section_alignment(self, dummy_ops, dummy_q):
-        x = dummy_ops.x.partial(amplitude=1.0)
-        q = dummy_q
-
-        section_default = x(q)
-        assert section_default.alignment == SectionAlignment.LEFT
-
-        section_right = x.section(alignment=SectionAlignment.RIGHT)(q)
-        assert section_right.alignment == SectionAlignment.RIGHT
-
-        section_left = x.section(alignment=SectionAlignment.LEFT)(q)
-        assert section_left.alignment == SectionAlignment.LEFT
-
-        section_right_left = x.section(alignment=SectionAlignment.RIGHT).section(
-            alignment=SectionAlignment.LEFT,
-        )(q)
-        assert section_right_left.alignment == SectionAlignment.LEFT
-
-        section_restored_default = x.section(alignment=SectionAlignment.RIGHT).section(
-            alignment=None,
-        )(q)
-        assert section_restored_default.alignment == SectionAlignment.LEFT
-
-    def test_section_execution_type(self, dummy_ops, dummy_q):
-        x = dummy_ops.x.partial(amplitude=1.0)
-        q = dummy_q
-
-        section_default = x(q)
-        assert section_default.execution_type is None
-
-        section_real_time = x.section(execution_type=ExecutionType.REAL_TIME)(q)
-        assert section_real_time.execution_type == ExecutionType.REAL_TIME
-
-        section_near_time = x.section(execution_type=ExecutionType.NEAR_TIME)(q)
-        assert section_near_time.execution_type == ExecutionType.NEAR_TIME
-
-        section_restored_default = x.section(
-            execution_type=ExecutionType.REAL_TIME,
-        ).section(execution_type=None)(q)
-        assert section_restored_default.execution_type is None
-
-    def test_section_length(self, dummy_ops, dummy_q):
-        x = dummy_ops.x.partial(amplitude=1.0)
-        q = dummy_q
-
-        section_default = x(q)
-        assert section_default.length is None
-
-        section_altered = x.section(length=1e-6)(q)
-        assert section_altered.length == 1e-6
-
-        section_restored_default = x.section(length=1e-6).section(length=None)(q)
-        assert section_restored_default.length is None
-
-    def test_section_play_after(self, dummy_ops, dummy_q):
-        x = dummy_ops.x.partial(amplitude=1.0)
-        q = dummy_q
-
-        section_default = x(q)
-        assert section_default.play_after is None
-
-        section_altered = x.section(play_after=["x180_q0_0"])(q)
-        assert section_altered.play_after == ["x180_q0_0"]
-
-        section_restored_default = x.section(play_after=["x180_q0_0"]).section(
-            play_after=None,
-        )(q)
-        assert section_restored_default.play_after is None
-
-    def test_section_on_system_grid(self, dummy_ops, dummy_q):
-        x = dummy_ops.x.partial(amplitude=1.0)
-        q = dummy_q
-
-        section_default = x(q)
-        assert section_default.on_system_grid is False
-
-        section_altered = x.section(on_system_grid=True)(q)
-        assert section_altered.on_system_grid is True
-
-        section_restored_default = x.section(on_system_grid=True).section(
-            on_system_grid=None,
-        )(q)
-        assert section_restored_default.on_system_grid is False
-
-    def test_section_mixed_parameters(self, dummy_ops, dummy_q):
-        x = dummy_ops.x.partial(amplitude=1.0)
-        q = dummy_q
-
-        section = (
-            x.section(alignment=SectionAlignment.RIGHT, on_system_grid=True)
-            .section(length=1e-6)
-            .section(play_after=["x180_q0_0"])(q)
-        )
-
-        assert section.alignment == SectionAlignment.RIGHT
-        assert section.on_system_grid is True
-        assert section.length == 1e-6
-        assert section.play_after == ["x180_q0_0"]
 
     def test_op(self, dummy_ops):
         assert dummy_ops.x.op is DummyOperations.BASE_OPS["x"]
