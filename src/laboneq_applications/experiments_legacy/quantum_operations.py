@@ -1,3 +1,5 @@
+import functools
+
 import numpy as np
 from laboneq.simple import *  # noqa: F403
 
@@ -57,17 +59,33 @@ def quantum_gate(
     return drive_pulse(pulse_type, uid=uid, **pulse_kwargs)
 
 
-def readout_pulse(qubit):
+@functools.cache
+def _cached_readout_pulse(length, amplitude):
     return pulse_library.const(
+        length=length,
+        amplitude=amplitude,
+    )
+
+
+def readout_pulse(qubit):
+    return _cached_readout_pulse(
         length=qubit.parameters.readout_pulse_length,
         amplitude=qubit.parameters.readout_amplitude,
     )
 
 
-def integration_kernel(qubit):
+@functools.cache
+def _cached_kernel(length, amplitude):
     return pulse_library.const(
+        length=length,
+        amplitude=amplitude,
+    )
+
+
+def integration_kernel(qubit):
+    return _cached_kernel(
         length=qubit.parameters.readout_pulse_length,
-        amplitude=1,
+        amplitude=1.0,
     )
 
 
