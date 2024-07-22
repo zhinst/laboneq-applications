@@ -709,31 +709,6 @@ acquired_data
 acquired_data.result.q0
 ```
 
-### Use temporary qubit parameters
-
-```{code-cell} ipython3
-from laboneq_applications.qpu_types.tunable_transmon import modify_qubits
-
-amplitudes = np.linspace(0.0, 0.9, 10)
-temporary_qubit_parameters = [
-    (
-        qubits[0],
-        {
-            "reset_delay_length": 10e-6,
-        },
-    ),
-]
-
-options = amplitude_rabi.options()
-rabi_tb = amplitude_rabi.run(
-    session,
-    qop,
-    modify_qubits(temporary_qubit_parameters)[0],
-    amplitudes,
-    options=options,
-)
-```
-
 ```{code-cell} ipython3
 # inspect pulse sequence with plot_simulation
 from laboneq.contrib.example_helpers.plotting.plot_helpers import plot_simulation

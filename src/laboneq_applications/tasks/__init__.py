@@ -5,7 +5,6 @@ from __future__ import annotations
 __all__ = [
     "compile_experiment",
     "run_experiment",
-    "update_qubits",
     "RunExperimentResults",
 ]
 
@@ -13,4 +12,3 @@ __all__ = [
 from .compile_experiment import compile_experiment
 from .datatypes import RunExperimentResults
 from .run_experiment import run_experiment
-from .update_qubits import update_qubits
