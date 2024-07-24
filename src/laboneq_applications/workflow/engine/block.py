@@ -82,13 +82,13 @@ class Block(abc.ABC):
         return self._body
 
     def __enter__(self):
-        TaskExecutorContext.enter(WorkflowBlockExecutorContext())
+        TaskExecutorContext.enter(WorkflowBlockBuilder())
 
     def __exit__(self, exc_type, exc_value, traceback):  # noqa: ANN001
-        register = cast(WorkflowBlockExecutorContext, TaskExecutorContext.exit())
+        register = cast(WorkflowBlockBuilder, TaskExecutorContext.exit())
         self._body.extend(register.blocks)
         active_ctx = TaskExecutorContext.get_active()
-        if isinstance(active_ctx, WorkflowBlockExecutorContext):
+        if isinstance(active_ctx, WorkflowBlockBuilder):
             active_ctx.register(self)
 
     def _run_block(self, block: Block) -> BlockResult:
@@ -157,15 +157,15 @@ class TaskBlock(Block):
         return r
 
 
-class WorkflowBlockExecutorContext(TaskExecutor):
-    """Workflow context executor for blocks."""
+class WorkflowBlockBuilder(TaskExecutor):
+    """Workflow block builder."""
 
     def __init__(self):
         self._blocks: list[Block] = []
 
     @property
     def blocks(self) -> list[Block]:
-        """Blocks registered within the context."""
+        """Workflow blocks."""
         return self._blocks
 
     def execute_task(

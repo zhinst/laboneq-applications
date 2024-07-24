@@ -14,7 +14,7 @@ from laboneq_applications.workflow._context import TaskExecutorContext
 from laboneq_applications.workflow.engine.block import (
     Block,
     BlockResult,
-    WorkflowBlockExecutorContext,
+    WorkflowBlockBuilder,
 )
 from laboneq_applications.workflow.engine.promise import Promise
 
@@ -109,7 +109,7 @@ class Workflow:
         """Enter the Workflow building context."""
         if isinstance(
             TaskExecutorContext.get_active(),
-            WorkflowBlockExecutorContext,
+            WorkflowBlockBuilder,
         ):
             msg = "Nesting Workflows is not allowed."
             raise exceptions.WorkflowError(msg)
@@ -135,7 +135,7 @@ class Workflow:
         """
         if isinstance(
             TaskExecutorContext.get_active(),
-            WorkflowBlockExecutorContext,
+            WorkflowBlockBuilder,
         ):
             msg = "Nesting Workflows is not allowed."
             raise exceptions.WorkflowError(msg)
