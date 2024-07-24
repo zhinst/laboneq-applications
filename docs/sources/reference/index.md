@@ -8,8 +8,9 @@ navigation on the left or see the contents below.
 <!--nav-->
 
 * [core](core/)
+* [experiments](experiments/)
 * [qpu_types](qpu_types/)
 * [tasks](tasks/)
+* [testing](testing/)
 * [typing](typing.md)
-* [experiments](experiments/)
 * [workflow](workflow/)

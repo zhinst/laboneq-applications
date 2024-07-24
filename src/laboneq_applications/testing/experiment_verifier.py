@@ -61,7 +61,7 @@ class _Pulse:
 class CompiledExperimentVerifier:
     """Class to verify the compiled experiment.
 
-    Attributes:
+    Arguments:
         compiled_experiment:
             The L1Q compiled experiment to verify.
         max_events:
@@ -84,7 +84,7 @@ class CompiledExperimentVerifier:
     def assert_number_of_pulses(self, signal: str, pulse_number: int) -> None:
         """Assert the number of pulses played for a particular signal.
 
-        Attributes:
+        Arguments:
             signal:
                 The signal for which the number of pulses is required.
             pulse_number:
@@ -109,7 +109,7 @@ class CompiledExperimentVerifier:
     ) -> None:
         """Assert the properties of a particular pulse played.
 
-        Attributes:
+        Arguments:
             signal:
                 The signal name for which the pulse is required.
             index:
@@ -133,22 +133,22 @@ class CompiledExperimentVerifier:
                 start,
                 pulse.start,
                 atol=tolerance,
-                err_msg=f"Start time mismatch, expected {start} got {start}",
+                err_msg="Start time mismatch",
             )
         if end is not None:
             np.testing.assert_allclose(
                 end,
                 pulse.end,
                 atol=tolerance,
-                err_msg=f"End time mismatch, expected {end} got {end}",
+                err_msg="End time mismatch",
             )
         if (
             parameterized_with is not None
             and pulse.parameterized_with != parameterized_with
         ):
             raise AssertionError(
-                f"Parameterized with mismatch, expected {parameterized_with} "
-                f"got {pulse.parameterized_with}",
+                f"Parameterized with mismatch, expected {pulse.parameterized_with} "
+                f"got {parameterized_with}",
             )
 
 
@@ -218,7 +218,7 @@ class _PulseExtractorPSV:
     ) -> int:
         """Get the number of pulses played for a particular signal.
 
-        Attributes:
+        Arguments:
             signal:
                 The signal for which the number of pulses is required.
 
@@ -240,7 +240,7 @@ class _PulseExtractorPSV:
     def get_pulse(self, signal: str, index: int) -> _Pulse:
         """Get the pulse information.
 
-        Attributes:
+        Arguments:
             signal:
                 The signal for which the pulse information is required.
             index:
