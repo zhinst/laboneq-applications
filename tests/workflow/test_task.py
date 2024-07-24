@@ -1,48 +1,51 @@
 import inspect
 import textwrap
 
+import pytest
 from IPython.lib.pretty import pretty
 
-from laboneq_applications.workflow.task import Task, _BaseTask, task, task_
-
-
-class MyTestTask(_BaseTask):
-    def _run(self):
-        return 123
-
-
-class TestBaseTask:
-    def test_repr(self):
-        task = MyTestTask(name="test")
-        assert str(task) == "Task(name=test)"
-
-    def test_name(self):
-        task_ = MyTestTask("foobar")
-        assert task_.name == "foobar"
-
-    def test_src(self):
-        task_ = MyTestTask("foobar")
-        assert task_.src == textwrap.dedent("""\
-            def _run(self):
-                return 123
-        """)
+from laboneq_applications.workflow.task import Task, task, task_
 
 
 def foobar(x, y):
     return x + y
 
 
-class TestTaskWrapper:
-    def test_result(self):
-        t = task_(foobar, "foobar")
-        assert t(1, 2) == 3
+class TestTask_:  # noqa: N801
+    @pytest.fixture()
+    def obj(self):
+        def foobar(x, y):
+            return x + y
 
-    def test_src(self):
-        t = task_(foobar, "foobar")
-        assert t.src == textwrap.dedent("""\
+        return task_(foobar, "foobar")
+
+    def test_call(self, obj):
+        assert obj(1, 2) == 3
+
+    def test_src(self, obj):
+        assert obj.src == textwrap.dedent("""\
             def foobar(x, y):
                 return x + y
         """)
+
+    def test_name(self, obj):
+        assert obj.name == "foobar"
+
+    def test_has_opts(self, obj):
+        assert obj.has_opts is False
+
+
+class TestTaskDecorator:
+    def test_name(self):
+        @task(name="test")
+        def foo1(x): ...
+
+        assert foo1.name == "test"
+
+        @task
+        def foo2(x): ...
+
+        assert foo2.name == "foo2"
 
     def test_doc(self):
         @task(name="test")
@@ -58,13 +61,13 @@ class TestTaskWrapper:
         assert inspect.signature(task(myfunc)) == inspect.signature(myfunc)
 
     def test_task_reinitialized(self):
-        task1 = task_(foobar, "foobar")
+        task1 = task(foobar, "foobar")
         task2 = task(task1)
         assert task2.name == "foobar"
         assert task1._func == task2._func
         assert task1 is not task2
 
-        task1 = task_(foobar, "foobar")
+        task1 = task(foobar, "foobar")
         task2 = task(task1, name="foobar2")
         assert task2.name == "foobar2"
         assert task1._func == task2._func

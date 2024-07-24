@@ -20,7 +20,7 @@ from laboneq_applications.workflow.exceptions import WorkflowError
 if TYPE_CHECKING:
     from laboneq_applications.workflow.engine.block import Block
     from laboneq_applications.workflow.engine.promise import Promise
-    from laboneq_applications.workflow.task import _BaseTask
+    from laboneq_applications.workflow.task import task_
 
 
 class BlockResult:
@@ -125,7 +125,7 @@ class TaskBlock(Block):
         **kwargs: Keyword arguments of the task.
     """
 
-    def __init__(self, task: _BaseTask, *args: object, **kwargs: object):
+    def __init__(self, task: task_, *args: object, **kwargs: object):
         super().__init__(*args, **kwargs)
         self._promise = ReferencePromise(self)
         self.task = task
@@ -150,7 +150,7 @@ class TaskBlock(Block):
             Task block result.
         """
         args, kwargs = self._resolver.resolve()
-        result = self.task.run(*args, **kwargs)
+        result = self.task._run(*args, **kwargs).output
         self._promise.set_result(result)
         r = BlockResult()
         r.add_result(self.name, result)
@@ -170,7 +170,7 @@ class WorkflowBlockBuilder(TaskExecutor):
 
     def execute_task(
         self,
-        task: _BaseTask,
+        task: task_,
         *args: object,
         **kwargs: object,
     ) -> Promise:

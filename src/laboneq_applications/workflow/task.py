@@ -2,11 +2,10 @@
 
 from __future__ import annotations
 
-import abc
 import inspect
 import textwrap
 from functools import partial, update_wrapper
-from typing import Any, Callable, Generic, Protocol, TypeVar, overload
+from typing import Callable, Generic, Protocol, TypeVar, overload
 
 from typing_extensions import ParamSpec
 
@@ -139,56 +138,11 @@ class Task:
         p.text(str(self))
 
 
-class _BaseTask(abc.ABC):
-    """A base class for a task.
-
-    Classes that subclass this class must implement:
-        - `_run()`
-    """
-
-    def __init__(self, name: str):
-        self._name: str = name
-
-    def __repr__(self):
-        return f"Task(name={self.name})"
-
-    @property
-    def name(self) -> str:
-        """The name of the task."""
-        return self._name
-
-    @property
-    def src(self) -> str:
-        """Source code of the task."""
-        src = inspect.getsource(self._run)
-        return textwrap.dedent(src)
-
-    @property
-    def has_opts(self) -> bool:
-        """Return `True` if the task has options in its arguments."""
-        return False
-
-    @abc.abstractmethod
-    def _run(self, *args: object, **kwargs: object) -> Any:  # noqa: ANN401
-        """Run the task."""
-
-    def run(self, *args: object, **kwargs: object) -> Any:  # noqa: ANN401
-        """Run the task.
-
-        The behaviour of the task depends on the context it is executed.
-        The behaviour is unchanged when no context is active.
-        """
-        ctx = _context.TaskExecutorContext.get_active()
-        if ctx is None:
-            return self._run(*args, **kwargs)
-        return ctx.execute_task(self, *args, **kwargs)
-
-
 T = ParamSpec("T")
 B = TypeVar("B")
 
 
-class task_(Generic[T, B], _BaseTask):  # noqa: N801
+class task_(Generic[T, B]):  # noqa: N801
     """A task that wraps a Python function.
 
     Arguments:
@@ -202,8 +156,8 @@ class task_(Generic[T, B], _BaseTask):  # noqa: N801
         func: Callable[T, B],
         name: str | None = None,
     ) -> None:
-        super().__init__(name if name is not None else func.__name__)
         self._func = func
+        self._name: str = name if name is not None else func.__name__
         self.__doc__ = func.__doc__
 
     @property
@@ -218,17 +172,16 @@ class task_(Generic[T, B], _BaseTask):  # noqa: N801
         return self._func
 
     @property
+    def name(self) -> str:
+        """The name of the task."""
+        return self._name
+
+    @property
     def has_opts(self) -> bool:
         """Return `True` if the task has options in its arguments."""
         return "options" in inspect.signature(self._func).parameters
 
-    def __call__(self, *args: T.args, **kwargs: T.kwargs) -> B:  # noqa: D102
-        return self.run(*args, **kwargs)
-
     def _run(self, *args: T.args, **kwargs: T.kwargs) -> Task:
-        ctx = _context.TaskExecutorContext.get_active()
-        if ctx is None:
-            return self._func(*args, **kwargs)
         task = Task(
             task=self,
             output=None,
@@ -237,6 +190,15 @@ class task_(Generic[T, B], _BaseTask):  # noqa: N801
         r = self._func(*args, **kwargs)
         task._output = r
         return task
+
+    def __call__(self, *args: T.args, **kwargs: T.kwargs) -> B:  # noqa: D102
+        ctx = _context.TaskExecutorContext.get_active()
+        if ctx is None:
+            return self._func(*args, **kwargs)
+        return ctx.execute_task(self, *args, **kwargs)
+
+    def __repr__(self):
+        return f"Task(name={self.name})"
 
 
 @overload

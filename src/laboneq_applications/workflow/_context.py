@@ -9,7 +9,7 @@ from typing import TYPE_CHECKING, ClassVar, Generic, TypeVar
 if TYPE_CHECKING:
     from collections.abc import Generator
 
-    from laboneq_applications.workflow.task import _BaseTask
+    from laboneq_applications.workflow.task import task_
 
 
 class _ContextStorage(threading.local):
@@ -63,7 +63,7 @@ class TaskExecutor(abc.ABC):
     @abc.abstractmethod
     def execute_task(  # noqa: ANN202
         self,
-        task: _BaseTask,
+        task: task_,
         *args: object,
         **kwargs: object,
     ):
@@ -73,8 +73,6 @@ class TaskExecutor(abc.ABC):
             task: The task instance.
             *args: `task` arguments.
             **kwargs: `task` keyword arguments.
-
-        Subclasses executing the `task` must use `task._run()`
         """
 
 
