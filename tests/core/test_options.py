@@ -5,7 +5,7 @@ from typing import Literal
 
 import pytest
 from laboneq.simple import AcquisitionType, AveragingMode, RepetitionMode
-from pydantic import ValidationError
+from pydantic import Field, ValidationError
 
 from laboneq_applications.core.options import (
     BaseExperimentOptions,
@@ -61,6 +61,21 @@ class TestOptions:
         deserialized_options = opt.from_dict(serialized_dict)
         assert deserialized_options == opt
 
+    def test_options_without_defaults(self):
+        class OptionsWithoutDefaults(BaseOptions):
+            foo: int
+            bar: str = "ge"
+            fred: float = 2.0
+
+        with pytest.raises(ValidationError):
+            OptionsWithoutDefaults(foo=1)
+
+        class OptionsWithFieldDefaults(BaseOptions):
+            foo: int = Field(default=10)
+
+        opt = OptionsWithFieldDefaults()
+        assert opt.foo == 10
+
 
 def minify_string(s):
     return s.replace("\n", "").replace(" ", "").replace("│", "").replace("↳", "")
@@ -76,8 +91,8 @@ class TestOptionPrinting:
     class FullOption(BaseOptions):
         number: int = 1
         text: str = "This is a text"
-        d: dict
-        array: list
+        d: dict = Field(default_factory=dict)
+        array: list = Field(default_factory=list)
         more: None | BaseOptions = None
 
     class SimpleOption(BaseOptions):

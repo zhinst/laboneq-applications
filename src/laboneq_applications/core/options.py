@@ -13,6 +13,7 @@ from pydantic import (
     field_validator,
     model_validator,
 )
+from pydantic_core import PydanticUndefinedType
 from rich.console import Console
 from rich.pretty import pprint
 
@@ -28,6 +29,17 @@ class BaseOptions(BaseModel):
         validate_default=True,
         extra="forbid",
     )
+
+    @model_validator(mode="before")
+    @classmethod
+    def _check_defaults(cls, data):  # noqa: ANN206, ANN001
+        for name, field in cls.model_fields.items():
+            if (
+                isinstance(field.default, PydanticUndefinedType)
+                and field.default_factory is None
+            ):
+                raise ValueError(f"Field {name!r} does not have a default value")
+        return data
 
     def to_dict(self) -> dict:
         """Generate a dictionary representation of the options."""
