@@ -71,22 +71,19 @@ The `LogbookStore` and `Workflow` will not be covered here.
 Build your LabOne Q `DeviceSetup`, qubits and `Session` as normal. Here we import an example from the applications library's test suite (this will change in the near future):
 
 ```{code-cell} ipython3
-import sys
-
-sys.path.insert(0, "..")
-
 from laboneq.simple import *
-from tests.helpers.device_setups import (
-    single_tunable_transmon_qubits,
-    single_tunable_transmon_setup,
-)
+from laboneq_applications.qpu_types.tunable_transmon import demo_qpu
 ```
 
 ```{code-cell} ipython3
+# Create a demonstration tunable transmon QPU:
+single_tunable_transmon_qpu = demo_qpu(n_qubits=1)
+
 # setup is an ordinary LabOne Q DeviceSetup:
-setup = single_tunable_transmon_setup()
+setup = single_tunable_transmon_qpu.setup
+
 # qubits is a list of one signle LabOne Q Application Library TunableTransmonQubit qubit:
-qubits = single_tunable_transmon_qubits(setup)
+qubits = single_tunable_transmon_qpu.qubits
 ```
 
 ```{code-cell} ipython3

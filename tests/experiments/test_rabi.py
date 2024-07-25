@@ -187,7 +187,7 @@ class TestTaskbook:
 
         compiled_exp = result.tasks[1].output
         assert compiled_exp.experiment.uid == "create_experiment"
-        assert compiled_exp.device_setup.uid == "test"
+        assert compiled_exp.device_setup.uid == "tunable_transmons_1"
 
         exp_result = result.tasks[2].output
         np.testing.assert_array_almost_equal(

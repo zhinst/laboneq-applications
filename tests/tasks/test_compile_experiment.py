@@ -1,25 +1,50 @@
 """Test the run_experiment task."""
 
+import pytest
+from laboneq.dsl.experiment import Experiment, ExperimentSignal, pulse_library
+
 from laboneq_applications.tasks import compile_experiment
 from laboneq_applications.workflow.engine import Workflow
 
 
-def test_run_experiment_standalone(simple_experiment, simple_session):
+@pytest.fixture()
+def simple_experiment(single_tunable_transmon):
+    device_setup = single_tunable_transmon.setup
+
+    exp = Experiment(
+        signals=[
+            ExperimentSignal("measure"),
+            ExperimentSignal("acquire"),
+        ],
+    )
+    exp.map_signal("measure", device_setup.logical_signal_by_uid("q0/measure"))
+    exp.map_signal("acquire", device_setup.logical_signal_by_uid("q0/acquire"))
+
+    with exp.acquire_loop_rt(count=4):
+        with exp.section():
+            exp.play("measure", pulse_library.const())
+            exp.acquire("acquire", "ac0", length=100e-9)
+            exp.delay("measure", 100e-9)
+
+    return exp
+
+
+def test_compile_experiment_standalone(simple_experiment, single_tunable_transmon):
     """Test that the compile_experiment task compiles the experiment in the session when
     called directly."""
     compiled_exp = compile_experiment(
-        session=simple_session,
+        session=single_tunable_transmon.session(),
         experiment=simple_experiment,
     )
     assert compiled_exp.scheduled_experiment is not None
 
 
-def test_run_experiment_as_task(simple_experiment, simple_session):
+def test_compile_experiment_as_task(simple_experiment, single_tunable_transmon):
     """Test that the compile_experiment task compiles the experiment in the session when
     called as a task."""
     with Workflow() as wf:
         compile_experiment(
-            session=simple_session,
+            session=single_tunable_transmon.session(),
             experiment=simple_experiment,
         )
     run = wf.run()

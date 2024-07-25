@@ -1,40 +1,64 @@
 """Test the run_experiment task."""
 
 import pytest
-from laboneq.dsl.experiment import Experiment
+from laboneq.dsl.experiment import Experiment, ExperimentSignal, pulse_library
 from laboneq.dsl.result.results import Results
 
 from laboneq_applications.tasks import RunExperimentResults, run_experiment
 from laboneq_applications.workflow.engine import Workflow
 
 
+@pytest.fixture()
+def simple_compiled_experiment(single_tunable_transmon):
+    device_setup = single_tunable_transmon.setup
+    session = single_tunable_transmon.session()
+
+    exp = Experiment(
+        signals=[
+            ExperimentSignal("measure"),
+            ExperimentSignal("acquire"),
+        ],
+    )
+    exp.map_signal("measure", device_setup.logical_signal_by_uid("q0/measure"))
+    exp.map_signal("acquire", device_setup.logical_signal_by_uid("q0/acquire"))
+
+    with exp.acquire_loop_rt(count=4):
+        with exp.section():
+            exp.play("measure", pulse_library.const())
+            exp.acquire("acquire", "ac0", length=100e-9)
+            exp.delay("measure", 100e-9)
+
+    return session.compile(exp)
+
+
 class TestRunExperiment:
     """Test the run_experiment task."""
 
-    @pytest.fixture(autouse=True)
-    def _setup(self, simple_session, simple_experiment: Experiment):
-        # pylint: disable=attribute-defined-outside-init
-        self.compiled_experiment = simple_session.compile(simple_experiment)
-
-    def test_run_experiment_standalone(self, simple_session):
+    def test_run_experiment_standalone(
+        self,
+        simple_compiled_experiment,
+        single_tunable_transmon,
+    ):
         """Test that the run_experiment task runs the compiled
         experiment in the session when called directly."""
-
         results = run_experiment(
-            session=simple_session,
-            compiled_experiment=self.compiled_experiment,
+            session=single_tunable_transmon.session(),
+            compiled_experiment=simple_compiled_experiment,
         )
         # Then the session should run the compiled experiment
         assert isinstance(results, RunExperimentResults)
         assert "ac0" in results
 
-    def test_run_experiment_standalone_with_raw(self, simple_session):
+    def test_run_experiment_standalone_with_raw(
+        self,
+        simple_compiled_experiment,
+        single_tunable_transmon,
+    ):
         """Test that the run_experiment task runs the compiled
         experiment in the session when called directly."""
-
         results = run_experiment(
-            session=simple_session,
-            compiled_experiment=self.compiled_experiment,
+            session=single_tunable_transmon.session(),
+            compiled_experiment=simple_compiled_experiment,
             return_raw_results=True,
         )
         # Then the session should run the compiled experiment
@@ -43,14 +67,17 @@ class TestRunExperiment:
         assert "ac0" in results[0]
         assert "ac0" in results[1].acquired_results
 
-    def test_run_experiment_as_task(self, simple_session):
+    def test_run_experiment_as_task(
+        self,
+        simple_compiled_experiment,
+        single_tunable_transmon,
+    ):
         """Test that the run_experiment task runs the compiled
         experiment in the session when called as a task."""
-
         with Workflow() as wf:
             run_experiment(
-                session=simple_session,
-                compiled_experiment=self.compiled_experiment,
+                session=single_tunable_transmon.session(),
+                compiled_experiment=simple_compiled_experiment,
             )
         assert len(wf.run().tasklog) == 1
         [results] = wf.run().tasklog["run_experiment"]
