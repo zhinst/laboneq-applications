@@ -8,8 +8,6 @@ import tests.helpers.dsl as tsl
 from laboneq_applications.qpu_types.tunable_transmon import (
     TunableTransmonQubit,
     TunableTransmonQubitParameters,
-    modify_qubits,
-    modify_qubits_context,
 )
 
 
@@ -152,6 +150,33 @@ class TestTunableTransmonQubit:
         # assert no parameters were updated
         assert q0.parameters == original_params
 
+    def test_replace(self, q0):
+        new_q0 = q0.replace(
+            {
+                "readout_range_out": 10,
+                "readout_parameters": {"length": 10e-6},
+                "drive_parameters_ge.amplitude_pi": 0.1,
+            },
+        )
+        assert id(new_q0) != id(q0)
+        assert new_q0.parameters.readout_range_out == 10
+        assert new_q0.parameters.readout_parameters["length"] == 10e-6
+        assert new_q0.parameters.drive_parameters_ge["amplitude_pi"] == 0.1
+
+    def test_replace_wrong_params(self, q0):
+        with pytest.raises(ValueError) as exc_info:
+            _ = q0.replace(
+                {
+                    "wrong_param": 0,
+                    "wrong_param_2": 1,
+                },
+            )
+        assert str(exc_info.value) == f"Cannot update {q0.uid}"
+        assert str(exc_info.value.__cause__) == (
+            "Update parameters do not match the qubit "
+            "parameters: ['wrong_param', 'wrong_param_2']"
+        )
+
     def test_invalid_params_reported_correctly(self, q0):
         non_existing_params = [
             "non_existing_param",
@@ -188,160 +213,6 @@ class TestTunableTransmonQubit:
             f"Update parameters do not match the qubit "
             f"parameters: {non_existing_params}"
         )
-
-
-class TestOverrideParameters:
-    def _equal_except(self, q0, q0_temp, key):
-        for k, v in q0.__dict__.items():
-            if k not in ("parameters"):
-                assert getattr(q0_temp, k) == v
-        for k, v in q0.parameters.__dict__.items():
-            if k == key:
-                continue
-            assert getattr(q0_temp.parameters, k) == v
-
-    def test_create_temp_single_qubit(self, q0):
-        original_q0 = copy.deepcopy(q0)
-        [q0_temp] = modify_qubits([(q0, {"readout_range_out": 10})])
-        assert q0_temp.parameters.readout_range_out == 10
-        assert original_q0 == q0
-        self._equal_except(q0, q0_temp, "readout_range_out")
-
-        q0.parameters.nested_params = {"a": {"a": 2}, "b": 1}
-        # replacing the nested dictionary
-        [q0_temp] = modify_qubits([(q0, {"nested_params": {"a": 2}})])
-        assert q0_temp.parameters.nested_params == {"a": 2}
-        assert original_q0 == q0
-        self._equal_except(q0, q0_temp, "nested_params")
-
-        # replacing partially the nested dictionary
-        [q0_temp] = modify_qubits([(q0, {"nested_params.a.a": 3})])
-        assert q0_temp.parameters.nested_params == {"a": {"a": 3}, "b": 1}
-        assert original_q0 == q0
-        self._equal_except(q0, q0_temp, "nested_params")
-
-        # replacing a real nested parameter of qubits
-        [q0_temp] = modify_qubits(
-            [(q0, {"drive_parameters_ge.pulse.beta": 0.1})],
-        )
-        assert q0_temp.parameters.drive_parameters_ge["pulse"]["beta"] == 0.1
-        assert original_q0 == q0
-        self._equal_except(q0, q0_temp, "drive_parameters_ge")
-
-    def test_nonexisting_params(self, q0):
-        # test that updating non-existing parameters raises an error
-        original_params = copy.deepcopy(q0)
-        with pytest.raises(ValueError) as err:
-            modify_qubits(
-                [
-                    (
-                        q0,
-                        {
-                            "non_existing_param": 10,
-                            "readout_parameters.non_existing_param": 10,
-                            "readout_range_out": 10,
-                        },
-                    ),
-                ],
-            )
-
-        assert str(err.value) == f"Cannot update {q0.uid}"
-        # assert no parameters were updated
-        assert q0 == original_params
-
-    def test_return_same_qubits(self, multi_qubits):
-        q0, q1 = multi_qubits
-        [q0_temp] = modify_qubits([(q0, {})])
-        assert q0_temp == q0
-
-        [q0_temp, q1_temp] = modify_qubits([(q0, {}), (q1, {})])
-        assert q0_temp == q0
-        assert q1_temp == q1
-
-    def test_override_multiple_qubits(self, multi_qubits):
-        q0, q1 = multi_qubits
-        original_q0 = copy.deepcopy(q0)
-        original_q1 = copy.deepcopy(q1)
-
-        [q0_temp, q1_temp] = modify_qubits(
-            zip(multi_qubits, [{"readout_range_out": 10}, {"readout_range_out": 20}]),
-        )
-        assert q0_temp.parameters.readout_range_out == 10
-        assert q1_temp.parameters.readout_range_out == 20
-        assert original_q0 == q0
-        assert original_q1 == q1
-        self._equal_except(q0, q0_temp, "readout_range_out")
-        self._equal_except(q1, q1_temp, "readout_range_out")
-
-        q0.parameters.nested_params = {"a": {"a": 2}, "b": 1}
-        q1.parameters.nested_params = {"a": {"a": 3}, "b": 2}
-        [q0_temp, q1_temp] = modify_qubits(
-            zip(multi_qubits, [{"nested_params": {"a": 2}}, {"nested_params.a.a": 3}]),
-        )
-        assert q0_temp.parameters.nested_params == {"a": 2}
-        assert q1_temp.parameters.nested_params == {"a": {"a": 3}, "b": 2}
-        assert original_q0 == q0
-        assert original_q1 == q1
-        self._equal_except(q0, q0_temp, "nested_params")
-        self._equal_except(q1, q1_temp, "nested_params")
-
-        [q0_temp, q1_temp] = modify_qubits(
-            [
-                (q0, {"drive_parameters_ge.pulse.beta": 0.1}),
-                (q1, {"drive_parameters_ef.pulse.sigma": 0.1}),
-            ],
-        )
-        assert q0_temp.parameters.drive_parameters_ge["pulse"]["beta"] == 0.1
-        assert q1_temp.parameters.drive_parameters_ef["pulse"]["sigma"] == 0.1
-        assert original_q0 == q0
-        assert original_q1 == q1
-        self._equal_except(q0, q0_temp, "drive_parameters_ge")
-        self._equal_except(q1, q1_temp, "drive_parameters_ef")
-
-    def test_nonexisting_params_multiqubits(self, multi_qubits):
-        q0, q1 = multi_qubits
-        # test that updating non-existing parameters raises an error
-        with pytest.raises(ValueError) as err:
-            _ = modify_qubits(
-                zip(
-                    multi_qubits,
-                    [
-                        {
-                            "non_existing_param": 10,
-                            "readout_parameters.non_existing_param": 1,
-                            "reset_delay_length": 1,
-                        },
-                        {"reset_delay_length": 10},
-                    ],
-                ),
-            )
-        assert str(err.value) == (f"Cannot update {q0.uid}")
-
-        with pytest.raises(ValueError) as err:
-            _ = modify_qubits(
-                zip(
-                    multi_qubits,
-                    [
-                        {"readout_range_out": 10},
-                        {"non_existing_param": 1},
-                    ],
-                ),
-            )
-
-        assert str(err.value) == (f"Cannot update {q1.uid}")
-
-    def test_temporary_qubits_context(self, multi_qubits):
-        q0, q1 = multi_qubits
-        with modify_qubits_context(
-            zip(multi_qubits, [{"readout_range_out": 10}, {"readout_range_out": 20}]),
-        ) as temp_qubits:
-            q0_temp, q1_temp = temp_qubits
-            assert q0_temp.parameters.readout_range_out == 10
-            assert q1_temp.parameters.readout_range_out == 20
-            assert q0 == q0_temp
-            assert q1 == q1_temp
-            self._equal_except(q0, q0_temp, "readout_range_out")
-            self._equal_except(q1, q1_temp, "readout_range_out")
 
 
 class TestTunableTransmonParameters:

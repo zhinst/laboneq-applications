@@ -32,7 +32,7 @@ def demo_qpu(n_qubits: int) -> DeviceWithQubits:
     - 1 SHFQC (for the qubit drive and measurement lines)
     - 1 HDAWG (for the qubit flux lines)
 
-    The maximum number of qubits is 8 (which is the number of drive lines on
+    The maximum number of qubits is 6 (which is the number of drive lines on
     the SHFQC).
 
     The qubits share a single multiplexed readout line.
@@ -58,7 +58,7 @@ def tunable_transmon_setup(n_qubits: int) -> DeviceSetup:
     - 1 SHFQC (for the qubit drive and measurement lines)
     - 1 HDAWG (for the qubit flux lines)
 
-    The maximum number of qubits is 8 (which is the number of drive lines on
+    The maximum number of qubits is 6 (which is the number of drive lines on
     the SHFQC).
 
     The qubits share a single multiplexed readout line.
@@ -74,7 +74,7 @@ def tunable_transmon_setup(n_qubits: int) -> DeviceSetup:
         raise ValueError(
             "This testing and demonstration setup requires at least one qubit.",
         )
-    SHFQC_DRIVE_LINES: int = 8  # noqa: N806
+    SHFQC_DRIVE_LINES: int = 6  # noqa: N806
     if n_qubits > SHFQC_DRIVE_LINES:
         raise ValueError(
             "This testing and demonstration setup requires 8 or fewer qubits.",
