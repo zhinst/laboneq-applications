@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import inspect
 import textwrap
+from typing import Optional, Union
 
 import pytest
 from IPython.lib.pretty import pretty
@@ -58,9 +59,7 @@ class TestTaskbook:
         book.add_entry(entry_a)
         book.add_entry(entry_b)
         tasks_repr = repr(book.tasks)
-        assert (
-            repr(book) == f"TaskBook(output=None, input={{}}, tasks={tasks_repr})"
-        )
+        assert repr(book) == f"TaskBook(output=None, input={{}}, tasks={tasks_repr})"
 
     def test_str(self):
         book = TaskBook()
@@ -585,33 +584,61 @@ class TestTaskBookOption:
         ):
             _ = taskbook_a(options=1)
 
-    def test_wrong_options_type(self):
+    def test_wrong_options_types(self):
         # attempt to use taskbook options but in a wrong way
         error_msg = (
             "It seems like you want to use the taskbook feature of automatically"
             "passing options to the tasks, but the type provided is wrong. "
-            "Please use either OptionFooBar | None, "
-            "Option[OptionFooBar] or "
+            "Please use either OptionFooBar | None = None, "
+            "Optional[OptionFooBar] = None or "
             "Union[OptionFooBar,None]"
             "to enable this feature. Use any other type if you don't want to use"
             "this feature but still want pass options manually to the taskbook "
             "and its tasks."
         )
-        with pytest.raises(ValueError, match=error_msg):
+
+        with pytest.raises(TypeError, match=error_msg):
 
             @taskbook
             def taskbook_a(options: OptionFooBar): ...
 
-        with pytest.raises(ValueError, match=error_msg):
+        with pytest.raises(TypeError, match=error_msg):
 
             @taskbook
             def taskbook_b(options: OptionFooBar | BaseOptions): ...
+
+        with pytest.raises(TypeError, match=error_msg):
+
+            @taskbook
+            def taskbook_c(options: OptionFooBar | None): ...
+
+        with pytest.raises(TypeError, match=error_msg):
+
+            @taskbook
+            def taskbook_d(options: Union[OptionFooBar, None]): ...  # noqa: UP007
+
+        with pytest.raises(TypeError, match=error_msg):
+
+            @taskbook
+            def taskbook_e(options: Optional[OptionFooBar]): ...  # noqa: UP007
 
     def test_run_with_option_class(self):
         @taskbook
         def taskbook_a(options: OptionFooBar | None = None):
             task_foo(1)
             task_bar(2)
+
+        @taskbook
+        def taskbook_b(options: Optional[OptionFooBar] = None):  # noqa: UP007
+            task_foo(1)
+            task_bar(2)
+
+        @taskbook
+        def taskbook_c(options: Union[OptionFooBar, None] = None):  # noqa: UP007
+            task_foo(1)
+            task_bar(2)
+
+        tbs = [taskbook_a, taskbook_b, taskbook_c]
 
         opt = OptionFooBar()
         assert isinstance(opt, OptionFooBar)
@@ -620,17 +647,31 @@ class TestTaskBookOption:
         assert opt.task_foo.foo == 1
         assert opt.task_bar.bar == 2
 
-        res = taskbook_a(options=opt)
-        assert res.tasks[0] == Task(
-            task=task_foo,
-            output=1,
-            input={"foo": 1, "options": opt.task_foo},
-        )
-        assert res.tasks[1] == Task(
-            task=task_bar,
-            output=2,
-            input={"bar": 2, "options": opt.task_bar},
-        )
+        for tb in tbs:
+            res = tb(options=opt)
+            assert res.tasks[0] == Task(
+                task=task_foo,
+                output=1,
+                input={"foo": 1, "options": opt.task_foo},
+            )
+            assert res.tasks[1] == Task(
+                task=task_bar,
+                output=2,
+                input={"bar": 2, "options": opt.task_bar},
+            )
+
+        for tb in tbs:
+            res = tb()
+            assert res.tasks[0] == Task(
+                task=task_foo,
+                output=1,
+                input={"foo": 1, "options": opt.task_foo},
+            )
+            assert res.tasks[1] == Task(
+                task=task_bar,
+                output=2,
+                input={"bar": 2, "options": opt.task_bar},
+            )
 
     def test_run_with_options(self):
         # Case 3.3

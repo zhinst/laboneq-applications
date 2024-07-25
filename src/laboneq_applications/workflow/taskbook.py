@@ -32,7 +32,10 @@ from laboneq_applications.workflow._context import (
     TaskExecutorContext,
 )
 from laboneq_applications.workflow.exceptions import WorkflowError
-from laboneq_applications.workflow.options import TaskBookOptions, get_parameter_type
+from laboneq_applications.workflow.options import (
+    TaskBookOptions,
+    get_and_validate_param_type,
+)
 from laboneq_applications.workflow.task import Task, attach_storage_callback, task_
 
 if TYPE_CHECKING:
@@ -261,7 +264,7 @@ class taskbook_(Generic[Parameters, ReturnType]):  # noqa: N801
     ) -> None:
         self._func = func
         self.__doc__ = self._func.__doc__
-        self._options = get_parameter_type(func)
+        self._options = get_and_validate_param_type(func)
 
     @property
     def func(self) -> Callable[Parameters, ReturnType]:

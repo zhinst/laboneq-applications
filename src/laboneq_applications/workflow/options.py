@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import inspect
 import sys
 import typing
 from typing import (
@@ -53,7 +54,7 @@ def _get_argument_types(
     """Get the type of the parameter for a function-like object.
 
     Return:
-        Set of the type of the parameter. Empty set if the parameter
+        A set containing the parameter's types. Empty set if the parameter
         does not exist or does not have a type hint.
     """
     _globals = getattr(fn, "__globals__", {})
@@ -64,14 +65,27 @@ def _get_argument_types(
     # only function-like objects, and will cause problems
     # when other parameters have no type hint or type hint imported
     # conditioned on type_checking.
-    hint = getattr(fn, "__annotations__", {}).get(arg_name, None)
-    if hint is None:
+
+    param = inspect.signature(fn).parameters.get(arg_name, None)
+    if param is None or param.annotation is inspect.Parameter.empty:
         return set()
 
     if _PY_V39:
-        return _get_argument_types_v39(hint, _globals, _locals)
+        return _get_argument_types_v39(param.annotation, _globals, _locals)
 
-    return _parse_types(hint, _globals, _locals, _PY_V39)
+    return _parse_types(param.annotation, _globals, _locals, _PY_V39)
+
+
+def _get_default_argument(
+    fn: Callable,
+    arg_name: str,
+) -> Any:  # noqa: ANN401
+    """Get the default value of the parameter for a function-like object."""
+    param = inspect.signature(fn).parameters.get(arg_name, None)
+    if param is None:
+        return inspect.Parameter.empty
+
+    return param.default
 
 
 def _get_argument_types_v39(hint: str | type, _globals, _locals) -> set[type]:  # noqa: ANN001
@@ -112,7 +126,7 @@ def _is_union_type(opt_type: type, is_py_39: bool) -> bool:  # noqa: FBT001
     return False
 
 
-def get_parameter_type(
+def get_and_validate_param_type(
     fn: Callable[[Any], Any],
     parameter: str = "options",
     type_check: type = TaskBookOptions,
@@ -134,18 +148,23 @@ def get_parameter_type(
     """
     expected_args_length = 2
     opt_type = _get_argument_types(fn, parameter)
+    opt_default = _get_default_argument(fn, parameter)
     compatible_types = [
         t for t in opt_type if isinstance(t, type) and issubclass(t, type_check)
     ]
 
     if compatible_types:
-        if len(opt_type) != expected_args_length or type(None) not in opt_type:
-            raise ValueError(
+        if (
+            len(opt_type) != expected_args_length
+            or type(None) not in opt_type
+            or opt_default is not None
+        ):
+            raise TypeError(
                 "It seems like you want to use the taskbook feature of automatically"
                 "passing options to the tasks, but the type provided is wrong. "
-                f"Please use either {compatible_types[0].__name__} | None, "
-                f"Option[{compatible_types[0].__name__}] or "
-                f"Union[{compatible_types[0].__name__},None]"
+                f"Please use either {compatible_types[0].__name__} | None = None, "
+                f"Optional[{compatible_types[0].__name__}] = None or "
+                f"Union[{compatible_types[0].__name__},None] = None"
                 "to enable this feature. Use any other type if you don't want to use"
                 "this feature but still want pass options manually to the taskbook "
                 "and its tasks.",
