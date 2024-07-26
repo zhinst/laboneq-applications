@@ -30,6 +30,33 @@ class TestReference:
         expr = obj == other
         assert expr.unwrap(one) is result
 
+    def test_getattr(self):
+        class SomeObject:
+            def __init__(self, x) -> None:
+                self.x = x
+
+        ref = Reference(None)
+        head = ref.x
+        assert head.unwrap(SomeObject(x=1)) == 1
+        child = head.x
+        assert child.unwrap(SomeObject(x=SomeObject(x=2))) == 2
+
+        ref1 = Reference(None)
+        head1 = ref1.y
+        with pytest.raises(
+            AttributeError,
+            match="'SomeObject' object has no attribute 'y'",
+        ):
+            head1.unwrap(SomeObject(x=1))
+
+        ref2 = Reference(None)
+        child2 = ref2.x.y
+        with pytest.raises(
+            AttributeError,
+            match="'SomeObject' object has no attribute 'y'",
+        ):
+            child2.unwrap(SomeObject(x=SomeObject(x=2)))
+
     def test_ref(self):
         ref = Reference(None)
         head = Reference(ref)

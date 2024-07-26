@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import operator
-from typing import Any
+from typing import Any, Callable
 
 
 class Reference:
@@ -38,6 +38,7 @@ class Reference:
     The following operations are supported:
 
         * __getitem__()
+        * __getattr__()
         * __eq__()
 
     Attributes:
@@ -57,7 +58,7 @@ class Reference:
         # Head of the reference
         self._head: Reference = self
         # Operations that was done on the reference
-        self._ops: list[tuple[str, Any]] = []
+        self._ops: list[tuple[Callable, Any]] = []
 
     @property
     def ref(self) -> object:
@@ -68,21 +69,33 @@ class Reference:
         """Unwrap the reference and any operations done on it."""
         res = value
         for op, *args in self._ops:
-            res = getattr(operator, op)(res, *args)
+            res = op(res, *args)
         return res
 
-    def _create_child(
+    def _create_child_reference(
         self,
         head: Reference,
-        ops: list[tuple[str, Any]],
+        ops: list[tuple[Callable, Any]],
     ) -> Reference:
-        obj = type(self)(self._ref)
+        obj = Reference(self._ref)
         obj._head = head
         obj._ops = ops
         return obj
 
     def __getitem__(self, item):  # noqa: ANN001
-        return self._create_child(self._head, [*self._ops, ("getitem", item)])
+        return self._create_child_reference(
+            self._head,
+            [*self._ops, (operator.getitem, item)],
+        )
 
     def __eq__(self, other: object):
-        return self._create_child(self._head, [*self._ops, ("eq", other)])
+        return self._create_child_reference(
+            self._head,
+            [*self._ops, (operator.eq, other)],
+        )
+
+    def __getattr__(self, other: object):
+        return self._create_child_reference(
+            self._head,
+            [*self._ops, (getattr, other)],
+        )
