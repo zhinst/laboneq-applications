@@ -254,6 +254,14 @@ class TestWorkFlowDecorator:
         with pytest.raises(TypeError, match="got an unexpected keyword argument 'z'"):
             my_wf4(x=1, z=5)
 
+        # Keyword argument with default overwritten
+        @workflow
+        def my_wf2(x: int, y: int = 1):
+            addition(x, y)
+
+        result = my_wf2(1, 5).run()
+        assert result.tasklog == {"addition": [6]}
+
     def test_builder_has_wrapped_function_docstring(self):
         @workflow
         def my_wf(x: int, y: int):

@@ -32,13 +32,10 @@ class WorkflowBlock(Block):
     def from_callable(cls, func: Callable) -> WorkflowBlock:
         """Create the block from a callable."""
         params = {}
-        for arg, param in signature(func).parameters.items():
-            if param.default is param.empty:
-                # TODO: Improve reference system to unique reference,
-                #       Otherwise blocks nesting workflows
-                params[arg] = Reference(arg)
-            else:
-                params[arg] = param.default
+        for arg in signature(func).parameters:
+            # TODO: Improve reference system to unique reference,
+            #       Otherwise blocks nesting workflows
+            params[arg] = Reference(arg)
         cls = cls(**params)
         with cls:
             func(**cls.parameters)
