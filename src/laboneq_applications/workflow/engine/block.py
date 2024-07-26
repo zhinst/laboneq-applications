@@ -3,48 +3,24 @@
 from __future__ import annotations
 
 import abc
-from collections import defaultdict
-from typing import TYPE_CHECKING, Any, cast
+from typing import TYPE_CHECKING, cast
 
+from laboneq_applications.workflow import _utils
 from laboneq_applications.workflow._context import (
     TaskExecutor,
     TaskExecutorContext,
 )
-from laboneq_applications.workflow.engine.promise import (
-    PromiseResultNotResolvedError,
-    ReferencePromise,
+from laboneq_applications.workflow.engine.reference import (
+    Reference,
 )
-from laboneq_applications.workflow.engine.resolver import ArgumentResolver
-from laboneq_applications.workflow.exceptions import WorkflowError
+from laboneq_applications.workflow.task import Task
 
 if TYPE_CHECKING:
+    from collections.abc import Iterable
+
     from laboneq_applications.workflow.engine.block import Block
-    from laboneq_applications.workflow.engine.promise import Promise
+    from laboneq_applications.workflow.engine.executor import ExecutorState
     from laboneq_applications.workflow.task import task_
-
-
-class BlockResult:
-    """A class representing block result.
-
-    A collection of results recorded within the block.
-    """
-
-    def __init__(self) -> None:
-        self._log: dict[str, list] = defaultdict(list)
-
-    @property
-    def log(self) -> dict[str, list]:
-        """Log of the block."""
-        return dict(self._log)
-
-    def merge(self, other: BlockResult) -> None:
-        """Merge block results."""
-        for key, value in other.log.items():
-            self._log[key].extend(value)
-
-    def add_result(self, key: str, result: Any) -> None:  # noqa: ANN401
-        """Add result to the log."""
-        self._log[key].append(result)
 
 
 class Block(abc.ABC):
@@ -58,15 +34,17 @@ class Block(abc.ABC):
             in `Block.body`.
 
     Arguments:
-        *args: Arguments of the block.
-        **kwargs: Keyword arguments of the block.
+        **parameters: Input parameters of the block.
     """
 
-    def __init__(self, *args, **kwargs) -> None:
-        self.args = args
-        self.kwargs = kwargs
+    def __init__(self, **parameters) -> None:
+        self._parameters = parameters
         self._body: list[Block] = []
-        self._resolver = ArgumentResolver(*self.args, **self.kwargs)
+
+    @property
+    def parameters(self) -> dict:
+        """Input parameters of the block."""
+        return self._parameters
 
     @property
     def name(self) -> str:
@@ -81,37 +59,26 @@ class Block(abc.ABC):
         """
         return self._body
 
+    def extend(self, blocks: Block | Iterable[Block]) -> None:
+        """Extend the body of the block."""
+        if isinstance(blocks, Block):
+            self._body.append(blocks)
+        else:
+            self._body.extend(blocks)
+
     def __enter__(self):
         TaskExecutorContext.enter(WorkflowBlockBuilder())
 
     def __exit__(self, exc_type, exc_value, traceback):  # noqa: ANN001
         register = cast(WorkflowBlockBuilder, TaskExecutorContext.exit())
-        self._body.extend(register.blocks)
+        self.extend(register.blocks)
         active_ctx = TaskExecutorContext.get_active()
         if isinstance(active_ctx, WorkflowBlockBuilder):
             active_ctx.register(self)
 
-    def _run_block(self, block: Block) -> BlockResult:
-        """Run a block belonging to this block.
-
-        Argument:
-            block: Child block of this block.
-        """
-        try:
-            return block.execute()
-        except PromiseResultNotResolvedError as error:
-            raise WorkflowError(error) from error
-
     @abc.abstractmethod
-    def execute(self) -> BlockResult:
-        """Execute the block.
-
-        Classes implementing this method should run any child block
-        via `_run_block()` method.
-
-        Returns:
-            Block result.
-        """
+    def execute(self, executor: ExecutorState) -> None:
+        """Execute the block."""
 
 
 class TaskBlock(Block):
@@ -121,17 +88,14 @@ class TaskBlock(Block):
 
     Arguments:
         task: A task this block contains.
-        *args: Arguments of the task.
-        **kwargs: Keyword arguments of the task.
+        **parameters: Input parameters of the task.
     """
 
-    def __init__(self, task: task_, *args: object, **kwargs: object):
-        super().__init__(*args, **kwargs)
-        self._promise = ReferencePromise(self)
+    def __init__(self, task: task_, **parameters):
+        super().__init__(**parameters)
         self.task = task
-
-    def __repr__(self):
-        return repr(self.task)
+        # TODO: Should this be by object ID? Still bound to the object
+        self._ref = Reference(self)
 
     @property
     def src(self) -> str:
@@ -143,18 +107,23 @@ class TaskBlock(Block):
         """Name of the task."""
         return self.task.name
 
-    def execute(self) -> BlockResult:
-        """Execute the task.
+    def execute(self, executor: ExecutorState) -> None:
+        """Execute the task."""
+        params = {}
+        if self.parameters:
+            params = executor.resolve_inputs(self)
+        task = Task(
+            task=self.task,
+            output=None,
+            input=_utils.create_argument_map(self.task.func, **params),
+        )
+        task._output = self.task.func(**params)
+        if executor.result_handler:
+            executor.result_handler.on_task_end(task)
+        executor.set_state(self, task.output)
 
-        Returns:
-            Task block result.
-        """
-        args, kwargs = self._resolver.resolve()
-        result = self.task._run(*args, **kwargs).output
-        self._promise.set_result(result)
-        r = BlockResult()
-        r.add_result(self.name, result)
-        return r
+    def __repr__(self):
+        return f"TaskBlock(task={self.task}, parameters={self.parameters})"
 
 
 class WorkflowBlockBuilder(TaskExecutor):
@@ -173,7 +142,7 @@ class WorkflowBlockBuilder(TaskExecutor):
         task: task_,
         *args: object,
         **kwargs: object,
-    ) -> Promise:
+    ) -> Reference:
         """Run a task.
 
         Arguments:
@@ -181,9 +150,12 @@ class WorkflowBlockBuilder(TaskExecutor):
             *args: `task` arguments.
             **kwargs: `task` keyword arguments.
         """
-        block = TaskBlock(task, *args, **kwargs)
+        block = TaskBlock(
+            task,
+            **_utils.create_argument_map(task.func, *args, **kwargs),
+        )
         self.register(block)
-        return block._promise
+        return block._ref
 
     def register(self, block: Block) -> None:
         """Register a block."""

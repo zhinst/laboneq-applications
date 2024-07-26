@@ -5,11 +5,13 @@ from __future__ import annotations
 from collections.abc import Iterable
 from typing import TYPE_CHECKING, Any, Generic, TypeVar
 
-from laboneq_applications.workflow.engine.block import Block, BlockResult
-from laboneq_applications.workflow.engine.promise import Promise
+from laboneq_applications.workflow.engine.block import Block
+from laboneq_applications.workflow.engine.reference import Reference
 
 if TYPE_CHECKING:
     from collections.abc import Iterable
+
+    from laboneq_applications.workflow.engine.executor import ExecutorState
 
 
 class IFExpression(Block):
@@ -23,19 +25,14 @@ class IFExpression(Block):
     """
 
     def __init__(self, condition: Any) -> None:  # noqa: ANN401
-        super().__init__(condition)
+        super().__init__(condition=condition)
 
-    def _should_execute(self) -> bool:
-        [arg], _ = self._resolver.resolve()
-        return bool(arg)
-
-    def execute(self) -> BlockResult:
+    def execute(self, executor: ExecutorState) -> None:
         """Execute the block."""
-        r = BlockResult()
-        if self._should_execute():
+        arg = executor.resolve_inputs(self)["condition"]
+        if bool(arg):
             for block in self.body:
-                r.merge(self._run_block(block))
-        return r
+                block.execute(executor)
 
 
 T = TypeVar("T")
@@ -52,8 +49,8 @@ class ForExpression(Block, Generic[T]):
     """
 
     def __init__(self, values: Iterable[T]) -> None:
-        super().__init__(values)
-        self._promise = Promise()
+        super().__init__(values=values)
+        self._ref = Reference(self)
 
     def __enter__(self) -> T:
         """Enter the loop context.
@@ -62,16 +59,12 @@ class ForExpression(Block, Generic[T]):
             Individual values of the given iterable.
         """
         super().__enter__()
-        return self._promise
+        return self._ref
 
-    def execute(self) -> BlockResult:
+    def execute(self, executor: ExecutorState) -> None:
         """Execute the block."""
-        r = BlockResult()
-        [vals], _ = self._resolver.resolve()
+        vals = executor.resolve_inputs(self)["values"]
         for val in vals:
-            if isinstance(val, Promise):
-                val = val.result()  # noqa: PLW2901
-            self._promise.set_result(val)
+            executor.set_state(self, val)
             for block in self.body:
-                r.merge(self._run_block(block))
-        return r
+                block.execute(executor)

@@ -5,7 +5,7 @@ from laboneq.dsl.experiment import Experiment, ExperimentSignal, pulse_library
 from laboneq.dsl.result.results import Results
 
 from laboneq_applications.tasks import RunExperimentResults, run_experiment
-from laboneq_applications.workflow.engine import Workflow
+from laboneq_applications.workflow.engine import workflow
 
 
 @pytest.fixture()
@@ -74,11 +74,15 @@ class TestRunExperiment:
     ):
         """Test that the run_experiment task runs the compiled
         experiment in the session when called as a task."""
-        with Workflow() as wf:
+
+        @workflow
+        def wff():
             run_experiment(
                 session=single_tunable_transmon.session(),
                 compiled_experiment=simple_compiled_experiment,
             )
+
+        wf = wff()
         assert len(wf.run().tasklog) == 1
         [results] = wf.run().tasklog["run_experiment"]
         assert "ac0" in results

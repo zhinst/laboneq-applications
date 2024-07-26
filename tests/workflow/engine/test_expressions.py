@@ -1,15 +1,16 @@
-from unittest.mock import Mock, call
+import re
 
 import pytest
 
 from laboneq_applications.workflow import task
+from laboneq_applications.workflow.engine.block import TaskBlock
+from laboneq_applications.workflow.engine.executor import ExecutorState
 from laboneq_applications.workflow.engine.expressions import (
     ForExpression,
     IFExpression,
 )
-from laboneq_applications.workflow.engine.promise import (
-    Promise,
-    PromiseResultNotResolvedError,
+from laboneq_applications.workflow.engine.reference import (
+    Reference,
 )
 
 
@@ -22,34 +23,34 @@ class TestIFExpression:
     @pytest.mark.parametrize(
         ("condition", "result"),
         [
-            (True, {"a_function": [123]}),
-            (False, {}),
-            (1, {"a_function": [123]}),
-            (0, {}),
+            (True, 1),
+            (False, 0),
         ],
     )
     def test_constant_input(self, condition, result):
         expr = IFExpression(condition)
         with expr:
             a_function()
-        log = expr.execute()
-        assert log.log == result
+        executor = ExecutorState()
+        executor.set_state("condition", condition)
+        expr.execute(executor)
+        assert len(executor.graph_variables) == result + 1
 
     @pytest.mark.parametrize(
         ("condition", "result"),
         [
-            (2, {"a_function": [123]}),
-            (3, {}),
+            (True, 1),
+            (False, 0),
         ],
     )
-    def test_promise_input(self, condition, result):
-        promise = Promise()
-        expr = IFExpression(promise == 2)
+    def test_reference_input(self, condition, result):
+        expr = IFExpression(Reference("condition"))
         with expr:
             a_function()
-        promise.set_result(condition)
-        log = expr.execute()
-        assert log.log == result
+        executor = ExecutorState()
+        executor.set_state("condition", condition)
+        expr.execute(executor)
+        assert len(executor.graph_variables) == result + 1
 
 
 @task
@@ -59,75 +60,56 @@ def addition(x, y):
 
 class TestForLoopExpression:
     def test_execute(self):
-        loop = ForExpression([0, 1])
-        with loop as x:
-            addition(x, 1)
-        r = loop.execute()
-        assert r.log == {"addition": [1, 2]}
+        expr = ForExpression([0, 1])
+        block = TaskBlock(addition, x=Reference(expr), y=1)
+        expr.extend(block)
 
-        loop = ForExpression([])
-        with loop as x:
-            addition(x, 1)
-        r = loop.execute()
-        assert r.log == {}
+        executor = ExecutorState()
+        expr.execute(executor)
+        assert len(executor.graph_variables) == 1 + 1
+        assert executor.graph_variables == {
+            expr: 1,
+            block: 2,
+        }
 
     def test_empty_iterable(self):
-        loop = ForExpression([])
-        with loop as x:
-            addition(x, 1)
-        r = loop.execute()
-        assert r.log == {}
+        expr = ForExpression([])
+        block = TaskBlock(addition, x=Reference(expr), y=1)
+        expr.extend(block)
+
+        executor = ExecutorState()
+        expr.execute(executor)
+        assert len(executor.graph_variables) == 0
 
     def test_not_iterable_raises_exception(self):
-        loop = ForExpression(2)
+        expr = ForExpression(2)
+        executor = ExecutorState()
         with pytest.raises(TypeError, match="'int' object is not iterable"):
-            loop.execute()
+            expr.execute(executor)
 
-    def test_input_promise(self):
-        promise = Promise()
-        loop = ForExpression(promise)
-        with loop as x:
-            addition(x, 1)
-        promise.set_result([1, 2])
-        r = loop.execute()
-        assert r.log == {"addition": [2, 3]}
+    def test_input_reference(self):
+        expr = ForExpression(Reference("abc"))
+        block = TaskBlock(addition, x=Reference(expr), y=1)
+        expr.extend(block)
 
-        promise = Promise()
-        loop = ForExpression([promise, 5])
-        with loop as x:
-            addition(x, 1)
-        promise.set_result(3)
-        r = loop.execute()
-        assert r.log == {"addition": [4, 6]}
+        executor = ExecutorState()
+        executor.set_state("abc", [1, 2])
+        expr.execute(executor)
+        assert executor.graph_variables == {
+            expr: 2,
+            block: 3,
+            "abc": [1, 2],
+        }
 
-    def test_input_promise_not_resolved(self):
-        # Fail immediately
-        promise = Promise()
-        loop = ForExpression(promise)
-        with pytest.raises(PromiseResultNotResolvedError):
-            loop.execute()
+    def test_input_reference_within_container_error(self):
+        expr = ForExpression([Reference("abc"), 5])
+        block = TaskBlock(addition, x=Reference(expr), y=1)
+        expr.extend(block)
+        executor = ExecutorState()
+        executor.set_state("abc", [1, 2])
 
-        mock_obj = Mock()
-
-        @task
-        def addition(x, y):
-            return mock_obj(x, y)
-
-        # Fail immediately
-        promise = Promise()
-        loop = ForExpression([promise, 5])
-        with loop as x:
-            addition(x, 1)
-        with pytest.raises(PromiseResultNotResolvedError):
-            loop.execute()
-        mock_obj.assert_not_called()
-        mock_obj.reset_mock()
-
-        # Fail when unresolved promise encountered
-        promise = Promise()
-        loop = ForExpression([5, 10, promise, 2])
-        with loop as x:
-            addition(x, 1)
-        with pytest.raises(PromiseResultNotResolvedError):
-            loop.execute()
-        mock_obj.assert_has_calls([call(5, 1), call(10, 1)])
+        with pytest.raises(
+            TypeError,
+            match=re.escape("unsupported operand type(s) for +: 'Reference' and 'int'"),
+        ):
+            expr.execute(executor)

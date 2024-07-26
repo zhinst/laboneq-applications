@@ -4,19 +4,22 @@ from __future__ import annotations
 
 import inspect
 import textwrap
-from inspect import signature
-from typing import Any, Callable
+from collections import defaultdict
+from functools import update_wrapper
+from typing import TYPE_CHECKING, Any, Callable, Generic, cast
 
-from typing_extensions import Self  # in `typing` from Python 3.11
+from typing_extensions import ParamSpec
 
-from laboneq_applications.workflow import exceptions
+from laboneq_applications.workflow import _utils, exceptions
 from laboneq_applications.workflow._context import TaskExecutorContext
 from laboneq_applications.workflow.engine.block import (
-    Block,
-    BlockResult,
     WorkflowBlockBuilder,
 )
-from laboneq_applications.workflow.engine.promise import Promise
+from laboneq_applications.workflow.engine.executor import ExecutorState
+from laboneq_applications.workflow.engine.graph import WorkflowGraph
+
+if TYPE_CHECKING:
+    from laboneq_applications.workflow.task import Task
 
 
 class WorkflowResult:
@@ -34,103 +37,68 @@ class WorkflowResult:
             A mapping for each task and its' results.
         """
         # NOTE: Currently values are a list of task return values,
-        #       However it will be a `TaskResult` object, which can have more
+        #       However it will be a `Task` object, which can have more
         #       information e.g runtime, errors, etc.
         return self._tasklog
 
 
-class WorkflowInput:
-    """Workflow input.
+class ResultCollector:
+    """Workflow result collector."""
 
-    Holds promises for workflow inputs during the construction of the workflow.
-    The promises are resolved when the workflow is ran and the input values are
-    provided.
+    def __init__(self) -> None:
+        self._tasks = defaultdict(list)
+
+    def on_task_end(self, task: Task) -> None:
+        """Register task end."""
+        self._tasks[task.name].append(task.output)
+
+
+Parameters = ParamSpec("Parameters")
+
+
+class Workflow(Generic[Parameters]):
+    """Workflow for task execution.
+
+    Arguments:
+        graph: A workflow graph.
+        **parameters: Parameters of the graph.
     """
 
-    def __init__(self):
-        self._input: dict[str, Promise] = {}
+    # TODO: Should Workflow be serializable?
+    def __init__(
+        self,
+        graph: WorkflowGraph,
+        **parameters: object,
+    ) -> None:
+        self._graph = graph
+        self._input = parameters
 
-    def __getitem__(self, key: str) -> Promise:
-        if key not in self._input:
-            self._input[key] = Promise()
-        return self._input[key]
-
-    def resolve(self, **kwargs: object) -> None:
-        """Resolve input parameters.
+    @classmethod
+    def from_callable(cls, func: Callable, *args: object, **kwargs: object) -> Workflow:
+        """Create a workflow from a callable.
 
         Arguments:
-            **kwargs: The values for the workflow inputs.
-
-        Raises:
-            TypeError: Invalid or missing parameters.
+            func: A callable defining the workflow
+            *args: Arguments of the callable
+            **kwargs: Keyword arguments of the callable
         """
-        undefined = set(kwargs.keys()) - set(self._input.keys())
-        if undefined:
-            raise TypeError(
-                f"Workflow got undefined input parameter(s): {', '.join(undefined)}",
-            )
-        required_keys = set(self._input.keys()) - set(kwargs.keys())
-        if required_keys:
-            raise TypeError(
-                f"Workflow missing input parameter(s): {', '.join(required_keys)}",
-            )
-        for k, v in kwargs.items():
-            self._input[k].set_result(v)
-
-
-class WorkflowBlock(Block):
-    """Workflow block."""
-
-    def __init__(self, *args, **kwargs) -> None:
-        super().__init__(*args, **kwargs)
-
-    def execute(self) -> BlockResult:
-        """Execute the block."""
-        r = BlockResult()
-        for block in self._body:
-            r.merge(self._run_block(block))
-        return r
-
-
-class Workflow:
-    """Workflow for task execution."""
-
-    # TODO: Should Workflow be serializable?
-    def __init__(self) -> None:
-        self._input = WorkflowInput()
-        self._block = WorkflowBlock()
+        return cls(
+            WorkflowGraph.from_callable(func),
+            **_utils.create_argument_map(func, *args, **kwargs),
+        )
 
     @property
-    def input(self) -> WorkflowInput:
-        """Workflow input."""
+    def input(self) -> dict:
+        """Input parameters of the workflow."""
         return self._input
 
-    def __enter__(self) -> Self:
-        """Enter the Workflow building context."""
-        if isinstance(
-            TaskExecutorContext.get_active(),
-            WorkflowBlockBuilder,
-        ):
-            msg = "Nesting Workflows is not allowed."
-            raise exceptions.WorkflowError(msg)
-        self._block.__enter__()
-        return self
-
-    def __exit__(self, exc_type, exc_value, traceback):  # noqa: ANN001
-        """Exit the workflow building context."""
-        self._block.__exit__(exc_type, exc_value, traceback)
-
-    def run(self, **kwargs: object) -> WorkflowResult:
+    def run(self) -> WorkflowResult:
         """Run the workflow.
-
-        Arguments:
-            **kwargs: Keyword arguments of the workflow.
 
         Returns:
             Result of the workflow execution.
 
         Raises:
-            TypeError: Workflow arguments do not match defined inputs.
             WorkflowError: An error occurred during workflow execution.
         """
         if isinstance(
@@ -139,33 +107,25 @@ class Workflow:
         ):
             msg = "Nesting Workflows is not allowed."
             raise exceptions.WorkflowError(msg)
-        # Resolve Workflow input immediately, they do not have dependencies
-        self.input.resolve(**kwargs)
-        # TODO: We might not want to save each task result, memory overload?
-        #       Kept for POC purposes
-        tasklog = self._block.execute()
-        return WorkflowResult(tasklog=tasklog.log)
+        state = ExecutorState()
+        # TODO: Result collector should be injected from the outside. E.g a logbook
+        results = ResultCollector()
+        state.set_result_callback(results)
+        self._graph.execute(state, **self._input)
+        return WorkflowResult(tasklog=dict(results._tasks))
 
 
-class WorkflowBuilder:
+class WorkflowBuilder(Generic[Parameters]):
     """A workflow builder.
 
     Builds a workflow out of the given Python function.
 
     Arguments:
         func: A python function, which acts as the core of the workflow.
-            The docstring of the class is replaced with the `func` docstring
-            if it has one.
     """
 
-    def __init__(self, func: Callable) -> None:
+    def __init__(self, func: Callable[Parameters]) -> None:
         self._func = func
-        if func.__doc__:
-            msg = (
-                "This function is a `WorkflowBuilder` and has additional "
-                "functionality described in the `WorkflowBuilder` documentation."
-            )
-            self.__doc__ = "\n\n".join([func.__doc__, msg])
 
     @property
     def src(self) -> str:
@@ -173,23 +133,18 @@ class WorkflowBuilder:
         src = inspect.getsource(self._func)
         return textwrap.dedent(src)
 
-    def create(self) -> Workflow:
-        """Create a workflow."""
-        with Workflow() as wf:
-            self._func(**{x: wf.input[x] for x in signature(self._func).parameters})
-        return wf
-
-    def __call__(self, **kw: object) -> WorkflowResult:
-        """Create and execute a workflow."""
-        wf = self.create()
-        return wf.run(**kw)
+    def __call__(  #  noqa: D102
+        self,
+        *args: Parameters.args,
+        **kwargs: Parameters.kwargs,
+    ) -> Workflow[Parameters]:
+        return Workflow.from_callable(self._func, *args, **kwargs)
 
 
-def workflow(func: Callable) -> WorkflowBuilder:
+def workflow(func: Callable[Parameters]) -> WorkflowBuilder[Parameters]:
     """A decorator to mark a function as workflow.
 
-    The arguments of the function will be the input values for the wrapped function and
-    must be supplied as keyword arguments.
+    The arguments of the function will be the input values for the wrapped function.
 
     Returns:
         A Workflow builder, which can be used to generate a workflow out of the
@@ -203,14 +158,14 @@ def workflow(func: Callable) -> WorkflowBuilder:
         def my_workflow(x: int):
             ...
 
-        wf = my_workflow.create()
-        results = wf.run(x=123)
-        ```
-
-        Executing the workflow without an instance:
-
-        ```python
-        results = my_workflow(x=123)
+        wf = my_workflow(x=123)
+        results = wf.run()
         ```
     """
-    return WorkflowBuilder(func)
+    return cast(
+        WorkflowBuilder[Parameters],
+        update_wrapper(
+            WorkflowBuilder(func),
+            func,
+        ),
+    )

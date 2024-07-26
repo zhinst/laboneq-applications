@@ -4,7 +4,7 @@ import pytest
 from laboneq.dsl.experiment import Experiment, ExperimentSignal, pulse_library
 
 from laboneq_applications.tasks import compile_experiment
-from laboneq_applications.workflow.engine import Workflow
+from laboneq_applications.workflow.engine import workflow
 
 
 @pytest.fixture()
@@ -42,12 +42,15 @@ def test_compile_experiment_standalone(simple_experiment, single_tunable_transmo
 def test_compile_experiment_as_task(simple_experiment, single_tunable_transmon):
     """Test that the compile_experiment task compiles the experiment in the session when
     called as a task."""
-    with Workflow() as wf:
+
+    @workflow
+    def wf():
         compile_experiment(
             session=single_tunable_transmon.session(),
             experiment=simple_experiment,
         )
-    run = wf.run()
+
+    run = wf().run()
     assert len(run.tasklog) == 1
     assert "compile_experiment" in run.tasklog
     assert run.tasklog["compile_experiment"][0].scheduled_experiment is not None
