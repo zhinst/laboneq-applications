@@ -77,13 +77,13 @@ from laboneq_applications.qpu_types.tunable_transmon import demo_qpu
 
 ```{code-cell} ipython3
 # Create a demonstration tunable transmon QPU:
-single_tunable_transmon_qpu = demo_qpu(n_qubits=1)
+qpu = demo_qpu(n_qubits=1)
 
 # setup is an ordinary LabOne Q DeviceSetup:
-setup = single_tunable_transmon_qpu.setup
+setup = qpu.setup
 
 # qubits is a list of one signle LabOne Q Application Library TunableTransmonQubit qubit:
-qubits = single_tunable_transmon_qpu.qubits
+qubits = qpu.qubits
 ```
 
 ```{code-cell} ipython3
@@ -464,8 +464,7 @@ Let's create, compile and run the rabi experiment with some simple input paramet
 qop = TunableTransmonOperations()
 amplitudes = np.linspace(0.0, 1.0, 10)
 options = TuneupExperimentOptions(count=10)
-
-exp = create_experiment(qop, qubits[0], amplitudes, options)
+exp = create_experiment(qpu, qubits[0], amplitudes, options)
 compiled_exp = compile_experiment(session, exp)
 result = run_experiment(session, compiled_exp)
 ```
@@ -637,7 +636,7 @@ options.create_experiment.count = 10
 options.create_experiment.averaging_mode = "cyclic"
 rabi_tb = amplitude_rabi.run(
     session,
-    qop,
+    qpu,
     qubits[0],
     amplitudes,
     options=options,
@@ -730,7 +729,7 @@ options.create_experiment.count = 10
 options.run_until = "compile_experiment"
 rabi_tb = amplitude_rabi.run(
     session,
-    qop,
+    qpu,
     qubits[0],
     amplitudes,
     options=options,
@@ -757,7 +756,7 @@ options.create_experiment.count = 10
 try:
     rabi_tb = amplitude_rabi.run(
         session,
-        qop,
+        qpu,
         qubits[0],
         amplitudes,
         options=options,

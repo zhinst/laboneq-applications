@@ -6,7 +6,7 @@ __all__ = [
     "two_tunable_transmon",  # fixture
 ]
 
-from tests.helpers.device_setups import (
+from tests.helpers.demo_qpus import (
     single_tunable_transmon,
     two_tunable_transmon,
 )

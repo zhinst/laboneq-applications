@@ -76,7 +76,7 @@ class TestAmplitudeRabi:
         ]
 
     def test_define_experiment(self, single_tunable_transmon):
-        [q0] = single_tunable_transmon.qubits
+        [q0] = single_tunable_transmon.copy_qubits()
         q0_setup = single_tunable_transmon.setup
 
         session = Session(q0_setup)

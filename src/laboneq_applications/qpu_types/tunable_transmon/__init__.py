@@ -7,6 +7,6 @@ __all__ = [
     "TunableTransmonQubitParameters",
 ]
 
-from .device_setups import demo_qpu
+from .demo_qpus import demo_qpu
 from .operations import TunableTransmonOperations
 from .qubit_types import TunableTransmonQubit, TunableTransmonQubitParameters

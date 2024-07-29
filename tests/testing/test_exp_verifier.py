@@ -21,7 +21,6 @@ import pytest
 from laboneq.dsl.session import Session
 
 from laboneq_applications.experiments import amplitude_rabi
-from laboneq_applications.qpu_types.tunable_transmon import TunableTransmonOperations
 from laboneq_applications.testing.experiment_verifier import (
     CompiledExperimentVerifier,
     _Pulse,
@@ -33,15 +32,14 @@ from laboneq_applications.testing.experiment_verifier import (
 def rabi_compiled(single_tunable_transmon):
     session = Session(single_tunable_transmon.setup)
     session.connect(do_emulation=True)
-    qop = TunableTransmonOperations()
     [q0] = single_tunable_transmon.qubits
     amplitudes = [0.1, 0.2, 0.3]
     options = amplitude_rabi.options()
     options.create_experiment.count = 2
     res = amplitude_rabi.run(
         session=session,
-        qop=qop,
         qubits=q0,
+        qpu=single_tunable_transmon,
         amplitudes=amplitudes,
         options=options,
     )

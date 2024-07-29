@@ -11,7 +11,7 @@ from laboneq_applications.workflow.engine import workflow
 @pytest.fixture()
 def simple_compiled_experiment(single_tunable_transmon):
     device_setup = single_tunable_transmon.setup
-    session = single_tunable_transmon.session()
+    session = single_tunable_transmon.session(do_emulation=True)
 
     exp = Experiment(
         signals=[
@@ -42,7 +42,7 @@ class TestRunExperiment:
         """Test that the run_experiment task runs the compiled
         experiment in the session when called directly."""
         results = run_experiment(
-            session=single_tunable_transmon.session(),
+            session=single_tunable_transmon.session(do_emulation=True),
             compiled_experiment=simple_compiled_experiment,
         )
         # Then the session should run the compiled experiment
@@ -57,7 +57,7 @@ class TestRunExperiment:
         """Test that the run_experiment task runs the compiled
         experiment in the session when called directly."""
         results = run_experiment(
-            session=single_tunable_transmon.session(),
+            session=single_tunable_transmon.session(do_emulation=True),
             compiled_experiment=simple_compiled_experiment,
             return_raw_results=True,
         )
@@ -78,7 +78,7 @@ class TestRunExperiment:
         @workflow
         def wff():
             run_experiment(
-                session=single_tunable_transmon.session(),
+                session=single_tunable_transmon.session(do_emulation=True),
                 compiled_experiment=simple_compiled_experiment,
             )
 

@@ -22,7 +22,7 @@ from laboneq_applications.core.build_experiment import qubit_experiment
 from laboneq_applications.core.options import (
     TuneupExperimentOptions,
 )
-from laboneq_applications.core.quantum_operations import QuantumOperations, dsl
+from laboneq_applications.core.quantum_operations import dsl
 from laboneq_applications.core.validation import validate_and_convert_qubits_sweeps
 from laboneq_applications.tasks import compile_experiment, run_experiment
 from laboneq_applications.workflow import TuneUpTaskBookOptions, task, taskbook
@@ -30,6 +30,7 @@ from laboneq_applications.workflow import TuneUpTaskBookOptions, task, taskbook
 if TYPE_CHECKING:
     from laboneq.dsl.session import Session
 
+    from laboneq_applications.qpu_types import QPU
     from laboneq_applications.typing import Qubits, QubitSweepPoints
     from laboneq_applications.workflow.taskbook import TaskBook
 
@@ -40,7 +41,7 @@ options = TuneUpTaskBookOptions
 @taskbook
 def run(
     session: Session,
-    qop: QuantumOperations,
+    qpu: QPU,
     qubits: Qubits,
     amplitudes: QubitSweepPoints,
     options: TuneUpTaskBookOptions | None = None,
@@ -56,8 +57,8 @@ def run(
     Arguments:
         session:
             The connected session to use for running the experiment.
-        qop:
-            The quantum operations to use when building the experiment.
+        qpu:
+            The qpu consisting of the original qubits and quantum operations.
         qubits:
             The qubits to run the experiments on. May be either a single
             qubit or a list of qubits.
@@ -80,17 +81,23 @@ def run(
         options = TuneUpTaskBookOptions()
         options.create_experiment.count = 10
         options.create_experiment.transition = "ge"
+        qpu = QPU(
+            setup=DeviceSetup("my_device"),
+            qubits=[TunableTransmonQubit("q0"), TunableTransmonQubit("q1")],
+            qop=TunableTransmonOperations(),
+        )
+        temp_qubits = qpu.copy_qubits()
         result = run(
             session=session,
-            qop=qop,
-            qubits=q0,
-            amplitudes=[0.1, 0.2, 0.3],
+            qpu=qpu,
+            qubits=temp_qubits,
+            amplitudes=[[0.1, 0.5, 1], [0.1, 0.5, 1]],
             options=options,
         )
         ```
     """
     exp = create_experiment(
-        qop,
+        qpu,
         qubits,
         amplitudes=amplitudes,
     )
@@ -101,7 +108,7 @@ def run(
 @task
 @qubit_experiment
 def create_experiment(
-    qop: QuantumOperations,
+    qpu: QPU,
     qubits: Qubits,
     amplitudes: QubitSweepPoints,
     options: TuneupExperimentOptions | None = None,
@@ -109,8 +116,8 @@ def create_experiment(
     """Creates an Amplitude Rabi Experiment.
 
     Arguments:
-        qop:
-            The quantum operations to use when building the experiment.
+        qpu:
+            The qpu consisting of the original qubits and quantum operations.
         qubits:
             The qubits to run the experiments on. May be either a single
             qubit or a list of qubits.
@@ -146,12 +153,19 @@ def create_experiment(
             "transition": "ge",
             "averaging_mode": "cyclic",
             "acquisition_type": "integration_trigger",
-            "cal_traces": True
+            "cal_traces": True,
         }
         options = TuneupExperimentOptions(**options)
-        create_experiment(
-            qop=TunableTransmonOperations(),
+        setup = DeviceSetup()
+        qpu = QPU(
+            setup=DeviceSetup("my_device"),
             qubits=[TunableTransmonQubit("q0"), TunableTransmonQubit("q1")],
+            qop=TunableTransmonOperations(),
+        )
+        temp_qubits = qpu.copy_qubits()
+        create_experiment(
+            qpu=qpu,
+            qubits=temp_qubits,
             amplitudes=[[0.1, 0.5, 1], [0.1, 0.5, 1]],
             options=options,
         )
@@ -173,15 +187,18 @@ def create_experiment(
                 name=f"amps_{q.uid}",
                 parameter=SweepParameter(f"amplitude_{q.uid}", q_amplitudes),
             ) as amplitude:
-                qop.prepare_state(q, opts.transition[0])
-                qop.x180(q, amplitude=amplitude, transition=opts.transition)
-                qop.measure(q, handles.result_handle(q.uid))
-                qop.passive_reset(q)
+                qpu.qop.prepare_state(q, opts.transition[0])
+                qpu.qop.x180(q, amplitude=amplitude, transition=opts.transition)
+                qpu.qop.measure(q, handles.result_handle(q.uid))
+                qpu.qop.passive_reset(q)
             if opts.use_cal_traces:
                 with dsl.section(
                     name=f"cal_{q.uid}",
                 ):
                     for state in opts.cal_states:
-                        qop.prepare_state(q, state)
-                        qop.measure(q, handles.calibration_trace_handle(q.uid, state))
-                        qop.passive_reset(q)
+                        qpu.qop.prepare_state(q, state)
+                        qpu.qop.measure(
+                            q,
+                            handles.calibration_trace_handle(q.uid, state),
+                        )
+                        qpu.qop.passive_reset(q)

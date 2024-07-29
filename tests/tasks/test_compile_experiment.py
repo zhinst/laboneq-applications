@@ -33,7 +33,7 @@ def test_compile_experiment_standalone(simple_experiment, single_tunable_transmo
     """Test that the compile_experiment task compiles the experiment in the session when
     called directly."""
     compiled_exp = compile_experiment(
-        session=single_tunable_transmon.session(),
+        session=single_tunable_transmon.session(do_emulation=True),
         experiment=simple_experiment,
     )
     assert compiled_exp.scheduled_experiment is not None
@@ -46,7 +46,7 @@ def test_compile_experiment_as_task(simple_experiment, single_tunable_transmon):
     @workflow
     def wf():
         compile_experiment(
-            session=single_tunable_transmon.session(),
+            session=single_tunable_transmon.session(do_emulation=True),
             experiment=simple_experiment,
         )
 

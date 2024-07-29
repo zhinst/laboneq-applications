@@ -5,10 +5,8 @@ contributions.
 """
 
 import pytest
-from laboneq.simple import Session
 
 from laboneq_applications.experiments import amplitude_rabi
-from laboneq_applications.qpu_types.tunable_transmon import TunableTransmonOperations
 from laboneq_applications.testing import CompiledExperimentVerifier
 
 
@@ -20,18 +18,16 @@ def create_rabi_verifier(
     use_cal_traces,
 ):
     """Create a CompiledExperimentVerifier for the amplitude rabi experiment."""
-    session = Session(single_tunable_transmon.setup)
-    session.connect(do_emulation=True)
-    qop = TunableTransmonOperations()
     [q0] = single_tunable_transmon.qubits
+    session = single_tunable_transmon.session(do_emulation=True)
     options = amplitude_rabi.options()
     options.create_experiment.count = count
     options.create_experiment.transition = transition
     options.create_experiment.use_cal_traces = use_cal_traces
     res = amplitude_rabi.run(
         session=session,
-        qop=qop,
         qubits=q0,
+        qpu=single_tunable_transmon,
         amplitudes=amplitudes,
         options=options,
     )

@@ -4,26 +4,17 @@ from laboneq.dsl.calibration import Oscillator, SignalCalibration
 from laboneq.dsl.device import DeviceSetup, create_connection
 from laboneq.dsl.device.instruments import HDAWG, PQSC, SHFQC
 from laboneq.dsl.enums import ModulationType
-from laboneq.dsl.session import Session
 
-from .qubit_types import TunableTransmonQubit, TunableTransmonQubitParameters
+from laboneq_applications.qpu_types import QPU
 
-
-class DeviceWithQubits:
-    """A DeviceSetup and its qubits."""
-
-    def __init__(self, device_setup: DeviceSetup, qubits: list[TunableTransmonQubit]):
-        self.setup = device_setup
-        self.qubits = qubits
-
-    def session(self) -> Session:
-        """Return an emulated session for the setup."""
-        session = Session(self.setup)
-        session.connect(do_emulation=True)
-        return session
+from .operations import TunableTransmonOperations
+from .qubit_types import (
+    TunableTransmonQubit,
+    TunableTransmonQubitParameters,
+)
 
 
-def demo_qpu(n_qubits: int) -> DeviceWithQubits:
+def demo_qpu(n_qubits: int) -> QPU:
     """Return a demo tunable transmon QPU with the specified number of qubits.
 
     The returned setup consists of:
@@ -46,7 +37,7 @@ def demo_qpu(n_qubits: int) -> DeviceWithQubits:
     """
     setup = tunable_transmon_setup(n_qubits)
     qubits = tunable_transmon_qubits(n_qubits, setup)
-    return DeviceWithQubits(setup, qubits)
+    return QPU(setup, qubits, TunableTransmonOperations())
 
 
 def tunable_transmon_setup(n_qubits: int) -> DeviceSetup:
