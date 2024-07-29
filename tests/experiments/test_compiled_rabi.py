@@ -1,7 +1,20 @@
-"""Tests for the compiled amplitude_rabi experiment using testing utilities
-provided by the LabOne Q applications.
-These tests could be used as references for others to write tests for their
-contributions.
+"""Tests for the compiled amplitude_rabi experiment using the testing utilities
+provided by the LabOne Q Applications Library.
+
+Furthermore, the tests in this module serve as reference examples for future
+contributions to the library. To add tests for a newly added experiment, please
+follow these steps:
+
+  - Verify that your experiment is correct by validating it on actual hardware
+  - Read the reference documentation of the testing utilities for more information
+  - Write a `create_<YOUR_EXPERIMENT_NAME>_verifier` function following the steps
+    in `create_rabi_verifier`
+  - Write a `Test<YOUR_EXPERIMENT_NAME><USE_CASE>` class following
+    `TestAmplitudeRabiSingleQubit`
+  - Add `pytest.mark.parametrize` decorators to this class to define individual
+    test runs. Tests will be defined for all combination of parameters provided.
+    Focus your tests on the most relevant parameter ranges, to keep the runtime
+    of tests manageable.
 """
 
 import pytest
@@ -34,6 +47,8 @@ def create_rabi_verifier(
     return CompiledExperimentVerifier(res.tasks["compile_experiment"].output)
 
 
+# use pytest.mark.parametrize to generate test cases for
+# all combinations of the parameters.
 @pytest.mark.parametrize(
     "amplitudes",
     [
@@ -62,6 +77,13 @@ class TestAmplitudeRabiSingleQubit:
         transition,
         use_cal_traces,
     ):
+        """Test the number of drive pulses.
+
+        `single_tunable_transmon` is a pytest fixture and automatically
+        imported into the test function.
+
+        """
+        # create a verifier for the experiment
         verifier = create_rabi_verifier(
             single_tunable_transmon,
             amplitudes,
@@ -71,6 +93,9 @@ class TestAmplitudeRabiSingleQubit:
         )
 
         # with cal_state on, there is 1 additional drive pulse
+        # The signal names can be looked up in device_setup
+        # but typically they are in the form of
+        # /logical_signal_groups/q{i}/drive(measure/acquire/drive_ef)
         expected_drive_count = count * (len(amplitudes) + int(use_cal_traces))
         verifier.assert_number_of_pulses(
             "/logical_signal_groups/q0/drive",
@@ -92,6 +117,7 @@ class TestAmplitudeRabiSingleQubit:
         transition,
         use_cal_traces,
     ):
+        """Test the number of measure and acquire pulses."""
         verifier = create_rabi_verifier(
             single_tunable_transmon,
             amplitudes,
@@ -120,6 +146,13 @@ class TestAmplitudeRabiSingleQubit:
         transition,
         use_cal_traces,
     ):
+        """Test the properties of drive pulses."""
+        # Here, we can assert the start, end, and the parameterization of the pulses.
+        # The parameterization is the list of parameters that are used to parameterize.
+        # If the pulse is not parameterized, the list should be empty.
+        # The name of the parameter should match with the uid of SweepParameter
+        # in the experiment.
+
         verifier = create_rabi_verifier(
             single_tunable_transmon,
             amplitudes,
@@ -152,6 +185,11 @@ class TestAmplitudeRabiSingleQubit:
         transition,
         use_cal_traces,
     ):
+        """Test the properties of measure pulses.
+
+        Here, we can assert the start, end, and the parameterization of the pulses.
+
+        """
         verifier = create_rabi_verifier(
             single_tunable_transmon,
             amplitudes,
