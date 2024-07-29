@@ -5,7 +5,6 @@ import textwrap
 from typing import Optional, Union
 
 import pytest
-from IPython.lib.pretty import pretty
 
 from laboneq_applications.core.options import BaseOptions
 from laboneq_applications.workflow.exceptions import WorkflowError
@@ -13,9 +12,9 @@ from laboneq_applications.workflow.task import Task, task
 from laboneq_applications.workflow.taskbook import (
     TaskBook,
     TaskBookOptions,
-    TasksView,
     taskbook,
 )
+from laboneq_applications.workflow.taskview import TaskView
 
 
 @task
@@ -33,7 +32,7 @@ class TestTaskbook:
     def test_init(self):
         book = TaskBook()
         assert book.output is None
-        assert book.tasks == TasksView()
+        assert book.tasks == TaskView()
 
     def test_add_entry(self):
         book = TaskBook()
@@ -41,7 +40,7 @@ class TestTaskbook:
         entry_b = Task(task=task_a, output=5)
         book.add_entry(entry_a)
         book.add_entry(entry_b)
-        assert book.tasks == [entry_a, entry_b]
+        assert book.tasks == TaskView([entry_a, entry_b])
 
     def test_task_cannot_be_attached_to_multiple_taskbooks(self):
         book = TaskBook()
@@ -80,95 +79,6 @@ class TestTaskbook:
         assert str(book) == textwrap.dedent("""\
             Taskbook
             Tasks: Task(task_a), Task(task_a)""")
-
-
-class TestTasksView:
-    @pytest.fixture()
-    def view(self):
-        return TasksView(
-            [
-                Task(task=task_a, output=1),
-                Task(task=task_b, output=2),
-                Task(task=task_b, output=3),
-            ],
-        )
-
-    def test_no_copy(self):
-        t = Task(task=task_a, output=1)
-        tasks = [t]
-        view = TasksView(tasks)
-        assert view[0] is tasks[0]
-        assert view["task_a"] is tasks[0]
-
-    def test_unique(self, view):
-        assert view.unique() == {"task_a", "task_b"}
-
-    def test_repr(self, view):
-        t = Task(task=task_a, output=1)
-        view = TasksView([t])
-        assert (
-            repr(view)
-            == f"[Task(name=task_a, output=1, input={{}}, func={task_a.func})]"
-        )
-
-    def test_str(self):
-        t = Task(task=task_a, output=1)
-        view = TasksView([t])
-        assert str(view) == "Task(task_a)"
-
-    def test_ipython_pretty(self):
-        t = Task(task=task_a, output=1)
-        view = TasksView([t])
-        assert pretty(view) == "Task(task_a)"
-
-    def test_len(self, view):
-        assert len(view) == 3
-
-    def test_getitem(self, view):
-        # Test index
-        assert view[1] == Task(task=task_b, output=2)
-        # Test slice
-        assert view[0:2] == [
-            Task(task=task_a, output=1),
-            Task(task=task_b, output=2),
-        ]
-        # Test string
-        assert view["task_b"] == Task(task=task_b, output=2)
-        # Test slice
-        assert view["task_b", 0] == Task(task=task_b, output=2)
-        assert view["task_b", 1] == Task(task=task_b, output=3)
-        assert view["task_b", 0:4] == [
-            Task(task=task_b, output=2),
-            Task(task=task_b, output=3),
-        ]
-        assert view["task_b", :] == [
-            Task(task=task_b, output=2),
-            Task(task=task_b, output=3),
-        ]
-
-        with pytest.raises(IndexError):
-            view[123]
-        with pytest.raises(KeyError):
-            view["i do not exist"]
-        with pytest.raises(KeyError):
-            view["i do not exist", 0]
-        with pytest.raises(IndexError):
-            view["task_b", 12345]
-
-    def test_eq(self):
-        assert TasksView(
-            [
-                Task(task=task_b, output=2),
-                Task(task=task_b, output=3),
-            ],
-        ) == [
-            Task(task=task_b, output=2),
-            Task(task=task_b, output=3),
-        ]
-        assert TasksView() == []
-        assert TasksView() != [1, 2]
-        assert TasksView() == TasksView()
-        assert TasksView([1]) != TasksView([5])
 
 
 class TestTaskBookDecorator:
@@ -249,10 +159,12 @@ class TestTaskBookDecorator:
             task_a()
 
         result = book()
-        assert result.tasks == [
-            Task(task=task_a, output=1),
-            Task(task=task_a, output=1),
-        ]
+        assert result.tasks == TaskView(
+            [
+                Task(task=task_a, output=1),
+                Task(task=task_a, output=1),
+            ],
+        )
 
     def test_nested_task_recorded(self):
         @taskbook
@@ -260,7 +172,7 @@ class TestTaskBookDecorator:
             task_b()
 
         result = book()
-        assert result.tasks == TasksView(
+        assert result.tasks == TaskView(
             [
                 Task(task=task_a, output=1),
                 Task(task=task_b, output=2),
@@ -329,20 +241,24 @@ class TestTaskBookDecorator:
             task_a(x)
 
         result = book(1)
-        assert result.tasks == [
-            Task(task=task_a, output=2, input={"x": 1, "y": 1}),
-        ]
+        assert result.tasks == TaskView(
+            [
+                Task(task=task_a, output=2, input={"x": 1, "y": 1}),
+            ],
+        )
 
         # Test update taskbook
         rerun_res = result.tasks[0].rerun(2)
         assert rerun_res == 3
         rerun_res = result.tasks[0].rerun(y=3)
         assert rerun_res == 4
-        assert result.tasks == [
-            Task(task=task_a, output=2, input={"x": 1, "y": 1}),
-            Task(task=task_a, output=3, input={"x": 2, "y": 1}),
-            Task(task=task_a, output=4, input={"x": 1, "y": 3}),
-        ]
+        assert result.tasks == TaskView(
+            [
+                Task(task=task_a, output=2, input={"x": 1, "y": 1}),
+                Task(task=task_a, output=3, input={"x": 2, "y": 1}),
+                Task(task=task_a, output=4, input={"x": 1, "y": 3}),
+            ],
+        )
         assert result.tasks["task_a", :] == [
             Task(task=task_a, output=2, input={"x": 1, "y": 1}),
             Task(task=task_a, output=3, input={"x": 2, "y": 1}),
@@ -414,10 +330,12 @@ class TestTaskBookRunUntil:
             task_bb(b)
 
         result = bookk(1, b=2, options=self.make_run_until_option("task_b"))
-        assert result.tasks == [
-            Task(task=task_aa, output=1, input={"x": 1}),
-            Task(task=task_bb, output=2, input={"x": 2}),
-        ]
+        assert result.tasks == TaskView(
+            [
+                Task(task=task_aa, output=1, input={"x": 1}),
+                Task(task=task_bb, output=2, input={"x": 2}),
+            ],
+        )
 
     @pytest.fixture()
     def book(self):
@@ -431,26 +349,32 @@ class TestTaskBookRunUntil:
 
     def test_stop_during_execution(self, book):
         result = book(options=self.make_run_until_option("task_b"))
-        assert result.tasks == [
-            Task(task=self.task_a, output=1),
-            Task(task=self.task_b, output=2),
-        ]
+        assert result.tasks == TaskView(
+            [
+                Task(task=self.task_a, output=1),
+                Task(task=self.task_b, output=2),
+            ],
+        )
 
     def test_stop_end_of_execution(self, book):
         result = book(options=self.make_run_until_option("task_c"))
-        assert result.tasks == [
-            Task(task=self.task_a, output=1),
-            Task(task=self.task_b, output=2),
-            Task(task=self.task_c, output=3),
-        ]
+        assert result.tasks == TaskView(
+            [
+                Task(task=self.task_a, output=1),
+                Task(task=self.task_b, output=2),
+                Task(task=self.task_c, output=3),
+            ],
+        )
 
     def test_until_task_does_not_exists(self, book):
         result = book(options=self.make_run_until_option("task_not_existing"))
-        assert result.tasks == [
-            Task(task=self.task_a, output=1),
-            Task(task=self.task_b, output=2),
-            Task(task=self.task_c, output=3),
-        ]
+        assert result.tasks == TaskView(
+            [
+                Task(task=self.task_a, output=1),
+                Task(task=self.task_b, output=2),
+                Task(task=self.task_c, output=3),
+            ],
+        )
 
     def test_duplicate_task_name(self):
         @taskbook
@@ -462,10 +386,12 @@ class TestTaskBookRunUntil:
 
         # Exit after first task encounter
         result = testbook(options=self.make_run_until_option("task_b"))
-        assert result.tasks == [
-            Task(task=self.task_a, output=1),
-            Task(task=self.task_b, output=2),
-        ]
+        assert result.tasks == TaskView(
+            [
+                Task(task=self.task_a, output=1),
+                Task(task=self.task_b, output=2),
+            ],
+        )
 
     def test_result_not_stored(self, book):
         # Ensure result not stored due to internal exception
@@ -489,9 +415,11 @@ class TestTaskBookRunUntil:
 
         with pytest.raises(Exception):  # noqa: B017
             book(options=self.make_run_until_option("task_b"))
-        assert book.recover().tasks == [
-            Task(task=task_a, output=123),
-        ]
+        assert book.recover().tasks == TaskView(
+            [
+                Task(task=task_a, output=123),
+            ],
+        )
 
     def test_task_raises_system_exception(self):
         @task
@@ -810,18 +738,20 @@ class TestTaskBookOption:
 
         res = taskbook_a()
         # default values of options are used.
-        assert res.tasks == [
-            Task(
-                task=task_foo,
-                output=(1, FooOpt().foo),
-                input={"foo": 1, "options": FooOpt()},
-            ),
-            Task(
-                task=task_bar,
-                output=(2, BarOpt().bar),
-                input={"bar": 2, "options": BarOpt()},
-            ),
-        ]
+        assert res.tasks == TaskView(
+            [
+                Task(
+                    task=task_foo,
+                    output=(1, FooOpt().foo),
+                    input={"foo": 1, "options": FooOpt()},
+                ),
+                Task(
+                    task=task_bar,
+                    output=(2, BarOpt().bar),
+                    input={"bar": 2, "options": BarOpt()},
+                ),
+            ],
+        )
 
     def test_without_declaring_options(self):
         # Case 1
@@ -831,10 +761,12 @@ class TestTaskBookOption:
             task_bar(2)
 
         res = taskbook_a()
-        assert res.tasks == [
-            Task(task=task_foo, output=1, input={"foo": 1, "options": None}),
-            Task(task=task_bar, output=2, input={"bar": 2, "options": None}),
-        ]
+        assert res.tasks == TaskView(
+            [
+                Task(task=task_foo, output=1, input={"foo": 1, "options": None}),
+                Task(task=task_bar, output=2, input={"bar": 2, "options": None}),
+            ],
+        )
 
         @task
         def task_fed(options=0):
@@ -845,9 +777,11 @@ class TestTaskBookOption:
             task_fed()
 
         res = taskbook_b()
-        assert res.tasks == [
-            Task(task=task_fed, output=0, input={"options": 0}),
-        ]
+        assert res.tasks == TaskView(
+            [
+                Task(task=task_fed, output=0, input={"options": 0}),
+            ],
+        )
 
     def test_taskbook_manual_handling_options(self):
         @taskbook
@@ -857,10 +791,12 @@ class TestTaskBookOption:
 
         options = [FooOpt(), BarOpt()]
         res = taskbook_a(options)
-        assert res.tasks == [
-            Task(task=task_foo, output=1, input={"foo": 1, "options": options[0]}),
-            Task(task=task_bar, output=2, input={"bar": 2, "options": options[1]}),
-        ]
+        assert res.tasks == TaskView(
+            [
+                Task(task=task_foo, output=1, input={"foo": 1, "options": options[0]}),
+                Task(task=task_bar, output=2, input={"bar": 2, "options": options[1]}),
+            ],
+        )
 
         @taskbook
         def taskbook_a(options: list | None = None):
@@ -869,10 +805,12 @@ class TestTaskBookOption:
 
         options = [FooOpt(), BarOpt()]
         res = taskbook_a(options)
-        assert res.tasks == [
-            Task(task=task_foo, output=1, input={"foo": 1, "options": options[0]}),
-            Task(task=task_bar, output=2, input={"bar": 2, "options": options[1]}),
-        ]
+        assert res.tasks == TaskView(
+            [
+                Task(task=task_foo, output=1, input={"foo": 1, "options": options[0]}),
+                Task(task=task_bar, output=2, input={"bar": 2, "options": options[1]}),
+            ],
+        )
 
     @pytest.mark.xfail(reason="Behaviour not finalized yet")
     def test_mid_update(self):

@@ -12,7 +12,6 @@ from __future__ import annotations
 import inspect
 import textwrap
 import threading
-from collections.abc import Sequence
 from functools import update_wrapper
 from typing import (
     TYPE_CHECKING,
@@ -21,7 +20,6 @@ from typing import (
     Generic,
     TypeVar,
     cast,
-    overload,
 )
 
 from typing_extensions import ParamSpec
@@ -36,7 +34,12 @@ from laboneq_applications.workflow.options import (
     TaskBookOptions,
     get_and_validate_param_type,
 )
-from laboneq_applications.workflow.task import Task, attach_storage_callback, task_
+from laboneq_applications.workflow.task import (
+    Task,
+    attach_storage_callback,
+    task_,
+)
+from laboneq_applications.workflow.taskview import TaskView
 
 if TYPE_CHECKING:
     from typing import Callable
@@ -44,86 +47,6 @@ if TYPE_CHECKING:
 
 class _TaskBookStopExecution(BaseException):
     """Raised while a task book is running to end the execution."""
-
-
-class TasksView(Sequence):
-    """A view of tasks.
-
-    This class provides a view into tasks.
-
-    Arguments:
-        tasks: List of tasks.
-
-    The class is a `Sequence` of tasks, however item lookup
-    is modified to support the following cases:
-
-        - Lookup by index and slicing
-        - Lookup by name (string)
-        - Lookup by name and slicing
-    """
-
-    def __init__(self, tasks: list[Task] | None = None) -> None:
-        self._tasks = tasks or []
-
-    def unique(self) -> set[str]:
-        """Return unique names of the tasks."""
-        return {t.name for t in self._tasks}
-
-    def __repr__(self) -> str:
-        return repr(self._tasks)
-
-    def __str__(self) -> str:
-        return ", ".join([str(t) for t in self._tasks])
-
-    def _repr_pretty_(self, p, cycle):  # noqa: ANN001, ANN202, ARG002
-        # For Notebooks
-        p.text(str(self))
-
-    @overload
-    def __getitem__(self, item: tuple[str, int | slice] | slice) -> list[Task]: ...
-
-    @overload
-    def __getitem__(self, item: str | int) -> Task: ...
-
-    def __getitem__(
-        self,
-        item: str | int | tuple[str, int | slice] | slice,
-    ) -> Task | list[Task]:
-        """Get a single or multiple tasks.
-
-        Arguments:
-            item: Index, name of the task, slice or a tuple.
-
-                If index or name is given, the return value will be a single `Task`,
-                the first one found in the sequence.
-
-                tuple: A tuple of format (<name>, <index/slice>) will return
-                    list of tasks.
-
-        Returns:
-            Task or list of tasks, depending on the input filter.
-
-        Raises:
-            KeyError: Task by name was not found.
-            IndexError: Task by index was not found.
-        """
-        if isinstance(item, str):
-            try:
-                return next(t for t in self._tasks if t.name == item)
-            except StopIteration:
-                raise KeyError(item) from None
-        if isinstance(item, tuple):
-            items = [t for t in self._tasks if t.name == item[0]]
-            if not items:
-                raise KeyError(item[0])
-            return items[item[1]]
-        return self._tasks[item]
-
-    def __len__(self) -> int:
-        return len(self._tasks)
-
-    def __eq__(self, other: object) -> bool:
-        return self._tasks == other
 
 
 ReturnType = TypeVar("ReturnType")
@@ -144,7 +67,7 @@ class TaskBook(Generic[ReturnType]):
         self._output: ReturnType | None = None
 
     @property
-    def tasks(self) -> TasksView:
+    def tasks(self) -> TaskView:
         """Task entries of the taskbook.
 
         The ordering of the tasks is the order of the execution.
@@ -164,7 +87,7 @@ class TaskBook(Generic[ReturnType]):
             taskbook.tasks.unique() # Unique task names
             ```
         """
-        return TasksView(self._tasks)
+        return TaskView(self._tasks)
 
     @property
     def input(self) -> dict:
