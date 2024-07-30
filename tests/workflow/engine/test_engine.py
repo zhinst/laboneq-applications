@@ -2,11 +2,12 @@ from __future__ import annotations
 
 import re
 import textwrap
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional, Union
 from unittest.mock import Mock
 
 import pytest
 
+from laboneq_applications.core.options import BaseExperimentOptions
 from laboneq_applications.workflow import exceptions, task
 from laboneq_applications.workflow.engine import (
     Workflow,
@@ -14,6 +15,7 @@ from laboneq_applications.workflow.engine import (
     if_,
     workflow,
 )
+from laboneq_applications.workflow.engine.options import WorkflowOptions
 
 if TYPE_CHECKING:
     from laboneq_applications.workflow.engine.core import WorkflowBuilder
@@ -422,3 +424,114 @@ class TestForLoopExpression:
 
         res = my_wf(x=[[1, 2], [3, 4]]).run()
         assert res.tasklog == {"addition": [2, 3, 4, 5]}
+
+
+class WfOptions(WorkflowOptions):
+    task_with_opts: BaseExperimentOptions = BaseExperimentOptions()
+
+
+class TestWorkflowValidOptions:
+    @pytest.fixture()
+    def task_with_opts(self):
+        @task
+        def task_with_opts(options: BaseExperimentOptions | None = None):
+            return options
+
+        return task_with_opts
+
+    def test_task_indirect_assignment(self, task_with_opts):
+        @workflow
+        def my_wf(options: WfOptions | None = None):
+            task_with_opts()
+
+        opts = WfOptions()
+        wf = my_wf(opts)
+        result = wf.run()
+        assert result.tasklog["task_with_opts"] == [opts.task_with_opts]
+
+    def test_task_direct_assignment(self, task_with_opts):
+        @workflow
+        def my_wf(options: WfOptions | None = None):
+            task_with_opts(options=options.task_with_opts)
+
+        opts = WfOptions()
+        wf = my_wf(opts)
+        result = wf.run()
+        assert result.tasklog["task_with_opts"] == [opts.task_with_opts]
+
+    def test_workflow_options_not_provided_use_default(self, task_with_opts):
+        @workflow
+        def my_wf(options: WfOptions | None = None):
+            task_with_opts(options=options)
+
+        wf = my_wf()
+        result = wf.run()
+        assert result.tasklog["task_with_opts"] == [WfOptions().task_with_opts]
+
+    def test_workflow_valid_options_invalid_input_type(self, task_with_opts):
+        @workflow
+        def my_wf(options: WfOptions | None = None):
+            task_with_opts(options=options)
+
+        with pytest.raises(
+            TypeError,
+            match="Workflow input options must be of type '<class 'test_engine.WfOptions'>' or 'None'",  # noqa: E501
+        ):
+            my_wf(options=123)
+
+
+class ValidOptions(WorkflowOptions): ...
+
+
+class TestWorkflowInvalidOptions:
+    def test_invalid_options_type(self):
+        with pytest.raises(
+            TypeError,
+            match="Workflow input options must be of type 'WorkflowOptions'",
+        ):
+
+            @workflow
+            def my_wf_int(options: int | None = None): ...
+
+        with pytest.raises(
+            TypeError,
+            match="Workflow input options must be of type 'WorkflowOptions'",
+        ):
+
+            @workflow
+            def my_wf_no_typing(options): ...
+
+        error_msg = (
+            "It seems like you want to use the workflow feature of automatically"
+            "passing options to the tasks, but the type provided is wrong. "
+            "Please use either ValidOptions | None = None, "
+            "Optional[ValidOptions] = None or "
+            "Union[ValidOptions,None]"
+            "to enable this feature. Use any other type if you don't want to use"
+            "this feature but still want pass options manually to the workflow "
+            "and its tasks."
+        )
+        with pytest.raises(TypeError, match=error_msg):
+
+            @workflow
+            def workflow_a(options: ValidOptions): ...
+
+        with pytest.raises(TypeError, match=error_msg):
+
+            @workflow
+            def workflow_b(options: ValidOptions | int): ...
+
+        with pytest.raises(TypeError, match=error_msg):
+
+            @workflow
+            def workflow_c(options: ValidOptions | None): ...
+
+        with pytest.raises(TypeError, match=error_msg):
+
+            @workflow
+            def workflow_d(options: Union[ValidOptions, None]): ...  # noqa: UP007
+
+        with pytest.raises(TypeError, match=error_msg):
+
+            @workflow
+            def workflow_e(options: Optional[ValidOptions]): ...  # noqa: UP007

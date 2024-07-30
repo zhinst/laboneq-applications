@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Protocol
 
+from laboneq_applications.workflow.engine.options import WorkflowOptions
 from laboneq_applications.workflow.engine.reference import Reference
 from laboneq_applications.workflow.exceptions import WorkflowError
 
@@ -25,6 +26,7 @@ class ExecutorState:
     def __init__(self) -> None:
         self._graph_variables = {}
         self._result_handler: ResultHander | None = None
+        self.options: WorkflowOptions = WorkflowOptions()
 
     @property
     def graph_variables(self) -> dict:

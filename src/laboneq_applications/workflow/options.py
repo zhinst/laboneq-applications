@@ -126,11 +126,14 @@ def _is_union_type(opt_type: type, is_py_39: bool) -> bool:  # noqa: FBT001
     return False
 
 
+T = typing.TypeVar("T")
+
+
 def get_and_validate_param_type(
-    fn: Callable[[Any], Any],
+    fn: Callable,
     parameter: str = "options",
-    type_check: type = TaskBookOptions,
-) -> type[TaskBookOptions] | None:
+    type_check: type[T] = TaskBookOptions,
+) -> type[T] | None:
     """Get the type of the parameter for a function-like object.
 
     The function-like object must have an `parameter` with a type hint,
@@ -160,13 +163,13 @@ def get_and_validate_param_type(
             or opt_default is not None
         ):
             raise TypeError(
-                "It seems like you want to use the taskbook feature of automatically"
+                "It seems like you want to use the workflow feature of automatically"
                 "passing options to the tasks, but the type provided is wrong. "
                 f"Please use either {compatible_types[0].__name__} | None = None, "
                 f"Optional[{compatible_types[0].__name__}] = None or "
                 f"Union[{compatible_types[0].__name__},None] = None"
                 "to enable this feature. Use any other type if you don't want to use"
-                "this feature but still want pass options manually to the taskbook "
+                "this feature but still want pass options manually to the workflow "
                 "and its tasks.",
             )
         return compatible_types[0]

@@ -17,6 +17,8 @@ from laboneq_applications.workflow.engine.block import (
 )
 from laboneq_applications.workflow.engine.executor import ExecutorState
 from laboneq_applications.workflow.engine.graph import WorkflowGraph
+from laboneq_applications.workflow.engine.options import WorkflowOptions
+from laboneq_applications.workflow.options import get_and_validate_param_type
 
 if TYPE_CHECKING:
     from laboneq_applications.workflow.task import Task
@@ -71,6 +73,7 @@ class Workflow(Generic[Parameters]):
         **parameters: object,
     ) -> None:
         self._graph = graph
+        self._graph.validate_input(**parameters)
         self._input = parameters
 
     @classmethod
@@ -126,6 +129,15 @@ class WorkflowBuilder(Generic[Parameters]):
 
     def __init__(self, func: Callable[Parameters]) -> None:
         self._func = func
+        if "options" in inspect.signature(func).parameters:
+            opt_type = get_and_validate_param_type(
+                func,
+                parameter="options",
+                type_check=WorkflowOptions,
+            )
+            if opt_type is None:
+                msg = "Workflow input options must be of type 'WorkflowOptions'"
+                raise TypeError(msg)
 
     @property
     def src(self) -> str:
@@ -145,6 +157,13 @@ def workflow(func: Callable[Parameters]) -> WorkflowBuilder[Parameters]:
     """A decorator to mark a function as workflow.
 
     The arguments of the function will be the input values for the wrapped function.
+
+    Arguments:
+        func: A function that acts as the core of the workflow.
+
+            The arguments of `func` can be freely defined, except for an optional
+            argument `options`, which must have a type hint that indicates it is of type
+            `WorkflowOptions` or its' subclass, otherwise an error is raised.
 
     Returns:
         A Workflow builder, which can be used to generate a workflow out of the

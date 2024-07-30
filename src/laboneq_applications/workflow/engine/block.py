@@ -112,6 +112,14 @@ class TaskBlock(Block):
         params = {}
         if self.parameters:
             params = executor.resolve_inputs(self)
+            if (
+                self.task.has_opts
+                and executor.options
+                and params.get("options") is None
+            ):
+                task_opts = getattr(executor.options, self.name, None)
+                if task_opts:
+                    params["options"] = task_opts
         task = Task(
             task=self.task,
             output=None,

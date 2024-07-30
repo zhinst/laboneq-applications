@@ -587,13 +587,13 @@ class TestTaskBookOption:
     def test_wrong_options_types(self):
         # attempt to use taskbook options but in a wrong way
         error_msg = (
-            "It seems like you want to use the taskbook feature of automatically"
+            "It seems like you want to use the workflow feature of automatically"
             "passing options to the tasks, but the type provided is wrong. "
             "Please use either OptionFooBar | None = None, "
             "Optional[OptionFooBar] = None or "
             "Union[OptionFooBar,None]"
             "to enable this feature. Use any other type if you don't want to use"
-            "this feature but still want pass options manually to the taskbook "
+            "this feature but still want pass options manually to the workflow "
             "and its tasks."
         )
 
