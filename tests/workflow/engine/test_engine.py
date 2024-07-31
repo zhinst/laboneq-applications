@@ -318,6 +318,53 @@ class TestWorkFlowDecorator:
                 addition(res, 1)
         """)
 
+    def test_output_task_reference(self):
+        @workflow
+        def my_wf(x: int, y: int):
+            return addition(x, y)
+
+        wf = my_wf(1, 1)
+        assert wf.run().output == 2
+
+    def test_output_input_reference(self):
+        @workflow
+        def my_wf(y: int):
+            return y
+
+        wf = my_wf(1)
+        assert wf.run().output == 1
+
+    def test_output_not_reference(self):
+        @workflow
+        def my_wf():
+            return 5
+
+        wf = my_wf()
+        assert wf.run().output == 5
+
+    def test_output_no_return(self):
+        @workflow
+        def my_wf(): ...
+
+        wf = my_wf()
+        assert wf.run().output is None
+
+    def test_output_if_clause(self):
+        @workflow
+        def my_wf(y):
+            x = 1
+            with if_(y == 2):
+                x = 2
+            return x  # noqa: RET504
+
+        wf = my_wf(2)
+        assert wf.run().output == 2
+
+        # Due to the dry run, constants within the workflow
+        # gets overwritten immediately.
+        wf = my_wf(1)
+        assert wf.run().output == 2
+
 
 @task
 def return_zero():

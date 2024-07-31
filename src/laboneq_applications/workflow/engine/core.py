@@ -5,7 +5,7 @@ from __future__ import annotations
 import inspect
 import textwrap
 from functools import update_wrapper
-from typing import TYPE_CHECKING, Callable, Generic, cast
+from typing import TYPE_CHECKING, Any, Callable, Generic, cast
 
 from typing_extensions import ParamSpec
 
@@ -29,6 +29,12 @@ class WorkflowResult:
 
     def __init__(self):
         self._tasks: list[Task] = []
+        self._output = None
+
+    @property
+    def output(self) -> Any:  # noqa: ANN401
+        """Output of the workflow."""
+        return self._output
 
     @property
     def tasks(self) -> TaskView:
@@ -129,7 +135,7 @@ class Workflow(Generic[Parameters]):
         results = WorkflowResult()
         collector = _ResultCollector(results)
         state.set_result_callback(collector)
-        self._graph.execute(state, **self._input)
+        results._output = self._graph.execute(state, **self._input)
         return results
 
 

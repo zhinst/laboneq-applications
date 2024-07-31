@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from inspect import signature
-from typing import TYPE_CHECKING, Callable
+from typing import TYPE_CHECKING, Any, Callable
 
 from laboneq_applications.workflow import exceptions
 from laboneq_applications.workflow._context import TaskExecutorContext
@@ -25,13 +25,14 @@ class WorkflowBlock(Block):
     def __init__(self, **parameters: object) -> None:
         super().__init__(**parameters)
         self._options: type[WorkflowOptions] = WorkflowOptions
+        self._output: Reference | object = None
 
     @property
     def options(self) -> type[WorkflowOptions]:
         """Type of block options."""
         return self._options
 
-    def execute(self, executor: ExecutorState) -> None:
+    def execute(self, executor: ExecutorState) -> Any:  # noqa: ANN401
         """Execute the block."""
         input_opts = executor.resolve_inputs(self).get("options")
         if input_opts is None:
@@ -39,6 +40,9 @@ class WorkflowBlock(Block):
         executor.options = input_opts
         for block in self._body:
             block.execute(executor)
+        if isinstance(self._output, Reference):
+            return executor.get_state(self._output.ref)
+        return self._output
 
     @classmethod
     def from_callable(cls, func: Callable) -> WorkflowBlock:
@@ -53,7 +57,7 @@ class WorkflowBlock(Block):
             params[arg] = Reference(arg)
         obj = cls(**params)
         with obj:
-            func(**obj.parameters)
+            obj._output = func(**obj.parameters)
         if arg_opt:
             obj._options = arg_opt
         return obj
@@ -97,7 +101,7 @@ class WorkflowGraph:
                 )
                 raise TypeError(msg)
 
-    def execute(self, executor: ExecutorState, **kwargs: object) -> None:
+    def execute(self, executor: ExecutorState, **kwargs: object) -> Any:  # noqa: ANN401
         """Execute the graph.
 
         Arguments:
@@ -106,4 +110,4 @@ class WorkflowGraph:
         """
         for k, v in kwargs.items():
             executor.set_state(k, v)
-        self._root.execute(executor)
+        return self._root.execute(executor)
