@@ -80,4 +80,4 @@ class TestTaskBlock:
         state.set_state("x", 1)
         state.set_state("y", 5)
         block.execute(state)
-        assert state.graph_variables[block] == 6
+        assert state.get_state(block) == 6

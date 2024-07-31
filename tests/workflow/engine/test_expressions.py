@@ -34,7 +34,7 @@ class TestIFExpression:
         executor = ExecutorState()
         executor.set_state("condition", condition)
         expr.execute(executor)
-        assert len(executor.graph_variables) == result + 1
+        assert len(executor.states) == result + 1
 
     @pytest.mark.parametrize(
         ("condition", "result"),
@@ -50,7 +50,7 @@ class TestIFExpression:
         executor = ExecutorState()
         executor.set_state("condition", condition)
         expr.execute(executor)
-        assert len(executor.graph_variables) == result + 1
+        assert len(executor.states) == result + 1
 
 
 @task
@@ -66,8 +66,8 @@ class TestForLoopExpression:
 
         executor = ExecutorState()
         expr.execute(executor)
-        assert len(executor.graph_variables) == 1 + 1
-        assert executor.graph_variables == {
+        assert len(executor.states) == 1 + 1
+        assert executor.states == {
             expr: 1,
             block: 2,
         }
@@ -79,7 +79,7 @@ class TestForLoopExpression:
 
         executor = ExecutorState()
         expr.execute(executor)
-        assert len(executor.graph_variables) == 0
+        assert len(executor.states) == 0
 
     def test_not_iterable_raises_exception(self):
         expr = ForExpression(2)
@@ -95,7 +95,7 @@ class TestForLoopExpression:
         executor = ExecutorState()
         executor.set_state("abc", [1, 2])
         expr.execute(executor)
-        assert executor.graph_variables == {
+        assert executor.states == {
             expr: 2,
             block: 3,
             "abc": [1, 2],

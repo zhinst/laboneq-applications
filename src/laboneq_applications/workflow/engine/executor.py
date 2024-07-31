@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Protocol
+from typing import TYPE_CHECKING, Any, Protocol
 
 from laboneq_applications.workflow.engine.options import WorkflowOptions
 from laboneq_applications.workflow.engine.reference import Reference
@@ -24,14 +24,14 @@ class ExecutorState:
     """A class that holds the graph execution state."""
 
     def __init__(self) -> None:
-        self._graph_variables = {}
+        self._graph_variable_states = {}
         self._result_handler: ResultHander | None = None
         self.options: WorkflowOptions = WorkflowOptions()
 
     @property
-    def graph_variables(self) -> dict:
-        """Variables of the graph."""
-        return self._graph_variables
+    def states(self) -> dict:
+        """States of the graph."""
+        return self._graph_variable_states
 
     @property
     def result_handler(self) -> ResultHander | None:
@@ -52,7 +52,7 @@ class ExecutorState:
         for k, v in block.parameters.items():
             if isinstance(v, Reference):
                 try:
-                    ref = self._graph_variables[v.ref]
+                    ref = self._graph_variable_states[v.ref]
                 except KeyError as error:
                     # Reference was never executed.
                     # TODO: Validate at graph definition time for branching statements.
@@ -66,4 +66,8 @@ class ExecutorState:
 
     def set_state(self, block: Block | str, state) -> None:  # noqa: ANN001
         """Set the block state."""
-        self._graph_variables[block] = state
+        self._graph_variable_states[block] = state
+
+    def get_state(self, item: Block | str) -> Any:  # noqa: ANN401
+        """Get state of an item."""
+        return self._graph_variable_states[item]
