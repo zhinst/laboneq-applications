@@ -82,7 +82,6 @@ class TestRunExperiment:
                 compiled_experiment=simple_compiled_experiment,
             )
 
-        wf = wff()
-        assert len(wf.run().tasklog) == 1
-        [results] = wf.run().tasklog["run_experiment"]
-        assert "ac0" in results
+        result = wff().run()
+        assert len(result.tasks) == 1
+        assert "ac0" in result.tasks["run_experiment"].output

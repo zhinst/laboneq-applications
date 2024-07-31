@@ -51,6 +51,5 @@ def test_compile_experiment_as_task(simple_experiment, single_tunable_transmon):
         )
 
     run = wf().run()
-    assert len(run.tasklog) == 1
-    assert "compile_experiment" in run.tasklog
-    assert run.tasklog["compile_experiment"][0].scheduled_experiment is not None
+    assert len(run.tasks) == 1
+    assert run.tasks["compile_experiment"].output.scheduled_experiment is not None

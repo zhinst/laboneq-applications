@@ -11,11 +11,13 @@ from laboneq_applications.core.options import BaseExperimentOptions
 from laboneq_applications.workflow import exceptions, task
 from laboneq_applications.workflow.engine import (
     Workflow,
+    WorkflowResult,
     for_,
     if_,
     workflow,
 )
 from laboneq_applications.workflow.engine.options import WorkflowOptions
+from laboneq_applications.workflow.task import Task
 
 if TYPE_CHECKING:
     from laboneq_applications.workflow.engine.core import WorkflowBuilder
@@ -29,6 +31,26 @@ def addition(x, y) -> float:
 @task
 def substraction(x, y) -> float:
     return x - y
+
+
+class TestWorkflowResult:
+    def test_add_task(self):
+        obj = WorkflowResult()
+        assert len(obj.tasks) == 0
+        t = Task(addition, output=1)
+        obj.add_task(t)
+        assert len(obj.tasks) == 1
+        assert obj.tasks["addition"] == t
+
+
+class TestWorkflowResultCollector:
+    def test_add_task(self):
+        obj = WorkflowResult()
+        assert len(obj.tasks) == 0
+        t = Task(addition, output=1)
+        obj.add_task(t)
+        assert len(obj.tasks) == 1
+        assert obj.tasks["addition"] == t
 
 
 def test_task_within_task_normal_behaviour():
@@ -75,7 +97,7 @@ class TestMultipleTasks:
             for _ in range(n_tasks):
                 addition(1, 1)
 
-        assert len(wf().run().tasklog["addition"]) == n_tasks
+        assert len(wf().run().tasks["addition", :]) == n_tasks
 
     def test_independent_tasks(self):
         @workflow
@@ -84,8 +106,8 @@ class TestMultipleTasks:
             substraction(3, 2)
 
         result = wf().run()
-        assert result.tasklog["addition"] == [2]
-        assert result.tasklog["substraction"] == [1]
+        assert result.tasks["addition"].output == 2
+        assert result.tasks["substraction"].output == 1
 
     def test_context_passing_args(self):
         @workflow
@@ -94,8 +116,8 @@ class TestMultipleTasks:
             substraction(3, x)
 
         result = wf().run()
-        assert result.tasklog["addition"] == [2]
-        assert result.tasklog["substraction"] == [1]
+        assert result.tasks["addition"].output == 2
+        assert result.tasks["substraction"].output == 1
 
     def test_context_passing_kwargs(self):
         @workflow
@@ -104,8 +126,8 @@ class TestMultipleTasks:
             substraction(3, y=y)
 
         result = wf().run()
-        assert result.tasklog["addition"] == [2]
-        assert result.tasklog["substraction"] == [1]
+        assert result.tasks["addition"].output == 2
+        assert result.tasks["substraction"].output == 1
 
     def test_multiple_dependecy(self):
         @workflow
@@ -115,8 +137,9 @@ class TestMultipleTasks:
             addition(x, 5)
 
         result = wf().run()
-        assert result.tasklog["addition"] == [2, 7]
-        assert result.tasklog["substraction"] == [1]
+        assert result.tasks["addition", 0].output == 2
+        assert result.tasks["addition", 1].output == 7
+        assert result.tasks["substraction", 0].output == 1
 
     def test_nested_calls(self):
         @workflow
@@ -124,8 +147,11 @@ class TestMultipleTasks:
             substraction(addition(1, addition(0, 1)), addition(1, substraction(2, 1)))
 
         result = wf().run()
-        assert result.tasklog["addition"] == [1, 2, 2]
-        assert result.tasklog["substraction"] == [1, 0]
+        assert result.tasks["addition", 0].output == 1
+        assert result.tasks["addition", 1].output == 2
+        assert result.tasks["addition", 2].output == 2
+        assert result.tasks["substraction", 0].output == 1
+        assert result.tasks["substraction", 1].output == 0
 
     def test_single_call_task_multiple_child_tasks(self):
         mock_obj = Mock()
@@ -198,10 +224,9 @@ class TestWorkflowReferences:
             result = return_mapping()
             act_on_mapping_value(result["a"], result["b"][1])
 
-        assert wf().run().tasklog == {
-            "return_mapping": [{"a": 123, "b": [1, 2]}],
-            "act_on_mapping_value": [(123, 2)],
-        }
+        result = wf().run()
+        assert result.tasks["return_mapping"].output == {"a": 123, "b": [1, 2]}
+        assert result.tasks["act_on_mapping_value"].output == (123, 2)
 
 
 class TestWorkFlowDecorator:
@@ -215,13 +240,13 @@ class TestWorkFlowDecorator:
 
     def test_call_arguments(self, builder: WorkflowBuilder):
         result = builder(x=1, y=2).run()
-        assert result.tasklog == {"addition": [3]}
+        assert result.tasks["addition"].output == 3
 
         result = builder(1, y=2).run()
-        assert result.tasklog == {"addition": [3]}
+        assert result.tasks["addition"].output == 3
 
         result = builder(1, 2).run()
-        assert result.tasklog == {"addition": [3]}
+        assert result.tasks["addition"].output == 3
 
         # No arguments
         @workflow
@@ -229,7 +254,7 @@ class TestWorkFlowDecorator:
             addition(1, 1)
 
         result = my_wf1().run()
-        assert result.tasklog == {"addition": [2]}
+        assert result.tasks["addition"].output == 2
 
         # Keyword argument with default
         @workflow
@@ -237,7 +262,7 @@ class TestWorkFlowDecorator:
             addition(x, y)
 
         result = my_wf2(1).run()
-        assert result.tasklog == {"addition": [2]}
+        assert result.tasks["addition"].output == 2
 
         # Only default arguments
         @workflow
@@ -245,7 +270,7 @@ class TestWorkFlowDecorator:
             addition(x, y)
 
         result = my_wf3().run()
-        assert result.tasklog == {"addition": [2]}
+        assert result.tasks["addition"].output == 2
 
         # Invalid arguments
         @workflow
@@ -262,7 +287,7 @@ class TestWorkFlowDecorator:
             addition(x, y)
 
         result = my_wf2(1, 5).run()
-        assert result.tasklog == {"addition": [6]}
+        assert result.tasks["addition"].output == 6
 
     def test_builder_has_wrapped_function_docstring(self):
         @workflow
@@ -308,9 +333,9 @@ class TestWorkflowIfExpression:
                 return_zero()
 
         res = my_wf(1).run()
-        assert res.tasklog == {"return_zero": [0, 0]}
+        assert len(res.tasks) == 2
         res = my_wf(2).run()
-        assert res.tasklog == {"return_zero": [0]}
+        assert len(res.tasks) == 1
 
     def test_nested(self):
         @workflow
@@ -321,9 +346,9 @@ class TestWorkflowIfExpression:
                     return_zero()
 
         res = my_wf(1).run()
-        assert res.tasklog == {"return_zero": [0, 0]}
+        assert len(res.tasks) == 2
         res = my_wf(2).run()
-        assert res.tasklog == {"return_zero": [0]}
+        assert len(res.tasks) == 1
 
     def test_task_result_input(self):
         @workflow
@@ -335,7 +360,7 @@ class TestWorkflowIfExpression:
                 return_zero()
 
         res = my_wf().run()
-        assert res.tasklog == {"return_zero": [0, 0]}
+        assert len(res.tasks) == 2
 
 
 class TestTaskDependencyOutsideOfBlock:
@@ -352,7 +377,8 @@ class TestTaskDependencyOutsideOfBlock:
                         addition(add_res, 3)
 
         res = my_wf(x=True).run()
-        assert res.tasklog == {"return_zero": [0, 0], "addition": [1, 2, 5]}
+        assert [x.output for x in res.tasks["return_zero", :]] == [0, 0]
+        assert [x.output for x in res.tasks["addition", :]] == [1, 2, 5]
 
     def test_task_dependency_outside_of_assigned_block_flat_executed(self):
         @workflow
@@ -363,7 +389,7 @@ class TestTaskDependencyOutsideOfBlock:
                 addition(a, 1)
 
         res = my_wf(x=True).run()
-        assert res.tasklog == {"addition": [2, 3]}
+        assert [x.output for x in res.tasks["addition", :]] == [2, 3]
 
     def test_task_dependency_outside_of_assigned_block_conditional_not_executed(self):
         @workflow
@@ -392,7 +418,7 @@ def test_constant_defined_in_workflow():
             addition(res, 1)
 
     res = my_wf(x=True).run()
-    assert res.tasklog == {"addition": [2]}
+    assert res.tasks["addition"].output == 2
 
 
 class TestForLoopExpression:
@@ -403,7 +429,7 @@ class TestForLoopExpression:
                 addition(1, val)
 
         res = my_wf([1, 2]).run()
-        assert res.tasklog == {"addition": [2, 3]}
+        assert [x.output for x in res.tasks["addition", :]] == [2, 3]
 
     def test_nested(self):
         @workflow
@@ -413,7 +439,7 @@ class TestForLoopExpression:
                     addition(first, second)
 
         res = my_wf([1, 2]).run()
-        assert res.tasklog == {"addition": [2, 3, 3, 4]}
+        assert [x.output for x in res.tasks["addition", :]] == [2, 3, 3, 4]
 
     def test_nested_loop_to_loop(self):
         @workflow
@@ -423,7 +449,7 @@ class TestForLoopExpression:
                     addition(1, second)
 
         res = my_wf(x=[[1, 2], [3, 4]]).run()
-        assert res.tasklog == {"addition": [2, 3, 4, 5]}
+        assert [x.output for x in res.tasks["addition", :]] == [2, 3, 4, 5]
 
 
 class WfOptions(WorkflowOptions):
@@ -447,7 +473,7 @@ class TestWorkflowValidOptions:
         opts = WfOptions()
         wf = my_wf(opts)
         result = wf.run()
-        assert result.tasklog["task_with_opts"] == [opts.task_with_opts]
+        assert result.tasks["task_with_opts"].output == opts.task_with_opts
 
     def test_task_direct_assignment(self, task_with_opts):
         @workflow
@@ -457,7 +483,7 @@ class TestWorkflowValidOptions:
         opts = WfOptions()
         wf = my_wf(opts)
         result = wf.run()
-        assert result.tasklog["task_with_opts"] == [opts.task_with_opts]
+        assert result.tasks["task_with_opts"].output == opts.task_with_opts
 
     def test_workflow_options_not_provided_use_default(self, task_with_opts):
         @workflow
@@ -466,7 +492,7 @@ class TestWorkflowValidOptions:
 
         wf = my_wf()
         result = wf.run()
-        assert result.tasklog["task_with_opts"] == [WfOptions().task_with_opts]
+        assert result.tasks["task_with_opts"].output == WfOptions().task_with_opts
 
     def test_workflow_valid_options_invalid_input_type(self, task_with_opts):
         @workflow

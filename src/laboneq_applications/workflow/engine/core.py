@@ -4,9 +4,8 @@ from __future__ import annotations
 
 import inspect
 import textwrap
-from collections import defaultdict
 from functools import update_wrapper
-from typing import TYPE_CHECKING, Any, Callable, Generic, cast
+from typing import TYPE_CHECKING, Callable, Generic, cast
 
 from typing_extensions import ParamSpec
 
@@ -19,6 +18,7 @@ from laboneq_applications.workflow.engine.executor import ExecutorState
 from laboneq_applications.workflow.engine.graph import WorkflowGraph
 from laboneq_applications.workflow.engine.options import WorkflowOptions
 from laboneq_applications.workflow.options import get_and_validate_param_type
+from laboneq_applications.workflow.taskview import TaskView
 
 if TYPE_CHECKING:
     from laboneq_applications.workflow.task import Task
@@ -27,32 +27,46 @@ if TYPE_CHECKING:
 class WorkflowResult:
     """Workflow result."""
 
-    def __init__(self, tasklog: dict[str, list[Any]]):
-        # TODO: Reserve `artifacts` property for the explicitly (important) saved items
-        self._tasklog = tasklog
+    def __init__(self):
+        self._tasks: list[Task] = []
 
     @property
-    def tasklog(self) -> dict[str, list[Any]]:
-        """Log of executed tasks and their results.
+    def tasks(self) -> TaskView:
+        """Task entries of the workflow.
 
-        Returns:
-            A mapping for each task and its' results.
+        The ordering of the tasks is the order of the execution.
+
+        Tasks is a `Sequence` of tasks, however item lookup
+        is modified to support the following cases:
+
+        Example:
+            ```python
+            wf = my_workflow.run()
+            wf.tasks["run_experiment"]  # First task of name 'run_experiment'
+            wf.tasks["run_experiment", :]  # All tasks named 'run_experiment'
+            wf.tasks["run_experiment", 1:5]  # Slice tasks named 'run_experiment'
+            wf.tasks[0]  # First executed task
+            wf.tasks[0:5]  # Slicing
+
+            wf.tasks.unique() # Unique task names
+            ```
         """
-        # NOTE: Currently values are a list of task return values,
-        #       However it will be a `Task` object, which can have more
-        #       information e.g runtime, errors, etc.
-        return self._tasklog
+        return TaskView(self._tasks)
+
+    def add_task(self, task: Task) -> None:
+        """Add a task result."""
+        self._tasks.append(task)
 
 
-class ResultCollector:
+class _ResultCollector:
     """Workflow result collector."""
 
-    def __init__(self) -> None:
-        self._tasks = defaultdict(list)
+    def __init__(self, result: WorkflowResult) -> None:
+        self._result = result
 
     def on_task_end(self, task: Task) -> None:
         """Register task end."""
-        self._tasks[task.name].append(task.output)
+        self._result.add_task(task)
 
 
 Parameters = ParamSpec("Parameters")
@@ -112,10 +126,11 @@ class Workflow(Generic[Parameters]):
             raise exceptions.WorkflowError(msg)
         state = ExecutorState()
         # TODO: Result collector should be injected from the outside. E.g a logbook
-        results = ResultCollector()
-        state.set_result_callback(results)
+        results = WorkflowResult()
+        collector = _ResultCollector(results)
+        state.set_result_callback(collector)
         self._graph.execute(state, **self._input)
-        return WorkflowResult(tasklog=dict(results._tasks))
+        return results
 
 
 class WorkflowBuilder(Generic[Parameters]):
