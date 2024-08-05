@@ -575,12 +575,12 @@ class TestWorkflowInvalidOptions:
             def my_wf_no_typing(options): ...
 
         error_msg = (
-            "It seems like you want to use the workflow feature of automatically"
+            "It seems like you want to use the workflow feature of automatically "
             "passing options to the tasks, but the type provided is wrong. "
             "Please use either ValidOptions | None = None, "
             "Optional[ValidOptions] = None or "
-            "Union[ValidOptions,None]"
-            "to enable this feature. Use any other type if you don't want to use"
+            "Union[ValidOptions,None] "
+            "to enable this feature. Use any other type if you don't want to use "
             "this feature but still want pass options manually to the workflow "
             "and its tasks."
         )
