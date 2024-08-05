@@ -39,7 +39,7 @@ class TestDemoQPU:
         assert q0.parameters.drive_lo_frequency == 1.50e9
 
         assert q1.uid == "q1"
-        assert q1.parameters.drive_lo_frequency == 1.60e9
+        assert q1.parameters.drive_lo_frequency == 1.50e9
 
     def test_too_few_qubits(self):
         with pytest.raises(ValueError) as err:

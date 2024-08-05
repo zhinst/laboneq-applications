@@ -173,7 +173,12 @@ def tunable_transmon_qubits(
         The list of qubits.
     """
 
-    def q_param(i: int, base: float, unit: float = 1.0, dq: float = 0.01) -> float:
+    def q_param(
+        i: int,
+        base: float,
+        unit: float = 1.0,
+        dq: float = 0.01,
+    ) -> float:
         """Tweak qubit parameter a tiny amount to distinguish them."""
         return (base + i * dq) * unit
 
@@ -183,7 +188,8 @@ def tunable_transmon_qubits(
             f"q{i}",
             setup.logical_signal_groups[f"q{i}"],
             parameters=TunableTransmonQubitParameters(
-                drive_lo_frequency=q_param(i, 1.5, 1e9, dq=0.1),
+                # A pair of neighbor qubits share the same LO frequency
+                drive_lo_frequency=q_param(i//2, 1.5, 1e9, dq=0.1),
                 resonance_frequency_ge=q_param(i, 1.6, 1e9),
                 resonance_frequency_ef=q_param(i, 1.7, 1e9),
                 readout_lo_frequency=2e9,

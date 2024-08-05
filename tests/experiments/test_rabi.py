@@ -193,6 +193,51 @@ class TestTaskbook:
         traces = exp_result.cal_trace.q0
         assert len(traces) == 2
 
+    def test_create_and_run_two_qubits(self, two_tunable_transmon):
+        [q0, q1] = two_tunable_transmon.qubits
+        amplitudes = [[0.1, 0.2], [0.3, 0.4]]
+        options = amplitude_rabi.options()
+        options.create_experiment.count = 10
+        options.create_experiment.transition = "ge"
+
+        result = amplitude_rabi.run(
+            session=two_tunable_transmon.session(do_emulation=True),
+            qpu=two_tunable_transmon,
+            qubits=[q0, q1],
+            amplitudes=amplitudes,
+            options=options,
+        )
+
+        assert len(result.tasks) == 3
+
+        exp = result.tasks[0].output
+        assert exp.uid == "create_experiment"
+
+        compiled_exp = result.tasks[1].output
+        assert compiled_exp.experiment.uid == "create_experiment"
+        assert compiled_exp.device_setup.uid == "tunable_transmons_2"
+
+        exp_result = result.tasks[2].output
+        np.testing.assert_array_almost_equal(
+            exp_result.result.q0.axis,
+            [[0.1, 0.2]],
+        )
+        np.testing.assert_array_almost_equal(
+            exp_result.result.q1.axis,
+            [[0.3, 0.4]],
+        )
+        np.testing.assert_almost_equal(exp_result.cal_trace.q0.g.data, 4.2 + 0.2j)
+        np.testing.assert_almost_equal(exp_result.cal_trace.q0.e.data, 4.2 + 0.3j)
+
+        np.testing.assert_almost_equal(exp_result.cal_trace.q1.g.data, 4.3 + 0.2j)
+        np.testing.assert_almost_equal(exp_result.cal_trace.q1.e.data, 4.3 + 0.3j)
+
+        traces = exp_result.cal_trace.q0
+        assert len(traces) == 2
+
+        traces = exp_result.cal_trace.q1
+        assert len(traces) == 2
+
 
 @pytest.mark.parametrize("transition", ["ge", "ef"])
 @pytest.mark.parametrize("count", [10, 12])
