@@ -62,5 +62,6 @@ from laboneq_applications.workflow.engine.expressions import (
 from laboneq_applications.workflow.engine.expressions import (
     IFExpression as if_,  # noqa: N813
 )
+from laboneq_applications.workflow.engine.options import WorkflowOptions
 
-__all__ = ["Workflow", "workflow", "if_", "for_", "WorkflowResult"]
+__all__ = ["Workflow", "workflow", "if_", "for_", "WorkflowResult", "WorkflowOptions"]
