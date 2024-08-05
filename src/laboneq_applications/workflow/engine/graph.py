@@ -34,15 +34,23 @@ class WorkflowBlock(Block):
 
     def execute(self, executor: ExecutorState) -> Any:  # noqa: ANN401
         """Execute the block."""
-        input_opts = executor.resolve_inputs(self).get("options")
-        if input_opts is None:
-            input_opts = self._options()
-        executor.options = input_opts
-        for block in self._body:
-            block.execute(executor)
-        if isinstance(self._output, Reference):
-            return executor.get_state(self._output.ref)
-        return self._output
+        executor._logbook.on_start()
+        try:
+            input_opts = executor.resolve_inputs(self).get("options")
+            if input_opts is None:
+                input_opts = self._options()
+            executor.options = input_opts
+            for block in self._body:
+                block.execute(executor)
+            if isinstance(self._output, Reference):
+                return executor.get_state(self._output.ref)
+            return self._output
+        except Exception as error:
+            if not getattr(error, "_logged_by_task", False):  # TODO: better mechanism
+                executor._logbook.on_error(error)
+            raise
+        finally:
+            executor._logbook.on_end()
 
     @classmethod
     def from_callable(cls, func: Callable) -> WorkflowBlock:
@@ -70,9 +78,10 @@ class WorkflowGraph:
 
     Arguments:
         root: Root block of the Workflow.
+        name: The name of the workflow.
     """
 
-    def __init__(self, root: WorkflowBlock) -> None:
+    def __init__(self, root: WorkflowBlock, name: str) -> None:
         if isinstance(
             TaskExecutorContext.get_active(),
             WorkflowBlockBuilder,
@@ -80,11 +89,12 @@ class WorkflowGraph:
             msg = "Nesting Workflows is not allowed."
             raise exceptions.WorkflowError(msg)
         self._root = root
+        self.name = name
 
     @classmethod
     def from_callable(cls, func: Callable) -> WorkflowGraph:
         """Create the graph from a callable."""
-        return cls(WorkflowBlock.from_callable(func))
+        return cls(WorkflowBlock.from_callable(func), func.__name__)
 
     def validate_input(self, **kwargs: object) -> None:
         """Validate input parameters of the graph.

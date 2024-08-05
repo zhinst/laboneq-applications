@@ -143,9 +143,6 @@ def create_pulse(
     return pulse
 
 
-UNSET = object()  # default sentinel
-
-
 class QuantumOperations:
     """Quantum operations for a given qubit type.
 

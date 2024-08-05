@@ -109,6 +109,8 @@ lint.ignore = [
   "PD011",
   # Use of built-in open (pathlib is not more readable in this case)
   "PTH123",
+  # Use of return inside try (there is no consistent rule that fits all uses here)
+  "TRY300",
 ]
 
 [tool.ruff.lint.per-file-ignores]

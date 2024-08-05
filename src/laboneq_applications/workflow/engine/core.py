@@ -9,8 +9,12 @@ from typing import TYPE_CHECKING, Any, Callable, Generic, cast
 
 from typing_extensions import ParamSpec
 
+from laboneq_applications.logbook import LoggingStore
 from laboneq_applications.workflow import _utils, exceptions
-from laboneq_applications.workflow._context import TaskExecutorContext
+from laboneq_applications.workflow._context import (
+    ExecutorStateContext,
+    TaskExecutorContext,
+)
 from laboneq_applications.workflow.engine.block import (
     WorkflowBlockBuilder,
 )
@@ -21,6 +25,7 @@ from laboneq_applications.workflow.options import get_and_validate_param_type
 from laboneq_applications.workflow.taskview import TaskView
 
 if TYPE_CHECKING:
+    from laboneq_applications.logbook import LogbookStore
     from laboneq_applications.workflow.task import Task
 
 
@@ -111,11 +116,19 @@ class Workflow(Generic[Parameters]):
         )
 
     @property
+    def name(self) -> str:
+        """Workflow name."""
+        return self._graph.name
+
+    @property
     def input(self) -> dict:
         """Input parameters of the workflow."""
         return self._input
 
-    def run(self) -> WorkflowResult:
+    def run(
+        self,
+        logstore: LogbookStore | None = None,  # TODO: read logbook from options
+    ) -> WorkflowResult:
         """Run the workflow.
 
         Returns:
@@ -130,12 +143,18 @@ class Workflow(Generic[Parameters]):
         ):
             msg = "Nesting Workflows is not allowed."
             raise exceptions.WorkflowError(msg)
-        state = ExecutorState()
+
+        if logstore is None:
+            logstore = LoggingStore()
+        logbook = logstore.create_logbook(self)
+
+        state = ExecutorState(logbook=logbook)
         # TODO: Result collector should be injected from the outside. E.g a logbook
         results = WorkflowResult()
         collector = _ResultCollector(results)
         state.set_result_callback(collector)
-        results._output = self._graph.execute(state, **self._input)
+        with ExecutorStateContext.scoped(state):
+            results._output = self._graph.execute(state, **self._input)
         return results
 
 

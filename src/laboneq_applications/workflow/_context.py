@@ -80,3 +80,9 @@ class TaskExecutorContext(LocalContext[TaskExecutor]):
     """Context for executing tasks."""
 
     _scope = "task_executor"
+
+
+class ExecutorStateContext(LocalContext[TaskExecutor]):  # TODO: arg
+    """Context for workflow execution state."""
+
+    _scope = "workflow_executor"

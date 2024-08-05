@@ -4,11 +4,13 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, Protocol
 
+from laboneq_applications.logbook import LoggingStore
 from laboneq_applications.workflow.engine.options import WorkflowOptions
 from laboneq_applications.workflow.engine.reference import Reference
 from laboneq_applications.workflow.exceptions import WorkflowError
 
 if TYPE_CHECKING:
+    from laboneq_applications.common.logbooks import Logbook
     from laboneq_applications.workflow.engine.block import Block
     from laboneq_applications.workflow.task import Task
 
@@ -23,7 +25,13 @@ class ResultHander(Protocol):
 class ExecutorState:
     """A class that holds the graph execution state."""
 
-    def __init__(self) -> None:
+    def __init__(self, logbook: Logbook | None = None) -> None:
+        # TODO: require logbook here or create a better dummy
+        if logbook is None:
+            logstore = LoggingStore()
+            logbook = logstore.create_logbook(None)  # TODO: remove hack
+
+        self._logbook = logbook
         self._graph_variable_states = {}
         self._result_handler: ResultHander | None = None
         self.options: WorkflowOptions = WorkflowOptions()

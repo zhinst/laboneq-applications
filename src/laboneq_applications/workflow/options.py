@@ -5,16 +5,12 @@ from __future__ import annotations
 import inspect
 import sys
 import typing
-from typing import (
-    Any,
-    Callable,
-    ForwardRef,
-    Union,
-    get_args,
-    get_origin,
-)
+from typing import Any, Callable, ForwardRef, Union, get_args, get_origin
+
+from pydantic import Field
 
 from laboneq_applications.core.options import BaseOptions, TuneupExperimentOptions
+from laboneq_applications.logbook import LogbookStore  # noqa: TCH001
 
 
 class TaskBookOptions(BaseOptions):
@@ -24,9 +20,21 @@ class TaskBookOptions(BaseOptions):
         run_until:
             The task to run until.
             Default: `None`.
+        logbook:
+            The logbook to use. Not serialized/deserialized.
+            Default: `None`.
     """
 
     run_until: str | None = None
+    # TODO: Does this below here? If so, use it. If not, remove.
+    logbook: LogbookStore | None = Field(default=None, repr=False, exclude=True)
+
+    class Config:
+        """Pydantic configuration."""
+
+        # Exclude fields from serialization by default
+        exclude: typing.ClassVar[set[str]] = {"logbook"}
+        arbitrary_types_allowed = True
 
 
 class TuneUpTaskBookOptions(TaskBookOptions):
@@ -48,7 +56,7 @@ if not _PY_V39:
 
 
 def _get_argument_types(
-    fn: Callable,
+    fn: Callable[..., object],
     arg_name: str,
 ) -> set[type]:
     """Get the type of the parameter for a function-like object.
@@ -73,7 +81,7 @@ def _get_argument_types(
     if _PY_V39:
         return _get_argument_types_v39(param.annotation, _globals, _locals)
 
-    return _parse_types(param.annotation, _globals, _locals, _PY_V39)
+    return _parse_types(param.annotation, _globals, _locals, is_py_39=False)
 
 
 def _get_default_argument(
@@ -88,7 +96,11 @@ def _get_default_argument(
     return param.default
 
 
-def _get_argument_types_v39(hint: str | type, _globals, _locals) -> set[type]:  # noqa: ANN001
+def _get_argument_types_v39(
+    hint: str | type,
+    _globals: dict,
+    _locals: dict,
+) -> set[type]:
     return_types: set[type]
     args = hint.split("|")
     if len(args) > 1:
@@ -105,7 +117,8 @@ def _parse_types(
     type_hint: str | type,
     _globals,  # noqa: ANN001
     _locals,  # noqa: ANN001
-    is_py_39: bool,  # noqa: FBT001
+    *,
+    is_py_39: bool,
 ) -> set[type]:
     if isinstance(type_hint, str):
         opt_type = typing._eval_type(ForwardRef(type_hint), _globals, _locals)

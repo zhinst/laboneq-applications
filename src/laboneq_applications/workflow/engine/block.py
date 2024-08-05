@@ -120,12 +120,23 @@ class TaskBlock(Block):
                 task_opts = getattr(executor.options, self.name, None)
                 if task_opts:
                     params["options"] = task_opts
+
         task = Task(
             task=self.task,
             output=None,
             input=_utils.create_argument_map(self.task.func, **params),
         )
-        task._output = self.task.func(**params)
+
+        executor._logbook.on_task_start(task)
+        try:
+            task._output = self.task.func(**params)
+        except Exception as error:
+            executor._logbook.on_task_error(task, error)
+            error._logged_by_task = True  # TODO: Nicer mechanism
+            raise
+        finally:
+            executor._logbook.on_task_end(task)
+
         if executor.result_handler:
             executor.result_handler.on_task_end(task)
         executor.set_state(self, task.output)
