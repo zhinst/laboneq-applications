@@ -7,7 +7,7 @@ The amplitude-rabi experiment has the following pulse sequence:
 
     qb --- [ prep transition ] --- [ x180_transition ] --- [ measure ]
 
-If multiple qubits are passed to the `run` taskbook, the above pulses are applied
+If multiple qubits are passed to the `run` workflow, the above pulses are applied
 in parallel on all the qubits.
 """
 
@@ -25,30 +25,30 @@ from laboneq_applications.core.options import (
 from laboneq_applications.core.quantum_operations import dsl
 from laboneq_applications.core.validation import validate_and_convert_qubits_sweeps
 from laboneq_applications.tasks import compile_experiment, run_experiment
-from laboneq_applications.workflow import TuneUpTaskBookOptions, task, taskbook
+from laboneq_applications.workflow import TuneUpWorkflowOptions, task, workflow
 
 if TYPE_CHECKING:
     from laboneq.dsl.session import Session
 
     from laboneq_applications.qpu_types import QPU
     from laboneq_applications.typing import Qubits, QubitSweepPoints
-    from laboneq_applications.workflow.taskbook import TaskBook
+    from laboneq_applications.workflow.engine.core import WorkflowBuilder
 
 
-options = TuneUpTaskBookOptions
+options = TuneUpWorkflowOptions
 
 
-@taskbook
-def run(
+@workflow
+def experiment_workflow(
     session: Session,
     qpu: QPU,
     qubits: Qubits,
     amplitudes: QubitSweepPoints,
-    options: TuneUpTaskBookOptions | None = None,
-) -> TaskBook:
-    """The Amplitude Rabi TaskBook.
+    options: TuneUpWorkflowOptions | None = None,
+) -> WorkflowBuilder:
+    """The Amplitude Rabi Workflow.
 
-    The taskbook consists of the following steps:
+    The workflow consists of the following steps:
 
     - [create_experiment]()
     - [compile_experiment]()
@@ -74,11 +74,11 @@ def run(
 
     Returns:
         result:
-            The result of the taskbook.
+            The result of the workflow.
 
     Example:
         ```python
-        options = TuneUpTaskBookOptions()
+        options = TuneUpWorkflowOptions()
         options.create_experiment.count = 10
         options.create_experiment.transition = "ge"
         qpu = QPU(

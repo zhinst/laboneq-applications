@@ -5,9 +5,9 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any, Protocol
 
 from laboneq_applications.logbook import LoggingStore
-from laboneq_applications.workflow.engine.options import WorkflowOptions
 from laboneq_applications.workflow.engine.reference import Reference
 from laboneq_applications.workflow.exceptions import WorkflowError
+from laboneq_applications.workflow.options import WorkflowOptions
 
 if TYPE_CHECKING:
     from laboneq_applications.common.logbooks import Logbook

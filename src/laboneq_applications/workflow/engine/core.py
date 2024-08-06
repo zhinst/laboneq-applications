@@ -20,8 +20,10 @@ from laboneq_applications.workflow.engine.block import (
 )
 from laboneq_applications.workflow.engine.executor import ExecutorState
 from laboneq_applications.workflow.engine.graph import WorkflowGraph
-from laboneq_applications.workflow.engine.options import WorkflowOptions
-from laboneq_applications.workflow.options import get_and_validate_param_type
+from laboneq_applications.workflow.options import (
+    WorkflowOptions,
+    get_and_validate_param_type,
+)
 from laboneq_applications.workflow.taskview import TaskView
 
 if TYPE_CHECKING:

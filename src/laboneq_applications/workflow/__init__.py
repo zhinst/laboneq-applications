@@ -5,12 +5,15 @@ This package provides tools and building blocks to define workflows.
 
 from laboneq_applications.workflow.engine import (
     Workflow,
-    WorkflowOptions,
     WorkflowResult,
     return_,
     workflow,
 )
-from laboneq_applications.workflow.options import TaskBookOptions, TuneUpTaskBookOptions
+from laboneq_applications.workflow.options import (
+    TaskBookOptions,
+    TuneUpWorkflowOptions,
+    WorkflowOptions,
+)
 from laboneq_applications.workflow.task import task
 from laboneq_applications.workflow.taskbook import (
     TaskBook,
@@ -22,7 +25,7 @@ __all__ = [
     "taskbook",
     "TaskBook",
     "TaskBookOptions",
-    "TuneUpTaskBookOptions",
+    "TuneUpWorkflowOptions",
     "Workflow",
     "WorkflowResult",
     "workflow",

@@ -39,14 +39,13 @@ def create_rabi_verifier(
     options.create_experiment.count = count
     options.create_experiment.transition = transition
     options.create_experiment.use_cal_traces = use_cal_traces
-    res = amplitude_rabi.run(
+    res = amplitude_rabi.experiment_workflow(
         session=session,
         qubits=qubits,
         qpu=tunable_transmons,
         amplitudes=amplitudes,
         options=options,
-    )
-
+    ).run()
     return CompiledExperimentVerifier(res.tasks["compile_experiment"].output)
 
 

@@ -17,7 +17,7 @@ from laboneq_applications.workflow.engine import (
     return_,
     workflow,
 )
-from laboneq_applications.workflow.engine.options import WorkflowOptions
+from laboneq_applications.workflow.options import WorkflowOptions
 from laboneq_applications.workflow.task import Task
 
 if TYPE_CHECKING:

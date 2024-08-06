@@ -13,6 +13,27 @@ from laboneq_applications.core.options import BaseOptions, TuneupExperimentOptio
 from laboneq_applications.logbook import LogbookStore  # noqa: TCH001
 
 
+class WorkflowOptions(BaseOptions):
+    """Base options for a workflow.
+
+    Attributes:
+        logbook:
+            The logbook to use. Not serialized/deserialized.
+            Default: `None`.
+    """
+
+    # TODO: Does this below here? If so, use it. If not, remove.
+    logbook: LogbookStore | None = Field(default=None, repr=False, exclude=True)
+
+    class Config:
+        """Pydantic configuration."""
+
+        # Exclude fields from serialization by default
+        exclude: typing.ClassVar[set[str]] = {"logbook"}
+        arbitrary_types_allowed = True
+
+
+# TODO: Remove TaskBookOptions when taskbook is removed.
 class TaskBookOptions(BaseOptions):
     """Base option for taskbook.
 
@@ -37,8 +58,8 @@ class TaskBookOptions(BaseOptions):
         arbitrary_types_allowed = True
 
 
-class TuneUpTaskBookOptions(TaskBookOptions):
-    """Option class for tune-up taskbook.
+class TuneUpWorkflowOptions(WorkflowOptions):
+    """Option class for tune-up workflow.
 
     Attributes:
         create_experiment (TuneupExperimentOptions):

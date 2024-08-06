@@ -36,13 +36,13 @@ def rabi_compiled(single_tunable_transmon):
     amplitudes = [0.1, 0.2, 0.3]
     options = amplitude_rabi.options()
     options.create_experiment.count = 2
-    res = amplitude_rabi.run(
+    res = amplitude_rabi.experiment_workflow(
         session=session,
         qubits=q0,
         qpu=single_tunable_transmon,
         amplitudes=amplitudes,
         options=options,
-    )
+    ).run()
     return res.tasks["compile_experiment"].output
 
 

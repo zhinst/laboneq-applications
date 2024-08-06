@@ -623,7 +623,7 @@ from laboneq_applications.qpu_types.tunable_transmon import TunableTransmonOpera
 Inspect the source code of the `amplitude_rabi.run` `TaskBook` to see what tasks it has.
 
 ```{code-cell} ipython3
-print(amplitude_rabi.run.src)
+print(amplitude_rabi.experiment_workflow.src)
 ```
 
 ### Run the experiment
@@ -634,7 +634,7 @@ amplitudes = np.linspace(0.0, 0.9, 10)
 options = amplitude_rabi.options()
 options.create_experiment.count = 10
 options.create_experiment.averaging_mode = "cyclic"
-rabi_tb = amplitude_rabi.run(
+rabi_tb = amplitude_rabi.experiment_workflow(
     session,
     qpu,
     qubits[0],
@@ -656,30 +656,27 @@ rabi_tb.input
 Inspect the tasks inside the taskbook
 
 ```{code-cell} ipython3
-rabi_tb.tasks
-```
-
-```{code-cell} ipython3
-[t.name for t in rabi_tb.tasks]
+result = rabi_tb.run()
+[t.name for t in result.tasks]
 ```
 
 Inspect the source code of `create_experiment` to see how the experiment pulse sequence was created.
 
 ```{code-cell} ipython3
-print(rabi_tb.tasks["create_experiment"].src)
+print(result.tasks["create_experiment"].src)
 ```
 
 Inspect the LabOne Q Experiment object returned by `create_experiment`
 
 ```{code-cell} ipython3
-print(rabi_tb.tasks["create_experiment"].output)
-# alternatively, print(rabi_tb.tasks[0].output)
+print(result.tasks["create_experiment"].output)
+# alternatively, print(result.tasks[0].output)
 ```
 
 Inspect the LabOne Q CompiledExperiment object returend by `compile_experiment`
 
 ```{code-cell} ipython3
-print(rabi_tb.tasks["compile_experiment"].output)
+print(result.tasks["compile_experiment"].output)
 ```
 
 ```{code-cell} ipython3
@@ -687,7 +684,7 @@ print(rabi_tb.tasks["compile_experiment"].output)
 from laboneq.contrib.example_helpers.plotting.plot_helpers import plot_simulation
 
 plot_simulation(
-    rabi_tb.tasks["compile_experiment"].output,
+    result.tasks["compile_experiment"].output,
     signal_names_to_show=["drive", "measure"],
     start_time=0,
     length=50e-6,
@@ -697,7 +694,7 @@ plot_simulation(
 Inspect the acquired results
 
 ```{code-cell} ipython3
-acquired_data = rabi_tb.tasks["run_experiment"].output  # the acquired results
+acquired_data = result.tasks["run_experiment"].output  # the acquired results
 acquired_data
 ```
 
@@ -710,71 +707,9 @@ acquired_data.result.q0
 from laboneq.contrib.example_helpers.plotting.plot_helpers import plot_simulation
 
 plot_simulation(
-    rabi_tb.tasks["compile_experiment"].output,
+    result.tasks["compile_experiment"].output,
     signal_names_to_show=["drive", "measure"],
     start_time=0,
     length=50e-6,
 )
-```
-
-### Run until a task
-
-We can run `amplitude_rabi` only up to a specific task. Let's exclude the `run_measurement` task in order to first check if the experiment compiles sucessfully before running the measurement.
-
-```{code-cell} ipython3
-qop = TunableTransmonOperations()
-amplitudes = np.linspace(0.0, 0.9, 10)
-options = amplitude_rabi.options()
-options.create_experiment.count = 10
-options.run_until = "compile_experiment"
-rabi_tb = amplitude_rabi.run(
-    session,
-    qpu,
-    qubits[0],
-    amplitudes,
-    options=options,
-)
-```
-
-```{code-cell} ipython3
-rabi_tb
-```
-
-### Inspect taskbook after an error
-
-If an error occurs during the execution of `amplitude_rabi`, we can inspect the tasks that have run up to the task that produced the error using `recover()`. This is particularly useful to inspect the experiment pulse sequence in case of a compilation or measurement error.
-
-Let's introduce a compilation error by sweeping the ampltude to values larger than 1, which is not allowed.
-
-```{code-cell} ipython3
-qop = TunableTransmonOperations()
-amplitudes = np.linspace(0.0, 1.5, 10)
-options = amplitude_rabi.options()
-options.create_experiment.count = 10
-
-# here we catch the exception such that the notebook runs through
-try:
-    rabi_tb = amplitude_rabi.run(
-        session,
-        qpu,
-        qubits[0],
-        amplitudes,
-        options=options,
-    )
-except Exception as e:
-    print("ERROR: ", e)
-```
-
-```{code-cell} ipython3
-rabi_tb = amplitude_rabi.run.recover()
-rabi_tb
-```
-
-```{code-cell} ipython3
-# inspect the experiment section tree
-print(rabi_tb.tasks["create_experiment"].output)
-```
-
-```{code-cell} ipython3
-
 ```

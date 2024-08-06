@@ -63,7 +63,7 @@ from laboneq_applications.workflow.engine.expressions import (
     IFExpression as if_,  # noqa: N813
 )
 from laboneq_applications.workflow.engine.expressions import return_
-from laboneq_applications.workflow.engine.options import WorkflowOptions
+from laboneq_applications.workflow.options import WorkflowOptions
 
 __all__ = [
     "Workflow",

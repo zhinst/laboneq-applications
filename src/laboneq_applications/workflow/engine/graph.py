@@ -11,9 +11,11 @@ from laboneq_applications.workflow.engine.block import (
     Block,
     WorkflowBlockBuilder,
 )
-from laboneq_applications.workflow.engine.options import WorkflowOptions
 from laboneq_applications.workflow.engine.reference import Reference
-from laboneq_applications.workflow.options import get_and_validate_param_type
+from laboneq_applications.workflow.options import (
+    WorkflowOptions,
+    get_and_validate_param_type,
+)
 
 if TYPE_CHECKING:
     from laboneq_applications.workflow.engine.executor import ExecutorState

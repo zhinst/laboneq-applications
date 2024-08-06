@@ -166,13 +166,13 @@ class TestTaskbook:
         options.create_experiment.count = 10
         options.create_experiment.transition = "ge"
 
-        result = amplitude_rabi.run(
+        result = amplitude_rabi.experiment_workflow(
             session=single_tunable_transmon.session(do_emulation=True),
             qpu=single_tunable_transmon,
             qubits=q0,
             amplitudes=amplitudes,
             options=options,
-        )
+        ).run()
 
         assert len(result.tasks) == 3
 
@@ -200,13 +200,13 @@ class TestTaskbook:
         options.create_experiment.count = 10
         options.create_experiment.transition = "ge"
 
-        result = amplitude_rabi.run(
+        result = amplitude_rabi.experiment_workflow(
             session=two_tunable_transmon.session(do_emulation=True),
             qpu=two_tunable_transmon,
             qubits=[q0, q1],
             amplitudes=amplitudes,
             options=options,
-        )
+        ).run()
 
         assert len(result.tasks) == 3
 
