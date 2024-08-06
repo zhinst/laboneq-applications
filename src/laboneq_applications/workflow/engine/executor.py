@@ -21,6 +21,13 @@ class ResultHander(Protocol):
     def on_task_end(self, task: Task) -> None:
         """Add a task result."""
 
+    def on_workflow_end(self, result: Any) -> None:  # noqa: ANN401
+        """Add a workflow result."""
+
+
+class _ExecutorInterrupt(Exception):  # noqa: N818
+    """Executor interrupt signal."""
+
 
 class ExecutorState:
     """A class that holds the graph execution state."""
@@ -40,6 +47,16 @@ class ExecutorState:
     def states(self) -> dict:
         """States of the graph."""
         return self._graph_variable_states
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback):  # noqa: ANN001
+        return isinstance(exc_value, _ExecutorInterrupt)
+
+    def interrupt(self) -> None:
+        """Interrupt the current workflow block execution."""
+        raise _ExecutorInterrupt
 
     @property
     def result_handler(self) -> ResultHander | None:

@@ -7,6 +7,7 @@ from laboneq_applications.workflow.engine import (
     Workflow,
     WorkflowOptions,
     WorkflowResult,
+    return_,
     workflow,
 )
 from laboneq_applications.workflow.options import TaskBookOptions, TuneUpTaskBookOptions
@@ -26,4 +27,5 @@ __all__ = [
     "WorkflowResult",
     "workflow",
     "WorkflowOptions",
+    "return_",
 ]

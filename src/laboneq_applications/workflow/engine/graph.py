@@ -25,7 +25,6 @@ class WorkflowBlock(Block):
     def __init__(self, **parameters: object) -> None:
         super().__init__(**parameters)
         self._options: type[WorkflowOptions] = WorkflowOptions
-        self._output: Reference | object = None
 
     @property
     def options(self) -> type[WorkflowOptions]:
@@ -40,11 +39,9 @@ class WorkflowBlock(Block):
             if input_opts is None:
                 input_opts = self._options()
             executor.options = input_opts
-            for block in self._body:
-                block.execute(executor)
-            if isinstance(self._output, Reference):
-                return executor.get_state(self._output.ref)
-            return self._output
+            with executor:
+                for block in self._body:
+                    block.execute(executor)
         except Exception as error:
             if not getattr(error, "_logged_by_task", False):  # TODO: better mechanism
                 executor._logbook.on_error(error)
@@ -65,7 +62,7 @@ class WorkflowBlock(Block):
             params[arg] = Reference(arg)
         obj = cls(**params)
         with obj:
-            obj._output = func(**obj.parameters)
+            func(**obj.parameters)
         if arg_opt:
             obj._options = arg_opt
         return obj

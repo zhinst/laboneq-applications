@@ -79,6 +79,10 @@ class _ResultCollector:
         """Register task end."""
         self._result.add_task(task)
 
+    def on_workflow_end(self, output: Any) -> None:  # noqa: ANN401
+        """Register workflow end."""
+        self._result._output = output
+
 
 Parameters = ParamSpec("Parameters")
 
@@ -154,7 +158,7 @@ class Workflow(Generic[Parameters]):
         collector = _ResultCollector(results)
         state.set_result_callback(collector)
         with ExecutorStateContext.scoped(state):
-            results._output = self._graph.execute(state, **self._input)
+            self._graph.execute(state, **self._input)
         return results
 
 

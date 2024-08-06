@@ -5,7 +5,11 @@ from __future__ import annotations
 from collections.abc import Iterable
 from typing import TYPE_CHECKING, Any, Generic, TypeVar
 
-from laboneq_applications.workflow.engine.block import Block
+from laboneq_applications.workflow._context import TaskExecutorContext
+from laboneq_applications.workflow.engine.block import (
+    Block,
+    WorkflowBlockBuilder,
+)
 from laboneq_applications.workflow.engine.reference import Reference
 
 if TYPE_CHECKING:
@@ -68,3 +72,38 @@ class ForExpression(Block, Generic[T]):
             executor.set_state(self, val)
             for block in self.body:
                 block.execute(executor)
+
+
+class ReturnStatement(Block):
+    """Return statement for a workflow.
+
+    Sets the active workflow block output to the given `value` and interrupts
+    the current workflow execution.
+
+    Arguments:
+        value: Value to be set for workflow output.
+    """
+
+    def __init__(self, value: Any) -> None:  # noqa: ANN401
+        super().__init__(value=value)
+
+    def execute(self, executor: ExecutorState) -> Any:  # noqa: ANN401
+        """Execute the block."""
+        if executor.result_handler:
+            value = executor.resolve_inputs(self).get("value")
+            executor.result_handler.on_workflow_end(value)
+            executor.interrupt()
+
+
+def return_(value: Any | None = None) -> None:  # noqa: ANN401
+    """Return statement of an workflow.
+
+    Sets the active workflow output value to the given `value` and interrupts
+    the current workflow execution. Comparative to Python's `return` statement.
+
+    Arguments:
+        value: Value to be set for workflow output.
+    """
+    active_ctx = TaskExecutorContext.get_active()
+    if isinstance(active_ctx, WorkflowBlockBuilder):
+        active_ctx.register(ReturnStatement(value=value))
