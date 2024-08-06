@@ -93,9 +93,9 @@ class TestAmplitudeRabi:
             ]
 
             pi_amp = (
-                qubit.parameters.drive_parameters_ef["amplitude_pi"]
+                qubit.parameters.ef_drive_amplitude_pi
                 if transition_to_calibrate == "ef"
-                else qubit.parameters.drive_parameters_ge["amplitude_pi"]
+                else qubit.parameters.ge_drive_amplitude_pi
             )
             swp_end = pi_amp + 0.1
             sweep_parameters_dict[qubit.uid] = [

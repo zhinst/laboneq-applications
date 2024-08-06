@@ -52,7 +52,7 @@ class TestTunableTransmonQubit:
         ]
 
     def test_get_integration_kernels_default(self, q0):
-        q0.parameters.readout_integration_parameters["kernels"] = "default"
+        q0.parameters.readout_integration_kernels = "default"
         assert q0.get_integration_kernels() == [
             tsl.pulse(
                 uid="__integration_kernel_q0_0",
@@ -63,7 +63,7 @@ class TestTunableTransmonQubit:
         ]
 
     def test_get_integration_kernels_pulses(self, q0):
-        q0.parameters.readout_integration_parameters["kernels"] = [
+        q0.parameters.readout_integration_kernels = [
             {"function": "const", "amplitude": 2.0},
         ]
         assert q0.get_integration_kernels() == [
@@ -86,7 +86,7 @@ class TestTunableTransmonQubit:
         ]
 
     def test_get_integration_kernels_empty_list(self, q0):
-        q0.parameters.readout_integration_parameters["kernels"] = []
+        q0.parameters.readout_integration_kernels = []
         with pytest.raises(TypeError) as err:
             q0.get_integration_kernels()
 
@@ -96,7 +96,7 @@ class TestTunableTransmonQubit:
         )
 
     def test_get_integration_kernels_invalid_type(self, q0):
-        q0.parameters.readout_integration_parameters["kernels"] = "zoo"
+        q0.parameters.readout_integration_kernels = "zoo"
         with pytest.raises(TypeError) as err:
             q0.get_integration_kernels()
 
@@ -109,28 +109,26 @@ class TestTunableTransmonQubit:
         q0.update({"readout_range_out": 10})
         assert q0.parameters.readout_range_out == 10
 
-        q0.update({"readout_parameters": {"length": 10e-6}})
-        assert q0.parameters.readout_parameters["length"] == 10e-6
+        q0.update({"readout_length": 10e-6})
+        assert q0.parameters.readout_length == 10e-6
 
         # test update existing params but with None value
-        q0.parameters.readout_parameters["pulse"] = None
-        q0.update({"readout_parameters.pulse": {"function": "const"}})
-        assert q0.parameters.readout_parameters["pulse"] == {"function": "const"}
+        q0.parameters.readout_pulse = None
+        q0.update({"readout_pulse": {"function": "const"}})
+        assert q0.parameters.readout_pulse == {"function": "const"}
 
-        _original_drive_parameters_ge = copy.deepcopy(q0.parameters.drive_parameters_ge)
-        q0.update({"drive_parameters_ge.amplitude_pi": 0.1})
-        assert q0.parameters.drive_parameters_ge["amplitude_pi"] == 0.1
+        q0.update({"ge_drive_amplitude_pi": 0.1})
+        assert q0.parameters.ge_drive_amplitude_pi == 0.1
+
+        _original_ge_drive_pulse = copy.deepcopy(q0.parameters.ge_drive_pulse)
+        q0.update({"ge_drive_pulse.beta": 0.5})
+        assert q0.parameters.ge_drive_pulse["beta"] == 0.5
         assert (
-            q0.parameters.drive_parameters_ge["amplitude_pi2"]
-            == _original_drive_parameters_ge["amplitude_pi2"]
+            q0.parameters.ge_drive_pulse["function"]
+            == _original_ge_drive_pulse["function"]
         )
         assert (
-            q0.parameters.drive_parameters_ge["length"]
-            == _original_drive_parameters_ge["length"]
-        )
-        assert (
-            q0.parameters.drive_parameters_ge["pulse"]
-            == _original_drive_parameters_ge["pulse"]
+            q0.parameters.ge_drive_pulse["sigma"] == _original_ge_drive_pulse["sigma"]
         )
 
     def test_update_nonexisting_params(self, q0):
@@ -154,14 +152,14 @@ class TestTunableTransmonQubit:
         new_q0 = q0.replace(
             {
                 "readout_range_out": 10,
-                "readout_parameters": {"length": 10e-6},
-                "drive_parameters_ge.amplitude_pi": 0.1,
+                "readout_length": 10e-6,
+                "ge_drive_amplitude_pi": 0.1,
             },
         )
         assert id(new_q0) != id(q0)
         assert new_q0.parameters.readout_range_out == 10
-        assert new_q0.parameters.readout_parameters["length"] == 10e-6
-        assert new_q0.parameters.drive_parameters_ge["amplitude_pi"] == 0.1
+        assert new_q0.parameters.readout_length == 10e-6
+        assert new_q0.parameters.ge_drive_amplitude_pi == 0.1
 
     def test_replace_wrong_params(self, q0):
         with pytest.raises(ValueError) as exc_info:

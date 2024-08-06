@@ -36,65 +36,110 @@ if TYPE_CHECKING:
 @classformatter
 @dataclass
 class TunableTransmonQubitParameters(TransmonParameters):
-    """Qubit parameters for `TunableTransmonQubit` instances."""
+    """Qubit parameters for `TunableTransmonQubit` instances.
 
-    #: ge drive-pulse parameters
-    drive_parameters_ge: dict | None = field(
+    Attributes:
+        ge_drive_amplitude_pi:
+            Amplitude for a pi pulse on the g-e transition.
+        ge_drive_amplitude_pi2:
+            Amplitude for a half-pi pulse on the g-e transition.
+        ge_drive_length:
+            Length of g-e transition drive pulses (seconds).
+        ge_drive_pulse:
+            Pulse parameters for g-e transition drive pulses.
+
+        ef_drive_amplitude_pi:
+            Amplitude for a pi pulse on the e-f transition.
+        ef_drive_amplitude_pi2:
+            Amplitude for a half-pi pulse on the e-f transition.
+        ef_drive_length:
+            Length of e-f transition drive pulses (seconds).
+        ef_drive_pulse:
+            Pulse parameters for e-f transition drive pulses.
+
+        readout_amplitude:
+            Readout pulse amplitude.
+        readout_length:
+            Readout pulse length.
+        readout_pulse:
+            Pulse parameters for the readout pulse.
+        readout_integration_length:
+            Duration of the weighted integration.
+        readout_integration_kernels:
+            Either "default" or a list of pulse dictionaries.
+        readout_integration_discrimination_thresholds:
+            Either `None` or a list of thresholds.
+
+        reset_delay_length:
+            Duration of the wait time for reset.
+
+        spectroscopy_length:
+            Length of the qubit drive pulse in spectroscopy (seconds).
+        spectroscopy_amplitude:
+            Amplitude of the qubit drive pulse in spectroscopy.
+
+        dc_slot:
+            Slot number on the DC source used for applying a DC voltage to the qubit.
+        dc_voltage_parking:
+            Qubit DC parking voltage.
+    """
+
+    # g-e drive pulse parameters
+
+    ge_drive_amplitude_pi: float = 0.2
+    ge_drive_amplitude_pi2: float = 0.1
+    ge_drive_length: float = 50e-9
+    ge_drive_pulse: dict = field(
         default_factory=lambda: {
-            "amplitude_pi": 0.2,
-            "amplitude_pi2": 0.1,
-            "length": 50e-9,
-            "pulse": {"function": "drag", "beta": 0, "sigma": 0.25},
+            "function": "drag",
+            "beta": 0,
+            "sigma": 0.25,
         },
     )
-    #: ef drive-pulse parameters
-    drive_parameters_ef: dict | None = field(
+
+    # e-f drive pulse parameters
+
+    ef_drive_amplitude_pi: float = 0.2
+    ef_drive_amplitude_pi2: float = 0.1
+    ef_drive_length: float = 50e-9
+    ef_drive_pulse: dict = field(
         default_factory=lambda: {
-            "amplitude_pi": 0.2,
-            "amplitude_pi2": 0.1,
-            "length": 50e-9,
-            "pulse": {"function": "drag", "beta": 0, "sigma": 0.25},
+            "function": "drag",
+            "beta": 0,
+            "sigma": 0.25,
         },
     )
-    #: readout parameters
-    readout_parameters: dict | None = field(
+
+    # readout and integration parameters
+
+    # TODO: It would be nice to be able to change to the default const pulses
+    #       without losing any kernel pulse setting. Define a "kernels_type"?
+    # TODO: Use or remove discrimination thresholds.
+
+    readout_amplitude: float = 1.0
+    readout_length: float = 2e-6
+    readout_pulse: dict = field(
         default_factory=lambda: {
-            "amplitude": 1.0,
-            "length": 2e-6,
-            "pulse": {"function": "const"},
+            "function": "const",
         },
     )
-    #: integration parameters
-    readout_integration_parameters: dict | None = field(
-        default_factory=lambda: {
-            #: duration of the weighted integration
-            "length": 2e-6,
-            #: integration kernels, either "default" or list of pulse dictionaries
-            "kernels": "default",
-            # TODO: It would be nice to be able to change to the default const pulses
-            #       without losing any kernel pulse setting. Define a "kernels_type"?
-            #: discrimination integration thresholds, either None or list of float
-            "discrimination_thresholds": None,
-        },
-    )
-    #: Duration of the wait time after readout and for reset
+    readout_integration_length: float = 2e-6
+    readout_integration_kernels: str | list[dict] = "default"
+    readout_integration_discrimination_thresholds: list[float] | None = None
+
+    # reset parameters
+
     reset_delay_length: float | None = 1e-6
-    #: length of the qubit drive pulse in spectroscopy
-    spectroscopy_pulse_length: float | None = 5e-6
-    #: amplitude of the qubit drive pulse in spectroscopy
-    spectroscopy_amplitude: float | None = 1
-    #: slot number on the dc source used for applying a dc voltage to the qubit
-    dc_slot: int | None = 0
-    #: qubit dc parking voltage
-    dc_voltage_parking: float | None = 0.0
 
-    #: deprecated parameters still used by examples:
-    readout_amplitude: float | None = 0.1
-    readout_discrimination_thresholds: list | None = None
-    readout_integration_kernels: list | None = None
-    readout_integration_length: float | None = 1e-6
-    readout_pulse_length: float | None = 1e-6
-    readout_integration_kernels_type: str = "default"
+    # spectroscopy parameters
+
+    spectroscopy_length: float | None = 5e-6
+    spectroscopy_amplitude: float | None = 1
+
+    # flux parameters
+
+    dc_slot: int | None = 0
+    dc_voltage_parking: float | None = 0.0
 
     def _override(self, overrides: dict) -> None:
         invalid_params = self._get_invalid_param_paths(overrides)
@@ -180,10 +225,10 @@ class TunableTransmonQubit(Transmon):
                 `"ge"` or `"ef"`. `None` defaults to `"ge"`.
 
         Returns:
-            params:
-                The drive parameters for the transition.
             line:
                 The drive line for the transition.
+            params:
+                The drive parameters for the transition.
 
         Raises:
             ValueError:
@@ -196,21 +241,36 @@ class TunableTransmonQubit(Transmon):
                 f"Transition {transition!r} is not one of None, 'ge' or 'ef'.",
             )
         line = "drive" if transition == "ge" else "drive_ef"
-        params = getattr(self.parameters, f"drive_parameters_{transition}")
+
+        param_keys = ["amplitude_pi", "amplitude_pi2", "length", "pulse"]
+        params = {
+            k: getattr(self.parameters, f"{transition}_drive_{k}") for k in param_keys
+        }
+
         return line, params
+
+    def readout_parameters(self) -> dict:
+        """Return the readout parameters.
+
+        Returns:
+           params:
+               The readout parameters.
+        """
+        param_keys = ["amplitude", "length", "pulse", "integration_length"]
+        return {k: getattr(self.parameters, f"readout_{k}") for k in param_keys}
 
     def default_integration_kernels(self) -> list[Pulse]:
         """Return a default list of integration kernels.
 
         Returns:
             A list consisting of a single constant pulse with length equal to
-            `readout_integration_parameters.length`.
+            `readout_integration_length`.
         """
         return [
             create_pulse(
                 {
                     "function": "const",
-                    "length": self.parameters.readout_integration_parameters["length"],
+                    "length": self.parameters.readout_integration_length,
                     "amplitude": 1.0,
                 },
                 name=f"integration_kernel_{self.uid}",
@@ -227,17 +287,17 @@ class TunableTransmonQubit(Transmon):
             kernel_pulses:
                 Custom definitions for the kernel pulses. If present,
                 it replaces the values of the qubit parameter
-                `readout_integration_parameters.kernels`.
+                `readout_integration_kernels`.
 
         The special value `"default"` for either `kernel_pulses` or the
-        `readout_integration_parameters.kernels` parameter returns
+        `readout_integration_kernels` parameter returns
         the default kernels from `.default_integration_kernels()`.
 
         Returns:
             A list of integration kernel pulses.
         """
         if kernel_pulses is None:
-            kernel_pulses = self.parameters.readout_integration_parameters["kernels"]
+            kernel_pulses = self.parameters.readout_integration_kernels
 
         if kernel_pulses == "default":
             integration_kernels = self.default_integration_kernels()
@@ -276,7 +336,7 @@ class TunableTransmonQubit(Transmon):
             qubit = TunableTransmonQubit()
             parameters = {
                 "readout_range_out":10,
-                "drive_parameters_ge.length": 100e-9,
+                "ge_drive_length": 100e-9,
             }
             new_qubit = qubit.replace(parameters)
             ```
@@ -309,7 +369,7 @@ class TunableTransmonQubit(Transmon):
             qubit = TunableTransmonQubit()
             parameters = {
                 "readout_range_out":10,
-                "drive_parameters_ge.length": 100e-9,
+                "ge_drive_length": 100e-9,
             }
             qubit.update(parameters)
         """

@@ -189,30 +189,26 @@ def tunable_transmon_qubits(
             setup.logical_signal_groups[f"q{i}"],
             parameters=TunableTransmonQubitParameters(
                 # A pair of neighbor qubits share the same LO frequency
-                drive_lo_frequency=q_param(i//2, 1.5, 1e9, dq=0.1),
+                drive_lo_frequency=q_param(i // 2, 1.5, 1e9, dq=0.1),
                 resonance_frequency_ge=q_param(i, 1.6, 1e9),
                 resonance_frequency_ef=q_param(i, 1.7, 1e9),
                 readout_lo_frequency=2e9,
                 readout_resonator_frequency=q_param(i, 2.1, 1e9),
-                drive_parameters_ge={
-                    "amplitude_pi": q_param(i, 0.8),
-                    "amplitude_pi2": q_param(i, 0.4),
-                    "length": 51e-9,
-                    "pulse": {
-                        "function": "drag",
-                        "beta": 0.01,
-                        "sigma": 0.21,
-                    },
+                ge_drive_amplitude_pi=q_param(i, 0.8),
+                ge_drive_amplitude_pi2=q_param(i, 0.4),
+                ge_drive_length=51e-9,
+                ge_drive_pulse={
+                    "function": "drag",
+                    "beta": 0.01,
+                    "sigma": 0.21,
                 },
-                drive_parameters_ef={
-                    "amplitude_pi": q_param(i, 0.7),
-                    "amplitude_pi2": q_param(i, 0.3),
-                    "length": 52e-9,
-                    "pulse": {
-                        "function": "drag",
-                        "beta": 0.01,
-                        "sigma": 0.21,
-                    },
+                ef_drive_amplitude_pi=q_param(i, 0.7),
+                ef_drive_amplitude_pi2=q_param(i, 0.3),
+                ef_drive_length=52e-9,
+                ef_drive_pulse={
+                    "function": "drag",
+                    "beta": 0.01,
+                    "sigma": 0.21,
                 },
             ),
         )

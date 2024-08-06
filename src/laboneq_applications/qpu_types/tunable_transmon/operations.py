@@ -184,15 +184,14 @@ class TunableTransmonOperations(QuantumOperations):
 
                 If the string "default" is passed, a constant integration
                 kernel of length equal to the qubit's
-                `readout_integration_parameters.length` parameter is used.
+                `readout_integration_length` parameter is used.
 
                 If not specified or `None`, the kernels specified in the
-                qubit's `readout_integration_parameters.kernels` are used.
+                qubit's `readout_integration_kernels` are used.
         """
-        ro_params = q.parameters.readout_parameters
+        ro_params = q.readout_parameters()
         ro_pulse = create_pulse(ro_params["pulse"], readout_pulse, name="readout_pulse")
 
-        integration_params = q.parameters.readout_integration_parameters
         kernels = q.get_integration_kernels(kernel_pulses)
 
         dsl.measure(
@@ -203,7 +202,7 @@ class TunableTransmonOperations(QuantumOperations):
             handle=handle,
             acquire_signal=q.signals["acquire"],
             integration_kernel=kernels,
-            integration_length=integration_params["length"],
+            integration_length=ro_params["integration_length"],
             reset_delay=None,
         )
 
@@ -235,19 +234,19 @@ class TunableTransmonOperations(QuantumOperations):
 
                 If the string "default" is passed, a constant integration
                 kernel of length equal to the qubit's
-                `readout_integration_parameters.length` parameter is used.
+                `readout_integration_length` parameter is used.
 
                 If not specified or `None`, the kernels specified in the
-                qubit's `readout_integration_parameters.kernels` are used.
+                qubit's `readout_integration_kernels` are used.
         """
-        integration_params = q.parameters.readout_integration_parameters
+        ro_params = q.readout_parameters()
         kernels = q.get_integration_kernels(kernel_pulses)
 
         dsl.acquire(
             signal=q.signals["acquire"],
             handle=handle,
             kernel=kernels,
-            length=integration_params["length"],
+            length=ro_params["integration_length"],
         )
 
     @quantum_operation

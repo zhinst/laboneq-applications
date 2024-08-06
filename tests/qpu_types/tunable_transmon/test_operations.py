@@ -716,8 +716,8 @@ class TestTunableTransmonOperations:
         my_qubit: TunableTransmonQubit = copy.deepcopy(q0)
         my_qubit.update(
             {
-                "drive_parameters_ge.amplitude_pi": 4,
-                "drive_parameters_ge.amplitude_pi2": pi2,
+                "ge_drive_amplitude_pi": 4,
+                "ge_drive_amplitude_pi2": pi2,
             },
         )
         for angle in np.linspace(0, 1, 9):
