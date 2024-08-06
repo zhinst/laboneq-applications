@@ -11,5 +11,6 @@ of the page.
 
 <!--nav-->
 
+* [Building a workflow](sources/build_workflow.ipynb)
 * [Building a taskbook](sources/build_taskbook.ipynb)
 * [Using options](sources/options.ipynb)
