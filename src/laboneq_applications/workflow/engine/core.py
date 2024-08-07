@@ -89,6 +89,13 @@ class _ResultCollector:
 Parameters = ParamSpec("Parameters")
 
 
+class WorkflowRecovery:
+    """A layer of indirection for storing workflow recovery results."""
+
+    def __init__(self):
+        self.results = None
+
+
 class Workflow(Generic[Parameters]):
     """Workflow for task execution.
 
@@ -97,7 +104,6 @@ class Workflow(Generic[Parameters]):
         **parameters: Parameters of the graph.
     """
 
-    # TODO: Should Workflow be serializable?
     def __init__(
         self,
         graph: WorkflowGraph,
@@ -106,6 +112,9 @@ class Workflow(Generic[Parameters]):
         self._graph = graph
         self._graph.validate_input(**parameters)
         self._input = parameters
+        self._recovery = (
+            None  # WorkflowRecovery (unused if left as None, set by WorkflowBuilder)
+        )
 
     @classmethod
     def from_callable(cls, func: Callable, *args: object, **kwargs: object) -> Workflow:
@@ -160,7 +169,12 @@ class Workflow(Generic[Parameters]):
         collector = _ResultCollector(results)
         state.set_result_callback(collector)
         with ExecutorStateContext.scoped(state):
-            self._graph.execute(state, **self._input)
+            try:
+                self._graph.execute(state, **self._input)
+            except Exception:
+                if self._recovery is not None:
+                    self._recovery.results = results
+                raise
         return results
 
 
@@ -175,6 +189,7 @@ class WorkflowBuilder(Generic[Parameters]):
 
     def __init__(self, func: Callable[Parameters]) -> None:
         self._func = func
+        self._recovery = WorkflowRecovery()
         if "options" in inspect.signature(func).parameters:
             opt_type = get_and_validate_param_type(
                 func,
@@ -191,12 +206,36 @@ class WorkflowBuilder(Generic[Parameters]):
         src = inspect.getsource(self._func)
         return textwrap.dedent(src)
 
+    def recover(self) -> WorkflowResult:
+        """Recover the result of the last run to raise an exception.
+
+        Returns the result of the last failed run of a workflow created from
+        this workflow builder. In no run has failed, an exception is raised.
+
+        After a result is recovered, the result is cleared and further calls
+        to `.recover` will raise an exception.
+
+        Returns:
+            Latest workflow that raised an exception.
+
+        Raises:
+            WorkflowError:
+                Raised if no previous run failed.
+        """
+        if self._recovery.results is None:
+            raise exceptions.WorkflowError("Workflow has no result to recover.")
+        result = self._recovery.results
+        self._recovery.results = None
+        return result
+
     def __call__(  #  noqa: D102
         self,
         *args: Parameters.args,
         **kwargs: Parameters.kwargs,
     ) -> Workflow[Parameters]:
-        return Workflow.from_callable(self._func, *args, **kwargs)
+        wf = Workflow.from_callable(self._func, *args, **kwargs)
+        wf._recovery = self._recovery
+        return wf
 
 
 def workflow(func: Callable[Parameters]) -> WorkflowBuilder[Parameters]:

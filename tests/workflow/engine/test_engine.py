@@ -88,6 +88,29 @@ class TestWorkflow:
         wf.run()
         assert mock_obj.call_count == 3
 
+    def test_recover(self):
+        @workflow
+        def wf():
+            addition(1, 1)
+            addition(None, 2)
+
+        with pytest.raises(exceptions.WorkflowError) as err:
+            wf.recover()
+        assert str(err.value) == "Workflow has no result to recover."
+
+        with pytest.raises(TypeError) as err:
+            wf().run()
+
+        result = wf.recover()
+        [task] = result.tasks
+        assert task.name == "addition"
+        assert task.output == 2
+
+        # check that the recovered result is removed:
+        with pytest.raises(exceptions.WorkflowError) as err:
+            wf.recover()
+        assert str(err.value) == "Workflow has no result to recover."
+
 
 class TestMultipleTasks:
     def test_each_call_produces_task(self):
@@ -308,7 +331,8 @@ class TestWorkFlowDecorator:
                 addition(res, 1)
             addition(res, 1)
 
-        assert my_wf.src == textwrap.dedent("""\
+        assert my_wf.src == textwrap.dedent(
+            """\
             @workflow
             def my_wf(x: int):
                 res = 1
@@ -317,7 +341,8 @@ class TestWorkFlowDecorator:
                 with if_(x):
                     addition(res, 1)
                 addition(res, 1)
-        """)
+        """,
+        )
 
 
 class TestReturnStatement:

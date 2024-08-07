@@ -721,3 +721,38 @@ plot_simulation(
     length=50e-6,
 )
 ```
+
+### Inspect results after an error
+
+If an error occurs during the execution of `amplitude_rabi`, we can inspect the tasks that have run up to the task that produced the error using `recover()`. This is particularly useful to inspect the experiment pulse sequence in case of a compilation or measurement error.
+
+Let's introduce a compilation error by sweeping the ampltude to values larger than 1, which is not allowed.
+
+```{code-cell} ipython3
+qop = TunableTransmonOperations()
+amplitudes = np.linspace(0.0, 1.5, 10)
+options = amplitude_rabi.options()
+options.create_experiment.count = 10
+
+# here we catch the exception such that the notebook runs through
+try:
+    rabi_tb = amplitude_rabi.experiment_workflow(
+        session,
+        qpu,
+        qubits[0],
+        amplitudes,
+        options=options,
+    ).run()
+except Exception as e:
+    print("ERROR: ", e)
+```
+
+```{code-cell} ipython3
+result = amplitude_rabi.experiment_workflow.recover()
+result
+```
+
+```{code-cell} ipython3
+# inspect the experiment section tree
+print(result.tasks["create_experiment"].output)
+```
