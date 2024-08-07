@@ -1,6 +1,6 @@
 """LabOneQ Application Library provides some utilities to verify the experiments.
 
-The `CompiledExperimentVerifier` class is used to verify the taskbook results.
+The `CompiledExperimentVerifier` class is used to verify the workflow results.
 It provides methods to assert the number of pulses and pulse attributes such as
 pulse timing and pulse parameterization.
 

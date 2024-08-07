@@ -6,15 +6,15 @@ import pytest
 from pydantic import ValidationError
 
 from laboneq_applications.workflow.options import (
-    TaskBookOptions,
+    WorkflowOptions,
     get_and_validate_param_type,
 )
 
 
-class A(TaskBookOptions): ...
+class A(WorkflowOptions): ...
 
 
-class AA(TaskBookOptions): ...
+class AA(WorkflowOptions): ...
 
 
 class B: ...
@@ -39,11 +39,11 @@ def y(a: int, options: str): ...
 def z(a: int, options: T | None = None): ...
 
 
-# attempt to use taskbook options in a wrong way
-# when one of the types is TaskBookOptions, the option type should
+# attempt to use workflow options in a wrong way
+# when one of the types is WorkflowOptions, the option type should
 # conform to A | None, Optional[A], or Union[A, None]
 def nodefault(a: int, options: A | None): ...
-def aa(a: int, options: AA | A = None): ...  # both AA and A are TaskBookOptions
+def aa(a: int, options: AA | A = None): ...  # both AA and A are WorkflowOptions
 def x(a: int, options: A): ...
 def neg_g(a: int, options: Union[A, B, None] = None): ...  # noqa: UP007
 def neg_g2(a: int, options: Union[A, B] = None): ...  # noqa: UP007
@@ -63,35 +63,33 @@ class TestGetOptType:
         assert get_and_validate_param_type(y) is None
         assert get_and_validate_param_type(z) is None
 
-    def test_attempt_to_use_taskbook_options_wrong(self):
+    def test_attempt_to_use_workflow_options_wrong(self):
         for fn in (nodefault, aa, x, neg_g, neg_g2, r):
             pytest.raises(TypeError, get_and_validate_param_type, fn)
 
 
-class TestTaskBookOptions:
+class TestWorkflowOptions:
     def test_create_opt(self):
-        class A(TaskBookOptions):
+        class A(WorkflowOptions):
             alice: int = 1
 
         a = A()
         assert a.alice == 1
-        assert a.run_until is None
 
         # option attributes can be updated
         a.alice = 2
         assert a.alice == 2
 
     def test_create_nested(self):
-        class Nested(TaskBookOptions):
+        class Nested(WorkflowOptions):
             bob: int = 1
 
-        class A(TaskBookOptions):
+        class A(WorkflowOptions):
             alice: int = 1
             nested: Nested = Nested()
 
         a = A()
         assert a.alice == 1
-        assert a.run_until is None
         assert isinstance(a.nested, Nested)
         assert a.nested.bob == 1
         # option attributes can be updated
@@ -103,4 +101,4 @@ class TestTaskBookOptions:
     def test_validate_options(self):
         # Initialize option with non-existing attributes will raises error
         with pytest.raises(ValidationError):
-            TaskBookOptions(non_existing=1)
+            WorkflowOptions(non_existing=1)

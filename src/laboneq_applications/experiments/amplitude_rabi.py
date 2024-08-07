@@ -68,7 +68,7 @@ def experiment_workflow(
             it must be a list of lists of numbers or arrays.
         options:
             The options for building the workflow.
-            In addition to options from [TaskBookOptions], the following
+            In addition to options from [WorkflowOptions], the following
             custom options are supported:
                 - create_experiment: The options for creating the experiment.
 

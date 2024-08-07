@@ -43,32 +43,25 @@ The three main building blocks are:
   provides specific tasks for simple experiments and the associated analysis (e.g.
   Rabi).
 
-* **Taskbooks**:
-  A `taskbook` is an ordinary Python function that calls tasks. When a task is called
-  inside a task book function, the inputs and outputs of the tasks are automatically
-  saved. The task book also provides the tasks inside it with their options,
-  allowing you to control the details of task behaviour at run time. 
-
-This guide will introduce you to these three building blocks.
-
-There are two more building blocks that are not part of the beta release:
-
-* **LogbookStore**:
-  The logbook store defines where a `taskbook` function will store the inputs and
-  results of its tasks. For example, in a folder on disk. The store may also be
-  used to retreive data and to store your own data.
-
 * **Workflow**:
-  A `Workflow` is similar to a `Taskbook` in that it contains a set of tasks to be run and
-  supplies the tasks their options and saves their inputs and outputs. However, while a
-  `TaskBook` is an ordinary Python function, a `Workflow` is not.
-
+  A `Workflow` contains a set of tasks to be run and supplies the tasks their options and saves their inputs and outputs. 
   When run, a `Workflow` function builds a graph of tasks that will be executed later.
   This graph may be inspected and extended.
   The graph of tasks is not executed directly by Python, but by a workflow engine
   provided by the library.
 
-The `LogbookStore` and `Workflow` will not be covered here.
+This guide will introduce you to these three building blocks.
+
+There is one more building blocks that is not ready yet:
+
+* **LogbookStore**:
+  The logbook store defines where a `Workflow` function will store the inputs and
+  results of its tasks. For example, in a folder on disk. The store may also be
+  used to retreive data and to store your own data.
+
+
+
+The `LogbookStore` will not be covered here.
 
 +++
 
@@ -89,7 +82,7 @@ qpu = demo_qpu(n_qubits=1)
 # setup is an ordinary LabOne Q DeviceSetup:
 setup = qpu.setup
 
-# qubits is a list of one signle LabOne Q Application Library TunableTransmonQubit qubit:
+# qubits is a list of one single LabOne Q Application Library TunableTransmonQubit qubit:
 qubits = qpu.qubits
 ```
 
@@ -172,7 +165,7 @@ and break down the code line by line:
 
 +++
 
-To build the experiment we need some qubits and a set of quantum operations. Let's use the `TunableTransmonOperations` provided by the applications library and the qubit we defiend earlier:
+To build the experiment we need some qubits and a set of quantum operations. Let's use the `TunableTransmonOperations` provided by the applications library and the qubit we defined earlier:
 
 ```{code-cell} ipython3
 qop = TunableTransmonOperations()
@@ -210,7 +203,7 @@ In our case, that's the `TunableTransmonQubit`:
 qop.QUBIT_TYPES
 ```
 
-The `BASE_OPS` is an implementation detail -- they contain the original defintions of the quantum operations. We will ignore it for now except to mention that individual quantum operations can be overridden with alternative implementations if required.
+The `BASE_OPS` is an implementation detail -- they contain the original definitions of the quantum operations. We will ignore it for now except to mention that individual quantum operations can be overridden with alternative implementations if required.
 
 The remainder of the items in the list are the quantum operations themselves.
 
@@ -493,9 +486,9 @@ result.cal_trace.q0.g
 result.cal_trace.q0.e
 ```
 
-Each of `create_experiment`, `compile_experiment` and `run_experiment` is a task. They are ordinary Python functions, but they provide some special hooks so that they can be incorporate into taskbooks and workflows later.
+Each of `create_experiment`, `compile_experiment` and `run_experiment` is a task. They are ordinary Python functions, but they provide some special hooks so that they can be incorporate into workflows later.
 
-Like quantum operations, they can be inspected. Let's insepct the source code of the `create_experiment` task of the rabi to see how the rabi experiment is created. You can inspect the source code of any task.
+Like quantum operations, they can be inspected. Let's inspect the source code of the `create_experiment` task of the rabi to see how the rabi experiment is created. You can inspect the source code of any task.
 
 ```{code-cell} ipython3
 # docstring
@@ -605,30 +598,30 @@ result.cal_trace["q0"]["e"]
 
 At the moment tasks don't provide much beyond encouraging some structure. Encouraging structure is valuable, but the motivation behind tasks is what's to come:
 
-* Being able to produce a well-organized experiment record when tasks are used in taskbooks and workflows.
+* Being able to produce a well-organised experiment record when tasks are used in workflows.
 * Being able to supply global options to tasks in a structure way.
 * Being able to build complex dynamic workflows that can execute tasks conditionally and dynamically add tasks.
 
 +++
 
-## Experiments as Taskbooks
+## Experiments as Workflows
 
 +++
 
-A `Taskbook` is a collection of logically connected `Tasks` whose inputs and outputs depend on each other. We use `Taskbooks` to implement experiments. Experiment taskbooks have a few standard tasks:
+A `Workflow` is a collection of logically connected `Tasks` whose inputs and outputs depend on each other. We use `Workflows` to implement experiments. Experiment Workflows have a few standard tasks:
 
 - `create_experiment` for creating the experimental pulse sequence
 - `compile_experiment` for compiling the `Experiment` returned by `create_experiment`
 - `run_experiment` for running the `CompiledExperiment` returned by `compile_experiment`
 
-Let's see what the experiment `Taskbook` looks like for the amplitude Rabi.
+Let's see what the experiment `Workflow` looks like for the amplitude Rabi.
 
 ```{code-cell} ipython3
 from laboneq_applications.experiments import amplitude_rabi
 from laboneq_applications.qpu_types.tunable_transmon import TunableTransmonOperations
 ```
 
-Inspect the source code of the `amplitude_rabi.run` `TaskBook` to see what tasks it has.
+Inspect the source code of the `amplitude_rabi` `Workflow` to see what tasks it has.
 
 ```{code-cell} ipython3
 print(amplitude_rabi.experiment_workflow.src)
@@ -651,17 +644,17 @@ rabi_tb = amplitude_rabi.experiment_workflow(
 )
 ```
 
-### Inspect the experiment TaskBook
+### Inspect the experiment Workflow
 
 +++
 
-Inspect the input parameters to the `amplitude_rabi.run` `Taskbook`
+Inspect the input parameters to the `amplitude_rabi` `Workflow`
 
 ```{code-cell} ipython3
 rabi_tb.input
 ```
 
-Inspect the tasks inside the taskbook
+Inspect the tasks inside the Workflow
 
 ```{code-cell} ipython3
 result = rabi_tb.run()
@@ -681,7 +674,7 @@ print(result.tasks["create_experiment"].output)
 # alternatively, print(result.tasks[0].output)
 ```
 
-Inspect the LabOne Q CompiledExperiment object returend by `compile_experiment`
+Inspect the LabOne Q CompiledExperiment object returned by `compile_experiment`
 
 ```{code-cell} ipython3
 print(result.tasks["compile_experiment"].output)

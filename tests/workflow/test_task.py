@@ -75,7 +75,7 @@ class TestTaskDecorator:
 
 
 class TestTaskOptions:
-    """Test tasks called with options outside of taskbook."""
+    """Test tasks called with options outside of workflow."""
 
     def test_task_options(self):
         @task

@@ -3,7 +3,7 @@
 Here, to test the ExperimentVerifier class, we need a sample L1Q experiment that
 has been compiled.
 
-This can be obtained from a saved taskbook result.
+This can be obtained from a saved workflow result.
 
 However, this way of testing is very fragile, as L1Q deserialization is not guaranteed
 to be stable across different versions.
@@ -13,7 +13,7 @@ parts belonging to the library itself (local) rather than the
 L1Q (global).
 
 To this end, we create a compiled experiment using a well-tested and presumably
-stable taskbook amplitude_rabi.
+stable workflow amplitude_rabi.
 """
 
 import numpy as np
