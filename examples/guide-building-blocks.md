@@ -749,3 +749,58 @@ result
 # inspect the experiment section tree
 print(result.tasks["create_experiment"].output)
 ```
+
+### Run experiment workflow using qubits with temporarily modified parameters
+
+It is possible to run an experiment workflow using qubits with temporarily modified parameters. This is useful for testing or debugging purposes.
+
+To do this, we first clone the qubits from the original qubits and modify the parameters of the cloned qubits.
+The experiment workflow is then run using the cloned qubits.
+
+Let's run the amplitude Rabi experiment workflow with a new set of qubits with modified parameters.
+
+```{code-cell} ipython3
+temp_qubits = qpu.copy_qubits()
+temp_qubits[0].parameters.ge_drive_length = 1000e-9  # 51ns in the original qubits
+
+result_unmodified = amplitude_rabi.experiment_workflow(
+    session,
+    qpu,
+    qubits[0],  # pass original qubits
+    [0.1,0.2],
+    options=options,
+).run()
+
+result_modified = amplitude_rabi.experiment_workflow(
+    session,
+    qpu,
+    temp_qubits[0],  # pass temporary qubits
+    [0.1,0.2],
+    options=options,
+).run()
+```
+
+```{code-cell} ipython3
+# compare the two pulse sequences
+from laboneq.contrib.example_helpers.plotting.plot_helpers import plot_simulation
+
+plot_simulation(
+    result_unmodified.tasks["compile_experiment"].output,
+    signal_names_to_show=["drive"],
+    start_time=0,
+    length=5e-6,
+)
+```
+
+```{code-cell} ipython3
+plot_simulation(
+    result_modified.tasks["compile_experiment"].output,
+    signal_names_to_show=["drive", "measure"],
+    start_time=0,
+    length=5e-6,
+)
+```
+
+```{code-cell} ipython3
+
+```
