@@ -3,6 +3,6 @@
 Each sub-module supports a different kind of quantum device.
 """
 
-__all__ = ["QPU"]
+__all__ = ["QPU", "QuantumPlatform"]
 
-from .qpu import QPU
+from .qpu import QPU, QuantumPlatform

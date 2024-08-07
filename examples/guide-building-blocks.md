@@ -72,17 +72,20 @@ Build your LabOne Q `DeviceSetup`, qubits and `Session` as normal. Here we impor
 ```{code-cell} ipython3
 from laboneq.simple import *
 
-from laboneq_applications.qpu_types.tunable_transmon import demo_qpu
+from laboneq_applications.qpu_types.tunable_transmon import demo_platform
 ```
 
 ```{code-cell} ipython3
-# Create a demonstration tunable transmon QPU:
-qpu = demo_qpu(n_qubits=1)
+# Create a demonstration QuantumPlatform for a tunable-transmon QPU:
+qt_platform = demo_platform(n_qubits=6)
 
-# setup is an ordinary LabOne Q DeviceSetup:
-setup = qpu.setup
+# The platofrm contains a setup, which is an ordinary LabOne Q DeviceSetup:
+setup = qt_platform.setup
 
-# qubits is a list of one single LabOne Q Application Library TunableTransmonQubit qubit:
+# And a tunable-transmon QPU:
+qpu = qt_platform.qpu
+
+# Inside the QPU, we have qubits, which is a list of six LabOne Q Application Library TunableTransmonQubit qubits:
 qubits = qpu.qubits
 ```
 

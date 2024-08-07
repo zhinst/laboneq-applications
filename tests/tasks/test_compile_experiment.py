@@ -8,8 +8,8 @@ from laboneq_applications.workflow.engine import workflow
 
 
 @pytest.fixture()
-def simple_experiment(single_tunable_transmon):
-    device_setup = single_tunable_transmon.setup
+def simple_experiment(single_tunable_transmon_platform):
+    device_setup = single_tunable_transmon_platform.setup
 
     exp = Experiment(
         signals=[
@@ -29,24 +29,30 @@ def simple_experiment(single_tunable_transmon):
     return exp
 
 
-def test_compile_experiment_standalone(simple_experiment, single_tunable_transmon):
+def test_compile_experiment_standalone(
+    simple_experiment,
+    single_tunable_transmon_platform,
+):
     """Test that the compile_experiment task compiles the experiment in the session when
     called directly."""
     compiled_exp = compile_experiment(
-        session=single_tunable_transmon.session(do_emulation=True),
+        session=single_tunable_transmon_platform.session(do_emulation=True),
         experiment=simple_experiment,
     )
     assert compiled_exp.scheduled_experiment is not None
 
 
-def test_compile_experiment_as_task(simple_experiment, single_tunable_transmon):
+def test_compile_experiment_as_task(
+    simple_experiment,
+    single_tunable_transmon_platform,
+):
     """Test that the compile_experiment task compiles the experiment in the session when
     called as a task."""
 
     @workflow
     def wf():
         compile_experiment(
-            session=single_tunable_transmon.session(do_emulation=True),
+            session=single_tunable_transmon_platform.session(do_emulation=True),
             experiment=simple_experiment,
         )
 

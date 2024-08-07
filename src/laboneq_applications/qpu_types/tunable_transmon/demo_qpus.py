@@ -5,7 +5,7 @@ from laboneq.dsl.device import DeviceSetup, create_connection
 from laboneq.dsl.device.instruments import HDAWG, PQSC, SHFQC
 from laboneq.dsl.enums import ModulationType
 
-from laboneq_applications.qpu_types import QPU
+from laboneq_applications.qpu_types import QPU, QuantumPlatform
 
 from .operations import TunableTransmonOperations
 from .qubit_types import (
@@ -14,7 +14,7 @@ from .qubit_types import (
 )
 
 
-def demo_qpu(n_qubits: int) -> QPU:
+def demo_platform(n_qubits: int) -> QuantumPlatform:
     """Return a demo tunable transmon QPU with the specified number of qubits.
 
     The returned setup consists of:
@@ -37,7 +37,9 @@ def demo_qpu(n_qubits: int) -> QPU:
     """
     setup = tunable_transmon_setup(n_qubits)
     qubits = tunable_transmon_qubits(n_qubits, setup)
-    return QPU(setup, qubits, TunableTransmonOperations())
+    qop = TunableTransmonOperations()
+    qpu = QPU(qubits=qubits, qop=qop)
+    return QuantumPlatform(setup=setup, qpu=qpu)
 
 
 def tunable_transmon_setup(n_qubits: int) -> DeviceSetup:

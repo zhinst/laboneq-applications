@@ -34,21 +34,19 @@ from laboneq_applications.testing import CompiledExperimentVerifier
 
 # For new experiments: replace rabi with the name of the new experiment
 def create_rabi_verifier(
-    tunable_transmons,
-    amplitudes,  # For new experiments: replace with the name of your sweep points
+    tunable_transmon_platform,
+    amplitudes,
     count,
     transition,  # For new experiments: use if relevant, or remove
     use_cal_traces,  # For new experiments: use if relevant, or remove
     # For new experiments: add more arguments here if needed
 ):
     """Create a CompiledExperimentVerifier for the amplitude rabi experiment."""
-    qubits = tunable_transmons.qubits
+    qubits = tunable_transmon_platform.qpu.qubits
     if len(qubits) == 1:
         qubits = qubits[0]
-    session = tunable_transmons.session(do_emulation=True)
-    options = (
-        amplitude_rabi.options()
-    )  # For new experiments: use the correct experiment name
+    session = tunable_transmon_platform.session(do_emulation=True)
+    options = amplitude_rabi.options()
     options.create_experiment.count = count
     # For new experiments: use the lines below or remove if not needed, and add
     # new ones for any additional input parameters you might have added
@@ -59,8 +57,8 @@ def create_rabi_verifier(
     res = amplitude_rabi.experiment_workflow(
         session=session,
         qubits=qubits,
-        qpu=tunable_transmons,
-        amplitudes=amplitudes,  # For new experiments: use the correct sweep points name
+        qpu=tunable_transmon_platform.qpu,
+        amplitudes=amplitudes,
         options=options,
     ).run()
     return CompiledExperimentVerifier(res.tasks["compile_experiment"].output)
@@ -97,8 +95,8 @@ def create_rabi_verifier(
 class TestAmplitudeRabiSingleQubit:
     def test_pulse_count_drive(
         self,
-        single_tunable_transmon,
-        amplitudes,  # For new experiments: replace with the name of your sweep points
+        single_tunable_transmon_platform,
+        amplitudes,
         count,
         transition,  # For new experiments: use if relevant, or remove
         use_cal_traces,  # For new experiments: use if relevant, or remove
@@ -113,8 +111,8 @@ class TestAmplitudeRabiSingleQubit:
         # create a verifier for the experiment
         # For new experiments: replace rabi with the name of your experiment
         verifier = create_rabi_verifier(
-            single_tunable_transmon,
-            amplitudes,  # For new experiments: replace with name of your sweep points
+            single_tunable_transmon_platform,
+            amplitudes,
             count,
             transition,  # For new experiments: use if relevant, or remove
             use_cal_traces,  # For new experiments: use if relevant, or remove
@@ -142,8 +140,8 @@ class TestAmplitudeRabiSingleQubit:
 
     def test_pulse_count_measure_acquire(
         self,
-        single_tunable_transmon,
-        amplitudes,  # For new experiments: replace with the name for your sweep points
+        single_tunable_transmon_platform,
+        amplitudes,
         count,
         transition,  # For new experiments: use if relevant, or remove
         use_cal_traces,  # For new experiments: use if relevant, or remove
@@ -152,8 +150,8 @@ class TestAmplitudeRabiSingleQubit:
         """Test the number of measure and acquire pulses."""
         # For new experiments: replace rabi with the name of your experiment
         verifier = create_rabi_verifier(
-            single_tunable_transmon,
-            amplitudes,  # For new experiments: replace with name of your sweep points
+            single_tunable_transmon_platform,
+            amplitudes,
             count,
             transition,  # For new experiments: use if relevant, or remove
             use_cal_traces,  # For new experiments: use if relevant, or remove
@@ -175,8 +173,8 @@ class TestAmplitudeRabiSingleQubit:
 
     def test_pulse_drive(
         self,
-        single_tunable_transmon,
-        amplitudes,  # For new experiments: replace with the name for your sweep points
+        single_tunable_transmon_platform,
+        amplitudes,
         count,
         transition,  # For new experiments: use if relevant, or remove
         use_cal_traces,  # For new experiments: use if relevant, or remove
@@ -195,8 +193,8 @@ class TestAmplitudeRabiSingleQubit:
 
         # For new experiments: replace rabi with the name of your experiment
         verifier = create_rabi_verifier(
-            single_tunable_transmon,
-            amplitudes,  # For new experiments: replace with name of your sweep points
+            single_tunable_transmon_platform,
+            amplitudes,
             count,
             transition,  # For new experiments: use if relevant, or remove
             use_cal_traces,  # For new experiments: use if relevant, or remove
@@ -233,8 +231,8 @@ class TestAmplitudeRabiSingleQubit:
 
     def test_pulse_measure(
         self,
-        single_tunable_transmon,
-        amplitudes,  # For new experiments: replace with the name for your sweep points
+        single_tunable_transmon_platform,
+        amplitudes,
         count,
         transition,  # For new experiments: use if relevant, or remove
         use_cal_traces,  # For new experiments: use if relevant, or remove
@@ -247,8 +245,8 @@ class TestAmplitudeRabiSingleQubit:
         """
         # For new experiments: replace rabi with the name of your experiment
         verifier = create_rabi_verifier(
-            single_tunable_transmon,
-            amplitudes,  # For new experiments: replace with name of your sweep points
+            single_tunable_transmon_platform,
+            amplitudes,
             count,
             transition,  # For new experiments: use if relevant, or remove
             use_cal_traces,  # For new experiments: use if relevant, or remove
@@ -312,8 +310,8 @@ class TestAmplitudeRabiSingleQubit:
 class TestAmplitudeRabiTwoQubits:
     def test_pulse_count_drive(
         self,
-        two_tunable_transmon,
-        amplitudes,  # For new experiments: replace with the name for your sweep points
+        two_tunable_transmon_platform,
+        amplitudes,
         count,
         transition,  # For new experiments: use if relevant, or remove
         use_cal_traces,  # For new experiments: use if relevant, or remove
@@ -328,8 +326,8 @@ class TestAmplitudeRabiTwoQubits:
         # create a verifier for the experiment
         # For new experiments: replace rabi with the name of your experiment
         verifier = create_rabi_verifier(
-            two_tunable_transmon,
-            amplitudes,  # For new experiments: replace with name of your sweep points
+            two_tunable_transmon_platform,
+            amplitudes,
             count,
             transition,  # For new experiments: use if relevant, or remove
             use_cal_traces,  # For new experiments: use if relevant, or remove
@@ -375,8 +373,8 @@ class TestAmplitudeRabiTwoQubits:
 
     def test_pulse_count_measure_acquire(
         self,
-        two_tunable_transmon,
-        amplitudes,  # For new experiments: replace with the name for your sweep points
+        two_tunable_transmon_platform,
+        amplitudes,
         count,
         transition,  # For new experiments: use if relevant, or remove
         use_cal_traces,  # For new experiments: use if relevant, or remove
@@ -385,8 +383,8 @@ class TestAmplitudeRabiTwoQubits:
         """Test the number of measure and acquire pulses."""
         # For new experiments: replace rabi with the name of your experiment
         verifier = create_rabi_verifier(
-            two_tunable_transmon,
-            amplitudes,  # For new experiments: replace with name of your sweep points
+            two_tunable_transmon_platform,
+            amplitudes,
             count,
             transition,  # For new experiments: use if relevant, or remove
             use_cal_traces,  # For new experiments: use if relevant, or remove
@@ -421,8 +419,8 @@ class TestAmplitudeRabiTwoQubits:
 
     def test_pulse_drive(
         self,
-        two_tunable_transmon,
-        amplitudes,  # For new experiments: replace with the name for your sweep points
+        two_tunable_transmon_platform,
+        amplitudes,
         count,
         transition,  # For new experiments: use if relevant, or remove
         use_cal_traces,  # For new experiments: use if relevant, or remove
@@ -441,8 +439,8 @@ class TestAmplitudeRabiTwoQubits:
 
         # For new experiments: replace rabi with the name of your experiment
         verifier = create_rabi_verifier(
-            two_tunable_transmon,
-            amplitudes,  # For new experiments: replace with name of your sweep points
+            two_tunable_transmon_platform,
+            amplitudes,
             count,
             transition,  # For new experiments: use if relevant, or remove
             use_cal_traces,  # For new experiments: use if relevant, or remove
@@ -495,8 +493,8 @@ class TestAmplitudeRabiTwoQubits:
 
     def test_pulse_measure(
         self,
-        two_tunable_transmon,
-        amplitudes,  # For new experiments: replace with the name for your sweep points
+        two_tunable_transmon_platform,
+        amplitudes,
         count,
         transition,  # For new experiments: use if relevant, or remove
         use_cal_traces,  # For new experiments: use if relevant, or remove
@@ -509,8 +507,8 @@ class TestAmplitudeRabiTwoQubits:
         """
         # For new experiments: replace rabi with the name of your experiment
         verifier = create_rabi_verifier(
-            two_tunable_transmon,
-            amplitudes,  # For new experiments: replace with name of your sweep points
+            two_tunable_transmon_platform,
+            amplitudes,
             count,
             transition,  # For new experiments: use if relevant, or remove
             use_cal_traces,  # For new experiments: use if relevant, or remove

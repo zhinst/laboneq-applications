@@ -2,13 +2,13 @@
 
 __all__ = [
     "reset_uids",  # autouse fixture
-    "single_tunable_transmon",  # fixture
-    "two_tunable_transmon",  # fixture
+    "single_tunable_transmon_platform",  # fixture
+    "two_tunable_transmon_platform",  # fixture
 ]
 
 from tests.helpers.demo_qpus import (
-    single_tunable_transmon,
-    two_tunable_transmon,
+    single_tunable_transmon_platform,
+    two_tunable_transmon_platform,
 )
 from tests.helpers.dsl import ExpectedDSLStructure, reset_uids
 

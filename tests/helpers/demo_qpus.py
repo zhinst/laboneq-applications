@@ -2,17 +2,17 @@
 
 import pytest
 
-from laboneq_applications.qpu_types.qpu import QPU
-from laboneq_applications.qpu_types.tunable_transmon import demo_qpu
+from laboneq_applications.qpu_types.qpu import QuantumPlatform
+from laboneq_applications.qpu_types.tunable_transmon import demo_platform
 
 
 @pytest.fixture()
-def single_tunable_transmon() -> QPU:
+def single_tunable_transmon_platform() -> QuantumPlatform:
     """Return a single tunable transmon device setup and its qubits."""
-    return demo_qpu(1)
+    return demo_platform(1)
 
 
 @pytest.fixture()
-def two_tunable_transmon() -> QPU:
+def two_tunable_transmon_platform() -> QuantumPlatform:
     """Return a single tunable transmon device setup and its qubits."""
-    return demo_qpu(2)
+    return demo_platform(2)

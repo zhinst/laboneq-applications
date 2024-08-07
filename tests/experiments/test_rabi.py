@@ -158,17 +158,17 @@ def reference_rabi_exp(qubits, count, amplitudes, transition):
     return exp
 
 
-class TestTaskbook:
-    def test_create_and_run(self, single_tunable_transmon):
-        [q0] = single_tunable_transmon.qubits
+class TestWorkflow:
+    def test_create_and_run(self, single_tunable_transmon_platform):
+        [q0] = single_tunable_transmon_platform.qpu.qubits
         amplitudes = [0.1, 0.2]
         options = amplitude_rabi.options()
         options.create_experiment.count = 10
         options.create_experiment.transition = "ge"
 
         result = amplitude_rabi.experiment_workflow(
-            session=single_tunable_transmon.session(do_emulation=True),
-            qpu=single_tunable_transmon,
+            session=single_tunable_transmon_platform.session(do_emulation=True),
+            qpu=single_tunable_transmon_platform.qpu,
             qubits=q0,
             amplitudes=amplitudes,
             options=options,
@@ -193,16 +193,16 @@ class TestTaskbook:
         traces = exp_result.cal_trace.q0
         assert len(traces) == 2
 
-    def test_create_and_run_two_qubits(self, two_tunable_transmon):
-        [q0, q1] = two_tunable_transmon.qubits
+    def test_create_and_run_two_qubits(self, two_tunable_transmon_platform):
+        [q0, q1] = two_tunable_transmon_platform.qpu.qubits
         amplitudes = [[0.1, 0.2], [0.3, 0.4]]
         options = amplitude_rabi.options()
         options.create_experiment.count = 10
         options.create_experiment.transition = "ge"
 
         result = amplitude_rabi.experiment_workflow(
-            session=two_tunable_transmon.session(do_emulation=True),
-            qpu=two_tunable_transmon,
+            session=two_tunable_transmon_platform.session(do_emulation=True),
+            qpu=two_tunable_transmon_platform.qpu,
             qubits=[q0, q1],
             amplitudes=amplitudes,
             options=options,
@@ -243,8 +243,9 @@ class TestTaskbook:
 @pytest.mark.parametrize("count", [10, 12])
 class TestAmplitudeRabiSingleQubit:
     @pytest.fixture(autouse=True)
-    def _setup(self, single_tunable_transmon, transition, count):
-        self.qpu = single_tunable_transmon
+    def _setup(self, single_tunable_transmon_platform, transition, count):
+        self.platform = single_tunable_transmon_platform
+        self.qpu = self.platform.qpu
         [self.q0] = self.qpu.qubits
         self.amplitude = [0.1, 0.5, 1]
         self.options = TuneupExperimentOptions(count=count, transition=transition)
@@ -262,7 +263,7 @@ class TestAmplitudeRabiSingleQubit:
             self.amplitude,
             self.options.transition,
         )
-        session = self.qpu.session(do_emulation=True)
+        session = self.platform.session(do_emulation=True)
         session.compile(exp)
 
     def test_invalid_input_raises_error(self):
@@ -308,8 +309,9 @@ class TestAmplitudeRabiSingleQubit:
 @pytest.mark.parametrize("count", [10, 12])
 class TestAmplitudeRabiTwoQubit:
     @pytest.fixture(autouse=True)
-    def _setup(self, two_tunable_transmon, transition, count):
-        self.qpu = two_tunable_transmon
+    def _setup(self, two_tunable_transmon_platform, transition, count):
+        self.platform = two_tunable_transmon_platform
+        self.qpu = self.platform.qpu
         self.q0, self.q1 = self.qpu.qubits
         self.amplitudes = [[0.1, 0.5, 1], [0.1, 0.5, 1]]
         self.options = TuneupExperimentOptions(count=count, transition=transition)
@@ -327,7 +329,7 @@ class TestAmplitudeRabiTwoQubit:
             self.amplitudes,
             self.options.transition,
         )
-        session = self.qpu.session(do_emulation=True)
+        session = self.platform.session(do_emulation=True)
         session.compile(exp)
 
     def test_invalid_input_raises_error(self):

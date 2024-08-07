@@ -23,12 +23,12 @@ def qops():
 
 
 @pytest.fixture()
-def q0(single_tunable_transmon):
-    return single_tunable_transmon.qubits[0]
+def q0(single_tunable_transmon_platform):
+    return single_tunable_transmon_platform.qpu.qubits[0]
 
 
 class TestTunableTransmonOperations:
-    def check_op_builds_and_compiles(self, section, device, sweep=None):
+    def check_op_builds_and_compiles(self, section, platform, sweep=None):
         """Check that an operation can be built and compiled successfully."""
 
         if sweep is not None:
@@ -41,14 +41,14 @@ class TestTunableTransmonOperations:
                 with maybe_sweep:
                     dsl.add(section)
 
-        exp = build(exp_with_section, device.qubits)
+        exp = build(exp_with_section, platform.qpu.qubits)
 
-        session = Session(device.setup)
+        session = Session(platform.setup)
         session.connect(do_emulation=True)
         session.compile(exp)
 
-    def check_exp_compiles(self, exp, device):
-        session = Session(device.setup)
+    def check_exp_compiles(self, exp, platform):
+        session = Session(platform.setup)
         session.connect(do_emulation=True)
         session.compile(exp)
 
@@ -75,8 +75,8 @@ class TestTunableTransmonOperations:
             "Rotate the qubit by 180 degrees about the X axis.",
         )
 
-    def test_barrier(self, qops, single_tunable_transmon):
-        [q0] = single_tunable_transmon.qubits
+    def test_barrier(self, qops, single_tunable_transmon_platform):
+        [q0] = single_tunable_transmon_platform.qpu.qubits
         section = qops.barrier(q0)
 
         assert section == tsl.section(
@@ -86,10 +86,10 @@ class TestTunableTransmonOperations:
             self.reserve_ops(q0),
         )
 
-        self.check_op_builds_and_compiles(section, single_tunable_transmon)
+        self.check_op_builds_and_compiles(section, single_tunable_transmon_platform)
 
-    def test_delay(self, qops, single_tunable_transmon):
-        [q0] = single_tunable_transmon.qubits
+    def test_delay(self, qops, single_tunable_transmon_platform):
+        [q0] = single_tunable_transmon_platform.qpu.qubits
         section = qops.delay(q0, 1e-6)
 
         assert section == tsl.section(
@@ -104,7 +104,7 @@ class TestTunableTransmonOperations:
             ),
         )
 
-        self.check_op_builds_and_compiles(section, single_tunable_transmon)
+        self.check_op_builds_and_compiles(section, single_tunable_transmon_platform)
 
     @pytest.mark.parametrize(
         ("rf", "freq", "oscillator_freq"),
@@ -121,9 +121,9 @@ class TestTunableTransmonOperations:
         rf,
         freq,
         oscillator_freq,
-        single_tunable_transmon,
+        single_tunable_transmon_platform,
     ):
-        [q0] = single_tunable_transmon.qubits
+        [q0] = single_tunable_transmon_platform.qpu.qubits
 
         @dsl.qubit_experiment
         def exp_set_freq(q):
@@ -138,10 +138,10 @@ class TestTunableTransmonOperations:
         signal_calibration = calibration[q0.signals["drive"]]
         assert signal_calibration.oscillator.frequency == oscillator_freq
 
-        self.check_exp_compiles(exp, single_tunable_transmon)
+        self.check_exp_compiles(exp, single_tunable_transmon_platform)
 
-    def test_set_frequency_twice(self, qops, single_tunable_transmon):
-        [q0] = single_tunable_transmon.qubits
+    def test_set_frequency_twice(self, qops, single_tunable_transmon_platform):
+        [q0] = single_tunable_transmon_platform.qpu.qubits
 
         @dsl.qubit_experiment
         def exp_set_freq(q):
@@ -158,8 +158,8 @@ class TestTunableTransmonOperations:
             " using the set_frequency operation."
         )
 
-    def test_set_frequency_transition(self, qops, single_tunable_transmon):
-        [q0] = single_tunable_transmon.qubits
+    def test_set_frequency_transition(self, qops, single_tunable_transmon_platform):
+        [q0] = single_tunable_transmon_platform.qpu.qubits
 
         @dsl.qubit_experiment
         def exp_set_freq(q):
@@ -174,7 +174,7 @@ class TestTunableTransmonOperations:
         signal_calibration = calibration[q0.signals["drive_ef"]]
         assert signal_calibration.oscillator.frequency == 0.3e9
 
-        self.check_exp_compiles(exp, single_tunable_transmon)
+        self.check_exp_compiles(exp, single_tunable_transmon_platform)
 
     @pytest.mark.parametrize(
         ("rf", "freq", "oscillator_freq"),
@@ -189,9 +189,9 @@ class TestTunableTransmonOperations:
         rf,
         freq,
         oscillator_freq,
-        single_tunable_transmon,
+        single_tunable_transmon_platform,
     ):
-        [q0] = single_tunable_transmon.qubits
+        [q0] = single_tunable_transmon_platform.qpu.qubits
 
         @dsl.qubit_experiment
         def exp_set_freq(q):
@@ -206,7 +206,7 @@ class TestTunableTransmonOperations:
         signal_calibration = calibration[q0.signals["measure"]]
         assert signal_calibration.oscillator.frequency == oscillator_freq
 
-        self.check_exp_compiles(exp, single_tunable_transmon)
+        self.check_exp_compiles(exp, single_tunable_transmon_platform)
 
     @pytest.mark.parametrize(
         ("rf", "freqs", "oscillator_freqs"),
@@ -243,10 +243,10 @@ class TestTunableTransmonOperations:
         rf,
         freqs,
         oscillator_freqs,
-        single_tunable_transmon,
+        single_tunable_transmon_platform,
     ):
         # TODO: Why do the rf=True cases not fail here?
-        [q0] = single_tunable_transmon.qubits
+        [q0] = single_tunable_transmon_platform.qpu.qubits
 
         @dsl.qubit_experiment
         def exp_set_freq(q, frequencies):
@@ -266,7 +266,7 @@ class TestTunableTransmonOperations:
         assert isinstance(frequency, SweepParameter)
         np.testing.assert_equal(frequency.values, oscillator_freqs)
 
-        self.check_exp_compiles(exp, single_tunable_transmon)
+        self.check_exp_compiles(exp, single_tunable_transmon_platform)
 
     @pytest.mark.parametrize(
         ("rf", "freqs", "oscillator_freqs"),
@@ -303,9 +303,9 @@ class TestTunableTransmonOperations:
         rf,
         freqs,
         oscillator_freqs,
-        single_tunable_transmon,
+        single_tunable_transmon_platform,
     ):
-        [q0] = single_tunable_transmon.qubits
+        [q0] = single_tunable_transmon_platform.qpu.qubits
 
         @dsl.qubit_experiment
         def exp_set_freq(q):
@@ -325,10 +325,10 @@ class TestTunableTransmonOperations:
         assert isinstance(frequency, SweepParameter)
         np.testing.assert_equal(frequency.values, oscillator_freqs)
 
-        self.check_exp_compiles(exp, single_tunable_transmon)
+        self.check_exp_compiles(exp, single_tunable_transmon_platform)
 
-    def test_measure(self, qops, single_tunable_transmon):
-        [q0] = single_tunable_transmon.qubits
+    def test_measure(self, qops, single_tunable_transmon_platform):
+        [q0] = single_tunable_transmon_platform.qpu.qubits
         section = qops.measure(q0, "result")
 
         assert section == tsl.section(
@@ -368,10 +368,10 @@ class TestTunableTransmonOperations:
             ),
         )
 
-        self.check_op_builds_and_compiles(section, single_tunable_transmon)
+        self.check_op_builds_and_compiles(section, single_tunable_transmon_platform)
 
-    def test_measure_with_readout_pulse(self, qops, single_tunable_transmon):
-        [q0] = single_tunable_transmon.qubits
+    def test_measure_with_readout_pulse(self, qops, single_tunable_transmon_platform):
+        [q0] = single_tunable_transmon_platform.qpu.qubits
         section = qops.measure(q0, "result", readout_pulse={"amplitude": 0.5})
 
         assert section == tsl.section(
@@ -396,10 +396,10 @@ class TestTunableTransmonOperations:
             tsl.acquire_op(),
         )
 
-        self.check_op_builds_and_compiles(section, single_tunable_transmon)
+        self.check_op_builds_and_compiles(section, single_tunable_transmon_platform)
 
-    def test_measure_with_kernel_pulses(self, qops, single_tunable_transmon):
-        [q0] = single_tunable_transmon.qubits
+    def test_measure_with_kernel_pulses(self, qops, single_tunable_transmon_platform):
+        [q0] = single_tunable_transmon_platform.qpu.qubits
         kernel_pulses = [
             {"function": "const", "amplitude": 0.5},
             {"function": "const", "amplitude": 0.6},
@@ -434,19 +434,19 @@ class TestTunableTransmonOperations:
             ),
         )
 
-        self.check_op_builds_and_compiles(section, single_tunable_transmon)
+        self.check_op_builds_and_compiles(section, single_tunable_transmon_platform)
 
-    def test_measure_twice(self, qops, single_tunable_transmon):
+    def test_measure_twice(self, qops, single_tunable_transmon_platform):
         # if the integration kernels are created twice, this will fail to compile.
-        [q0] = single_tunable_transmon.qubits
+        [q0] = single_tunable_transmon_platform.qpu.qubits
         with dsl.section(name="measure_twice") as section:
             qops.measure(q0, "result_1")
             qops.measure(q0, "result_2")
 
-        self.check_op_builds_and_compiles(section, single_tunable_transmon)
+        self.check_op_builds_and_compiles(section, single_tunable_transmon_platform)
 
-    def test_acquire(self, qops, single_tunable_transmon):
-        [q0] = single_tunable_transmon.qubits
+    def test_acquire(self, qops, single_tunable_transmon_platform):
+        [q0] = single_tunable_transmon_platform.qpu.qubits
         section = qops.acquire(q0, "result")
 
         assert section == tsl.section(
@@ -471,10 +471,10 @@ class TestTunableTransmonOperations:
             ),
         )
 
-        self.check_op_builds_and_compiles(section, single_tunable_transmon)
+        self.check_op_builds_and_compiles(section, single_tunable_transmon_platform)
 
-    def test_acquire_with_kernel_pulses(self, qops, single_tunable_transmon):
-        [q0] = single_tunable_transmon.qubits
+    def test_acquire_with_kernel_pulses(self, qops, single_tunable_transmon_platform):
+        [q0] = single_tunable_transmon_platform.qpu.qubits
         kernel_pulses = [
             {"function": "const", "amplitude": 0.5},
             {"function": "const", "amplitude": 0.6},
@@ -508,19 +508,19 @@ class TestTunableTransmonOperations:
             ),
         )
 
-        self.check_op_builds_and_compiles(section, single_tunable_transmon)
+        self.check_op_builds_and_compiles(section, single_tunable_transmon_platform)
 
-    def test_acquire_twice(self, qops, single_tunable_transmon):
+    def test_acquire_twice(self, qops, single_tunable_transmon_platform):
         # if the integration kernels are created twice, this will fail to compile.
-        [q0] = single_tunable_transmon.qubits
+        [q0] = single_tunable_transmon_platform.qpu.qubits
         with dsl.section(name="measure_twice") as section:
             qops.acquire(q0, "result_1")
             qops.acquire(q0, "result_2")
 
-        self.check_op_builds_and_compiles(section, single_tunable_transmon)
+        self.check_op_builds_and_compiles(section, single_tunable_transmon_platform)
 
-    def test_prepare_state_g(self, qops, single_tunable_transmon):
-        [q0] = single_tunable_transmon.qubits
+    def test_prepare_state_g(self, qops, single_tunable_transmon_platform):
+        [q0] = single_tunable_transmon_platform.qpu.qubits
         section = qops.prepare_state(q0, "g")
 
         assert section == tsl.section(
@@ -530,10 +530,10 @@ class TestTunableTransmonOperations:
             self.reserve_ops(q0),
         )
 
-        self.check_op_builds_and_compiles(section, single_tunable_transmon)
+        self.check_op_builds_and_compiles(section, single_tunable_transmon_platform)
 
-    def test_prepare_state_e(self, qops, single_tunable_transmon):
-        [q0] = single_tunable_transmon.qubits
+    def test_prepare_state_e(self, qops, single_tunable_transmon_platform):
+        [q0] = single_tunable_transmon_platform.qpu.qubits
         section = qops.prepare_state(q0, "e")
 
         assert section == tsl.section(
@@ -550,10 +550,10 @@ class TestTunableTransmonOperations:
             ),
         )
 
-        self.check_op_builds_and_compiles(section, single_tunable_transmon)
+        self.check_op_builds_and_compiles(section, single_tunable_transmon_platform)
 
-    def test_prepare_state_f(self, qops, single_tunable_transmon):
-        [q0] = single_tunable_transmon.qubits
+    def test_prepare_state_f(self, qops, single_tunable_transmon_platform):
+        [q0] = single_tunable_transmon_platform.qpu.qubits
         section = qops.prepare_state(q0, "f")
 
         assert section == tsl.section(
@@ -577,10 +577,10 @@ class TestTunableTransmonOperations:
             ),
         )
 
-        self.check_op_builds_and_compiles(section, single_tunable_transmon)
+        self.check_op_builds_and_compiles(section, single_tunable_transmon_platform)
 
-    def test_prepare_state_passive_reset(self, qops, single_tunable_transmon):
-        [q0] = single_tunable_transmon.qubits
+    def test_prepare_state_passive_reset(self, qops, single_tunable_transmon_platform):
+        [q0] = single_tunable_transmon_platform.qpu.qubits
         section = qops.prepare_state(q0, "g", reset="passive")
 
         assert section == tsl.section(
@@ -598,17 +598,17 @@ class TestTunableTransmonOperations:
             ),
         )
 
-        self.check_op_builds_and_compiles(section, single_tunable_transmon)
+        self.check_op_builds_and_compiles(section, single_tunable_transmon_platform)
 
-    def test_prepare_state_active_reset(self, qops, single_tunable_transmon):
-        [q0] = single_tunable_transmon.qubits
+    def test_prepare_state_active_reset(self, qops, single_tunable_transmon_platform):
+        [q0] = single_tunable_transmon_platform.qpu.qubits
         with pytest.raises(ValueError) as err:
             qops.prepare_state(q0, "g", reset="active")
 
         assert str(err.value) == "The active reset operation is not yet implemented."
 
-    def test_prepare_state_invalid_reset(self, qops, single_tunable_transmon):
-        [q0] = single_tunable_transmon.qubits
+    def test_prepare_state_invalid_reset(self, qops, single_tunable_transmon_platform):
+        [q0] = single_tunable_transmon_platform.qpu.qubits
         with pytest.raises(ValueError) as err:
             qops.prepare_state(q0, "g", reset="moo")
 
@@ -617,14 +617,14 @@ class TestTunableTransmonOperations:
             " or None, not: 'moo'"
         )
 
-    def test_prepare_state_invalid(self, qops, single_tunable_transmon):
-        [q0] = single_tunable_transmon.qubits
+    def test_prepare_state_invalid(self, qops, single_tunable_transmon_platform):
+        [q0] = single_tunable_transmon_platform.qpu.qubits
         with pytest.raises(ValueError) as err:
             qops.prepare_state(q0, "z")
         assert str(err.value) == "Only states g, e and f can be prepared, not 'z'"
 
-    def test_passive_reset(self, qops, single_tunable_transmon):
-        [q0] = single_tunable_transmon.qubits
+    def test_passive_reset(self, qops, single_tunable_transmon_platform):
+        [q0] = single_tunable_transmon_platform.qpu.qubits
         section = qops.passive_reset(q0)
 
         assert section == tsl.section(
@@ -639,7 +639,7 @@ class TestTunableTransmonOperations:
             ),
         )
 
-        self.check_op_builds_and_compiles(section, single_tunable_transmon)
+        self.check_op_builds_and_compiles(section, single_tunable_transmon_platform)
 
     @pytest.mark.parametrize(
         ("delay"),
@@ -651,8 +651,8 @@ class TestTunableTransmonOperations:
             ),
         ],
     )
-    def test_passive_reset_delay(self, delay, qops, single_tunable_transmon):
-        [q0] = single_tunable_transmon.qubits
+    def test_passive_reset_delay(self, delay, qops, single_tunable_transmon_platform):
+        [q0] = single_tunable_transmon_platform.qpu.qubits
         section = qops.passive_reset(q0, delay=delay)
 
         assert section == tsl.section(
@@ -668,7 +668,11 @@ class TestTunableTransmonOperations:
         )
 
         sweep = delay if isinstance(delay, SweepParameter) else None
-        self.check_op_builds_and_compiles(section, single_tunable_transmon, sweep=sweep)
+        self.check_op_builds_and_compiles(
+            section,
+            single_tunable_transmon_platform,
+            sweep=sweep,
+        )
 
     @pytest.mark.parametrize(
         ("angle", "expected_amplitude"),
@@ -678,8 +682,14 @@ class TestTunableTransmonOperations:
             pytest.param(np.pi / 3, 0.8 / 3, id="pi_by_3"),
         ],
     )
-    def test_rx(self, angle, expected_amplitude, qops, single_tunable_transmon):
-        [q0] = single_tunable_transmon.qubits
+    def test_rx(
+        self,
+        angle,
+        expected_amplitude,
+        qops,
+        single_tunable_transmon_platform,
+    ):
+        [q0] = single_tunable_transmon_platform.qpu.qubits
         section = qops.rx(q0, angle)
 
         assert section == tsl.section(
@@ -705,14 +715,14 @@ class TestTunableTransmonOperations:
             ),
         )
 
-        self.check_op_builds_and_compiles(section, single_tunable_transmon)
+        self.check_op_builds_and_compiles(section, single_tunable_transmon_platform)
 
     @pytest.mark.parametrize("pi2", [1, 2])
-    def test_interpolation(self, pi2, qops, single_tunable_transmon):
+    def test_interpolation(self, pi2, qops, single_tunable_transmon_platform):
         def amp(section):
             return section.children[-1].amplitude
 
-        [q0] = single_tunable_transmon.qubits
+        [q0] = single_tunable_transmon_platform.qpu.qubits
         my_qubit: TunableTransmonQubit = copy.deepcopy(q0)
         my_qubit.update(
             {
@@ -753,9 +763,9 @@ class TestTunableTransmonOperations:
         transition,
         expected_signal,
         qops,
-        single_tunable_transmon,
+        single_tunable_transmon_platform,
     ):
-        [q0] = single_tunable_transmon.qubits
+        [q0] = single_tunable_transmon_platform.qpu.qubits
         section = qops.rx(q0, np.pi / 2, transition=transition)
 
         on_system_grid = transition == "ef"
@@ -767,7 +777,7 @@ class TestTunableTransmonOperations:
             tsl.play_pulse_op(signal=f"/logical_signal_groups/q0/{expected_signal}"),
         )
 
-        self.check_op_builds_and_compiles(section, single_tunable_transmon)
+        self.check_op_builds_and_compiles(section, single_tunable_transmon_platform)
 
     @pytest.mark.parametrize(
         ("amplitude"),
@@ -783,9 +793,9 @@ class TestTunableTransmonOperations:
         self,
         amplitude,
         qops,
-        single_tunable_transmon,
+        single_tunable_transmon_platform,
     ):
-        [q0] = single_tunable_transmon.qubits
+        [q0] = single_tunable_transmon_platform.qpu.qubits
         section = qops.rx(q0, np.pi / 2, amplitude=amplitude)
 
         assert section == tsl.section(uid="__rx_q0_0").children(
@@ -797,7 +807,11 @@ class TestTunableTransmonOperations:
         )
 
         sweep = amplitude if isinstance(amplitude, SweepParameter) else None
-        self.check_op_builds_and_compiles(section, single_tunable_transmon, sweep=sweep)
+        self.check_op_builds_and_compiles(
+            section,
+            single_tunable_transmon_platform,
+            sweep=sweep,
+        )
 
     @pytest.mark.parametrize(
         ("phase"),
@@ -813,9 +827,9 @@ class TestTunableTransmonOperations:
         self,
         phase,
         qops,
-        single_tunable_transmon,
+        single_tunable_transmon_platform,
     ):
-        [q0] = single_tunable_transmon.qubits
+        [q0] = single_tunable_transmon_platform.qpu.qubits
         section = qops.rx(q0, np.pi / 2, phase=phase)
 
         assert section == tsl.section(uid="__rx_q0_0").children(
@@ -827,7 +841,11 @@ class TestTunableTransmonOperations:
         )
 
         sweep = phase if isinstance(phase, SweepParameter) else None
-        self.check_op_builds_and_compiles(section, single_tunable_transmon, sweep=sweep)
+        self.check_op_builds_and_compiles(
+            section,
+            single_tunable_transmon_platform,
+            sweep=sweep,
+        )
 
     @pytest.mark.parametrize(
         ("length"),
@@ -843,9 +861,9 @@ class TestTunableTransmonOperations:
         self,
         length,
         qops,
-        single_tunable_transmon,
+        single_tunable_transmon_platform,
     ):
-        [q0] = single_tunable_transmon.qubits
+        [q0] = single_tunable_transmon_platform.qpu.qubits
         section = qops.rx(q0, np.pi / 2, length=length)
 
         assert section == tsl.section(uid="__rx_q0_0").children(
@@ -857,10 +875,14 @@ class TestTunableTransmonOperations:
         )
 
         sweep = length if isinstance(length, SweepParameter) else None
-        self.check_op_builds_and_compiles(section, single_tunable_transmon, sweep=sweep)
+        self.check_op_builds_and_compiles(
+            section,
+            single_tunable_transmon_platform,
+            sweep=sweep,
+        )
 
-    def test_x90(self, qops, single_tunable_transmon):
-        [q0] = single_tunable_transmon.qubits
+    def test_x90(self, qops, single_tunable_transmon_platform):
+        [q0] = single_tunable_transmon_platform.qpu.qubits
         section = qops.x90(q0)
 
         assert section == tsl.section(
@@ -885,10 +907,10 @@ class TestTunableTransmonOperations:
             ),
         )
 
-        self.check_op_builds_and_compiles(section, single_tunable_transmon)
+        self.check_op_builds_and_compiles(section, single_tunable_transmon_platform)
 
-    def test_x90_overrides(self, qops, single_tunable_transmon):
-        [q0] = single_tunable_transmon.qubits
+    def test_x90_overrides(self, qops, single_tunable_transmon_platform):
+        [q0] = single_tunable_transmon_platform.qpu.qubits
         section = qops.x90(
             q0,
             transition="ef",
@@ -920,10 +942,10 @@ class TestTunableTransmonOperations:
             ),
         )
 
-        self.check_op_builds_and_compiles(section, single_tunable_transmon)
+        self.check_op_builds_and_compiles(section, single_tunable_transmon_platform)
 
-    def test_x180(self, qops, single_tunable_transmon):
-        [q0] = single_tunable_transmon.qubits
+    def test_x180(self, qops, single_tunable_transmon_platform):
+        [q0] = single_tunable_transmon_platform.qpu.qubits
         section = qops.x180(q0)
 
         assert section == tsl.section(
@@ -948,10 +970,10 @@ class TestTunableTransmonOperations:
             ),
         )
 
-        self.check_op_builds_and_compiles(section, single_tunable_transmon)
+        self.check_op_builds_and_compiles(section, single_tunable_transmon_platform)
 
-    def test_x180_overrides(self, qops, single_tunable_transmon):
-        [q0] = single_tunable_transmon.qubits
+    def test_x180_overrides(self, qops, single_tunable_transmon_platform):
+        [q0] = single_tunable_transmon_platform.qpu.qubits
         section = qops.x180(
             q0,
             transition="ef",
@@ -983,7 +1005,7 @@ class TestTunableTransmonOperations:
             ),
         )
 
-        self.check_op_builds_and_compiles(section, single_tunable_transmon)
+        self.check_op_builds_and_compiles(section, single_tunable_transmon_platform)
 
     @pytest.mark.parametrize(
         ("angle", "expected_amplitude"),
@@ -993,8 +1015,14 @@ class TestTunableTransmonOperations:
             pytest.param(np.pi / 3, 0.8 / 3, id="pi_by_3"),
         ],
     )
-    def test_ry(self, angle, expected_amplitude, qops, single_tunable_transmon):
-        [q0] = single_tunable_transmon.qubits
+    def test_ry(
+        self,
+        angle,
+        expected_amplitude,
+        qops,
+        single_tunable_transmon_platform,
+    ):
+        [q0] = single_tunable_transmon_platform.qpu.qubits
         section = qops.ry(q0, angle)
 
         assert section == tsl.section(
@@ -1020,7 +1048,7 @@ class TestTunableTransmonOperations:
             ),
         )
 
-        self.check_op_builds_and_compiles(section, single_tunable_transmon)
+        self.check_op_builds_and_compiles(section, single_tunable_transmon_platform)
 
     @pytest.mark.parametrize(
         ("transition", "expected_signal"),
@@ -1034,9 +1062,9 @@ class TestTunableTransmonOperations:
         transition,
         expected_signal,
         qops,
-        single_tunable_transmon,
+        single_tunable_transmon_platform,
     ):
-        [q0] = single_tunable_transmon.qubits
+        [q0] = single_tunable_transmon_platform.qpu.qubits
         section = qops.ry(q0, np.pi / 2, transition=transition)
 
         on_system_grid = transition == "ef"
@@ -1051,7 +1079,7 @@ class TestTunableTransmonOperations:
             ),
         )
 
-        self.check_op_builds_and_compiles(section, single_tunable_transmon)
+        self.check_op_builds_and_compiles(section, single_tunable_transmon_platform)
 
     @pytest.mark.parametrize(
         ("amplitude"),
@@ -1067,9 +1095,9 @@ class TestTunableTransmonOperations:
         self,
         amplitude,
         qops,
-        single_tunable_transmon,
+        single_tunable_transmon_platform,
     ):
-        [q0] = single_tunable_transmon.qubits
+        [q0] = single_tunable_transmon_platform.qpu.qubits
         section = qops.ry(q0, np.pi / 2, amplitude=amplitude)
 
         assert section == tsl.section(uid="__ry_q0_0").children(
@@ -1082,7 +1110,11 @@ class TestTunableTransmonOperations:
         )
 
         sweep = amplitude if isinstance(amplitude, SweepParameter) else None
-        self.check_op_builds_and_compiles(section, single_tunable_transmon, sweep=sweep)
+        self.check_op_builds_and_compiles(
+            section,
+            single_tunable_transmon_platform,
+            sweep=sweep,
+        )
 
     @pytest.mark.parametrize(
         ("phase"),
@@ -1098,9 +1130,9 @@ class TestTunableTransmonOperations:
         self,
         phase,
         qops,
-        single_tunable_transmon,
+        single_tunable_transmon_platform,
     ):
-        [q0] = single_tunable_transmon.qubits
+        [q0] = single_tunable_transmon_platform.qpu.qubits
         section = qops.ry(q0, np.pi / 2, phase=phase)
 
         assert section == tsl.section(uid="__ry_q0_0").children(
@@ -1112,7 +1144,11 @@ class TestTunableTransmonOperations:
         )
 
         sweep = phase if isinstance(phase, SweepParameter) else None
-        self.check_op_builds_and_compiles(section, single_tunable_transmon, sweep=sweep)
+        self.check_op_builds_and_compiles(
+            section,
+            single_tunable_transmon_platform,
+            sweep=sweep,
+        )
 
     @pytest.mark.parametrize(
         ("length"),
@@ -1128,9 +1164,9 @@ class TestTunableTransmonOperations:
         self,
         length,
         qops,
-        single_tunable_transmon,
+        single_tunable_transmon_platform,
     ):
-        [q0] = single_tunable_transmon.qubits
+        [q0] = single_tunable_transmon_platform.qpu.qubits
         section = qops.ry(q0, np.pi / 2, length=length)
 
         assert section == tsl.section(uid="__ry_q0_0").children(
@@ -1143,10 +1179,14 @@ class TestTunableTransmonOperations:
         )
 
         sweep = length if isinstance(length, SweepParameter) else None
-        self.check_op_builds_and_compiles(section, single_tunable_transmon, sweep=sweep)
+        self.check_op_builds_and_compiles(
+            section,
+            single_tunable_transmon_platform,
+            sweep=sweep,
+        )
 
-    def test_y90(self, qops, single_tunable_transmon):
-        [q0] = single_tunable_transmon.qubits
+    def test_y90(self, qops, single_tunable_transmon_platform):
+        [q0] = single_tunable_transmon_platform.qpu.qubits
         section = qops.y90(q0)
 
         assert section == tsl.section(
@@ -1171,10 +1211,10 @@ class TestTunableTransmonOperations:
             ),
         )
 
-        self.check_op_builds_and_compiles(section, single_tunable_transmon)
+        self.check_op_builds_and_compiles(section, single_tunable_transmon_platform)
 
-    def test_y90_overrides(self, qops, single_tunable_transmon):
-        [q0] = single_tunable_transmon.qubits
+    def test_y90_overrides(self, qops, single_tunable_transmon_platform):
+        [q0] = single_tunable_transmon_platform.qpu.qubits
         section = qops.y90(
             q0,
             transition="ef",
@@ -1206,10 +1246,10 @@ class TestTunableTransmonOperations:
             ),
         )
 
-        self.check_op_builds_and_compiles(section, single_tunable_transmon)
+        self.check_op_builds_and_compiles(section, single_tunable_transmon_platform)
 
-    def test_y180(self, qops, single_tunable_transmon):
-        [q0] = single_tunable_transmon.qubits
+    def test_y180(self, qops, single_tunable_transmon_platform):
+        [q0] = single_tunable_transmon_platform.qpu.qubits
         section = qops.y180(q0)
 
         assert section == tsl.section(
@@ -1234,10 +1274,10 @@ class TestTunableTransmonOperations:
             ),
         )
 
-        self.check_op_builds_and_compiles(section, single_tunable_transmon)
+        self.check_op_builds_and_compiles(section, single_tunable_transmon_platform)
 
-    def test_y180_overrides(self, qops, single_tunable_transmon):
-        [q0] = single_tunable_transmon.qubits
+    def test_y180_overrides(self, qops, single_tunable_transmon_platform):
+        [q0] = single_tunable_transmon_platform.qpu.qubits
         section = qops.y180(
             q0,
             transition="ef",
@@ -1269,7 +1309,7 @@ class TestTunableTransmonOperations:
             ),
         )
 
-        self.check_op_builds_and_compiles(section, single_tunable_transmon)
+        self.check_op_builds_and_compiles(section, single_tunable_transmon_platform)
 
     @pytest.mark.parametrize(
         "angle",
@@ -1279,8 +1319,8 @@ class TestTunableTransmonOperations:
             pytest.param(np.pi / 3, id="pi_by_3"),
         ],
     )
-    def test_rz(self, angle, qops, single_tunable_transmon):
-        [q0] = single_tunable_transmon.qubits
+    def test_rz(self, angle, qops, single_tunable_transmon_platform):
+        [q0] = single_tunable_transmon_platform.qpu.qubits
         section = qops.rz(q0, angle)
 
         assert section == tsl.section(
@@ -1299,7 +1339,7 @@ class TestTunableTransmonOperations:
             ),
         )
 
-        self.check_op_builds_and_compiles(section, single_tunable_transmon)
+        self.check_op_builds_and_compiles(section, single_tunable_transmon_platform)
 
     @pytest.mark.parametrize(
         ("transition", "expected_signal"),
@@ -1313,9 +1353,9 @@ class TestTunableTransmonOperations:
         transition,
         expected_signal,
         qops,
-        single_tunable_transmon,
+        single_tunable_transmon_platform,
     ):
-        [q0] = single_tunable_transmon.qubits
+        [q0] = single_tunable_transmon_platform.qpu.qubits
         section = qops.rz(q0, np.pi / 2, transition=transition)
 
         assert section == tsl.section(uid="__rz_q0_0").children(
@@ -1326,10 +1366,10 @@ class TestTunableTransmonOperations:
             ),
         )
 
-        self.check_op_builds_and_compiles(section, single_tunable_transmon)
+        self.check_op_builds_and_compiles(section, single_tunable_transmon_platform)
 
-    def test_z90(self, qops, single_tunable_transmon):
-        [q0] = single_tunable_transmon.qubits
+    def test_z90(self, qops, single_tunable_transmon_platform):
+        [q0] = single_tunable_transmon_platform.qpu.qubits
         section = qops.z90(q0)
 
         assert section == tsl.section(
@@ -1348,10 +1388,10 @@ class TestTunableTransmonOperations:
             ),
         )
 
-        self.check_op_builds_and_compiles(section, single_tunable_transmon)
+        self.check_op_builds_and_compiles(section, single_tunable_transmon_platform)
 
-    def test_z180(self, qops, single_tunable_transmon):
-        [q0] = single_tunable_transmon.qubits
+    def test_z180(self, qops, single_tunable_transmon_platform):
+        [q0] = single_tunable_transmon_platform.qpu.qubits
         section = qops.z180(q0)
 
         assert section == tsl.section(
@@ -1370,4 +1410,4 @@ class TestTunableTransmonOperations:
             ),
         )
 
-        self.check_op_builds_and_compiles(section, single_tunable_transmon)
+        self.check_op_builds_and_compiles(section, single_tunable_transmon_platform)

@@ -12,13 +12,13 @@ from laboneq_applications.qpu_types.tunable_transmon import (
 
 
 @pytest.fixture()
-def q0(single_tunable_transmon):
-    return single_tunable_transmon.qubits[0]
+def q0(single_tunable_transmon_platform):
+    return single_tunable_transmon_platform.qpu.qubits[0]
 
 
 @pytest.fixture()
-def multi_qubits(two_tunable_transmon):
-    return two_tunable_transmon.qubits
+def multi_qubits(two_tunable_transmon_platform):
+    return two_tunable_transmon_platform.qpu.qubits
 
 
 class TestTunableTransmonQubit:

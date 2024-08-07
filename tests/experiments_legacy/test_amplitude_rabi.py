@@ -75,9 +75,9 @@ class TestAmplitudeRabi:
             tsl.reserve_op(signal=f"/logical_signal_groups/{q.uid}/flux"),
         ]
 
-    def test_define_experiment(self, single_tunable_transmon):
-        [q0] = single_tunable_transmon.copy_qubits()
-        q0_setup = single_tunable_transmon.setup
+    def test_define_experiment(self, single_tunable_transmon_platform):
+        [q0] = single_tunable_transmon_platform.qpu.copy_qubits()
+        q0_setup = single_tunable_transmon_platform.setup
 
         session = Session(q0_setup)
         session.connect(do_emulation=True)
