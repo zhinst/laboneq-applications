@@ -110,13 +110,13 @@ print(qubits[0].parameters)
 
 The following qubit parameters are used by the Applications Library:
 
-* `drive_parameters_ge`/`drive_parameters_ef`: contain the pulse parameters for implementing a pi-pulse on the ge and ef transitions
-* `readout_parameters`: contains the parameters of the readout pulse
-* `readout_integration_parameters`: contains the parameters of the integration kernels. The key `kernels=default` indicates that a constant square pulse with the length specified will be used for the integration (created in `qubit.default_integration_kernels()`). The `kernels` entry can also be set to a list of pulse dictionaries of the form `{"function": pulse_functional_name, "func_par1": value, "func_par2": value, ... }`. `pulse_functional_name` must be the name of a function registered with the `pulse_library.register_pulse_functional` (decorator)[https://docs.zhinst.com/labone_q_user_manual/tutorials/reference/04_pulse_library/].
-* `reset_delay_length`: the waiting time for passive qubit reset
-* `resonance_frequency_ge`, `resonance_frequency_ef` ' `drive_lo_frequency`, `readout_resonator_frequency`, `readout_lo_frequency`, `drive_range`, `readout_range_out`, `readout_range_in`: used to configure the qubit calibration which then ends up in the `Experiment` calibration.
+* Parameters with the prefixes `ge_drive_`/`ef_drive_` are used to configure the parameters for implementing a pi-pulse on the ge and ef transitions.
+* Parameters with the prefix `readout_` are used to configure the parameters of the readout pulse.
+* Parameters with the prefix `readout_integration_` are used to configure the parameters of the integration kernels. Setting the parameter `readout_integration_kernels=default` indicates that a constant square pulse with the length given by `readout_integration_length` will be used for the integration (created in `qubit.default_integration_kernels()`). The parameter `readout_integration_kernels` can also be set to a list of pulse dictionaries of the form `{"function": pulse_functional_name, "func_par1": value, "func_par2": value, ... }`. `pulse_functional_name` must be the name of a function registered with the `pulse_library.register_pulse_functional` [decorator](https://docs.zhinst.com/labone_q_user_manual/tutorials/reference/04_pulse_library/).
+* `reset_delay_length`: the waiting time for passive qubit reset.
+* `resonance_frequency_ge`, `resonance_frequency_ef` ' `drive_lo_frequency`, `readout_resonator_frequency`, `readout_lo_frequency`, `drive_range`, `readout_range_out`, `readout_range_in` are used to configure the qubit calibration which then ends up in the `Experiment` calibration.
 
-The remaining qubit parameters are still there for legacy reasons and have no effect. These will be cleaned up soon.',
+The remaining qubit parameters are still there for legacy reasons and have no effect. These will be cleaned up soon.
 
 +++
 
