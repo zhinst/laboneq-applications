@@ -12,6 +12,12 @@ kernelspec:
   name: python3
 ---
 
+To convert this `md` notebook into a standard Jupyter notebook (`ipynb`), use the following command in the command line (in the folder of this notebook):
+
+`jupytext --to ipynb guide-building-blocks.md`
+
++++
+
 # An Introduction to the Building Blocks of LabOne Q Applications
 
 +++
@@ -72,6 +78,7 @@ Build your LabOne Q `DeviceSetup`, qubits and `Session` as normal. Here we impor
 
 ```{code-cell} ipython3
 from laboneq.simple import *
+
 from laboneq_applications.qpu_types.tunable_transmon import demo_qpu
 ```
 
@@ -421,6 +428,7 @@ def exp_for_checking_op(qop, q):
     """Simple experiment to test the operation we've just written."""
     with dsl.acquire_loop_rt(count=1):
         qop.op_that_examines_signal_calibration(q)
+
 
 exp = exp_for_checking_op(qop, qubits[0])
 exp.get_calibration().calibration_items["/logical_signal_groups/q0/drive"]

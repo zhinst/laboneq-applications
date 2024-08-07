@@ -44,7 +44,6 @@ test:notebooks:python-3.9:
   extends: "test:python-3.9"
   script:
     - pip install -r requirements-dev.txt
-    - pip install jupytext
     - pip install -e .
     - jupytext --to ipynb $(find "examples" -type f -name "*.md" ! -name "*README*")
     - pytest --nbmake examples --nbmake-kernel=python --nbmake-timeout=240 --durations=0
