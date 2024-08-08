@@ -10,7 +10,7 @@ The releases are published to the project's public GitLab [package registry](htt
 
 or a specific version:
 
-`pip install laboneq-applications==0.0.1 --index-url https://L1QAL_REGISTRY:glpat-E2_41PzMiJcaxD2z6Xk3@gitlab.zhinst.com/api/v4/projects/637/packages/pypi/simple`
+`pip install laboneq-applications==0.0.2 --index-url https://L1QAL_REGISTRY:glpat-E2_41PzMiJcaxD2z6Xk3@gitlab.zhinst.com/api/v4/projects/637/packages/pypi/simple`
 
 
 ## Install from Git

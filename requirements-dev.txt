@@ -5,4 +5,5 @@ nbmake
 pytest
 pytest-cov
 pytest-xdist
+tbump
 -r requirements-lint.txt

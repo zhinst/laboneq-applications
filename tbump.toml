@@ -1,0 +1,34 @@
+[version]
+current = "0.0.2"
+
+regex = '''
+  (?P<major>\d+)
+  \.
+  (?P<minor>\d+)
+  \.
+  (?P<patch>\d+)
+  (?P<dev>dev\d+)?
+  '''
+
+[git]
+message_template = "Version {new_version}"
+tag_template = "v{new_version}"
+
+[[file]]
+src = "pyproject.toml"
+search = 'version = "{current_version}"'
+
+[[file]]
+src = "src/laboneq_applications/__init__.py"
+search = '__version__ = "{current_version}"'
+
+[[file]]
+src = "tests/test_pkg.py"
+
+[[file]]
+src = "docs/internal/install.md"
+search = 'laboneq-applications=={current_version}'
+
+[[before_commit]]
+name = "check changelog"
+cmd = "grep -q {new_version} docs/sources/release_notes.md"
