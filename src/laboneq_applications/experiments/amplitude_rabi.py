@@ -82,18 +82,20 @@ def experiment_workflow(
         options.create_experiment.count = 10
         options.create_experiment.transition = "ge"
         qpu = QPU(
-            setup=DeviceSetup("my_device"),
             qubits=[TunableTransmonQubit("q0"), TunableTransmonQubit("q1")],
             qop=TunableTransmonOperations(),
         )
         temp_qubits = qpu.copy_qubits()
-        result = run(
+        result = experiment_workflow(
             session=session,
             qpu=qpu,
             qubits=temp_qubits,
-            amplitudes=[[0.1, 0.5, 1], [0.1, 0.5, 1]],
+            amplitudes=[
+                np.linspace(0, 1, 11),
+                np.linspace(0, 0.75, 11),
+            ],
             options=options,
-        )
+        ).run()
         ```
     """
     exp = create_experiment(
@@ -156,9 +158,7 @@ def create_experiment(
             "cal_traces": True,
         }
         options = TuneupExperimentOptions(**options)
-        setup = DeviceSetup()
         qpu = QPU(
-            setup=DeviceSetup("my_device"),
             qubits=[TunableTransmonQubit("q0"), TunableTransmonQubit("q1")],
             qop=TunableTransmonOperations(),
         )
@@ -166,7 +166,10 @@ def create_experiment(
         create_experiment(
             qpu=qpu,
             qubits=temp_qubits,
-            amplitudes=[[0.1, 0.5, 1], [0.1, 0.5, 1]],
+            amplitudes=[
+                np.linspace(0, 1, 11),
+                np.linspace(0, 0.75, 11),
+            ],
             options=options,
         )
         ```
