@@ -1,3 +1,5 @@
+"""Tests for laboneq_applications.workflow.engine.block."""
+
 import textwrap
 
 from laboneq_applications.workflow.engine.block import Block, TaskBlock

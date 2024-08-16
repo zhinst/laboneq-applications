@@ -609,7 +609,7 @@ class TestWorkflowValidOptions:
 
         with pytest.raises(
             TypeError,
-            match="Workflow input options must be of type '<class 'test_engine.WfOptions'>' or 'None'",  # noqa: E501
+            match="Workflow input options must be of type 'WfOptions', 'dict' or 'None'",  # noqa: E501
         ):
             my_wf(options=123)
 
@@ -739,8 +739,7 @@ class TestWorkflowOptions:
         with pytest.raises(
             TypeError,
             match="Workflow input options must be of type"
-            " '<class 'laboneq_applications.workflow.options.WorkflowOptions'>'"
-            " or 'None'",
+            " 'WorkflowOptions', 'dict' or 'None'",
         ):
             _ = workflow_a(options=1)
 

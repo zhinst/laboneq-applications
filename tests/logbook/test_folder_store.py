@@ -1,18 +1,21 @@
-"""Test the FolderStore class."""
+"""Tests for laboneq_applications.logbook.folder_store."""
+
+from __future__ import annotations
 
 import json
 
+import numpy as np
+import PIL
 import pytest
 from freezegun import freeze_time
 
 from laboneq_applications import logbook
 from laboneq_applications.logbook.folder_store import FolderStore
-from laboneq_applications.workflow import task
-from laboneq_applications.workflow.engine import workflow
+from laboneq_applications.workflow import WorkflowOptions, task, workflow
 
 
 @workflow
-def empty_workflow(a, b):
+def empty_workflow(a, b, options: WorkflowOptions | None = None):
     pass
 
 
@@ -22,7 +25,7 @@ def add_task(a, b):
 
 
 @workflow
-def simple_workflow(a, b):
+def simple_workflow(a, b, options: WorkflowOptions | None = None):
     return add_task(a, b)
 
 
@@ -32,12 +35,12 @@ def error_task():
 
 
 @workflow
-def error_workflow():
+def error_workflow(options: WorkflowOptions | None = None):
     error_task()
 
 
 @workflow
-def bad_ref_workflow(a, b):
+def bad_ref_workflow(a, b, options: WorkflowOptions | None = None):
     return add_task(a, b.c)
 
 
@@ -47,8 +50,18 @@ def comment_task(a):
 
 
 @workflow
-def comment_workflow(a):
+def comment_workflow(a, options: WorkflowOptions | None = None):
     comment_task(a)
+
+
+@task
+def save_task(name, obj, metadata, opts):
+    logbook.save_artifact(name, obj, metadata=metadata, options=opts)
+
+
+@workflow
+def save_workflow(name, obj, metadata, opts, options: WorkflowOptions | None = None):
+    save_task(name, obj, metadata, opts)
 
 
 class FolderStoreFixture:
@@ -85,8 +98,8 @@ def folder(tmp_path):
 @freeze_time("2024-07-28 17:55:00")
 class TestFolderStore:
     def test_on_start_and_end(self, logstore, folder):
-        wf = empty_workflow(3, 5)
-        wf.run(logstore=logstore)
+        wf = empty_workflow(3, 5, options={"logstore": logstore})
+        wf.run()
 
         workflow_folder_name = "20240728T175500-empty-workflow"
 
@@ -98,10 +111,10 @@ class TestFolderStore:
         ]
 
     def test_on_error(self, logstore, folder):
-        wf = bad_ref_workflow(3, 5)
+        wf = bad_ref_workflow(3, 5, options={"logstore": logstore})
 
         with pytest.raises(AttributeError) as err:
-            wf.run(logstore=logstore)
+            wf.run()
         assert str(err.value) == "'int' object has no attribute 'c'"
 
         workflow_folder_name = "20240728T175500-bad-ref-workflow"
@@ -118,8 +131,8 @@ class TestFolderStore:
         ]
 
     def test_on_task_start_and_end(self, logstore, folder):
-        wf = simple_workflow(3, 5)
-        wf.run(logstore=logstore)
+        wf = simple_workflow(3, 5, options={"logstore": logstore})
+        wf.run()
 
         workflow_folder_name = "20240728T175500-simple-workflow"
 
@@ -133,9 +146,9 @@ class TestFolderStore:
         ]
 
     def test_on_task_error(self, logstore, folder):
-        wf = error_workflow()
+        wf = error_workflow(options={"logstore": logstore})
         with pytest.raises(ValueError) as err:
-            wf.run(logstore=logstore)
+            wf.run()
 
         workflow_folder_name = "20240728T175500-error-workflow"
 
@@ -155,8 +168,8 @@ class TestFolderStore:
         ]
 
     def test_comment(self, logstore, folder):
-        wf = comment_workflow("A comment!")
-        wf.run(logstore=logstore)
+        wf = comment_workflow("A comment!", options={"logstore": logstore})
+        wf.run()
 
         workflow_folder_name = "20240728T175500-comment-workflow"
 
@@ -170,5 +183,77 @@ class TestFolderStore:
                 "message": "A comment!",
             },
             {"event": "task_end", "task": "comment_task"},
+            {"event": "end"},
+        ]
+
+    def test_save(self, logstore, folder):
+        obj = np.ndarray([1, 2, 3])
+
+        wf = save_workflow(
+            "an_obj",
+            obj,
+            metadata={"created_at": "nowish"},
+            opts=None,
+            options={"logstore": logstore},
+        )
+        wf.run()
+
+        workflow_folder_name = "20240728T175500-save-workflow"
+
+        assert folder.store_contents() == [workflow_folder_name]
+        assert folder.contents(workflow_folder_name) == ["an-obj.npy", "log.jsonl"]
+        assert folder.log(workflow_folder_name) == [
+            {"event": "start"},
+            {"event": "task_start", "task": "save_task"},
+            {
+                "event": "artifact",
+                "artifact_name": "an_obj",
+                "artifact_type": "ndarray",
+                "artifact_metadata": {
+                    "created_at": "nowish",
+                },
+                "artifact_options": {},
+                "artifact_files": [
+                    {"filename": "an-obj.npy"},
+                ],
+            },
+            {"event": "task_end", "task": "save_task"},
+            {"event": "end"},
+        ]
+
+    def test_save_with_popped_options(self, logstore, folder):
+        im = PIL.Image.effect_mandelbrot((10, 10), (-2.0, -1.5, 1.5, 1.5), 9)
+
+        wf = save_workflow(
+            "image",
+            im,
+            metadata={"created_at": "nowish"},
+            opts={"format": "jpg"},
+            options={"logstore": logstore},
+        )
+        wf.run()
+
+        workflow_folder_name = "20240728T175500-save-workflow"
+
+        assert folder.store_contents() == [workflow_folder_name]
+        assert folder.contents(workflow_folder_name) == ["image.jpg", "log.jsonl"]
+        assert folder.log(workflow_folder_name) == [
+            {"event": "start"},
+            {"event": "task_start", "task": "save_task"},
+            {
+                "event": "artifact",
+                "artifact_name": "image",
+                "artifact_type": "Image",
+                "artifact_metadata": {
+                    "created_at": "nowish",
+                },
+                "artifact_options": {
+                    "format": "jpg",
+                },
+                "artifact_files": [
+                    {"filename": "image.jpg"},
+                ],
+            },
+            {"event": "task_end", "task": "save_task"},
             {"event": "end"},
         ]

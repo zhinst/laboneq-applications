@@ -9,6 +9,7 @@ navigation on the left or see the contents below.
 
 * [core](core/)
 * [experiments](experiments/)
+* [logbook](logbook/)
 * [qpu_types](qpu_types/)
 * [tasks](tasks/)
 * [testing](testing/)

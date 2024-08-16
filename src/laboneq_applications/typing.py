@@ -27,6 +27,15 @@ Type hints
 
     If the values are for multiple qubits, [QubitSweepPoints]() is
     a sequence of such values, one for each qubit.
+
+* [SimpleDict]()
+
+    Simple dictionaries are used for artifact metadata and serializer
+    options, allowing these to themselves be serialized easily, especially
+    to JSON.
+
+    Simple dictionaries only allow Python strings as keys and their values
+    may be simnple numeric types, strings or `None`.
 """
 
 from __future__ import annotations
@@ -48,3 +57,5 @@ __all__ = [
 
 Qubits: TypeAlias = Union[QuantumElement, Sequence[QuantumElement]]
 QubitSweepPoints: TypeAlias = Union[ArrayLike, Sequence[ArrayLike]]
+
+SimpleDict: TypeAlias = dict[str, Union[str, int, float, complex, bool, None]]

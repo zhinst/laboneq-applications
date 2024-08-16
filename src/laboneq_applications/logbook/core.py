@@ -2,23 +2,86 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Protocol, runtime_checkable
+import abc
+from typing import TYPE_CHECKING, Protocol
 
 if TYPE_CHECKING:
+    from laboneq_applications.typing import SimpleDict
     from laboneq_applications.workflow.engine.core import Workflow
     from laboneq_applications.workflow.task import Task
 
 
-@runtime_checkable  # required to allow a protocol to be used with Pydantic
-class LogbookStore(Protocol):
+class Artifact:
+    """An artifact to record.
+
+    An artifact consists of a Python object that a workflow wishes to
+    record plus the additional information required to store and
+    reference it.
+
+    Arguments:
+        name:
+            A name hint for the artifact. Logbooks may use this to generate
+            meaningful filenames for artifacts when they are saved to disk,
+            for example.
+        obj:
+            The object to be recorded.
+        metadata:
+            Additional metadata for the artifact (optional).
+        options:
+            Serialization options for the artifact (optional).
+    """
+
+    def __init__(
+        self,
+        name: str,
+        obj: object,
+        metadata: SimpleDict | None = None,
+        options: SimpleDict | None = None,
+    ):
+        self.name = name
+        self.obj = obj
+        self.metadata = metadata or {}
+        self.options = options or {}
+
+
+class LogbookStore(abc.ABC):
     """Protocol for storing a collection of records of workflow execution."""
 
+    @abc.abstractmethod
     def create_logbook(self, workflow: Workflow) -> Logbook:
         """Create a logbook for recording a single workflow execution."""
 
+    def activate(self) -> None:
+        """Activate this logbook store.
+
+        Workflows write to all active logbook stores by default.
+        """
+        if self not in _active_logbook_stores:
+            _active_logbook_stores.append(self)
+
+    def deactivate(self) -> None:
+        """Deactivate this logbook store.
+
+        If this store is not active, this method does nothing.
+        """
+        if self in _active_logbook_stores:
+            _active_logbook_stores.remove(self)
+
+
+_active_logbook_stores = []
+
+
+def active_logbook_store() -> LogbookStore | None:
+    """Return the active logbook store."""
+    from laboneq_applications.logbook.combined_store import CombinedStore
+
+    if not _active_logbook_stores:
+        return None
+    return CombinedStore(_active_logbook_stores)
+
 
 class Logbook(Protocol):
-    """Protocol for storing the record of a single worfklow exection."""
+    """Protocol for storing the record of a single workflow execution."""
 
     def on_start(
         self,
@@ -61,35 +124,67 @@ class Logbook(Protocol):
     ) -> None:
         """Called to leave a comment."""
 
-    def save_artifact(
+    def save(
         self,
-        task: Task,
-        name: str,
-        artifact: object,
-        metadata: dict[str, object] | None = None,
-        # TODO: Better name / think about whether we want serializer options:
-        serialization_options: dict[str, object] | None = None,
-    ) -> str:
-        """Called to save an artifact.
+        artifact: Artifact,
+    ) -> None:
+        """Called to record an artifact.
 
-        Parameters:
-            artifact: The artifact to be saved.
-            name: Name hint for the filename of the artifact. A running number might be
-                appended if the name is already taken.
-            metadata: Additional metadata for the artifact (optional).
-            serialization_options: Serialization options for the artifact (optional).
-
-        Returns:
-            The URL or filename to the artifact.
+        Arguments:
+            artifact:
+                The artifact to be saved.
         """
-        # TODO: What should be returned when no file is created? E.g. by the
-        #       logging logbook?
 
 
 def comment(message: str) -> None:
-    """Add a comment to the current workflow logbook."""
+    """Add a comment to the current workflow logbook.
+
+    Arguments:
+        message:
+            The comment to record.
+    """
     from laboneq_applications.workflow import _context
 
     ctx = _context.ExecutorStateContext.get_active()
     if ctx is not None:
         ctx._logbook.comment(message)
+    else:
+        raise RuntimeError(
+            "Workflow comments are currently not supported outside of tasks.",
+        )
+
+
+def save_artifact(
+    name: str,
+    artifact: object,
+    *,
+    metadata: SimpleDict | None = None,
+    options: SimpleDict | None = None,
+) -> None:
+    """Save an artifact to the current workflow logbook.
+
+    Arguments:
+        name:
+            A name hint for the artifact. Logbooks may use this to generate
+            meaningful filenames for artifacts when they are saved to disk,
+            for example.
+        artifact:
+            The object to be recorded.
+        metadata:
+            Additional metadata for the artifact (optional).
+        options:
+            Serialization options for the artifact (optional).
+
+    Returns:
+        The URL or filename to the artifact.
+    """
+    from laboneq_applications.workflow import _context
+
+    ctx = _context.ExecutorStateContext.get_active()
+    if ctx is not None:
+        artifact = Artifact(name, artifact, metadata=metadata, options=options)
+        ctx._logbook.save(artifact)
+    else:
+        raise RuntimeError(
+            "Workflow artifact saving is currently not supported outside of tasks.",
+        )

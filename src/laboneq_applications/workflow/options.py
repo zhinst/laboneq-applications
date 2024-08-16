@@ -22,8 +22,7 @@ class WorkflowOptions(BaseOptions):
             Default: `None`.
     """
 
-    # TODO: Does this below here? If so, use it. If not, remove.
-    logbook: LogbookStore | None = Field(default=None, repr=False, exclude=True)
+    logstore: LogbookStore | None = Field(default=None, repr=False, exclude=True)
 
     class Config:
         """Pydantic configuration."""

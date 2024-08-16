@@ -2,12 +2,21 @@
 
 from __future__ import annotations
 
+import io
 import logging
 from typing import TYPE_CHECKING
+
+from rich import box
+from rich.console import Console
+from rich.panel import Panel
+from rich.text import Text
 
 from laboneq_applications.logbook import Logbook, LogbookStore
 
 if TYPE_CHECKING:
+    from typing import Callable
+
+    from laboneq_applications.logbook import Artifact
     from laboneq_applications.workflow.engine.core import Workflow
     from laboneq_applications.workflow.task import Task
 
@@ -15,69 +24,119 @@ if TYPE_CHECKING:
 class LoggingStore(LogbookStore):
     """A logging store that writes logs to a Python logger."""
 
-    DEFAULT_LOGGER = logging.getLogger("laboneq_applications.workflow")
+    # Giving the logger a name that starts with "laboneq." means
+    # that it is configured via LabOne Q's default logging configuration.
+    DEFAULT_LOGGER = logging.getLogger("laboneq.applications")
 
-    def __init__(self, logger: logging.Logger | None = None):
+    def __init__(self, logger: logging.Logger | None = None, *, rich: bool = True):
         if logger is None:
             logger = self.DEFAULT_LOGGER
         self._logger = logger
+        self._rich = rich
 
     def create_logbook(self, workflow: Workflow) -> Logbook:
         """Create a new logbook for the given workflow."""
-        return LoggingLogbook(workflow, self._logger)
+        return LoggingLogbook(workflow, self._logger, rich=self._rich)
 
 
 class LoggingLogbook(Logbook):
     """A logbook that logs events to a Python logger."""
 
-    def __init__(self, workflow: Workflow, logger: logging.Logger):
+    def __init__(
+        self,
+        workflow: Workflow,
+        logger: logging.Logger,
+        *,
+        rich: bool = True,
+    ):
         self._workflow = workflow
         self._logger = logger
+        self._rich = rich
+
+    def _log_rich(self, log: Callable, obj: object) -> None:
+        """Log a Rich object to the given Python logger."""
+        with io.StringIO() as buf:
+            console = Console(file=buf, force_jupyter=False, width=80)
+            console.print(obj)
+            lines = buf.getvalue().splitlines()
+
+        for line in lines:
+            log(line)
+
+    def _log_in_rich_panel(self, log: Callable, msg: str, *args) -> None:
+        """Log a message in a Rich panel if required."""
+        if not self._rich:
+            log(msg, *args)
+            return
+
+        txt = msg % args
+        panel = Panel(txt, box=box.HORIZONTALS, style="bold")
+        self._log_rich(log, panel)
+
+    def _log_in_rich_bold(self, log: Callable, msg: str, *args) -> None:
+        """Log a message in Rich bold style."""
+        if not self._rich:
+            log(msg, *args)
+            return
+
+        txt = msg % args
+        rich_txt = Text(txt, style="bold")
+        self._log_rich(log, rich_txt)
 
     def on_start(self) -> None:
         """Called when the workflow execution starts."""
-        self._logger.info("Workflow execution started")
+        self._log_in_rich_panel(
+            self._logger.info,
+            "Workflow %r: execution started",
+            self._workflow.name,
+        )
 
     def on_end(self) -> None:
         """Called when the workflow execution ends."""
-        self._logger.info("Workflow execution ended")
+        self._log_in_rich_panel(
+            self._logger.info,
+            "Workflow %r: execution ended",
+            self._workflow.name,
+        )
 
     def on_error(self, error: Exception) -> None:
         """Called when the workflow raises an exception."""
-        self._logger.error("Workflow execution failed with: %r", error)
+        self._log_in_rich_bold(
+            self._logger.error,
+            "Workflow %r: execution failed with: %r",
+            self._workflow.name,
+            error,
+        )
 
     def on_task_start(self, task: Task) -> None:
         """Called when a task begins execution."""
-        self._logger.info("Task %s started", task.name)
+        self._log_in_rich_bold(self._logger.info, "Task %r: started", task.name)
 
     def on_task_end(self, task: Task) -> None:
         """Called when a task ends execution."""
-        self._logger.info("Task %s ended", task.name)
+        self._log_in_rich_bold(self._logger.info, "Task %r: ended", task.name)
 
     def on_task_error(self, task: Task, error: Exception) -> None:
         """Called when a task raises an exception."""
-        self._logger.error("Task %s failed with: %r", task.name, error)
+        self._log_in_rich_bold(
+            self._logger.error,
+            "Task %r: failed with: %r",
+            task.name,
+            error,
+        )
 
     def comment(self, message: str) -> None:
         """Called to leave a comment."""
-        self._logger.info(message)
+        self._log_in_rich_bold(self._logger.info, "Comment: %s", message)
 
-    def save_artifact(
+    def save(
         self,
-        task: Task,
-        name: str,
-        artifact: object,
-        metadata: dict[str, object] | None = None,
-        serialization_options: dict[str, object] | None = None,
-    ) -> str:
+        artifact: Artifact,
+    ) -> None:
         """Called to save an artifact."""
-        self._logger.info(
-            "Task %s saving artifact %s of type '%s':"
-            " [metadata: %r, serialization_options: %r]",
-            task.name,
-            name,
-            artifact.type_,
-            metadata,
-            serialization_options,
+        self._log_in_rich_bold(
+            self._logger.info,
+            "Artifact: %r of type %r logged",
+            artifact.name,
+            type(artifact.obj).__name__,
         )
-        # TODO: Return or not?

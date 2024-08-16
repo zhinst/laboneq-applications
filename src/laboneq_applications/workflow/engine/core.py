@@ -9,7 +9,11 @@ from typing import TYPE_CHECKING, Any, Callable, Generic, cast
 
 from typing_extensions import ParamSpec
 
-from laboneq_applications.logbook import LoggingStore
+from laboneq_applications.logbook import (
+    LogbookStore,
+    LoggingStore,
+    active_logbook_store,
+)
 from laboneq_applications.workflow import _utils, exceptions
 from laboneq_applications.workflow._context import (
     ExecutorStateContext,
@@ -27,7 +31,6 @@ from laboneq_applications.workflow.options import (
 from laboneq_applications.workflow.taskview import TaskView
 
 if TYPE_CHECKING:
-    from laboneq_applications.logbook import LogbookStore
     from laboneq_applications.workflow.task import Task
 
 
@@ -140,9 +143,28 @@ class Workflow(Generic[Parameters]):
         """Input parameters of the workflow."""
         return self._input
 
+    def _options(self) -> WorkflowOptions:
+        """Return the workflow options passed."""
+        options = self._input.get("options", None)
+        # TODO: Expose functionality on the graph so that
+        #       we don't have to grub about for _root.options
+        if options is None:
+            options = self._graph._root.options()
+        elif isinstance(options, dict):
+            options = self._graph._root.options.from_dict(options)
+        return options
+
+    def _logstore(self, options_logstore: LogbookStore | None) -> LogbookStore:
+        """Return the appropriate logbook store."""
+        logstore = options_logstore
+        if logstore is None:
+            logstore = active_logbook_store()
+        if logstore is None:
+            logstore = LoggingStore()
+        return logstore
+
     def run(
         self,
-        logstore: LogbookStore | None = None,  # TODO: read logbook from options
     ) -> WorkflowResult:
         """Run the workflow.
 
@@ -159,11 +181,11 @@ class Workflow(Generic[Parameters]):
             msg = "Nesting Workflows is not allowed."
             raise exceptions.WorkflowError(msg)
 
-        if logstore is None:
-            logstore = LoggingStore()
+        options = self._options()
+        logstore = self._logstore(options.logstore)
         logbook = logstore.create_logbook(self)
 
-        state = ExecutorState(logbook=logbook)
+        state = ExecutorState(logbook=logbook, options=options)
         # TODO: Result collector should be injected from the outside. E.g a logbook
         results = WorkflowResult()
         collector = _ResultCollector(results)

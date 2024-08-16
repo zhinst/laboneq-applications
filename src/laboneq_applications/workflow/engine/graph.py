@@ -103,10 +103,12 @@ class WorkflowGraph:
         """
         if "options" in kwargs:
             opt_param = kwargs["options"]
-            if opt_param is not None and not isinstance(opt_param, self._root.options):
+            if opt_param is not None and not isinstance(
+                opt_param, (self._root.options, dict),
+            ):
                 msg = (
                     "Workflow input options must be of "
-                    f"type '{self._root.options}' or 'None'"
+                    f"type '{self._root.options.__name__}', 'dict' or 'None'"
                 )
                 raise TypeError(msg)
 

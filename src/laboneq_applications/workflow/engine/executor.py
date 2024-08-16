@@ -10,7 +10,7 @@ from laboneq_applications.workflow.exceptions import WorkflowError
 from laboneq_applications.workflow.options import WorkflowOptions
 
 if TYPE_CHECKING:
-    from laboneq_applications.common.logbooks import Logbook
+    from laboneq_applications.logbook import Logbook
     from laboneq_applications.workflow.engine.block import Block
     from laboneq_applications.workflow.task import Task
 
@@ -32,16 +32,20 @@ class _ExecutorInterrupt(Exception):  # noqa: N818
 class ExecutorState:
     """A class that holds the graph execution state."""
 
-    def __init__(self, logbook: Logbook | None = None) -> None:
-        # TODO: require logbook here or create a better dummy
+    def __init__(
+        self,
+        logbook: Logbook | None = None,
+        options: WorkflowOptions | None = None,
+    ) -> None:
         if logbook is None:
             logstore = LoggingStore()
-            logbook = logstore.create_logbook(None)  # TODO: remove hack
-
+            logbook = logstore.create_logbook("unknown")
+        if options is None:
+            options = WorkflowOptions()
         self._logbook = logbook
         self._graph_variable_states = {}
         self._result_handler: ResultHander | None = None
-        self.options: WorkflowOptions = WorkflowOptions()
+        self.options = options
 
     @property
     def states(self) -> dict:

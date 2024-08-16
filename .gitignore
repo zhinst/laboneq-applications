@@ -172,3 +172,6 @@ examples/*/*.yaml
 
 # vscode
 .vscode/
+
+# Do not track anything saved in experiment_store folders
+experiment_store
