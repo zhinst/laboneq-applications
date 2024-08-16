@@ -75,13 +75,13 @@ class TunableTransmonOperations(QuantumOperations):
         readout: bool = False,
         rf: bool = True,
     ) -> None:
-        """Sets the frequency of the given qubit transition drive line.
+        """Sets the frequency of the given qubit drive line or readout line.
 
         Arguments:
             q:
-                The qubit to set the drive frequency of.
+                The qubit to set the transition or readout frequency of.
             frequency:
-                The frequency to set the drive line to in Hz.
+                The frequency to set in Hz.
                 By default the frequency specified is the RF frequency.
                 The oscillator frequency may be set directly instead
                 by passing `rf=False`.
@@ -131,7 +131,6 @@ class TunableTransmonOperations(QuantumOperations):
 
         if oscillator is None:
             oscillator = signal_calibration.oscillator = Oscillator(frequency=frequency)
-
         if getattr(oscillator, "_set_frequency", False):
             # We mark the oscillator with a _set_frequency attribute to ensure that
             # set_frequency isn't performed on the same oscillator twice. Ideally
@@ -151,6 +150,56 @@ class TunableTransmonOperations(QuantumOperations):
             # sort this out for us when the modulation type is AUTO, but currently
             # it does not.
             oscillator.modulation_type = ModulationType.HARDWARE
+
+    @quantum_operation
+    def set_readout_amplitude(
+        self,
+        q: TunableTransmonQubit,
+        amplitude: float | SweepParameter,
+    ) -> None:
+        """Sets the readout amplitude of the given qubit's measure line.
+
+        Arguments:
+            q:
+                The qubit to set the readout amplitude of.
+            amplitude:
+                The amplitude to set for the measure line
+                in units from 0 (no power) to 1 (full scale).
+
+        Raises:
+            RuntimeError:
+                If there is an attempt to call `set_readout_amplitude` more than
+                once on the same signal. See notes below for details.
+
+        Notes:
+            Currently `set_readout_amplitude` is implemented by setting the
+            amplitude of the measure line signal in the experiment calibration.
+            This has two important consequences:
+
+            * Each experiment may only set one amplitude per readout line,
+                although this may be a parameter sweep.
+
+            * The set readout amplitude or sweep applies for the whole experiment
+                regardless of where in the experiment the amplitude is set.
+
+            This will be improved in a future release.
+        """
+        calibration = dsl.experiment_calibration()
+        signal_calibration = calibration[q.signals["measure"]]
+
+        if getattr(calibration, "_set_readout_amplitude", False):
+            # We mark the oscillator with a _set_readout_amplitude attribute to ensure
+            # that set_readout_amplitude isn't performed on the same signal twice.
+            # Ideally LabOne Q DSL provide a more direct method that removes the
+            # need for setting amplitude on the experiment calibration.
+            raise RuntimeError(
+                f"Readout amplitude of qubit {q.uid}"
+                f" measure line was set multiple times"
+                f" using the set_readout_amplitude operation.",
+            )
+
+        calibration._set_readout_amplitude = True
+        signal_calibration.amplitude = amplitude
 
     @quantum_operation
     def measure(
@@ -221,7 +270,7 @@ class TunableTransmonOperations(QuantumOperations):
         handle: str,
         kernel_pulses: list[dict] | Literal["default"] | None = None,
     ) -> None:
-        """Perform an acquistion on the qubit.
+        """Perform an acquisition on the qubit.
 
         The acquire operation performs only an acquisition. If you wish to play
         a readout pulse and perform an acquisition, use the `measure` operation.

@@ -7,3 +7,4 @@ This is the `laboneq_applications.experiments` reference documentation.
 <!--nav-->
 
 * [amplitude_rabi](amplitude_rabi.md)
+* [resonator_spectroscopy](resonator_spectroscopy.md)

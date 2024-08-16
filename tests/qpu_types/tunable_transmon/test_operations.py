@@ -329,6 +329,84 @@ class TestTunableTransmonOperations:
 
         self.check_exp_compiles(exp, single_tunable_transmon_platform)
 
+    @pytest.mark.parametrize(
+        "amplitudes",
+        [
+            0.5,
+            -0.5,
+        ],
+    )
+    def test_set_readout_amplitude(
+        self,
+        qops,
+        amplitudes,
+        single_tunable_transmon_platform,
+    ):
+        [q0] = single_tunable_transmon_platform.qpu.qubits
+
+        @dsl.qubit_experiment
+        def exp_set_amplitude(q, amplitudes):
+            with dsl.acquire_loop_rt(count=10):
+                qops.set_readout_amplitude(q, amplitudes)
+
+        exp = exp_set_amplitude(q0, amplitudes)
+
+        calibration = exp.get_calibration()
+        signal_calibration = calibration[q0.signals["measure"]]
+        calibration_amplitudes = signal_calibration.amplitude
+        assert calibration_amplitudes == amplitudes
+
+        self.check_exp_compiles(exp, single_tunable_transmon_platform)
+
+    @pytest.mark.parametrize(
+        "amplitudes",
+        [
+            [0.5, -0.5],
+        ],
+    )
+    def test_set_readout_amplitude_sweep(
+        self,
+        qops,
+        amplitudes,
+        single_tunable_transmon_platform,
+    ):
+        [q0] = single_tunable_transmon_platform.qpu.qubits
+
+        @dsl.qubit_experiment
+        def exp_set_amplitude(q, amplitudes):
+            with dsl.acquire_loop_rt(count=10):
+                with dsl.sweep(
+                    parameter=SweepParameter(values=amplitudes),
+                ) as amplitude_sweep:
+                    qops.set_readout_amplitude(q, amplitude_sweep)
+
+        exp = exp_set_amplitude(q0, amplitudes)
+
+        calibration = exp.get_calibration()
+        signal_calibration = calibration[q0.signals["measure"]]
+        calibration_amplitudes = signal_calibration.amplitude
+        assert isinstance(calibration_amplitudes, SweepParameter)
+        np.testing.assert_equal(calibration_amplitudes.values, amplitudes)
+
+        self.check_exp_compiles(exp, single_tunable_transmon_platform)
+
+    def test_set_readout_amplitude_twice(self, qops, single_tunable_transmon_platform):
+        [q0] = single_tunable_transmon_platform.qpu.qubits
+
+        @dsl.qubit_experiment
+        def exp_set_freq(q):
+            with dsl.acquire_loop_rt(count=10):
+                qops.set_readout_amplitude(q, 1)
+                qops.set_readout_amplitude(q, 0)
+
+        with pytest.raises(RuntimeError) as err:
+            exp_set_freq(q0)
+
+        assert str(err.value) == (
+            "Readout amplitude of qubit q0 measure line was set multiple times"
+            " using the set_readout_amplitude operation."
+        )
+
     def test_measure(self, qops, single_tunable_transmon_platform):
         [q0] = single_tunable_transmon_platform.qpu.qubits
         section = qops.measure(q0, "result")
