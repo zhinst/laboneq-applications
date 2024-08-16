@@ -27,11 +27,23 @@ class TestExecutorState:
         with pytest.raises(KeyError):
             obj.get_state("b")
 
-    def test_result_handler(self):
+    def test_recorder_callbacks(self):
+        class Recorder:
+            def __init__(self) -> None:
+                self.results = []
+
+            def on_task_end(self, task):
+                self.results.append(task)
+
         obj = ExecutorState()
-        assert obj.result_handler is None
-        obj.set_result_callback(1)
-        assert obj.result_handler == 1
+        recorder1 = Recorder()
+        recorder2 = Recorder()
+        obj.add_recorder(recorder1)
+        obj.add_recorder(recorder2)
+        obj.recorder.on_task_end(1)
+
+        assert recorder1.results == [1]
+        assert recorder2.results == [1]
 
     def test_resolve_inputs(self):
         obj = ExecutorState()

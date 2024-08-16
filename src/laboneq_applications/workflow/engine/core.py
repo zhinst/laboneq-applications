@@ -22,7 +22,10 @@ from laboneq_applications.workflow._context import (
 from laboneq_applications.workflow.engine.block import (
     WorkflowBlockBuilder,
 )
-from laboneq_applications.workflow.engine.executor import ExecutorState
+from laboneq_applications.workflow.engine.executor import (
+    ExecutionRecorder,
+    ExecutorState,
+)
 from laboneq_applications.workflow.engine.graph import WorkflowGraph
 from laboneq_applications.workflow.options import (
     WorkflowOptions,
@@ -74,8 +77,8 @@ class WorkflowResult:
         self._tasks.append(task)
 
 
-class _ResultCollector:
-    """Workflow result collector."""
+class _ResultCollector(ExecutionRecorder):
+    """A workflow result collector."""
 
     def __init__(self, result: WorkflowResult) -> None:
         self._result = result
@@ -189,7 +192,7 @@ class Workflow(Generic[Parameters]):
         # TODO: Result collector should be injected from the outside. E.g a logbook
         results = WorkflowResult()
         collector = _ResultCollector(results)
-        state.set_result_callback(collector)
+        state.add_recorder(collector)
         with ExecutorStateContext.scoped(state):
             try:
                 self._graph.execute(state, **self._input)

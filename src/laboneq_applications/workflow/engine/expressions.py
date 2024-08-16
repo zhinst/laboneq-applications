@@ -89,10 +89,9 @@ class ReturnStatement(Block):
 
     def execute(self, executor: ExecutorState) -> Any:  # noqa: ANN401
         """Execute the block."""
-        if executor.result_handler:
-            value = executor.resolve_inputs(self).get("value")
-            executor.result_handler.on_workflow_end(value)
-            executor.interrupt()
+        value = executor.resolve_inputs(self).get("value")
+        executor.recorder.on_workflow_end(value)
+        executor.interrupt()
 
 
 def return_(value: Any | None = None) -> None:  # noqa: ANN401

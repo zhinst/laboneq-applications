@@ -137,8 +137,7 @@ class TaskBlock(Block):
         finally:
             executor._logbook.on_task_end(task)
 
-        if executor.result_handler:
-            executor.result_handler.on_task_end(task)
+        executor.recorder.on_task_end(task)
         executor.set_state(self, task.output)
 
     def __repr__(self):

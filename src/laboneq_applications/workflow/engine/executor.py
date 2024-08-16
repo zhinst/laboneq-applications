@@ -15,14 +15,43 @@ if TYPE_CHECKING:
     from laboneq_applications.workflow.task import Task
 
 
-class ResultHander(Protocol):
-    """A result protocol for recording results."""
+class ExecutionRecorder(Protocol):
+    """A class that defines interface for an execution recorder.
+
+    The recorder provides an interface to record specific actions
+    during the execution.
+    """
 
     def on_task_end(self, task: Task) -> None:
         """Add a task result."""
 
     def on_workflow_end(self, result: Any) -> None:  # noqa: ANN401
         """Add a workflow result."""
+
+
+class _ExecutionRecorderManager(ExecutionRecorder):
+    """A class that manages multiple execution recorders."""
+
+    def __init__(self) -> None:
+        self._recorders: list[ExecutionRecorder] = []
+
+    def add_recorder(self, recorder: ExecutionRecorder) -> None:
+        """Add a recorder to the execution.
+
+        Arguments:
+            recorder: A recorder that records the execution information.
+        """
+        self._recorders.append(recorder)
+
+    def on_task_end(self, task: Task) -> None:
+        """Add a task result."""
+        for recorder in self._recorders:
+            recorder.on_task_end(task)
+
+    def on_workflow_end(self, result: Any) -> None:  # noqa: ANN401
+        """Add a workflow result."""
+        for recorder in self._recorders:
+            recorder.on_workflow_end(result)
 
 
 class _ExecutorInterrupt(Exception):  # noqa: N818
@@ -44,7 +73,7 @@ class ExecutorState:
             options = WorkflowOptions()
         self._logbook = logbook
         self._graph_variable_states = {}
-        self._result_handler: ResultHander | None = None
+        self._recorder_manager = _ExecutionRecorderManager()
         self.options = options
 
     @property
@@ -63,17 +92,17 @@ class ExecutorState:
         raise _ExecutorInterrupt
 
     @property
-    def result_handler(self) -> ResultHander | None:
-        """Result handler for the executor."""
-        return self._result_handler
+    def recorder(self) -> ExecutionRecorder:
+        """Execution recorder."""
+        return self._recorder_manager
 
-    def set_result_callback(self, result_handler: ResultHander) -> None:
-        """Set a result callback.
+    def add_recorder(self, recorder: ExecutionRecorder) -> None:
+        """Add a recorder to the execution.
 
         Arguments:
-            result_handler: A result handler that receives executed task information.
+            recorder: A recorder that records the execution information.
         """
-        self._result_handler = result_handler
+        self._recorder_manager.add_recorder(recorder)
 
     def resolve_inputs(self, block: Block) -> dict:
         """Resolve the inputs of the block."""
