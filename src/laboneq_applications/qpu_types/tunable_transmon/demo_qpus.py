@@ -135,13 +135,13 @@ def tunable_transmon_setup(n_qubits: int) -> DeviceSetup:
                 local_oscillator=Oscillator(frequency=frequency),
                 oscillator=oscillator,
             )
-        if line == "measure":
-            # acquire and measure lines must share the same oscillator
-            acquire_signal = setup.logical_signal_by_uid(f"{qubit}/acquire")
-            acquire_signal.calibration = SignalCalibration(
-                local_oscillator=Oscillator(frequency=frequency),
-                oscillator=oscillator,
-            )
+            if line == "measure":
+                # acquire and measure lines must share the same oscillator
+                acquire_signal = setup.logical_signal_by_uid(f"{qubit}/acquire")
+                acquire_signal.calibration = SignalCalibration(
+                    local_oscillator=Oscillator(frequency=frequency),
+                    oscillator=oscillator,
+                )
 
     return setup
 

@@ -5,6 +5,7 @@ from contextlib import nullcontext
 
 import numpy as np
 import pytest
+from laboneq.dsl.enums import ModulationType
 from laboneq.simple import SectionAlignment, Session, SweepParameter
 
 import tests.helpers.dsl as tsl
@@ -279,8 +280,8 @@ class TestTunableTransmonOperations:
             ),
             pytest.param(
                 True,
-                [2.1e9, 1.9e9, 2.1e9],
-                [0.1e9, -0.1e9, 0.1e9],
+                [2.1e9, 1.9e9, 1.7e9],
+                [0.1e9, -0.1e9, -0.3e9],
                 id="rf-negative",
             ),
             pytest.param(
@@ -324,6 +325,7 @@ class TestTunableTransmonOperations:
         frequency = signal_calibration.oscillator.frequency
         assert isinstance(frequency, SweepParameter)
         np.testing.assert_equal(frequency.values, oscillator_freqs)
+        assert signal_calibration.oscillator.modulation_type == ModulationType.HARDWARE
 
         self.check_exp_compiles(exp, single_tunable_transmon_platform)
 

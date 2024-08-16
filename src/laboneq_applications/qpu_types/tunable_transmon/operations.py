@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING, Literal
 
 import numpy as np
 from laboneq.dsl.calibration import Oscillator
+from laboneq.dsl.enums import ModulationType
 
 from laboneq_applications import dsl
 from laboneq_applications.core.quantum_operations import (
@@ -143,6 +144,13 @@ class TunableTransmonOperations(QuantumOperations):
 
         oscillator._set_frequency = True
         oscillator.frequency = frequency
+        if signal_line == "measure":
+            # LabOne Q does not support software modulation of measurement
+            # signal sweeps because it results in multiple readout waveforms
+            # on the same readout signal. Ideally the LabOne Q compiler would
+            # sort this out for us when the modulation type is AUTO, but currently
+            # it does not.
+            oscillator.modulation_type = ModulationType.HARDWARE
 
     @quantum_operation
     def measure(
