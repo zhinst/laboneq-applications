@@ -19,6 +19,7 @@ from __future__ import annotations
 from copy import deepcopy
 from typing import TYPE_CHECKING
 
+from laboneq.dsl.quantum.quantum_element import QuantumElement
 from laboneq.dsl.session import Session
 
 if TYPE_CHECKING:
@@ -101,13 +102,51 @@ class QPU:
         qubits: Qubits,
         qop: QuantumOperations,
     ) -> None:
-        self.qubits = qubits
+        self.qubits: list[QuantumElement] = (
+            [qubits] if isinstance(qubits, QuantumElement) else list(qubits)
+        )
         self.qop = qop
+        self._qubit_map = {q.uid: q for q in qubits}
 
     def copy_qubits(self) -> Qubits:
         """Return new qubits that are a copy of the original qubits."""
         return deepcopy(self.qubits)
 
-    def update_qubits(self, qubits: Qubits) -> None:
-        """Update qubits."""
-        raise NotImplementedError("This method is not implemented yet.")
+    def update_qubits(
+        self,
+        qubit_parameters: dict[str, dict[str, int | float | str | dict | None]],
+    ) -> None:
+        """Updates qubit parameters.
+
+        Arguments:
+            qubit_parameters:
+                The qubits and their parameters that need to be updated passed a dict
+                of the form:
+                    ```python
+                    {
+                        qb_uid: {
+                            qb_param_name: qb_param_value
+                        }
+                    }
+                    ```
+
+        Raises:
+            ValueError:
+                If one of the qubits passed is not found in the qpu.
+                If one of the parameters passed is not found in the qubit.
+        """
+        invalid_params = []
+        for qid, params_dict in qubit_parameters.items():
+            if qid not in self._qubit_map:
+                raise ValueError(f"Qubit {qid} was not found in the QPU.")
+            qubit = self._qubit_map[qid]
+            invalid_params += qubit.parameters._get_invalid_param_paths(params_dict)
+        if invalid_params:
+            raise ValueError(
+                f"Update parameters do not match the qubit "
+                f"parameters: {invalid_params}.",
+            )
+
+        for qid, params_dict in qubit_parameters.items():
+            qubit = self._qubit_map[qid]
+            qubit.update(params_dict)

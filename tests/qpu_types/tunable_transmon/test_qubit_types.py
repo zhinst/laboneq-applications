@@ -144,7 +144,9 @@ class TestTunableTransmonQubit:
                 },
             )
 
-        assert str(err.value) == f"Cannot update {q0.uid}"
+        assert str(err.value) == (f"Cannot update {q0.uid}: Update parameters do not "
+                                  f"match the qubit parameters: ['non_existing_param', "
+                                  f"'readout_parameters.non_existing_param'].")
         # assert no parameters were updated
         assert q0.parameters == original_params
 
