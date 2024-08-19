@@ -8,13 +8,14 @@ import pytest
 from laboneq.dsl.enums import ModulationType
 from laboneq.simple import SectionAlignment, Session, SweepParameter
 
-import tests.helpers.dsl as tsl
 from laboneq_applications import dsl
 from laboneq_applications.core.build_experiment import build
 from laboneq_applications.qpu_types.tunable_transmon import (
     TunableTransmonOperations,
     TunableTransmonQubit,
 )
+
+import tests.helpers.dsl as tsl
 
 
 @pytest.fixture()

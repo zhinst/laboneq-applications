@@ -124,7 +124,6 @@ class TestExtractAndRotateData1D:
     # reference point if refactored.
     @pytest.fixture()
     def analysis(self, laboneq_results):
-
         return extract_and_rotate_data_1d(
             laboneq_results,
             data_handle="Rabi_ge_qb1",

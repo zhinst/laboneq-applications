@@ -1,6 +1,5 @@
 freezegun
 ipython
-jupytext
 nbmake
 pytest
 pytest-cov

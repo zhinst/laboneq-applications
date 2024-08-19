@@ -125,13 +125,11 @@ def _parse_types(
 
 
 def _is_union_type(opt_type: type, is_py_39: bool) -> bool:  # noqa: FBT001
-    if (
+    return (
         is_py_39
         and get_origin(opt_type) == Union
         or (not is_py_39 and get_origin(opt_type) in (UnionType, Union))
-    ):
-        return True
-    return False
+    )
 
 
 T = typing.TypeVar("T")

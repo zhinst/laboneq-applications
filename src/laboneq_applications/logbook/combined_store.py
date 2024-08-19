@@ -7,7 +7,6 @@ from typing import TYPE_CHECKING
 from laboneq_applications.logbook import Logbook, LogbookStore
 
 if TYPE_CHECKING:
-
     from laboneq_applications.logbook import Artifact
     from laboneq_applications.workflow.engine.core import Workflow
     from laboneq_applications.workflow.task import Task

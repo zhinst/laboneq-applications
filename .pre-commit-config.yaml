@@ -1,6 +1,6 @@
 repos:
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.5.6 # must match the version used in the pyproject.toml
+    rev: v0.5.6 # must match the version used in requirements-lint.txt
     hooks:
       - id: ruff
       - id: ruff-format

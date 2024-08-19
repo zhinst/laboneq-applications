@@ -65,8 +65,10 @@ def test_extract_rabi_amplitude():
 
     # Test default fitting model
     assert results.model.model.func(
-        results.pi_amplitude.nominal_value, **results.model.best_values,
+        results.pi_amplitude.nominal_value,
+        **results.model.best_values,
     ) == pytest.approx(1.0020635710040655)
     assert results.model.model.func(
-        results.pi2_amplitude.nominal_value, **results.model.best_values,
+        results.pi2_amplitude.nominal_value,
+        **results.model.best_values,
     ) == pytest.approx(0.49907399921173384)

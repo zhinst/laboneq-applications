@@ -13,7 +13,6 @@ from laboneq.simple import (
     Transmon,
 )
 
-import tests.helpers.dsl as tsl
 from laboneq_applications import dsl
 from laboneq_applications.core.quantum_operations import (
     QuantumOperations,
@@ -21,6 +20,8 @@ from laboneq_applications.core.quantum_operations import (
     create_pulse,
     quantum_operation,
 )
+
+import tests.helpers.dsl as tsl
 
 
 class DummyOperations(QuantumOperations):

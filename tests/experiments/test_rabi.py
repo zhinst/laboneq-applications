@@ -5,9 +5,10 @@ from collections.abc import Sequence
 import numpy as np
 import pytest
 
-import tests.helpers.dsl as tsl
 from laboneq_applications.core.options import TuneupExperimentOptions
 from laboneq_applications.experiments import amplitude_rabi
+
+import tests.helpers.dsl as tsl
 
 
 def reserve_ops(q):

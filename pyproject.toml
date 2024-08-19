@@ -61,7 +61,12 @@ testpaths = [
 ]
 
 [tool.ruff]
-src = ["src", "test"]
+include = [
+    "pyproject.toml",
+    "src/**/*.py",
+    "tests/**/*.py",
+    "ci/**/*.py",
+]
 target-version = "py39"
 exclude = [
   "docs/zi_mkdocs",
@@ -75,6 +80,10 @@ lint.select = ["ALL"]
 lint.ignore = [
   # Type annotation for self
   "ANN101",
+  # Missing trailing comma (interferes with ruff format)
+  "COM812",
+  # Implicitly concatenate strings on same line (interferes with ruff format)
+  "ISC001",
   # Missing docstring in `__init__`
   "D107",
   # Missing type annotation for `cls` in classmethod
@@ -129,10 +138,82 @@ lint.ignore = [
   # part of an implicit namespace package
   "INP001"
 ]
+# CI tool checks
 "ci/*" = [
-    # part of an implicit namespace package
-    "INP001"
+  # part of an implicit namespace package
+  "INP001",
 ]
+# Example notebook checks (nbqa converts notebooks to .py)
+"examples/**/*.py" = [
+  # Annotations
+  "ANN",
+  # Missing __init__.py (notebooks don't have packages)
+  "INP001",
+  # Allow undocumented modules
+  "D100",
+  # Allow undocumented classes
+  "D101",
+  # Allow undocumented functions
+  "D103",
+  # Allow module-level imports that aren't at the top of the file
+  "E402",
+  # Allow commented out code which is often useful for explaining
+  "ERA001",
+  # Allow star imports
+  "F403",
+  # Allow undefined names because star imports are allowed
+  "F405",
+  # Allow redefining values
+  "F811",
+  # Pointless comparisons can display values in notebooks
+  "B015",
+  # Useless attribute access can display values in notebooks
+  "B018",
+  # Allow boolean positional parameters with defaults.
+  "FBT002",
+  # Magic values are sometimes fine in examples
+  "PLR2004",
+  # Print statements can be useful in notebooks
+  "T201",
+]
+# Documentation notebooks (nbqa converts notebooks to .py)
+"docs/sources/**/*.py" = [
+  # Annotations
+  "ANN",
+  # Missing __init__.py (notebooks don't have packages)
+  "INP001",
+  # Allow undocumented modules
+  "D100",
+  # Allow undocumented classes
+  "D101",
+  # Allow undocumented functions
+  "D103",
+  # Allow module-level imports that aren't at the top of the file
+  "E402",
+  # Allow commented out code which is often useful for explaining
+  "ERA001",
+  # Allow star imports
+  "F403",
+  # Allow undefined names because star imports are allowed
+  "F405",
+  # Allow redefining values
+  "F811",
+  # Pointless comparisons can display values in notebooks
+  "B015",
+  # Useless attribute access can display values in notebooks
+  "B018",
+  # Allow boolean positional parameters with defaults.
+  "FBT002",
+  # Magic values are sometimes fine in examples
+  "PLR2004",
+  # Print statements can be useful in notebooks
+  "T201",
+]
+
+[tool.ruff.lint.isort]
+known-first-party = ["laboneq_applications"]
+forced-separate = ["tests"]
+
 [tool.ruff.lint.pydocstyle]
 convention = "google"
 

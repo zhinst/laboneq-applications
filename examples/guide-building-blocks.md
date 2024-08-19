@@ -70,6 +70,7 @@ The `LogbookStore` will not be covered here.
 Build your LabOne Q `DeviceSetup`, qubits and `Session` as normal. Here we import an example from the applications library's test suite (this will change in the near future):
 
 ```{code-cell} ipython3
+from laboneq.core.exceptions import LabOneQException
 from laboneq.simple import *
 
 from laboneq_applications.qpu_types.tunable_transmon import demo_platform
@@ -85,7 +86,8 @@ setup = qt_platform.setup
 # And a tunable-transmon QPU:
 qpu = qt_platform.qpu
 
-# Inside the QPU, we have qubits, which is a list of six LabOne Q Application Library TunableTransmonQubit qubits:
+# Inside the QPU, we have qubits, which is a list of six LabOne Q Application
+# Library TunableTransmonQubit qubits:
 qubits = qpu.qubits
 ```
 
@@ -674,7 +676,8 @@ Inspect the LabOne Q Experiment object returned by `create_experiment`
 
 ```{code-cell} ipython3
 print(result.tasks["create_experiment"].output)
-# alternatively, print(result.tasks[0].output)
+# Or alternatively:
+#    print(result.tasks[0].output)
 ```
 
 Inspect the LabOne Q CompiledExperiment object returned by `compile_experiment`
@@ -730,7 +733,7 @@ amplitudes = np.linspace(0.0, 1.5, 10)
 options = amplitude_rabi.options()
 options.create_experiment.count = 10
 
-# here we catch the exception such that the notebook runs through
+# here we catch the exception so that the notebook can keep executing
 try:
     rabi_tb = amplitude_rabi.experiment_workflow(
         session,
@@ -739,7 +742,7 @@ try:
         amplitudes,
         options=options,
     ).run()
-except Exception as e:
+except LabOneQException as e:
     print("ERROR: ", e)
 ```
 

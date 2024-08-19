@@ -1,4 +1,4 @@
-""" Test helpers for working with DSL outputs and UIDs. """
+"""Test helpers for working with DSL outputs and UIDs."""
 
 from __future__ import annotations
 

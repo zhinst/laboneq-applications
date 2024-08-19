@@ -104,7 +104,8 @@ class WorkflowGraph:
         if "options" in kwargs:
             opt_param = kwargs["options"]
             if opt_param is not None and not isinstance(
-                opt_param, (self._root.options, dict),
+                opt_param,
+                (self._root.options, dict),
             ):
                 msg = (
                     "Workflow input options must be of "

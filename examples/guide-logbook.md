@@ -48,6 +48,7 @@ Build your LabOne Q `DeviceSetup`, qubits and `Session` as normal. Here we impor
 ```{code-cell} ipython3
 import numpy as np
 from laboneq.simple import *
+
 from laboneq_applications.experiments import amplitude_rabi
 from laboneq_applications.qpu_types.tunable_transmon import demo_platform
 ```
@@ -62,7 +63,8 @@ setup = qt_platform.setup
 # And a tunable-transmon QPU:
 qpu = qt_platform.qpu
 
-# Inside the QPU, we have qubits, which is a list of six LabOne Q Application Library TunableTransmonQubit qubits:
+# Inside the QPU, we have qubits, which is a list of six LabOne Q Application
+# Library TunableTransmonQubit qubits:
 qubits = qpu.qubits
 ```
 
@@ -153,6 +155,7 @@ You can access the default logging store by importing it from `laboneq_applicati
 
 ```{code-cell} ipython3
 from laboneq_applications.logbook import DEFAULT_LOGGING_STORE
+
 DEFAULT_LOGGING_STORE
 ```
 
@@ -253,8 +256,8 @@ This is done by calling the `comment(...)` function within a task.
 We'll work through an example below:
 
 ```{code-cell} ipython3
-from laboneq_applications.workflow import task, workflow
 from laboneq_applications.logbook import comment
+from laboneq_applications.workflow import task, workflow
 ```
 
 Let's write a small workflow and a tiny task that just writes a comment to the logbook:
@@ -263,6 +266,7 @@ Let's write a small workflow and a tiny task that just writes a comment to the l
 @task
 def log_a_comment(msg):
     comment(msg)
+
 
 @workflow
 def demo_comments():
@@ -324,6 +328,7 @@ def sine_plot():
     plt.plot(x, y)
 
     save_artifact("Sine Plot", fig)
+
 
 @workflow
 def demo_saving():
@@ -416,6 +421,7 @@ def sine_plot_with_options():
         },
     )
 
+
 @workflow
 def demo_saving_with_options():
     sine_plot_with_options()
@@ -431,7 +437,9 @@ result = wf.run()
 Again we open the workflow folder and load the saved image:
 
 ```{code-cell} ipython3
-demo_saving_with_options_folders = sorted(store_folder.glob("*-demo-saving-with-options"))
+demo_saving_with_options_folders = sorted(
+    store_folder.glob("*-demo-saving-with-options")
+)
 demo_saving_with_options_folder = demo_saving_with_options_folders[-1]
 demo_saving_with_options_folder
 ```
