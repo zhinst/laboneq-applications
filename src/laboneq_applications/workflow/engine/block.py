@@ -5,6 +5,7 @@ from __future__ import annotations
 import abc
 from typing import TYPE_CHECKING, cast
 
+from laboneq_applications.core import now
 from laboneq_applications.workflow import _utils
 from laboneq_applications.workflow._context import (
     TaskExecutor,
@@ -127,14 +128,18 @@ class TaskBlock(Block):
             input=_utils.create_argument_map(self.task.func, **params),
         )
 
+        task._start_time = now()
         executor._logbook.on_task_start(task)
         try:
             task._output = self.task.func(**params)
         except Exception as error:
+            task._end_time = now()
             executor._logbook.on_task_error(task, error)
             error._logged_by_task = True  # TODO: Nicer mechanism
             raise
         finally:
+            if task._end_time is None:
+                task._end_time = now()
             executor._logbook.on_task_end(task)
 
         executor.recorder.on_task_end(task)

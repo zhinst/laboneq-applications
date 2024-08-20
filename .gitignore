@@ -172,6 +172,7 @@ examples/*/*.yaml
 
 # vscode
 .vscode/
+*.code-workspace
 
 # Do not track anything saved in experiment_store folders
 experiment_store

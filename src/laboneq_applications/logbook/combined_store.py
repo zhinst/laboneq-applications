@@ -7,8 +7,8 @@ from typing import TYPE_CHECKING
 from laboneq_applications.logbook import Logbook, LogbookStore
 
 if TYPE_CHECKING:
-    from laboneq_applications.logbook import Artifact
-    from laboneq_applications.workflow.engine.core import Workflow
+    from laboneq_applications.logbook.core import Artifact
+    from laboneq_applications.workflow.engine.core import Workflow, WorkflowResult
     from laboneq_applications.workflow.task import Task
 
 
@@ -21,7 +21,7 @@ class CombinedStore(LogbookStore):
     def create_logbook(self, workflow: Workflow) -> Logbook:
         """Create a new logbook for the given workflow."""
         logbooks = [store.create_logbook(workflow) for store in self._stores]
-        return CombinedLogbook(workflow, logbooks)
+        return CombinedLogbook(logbooks)
 
 
 class CombinedLogbook(Logbook):
@@ -29,26 +29,28 @@ class CombinedLogbook(Logbook):
 
     def __init__(
         self,
-        workflow: Workflow,
         logbooks: list[Logbook],
     ):
-        self._workflow = workflow
         self._logbooks = logbooks
 
-    def on_start(self) -> None:
+    def on_start(self, workflow_result: WorkflowResult) -> None:
         """Called when the workflow execution starts."""
         for logbook in self._logbooks:
-            logbook.on_start()
+            logbook.on_start(workflow_result)
 
-    def on_end(self) -> None:
+    def on_end(self, workflow_result: WorkflowResult) -> None:
         """Called when the workflow execution ends."""
         for logbook in self._logbooks:
-            logbook.on_end()
+            logbook.on_end(workflow_result)
 
-    def on_error(self, error: Exception) -> None:
+    def on_error(
+        self,
+        workflow_result: WorkflowResult,
+        error: Exception,
+    ) -> None:
         """Called when the workflow raises an exception."""
         for logbook in self._logbooks:
-            logbook.on_error(error)
+            logbook.on_error(workflow_result, error)
 
     def on_task_start(self, task: Task) -> None:
         """Called when a task begins execution."""
@@ -60,7 +62,11 @@ class CombinedLogbook(Logbook):
         for logbook in self._logbooks:
             logbook.on_task_end(task)
 
-    def on_task_error(self, task: Task, error: Exception) -> None:
+    def on_task_error(
+        self,
+        task: Task,
+        error: Exception,
+    ) -> None:
         """Called when a task raises an exception."""
         for logbook in self._logbooks:
             logbook.on_task_error(task, error)
@@ -70,10 +76,7 @@ class CombinedLogbook(Logbook):
         for logbook in self._logbooks:
             logbook.comment(message)
 
-    def save(
-        self,
-        artifact: Artifact,
-    ) -> None:
+    def save(self, artifact: Artifact) -> None:
         """Called to save an artifact."""
         for logbook in self._logbooks:
             logbook.save(artifact)

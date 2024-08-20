@@ -9,6 +9,7 @@ from typing import TYPE_CHECKING, Any, Callable, Generic, cast
 
 from typing_extensions import ParamSpec
 
+from laboneq_applications.core import now
 from laboneq_applications.logbook import (
     LogbookStore,
     LoggingStore,
@@ -34,6 +35,8 @@ from laboneq_applications.workflow.options import (
 from laboneq_applications.workflow.taskview import TaskView
 
 if TYPE_CHECKING:
+    from datetime import datetime
+
     from laboneq_applications.workflow.task import Task
 
 
@@ -43,6 +46,8 @@ class WorkflowResult:
     def __init__(self):
         self._tasks: list[Task] = []
         self._output = None
+        self._start_time: datetime | None = None
+        self._end_time: datetime | None = None
 
     @property
     def output(self) -> Any:  # noqa: ANN401
@@ -75,6 +80,16 @@ class WorkflowResult:
     def add_task(self, task: Task) -> None:
         """Add a task result."""
         self._tasks.append(task)
+
+    @property
+    def start_time(self) -> datetime | None:
+        """The time when the workflow execution has started."""
+        return self._start_time
+
+    @property
+    def end_time(self) -> datetime | None:
+        """The time when the workflow execution has ended regularly or failed."""
+        return self._end_time
 
 
 class _ResultCollector(ExecutionRecorder):
@@ -189,17 +204,31 @@ class Workflow(Generic[Parameters]):
         logbook = logstore.create_logbook(self)
 
         state = ExecutorState(logbook=logbook, options=options)
+
         # TODO: Result collector should be injected from the outside. E.g a logbook
         results = WorkflowResult()
         collector = _ResultCollector(results)
         state.add_recorder(collector)
         with ExecutorStateContext.scoped(state):
             try:
+                results._start_time = now()
+                logbook.on_start(results)
                 self._graph.execute(state, **self._input)
-            except Exception:
+            except Exception as error:
+                results._end_time = now()
                 if self._recovery is not None:
                     self._recovery.results = results
+                if not getattr(
+                    error,
+                    "_logged_by_task",
+                    False,
+                ):  # TODO: better mechanism
+                    logbook.on_error(results, error)
                 raise
+            finally:
+                if results._end_time is None:
+                    results._end_time = now()
+                logbook.on_end(results)
         return results
 
 

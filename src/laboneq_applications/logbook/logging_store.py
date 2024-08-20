@@ -11,13 +11,14 @@ from rich.console import Console
 from rich.panel import Panel
 from rich.text import Text
 
-from laboneq_applications.logbook import Logbook, LogbookStore
+from laboneq_applications.core import now
+from laboneq_applications.logbook import Logbook, LogbookStore, format_time
 
 if TYPE_CHECKING:
     from typing import Callable
 
-    from laboneq_applications.logbook import Artifact
-    from laboneq_applications.workflow.engine.core import Workflow
+    from laboneq_applications.logbook.core import Artifact
+    from laboneq_applications.workflow.engine.core import Workflow, WorkflowResult
     from laboneq_applications.workflow.task import Task
 
 
@@ -83,60 +84,80 @@ class LoggingLogbook(Logbook):
         rich_txt = Text(txt, style="bold")
         self._log_rich(log, rich_txt)
 
-    def on_start(self) -> None:
+    def on_start(self, workflow_result: WorkflowResult) -> None:
         """Called when the workflow execution starts."""
         self._log_in_rich_panel(
             self._logger.info,
-            "Workflow %r: execution started",
+            "Workflow %r: execution started at %s",
             self._workflow.name,
+            format_time(now(workflow_result.start_time)),
         )
 
-    def on_end(self) -> None:
+    def on_end(self, workflow_result: WorkflowResult) -> None:
         """Called when the workflow execution ends."""
         self._log_in_rich_panel(
             self._logger.info,
-            "Workflow %r: execution ended",
+            "Workflow %r: execution ended at %s",
             self._workflow.name,
+            format_time(now(workflow_result.end_time)),
         )
 
-    def on_error(self, error: Exception) -> None:
+    def on_error(self, workflow_result: WorkflowResult, error: Exception) -> None:
         """Called when the workflow raises an exception."""
         self._log_in_rich_bold(
             self._logger.error,
-            "Workflow %r: execution failed with: %r",
+            "Workflow %r: execution failed at %s with: %r",
             self._workflow.name,
+            format_time(now(workflow_result.end_time)),
             error,
         )
 
     def on_task_start(self, task: Task) -> None:
         """Called when a task begins execution."""
-        self._log_in_rich_bold(self._logger.info, "Task %r: started", task.name)
+        self._log_in_rich_bold(
+            self._logger.info,
+            "Task %r: started at %s",
+            task.name,
+            format_time(now(task.start_time)),
+        )
 
     def on_task_end(self, task: Task) -> None:
         """Called when a task ends execution."""
-        self._log_in_rich_bold(self._logger.info, "Task %r: ended", task.name)
+        self._log_in_rich_bold(
+            self._logger.info,
+            "Task %r: ended at %s",
+            task.name,
+            format_time(now(task.end_time)),
+        )
 
-    def on_task_error(self, task: Task, error: Exception) -> None:
+    def on_task_error(
+        self,
+        task: Task,
+        error: Exception,
+    ) -> None:
         """Called when a task raises an exception."""
         self._log_in_rich_bold(
             self._logger.error,
-            "Task %r: failed with: %r",
+            "Task %r: failed at %s with: %r",
             task.name,
+            format_time(now(task.end_time)),
             error,
         )
 
     def comment(self, message: str) -> None:
         """Called to leave a comment."""
-        self._log_in_rich_bold(self._logger.info, "Comment: %s", message)
+        self._log_in_rich_bold(
+            self._logger.info,
+            "Comment: %s",
+            message,
+        )
 
-    def save(
-        self,
-        artifact: Artifact,
-    ) -> None:
+    def save(self, artifact: Artifact) -> None:
         """Called to save an artifact."""
         self._log_in_rich_bold(
             self._logger.info,
-            "Artifact: %r of type %r logged",
+            "Artifact: %r of type %r logged at %s",
             artifact.name,
             type(artifact.obj).__name__,
+            format_time(now(artifact.timestamp)),
         )

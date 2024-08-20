@@ -5,6 +5,7 @@ from __future__ import annotations
 import logging
 
 import pytest
+from freezegun import freeze_time
 
 from laboneq_applications import logbook
 from laboneq_applications.logbook.combined_store import CombinedStore
@@ -62,6 +63,10 @@ def save_workflow(name, obj, metadata, opts, options: WorkflowOptions | None = N
     save_task(name, obj, metadata, opts)
 
 
+TIMESTR = "2015-10-21 09:00:00.123456Z"
+
+
+@freeze_time("2015-10-21 09:00:00.123456", tz_offset=0)
 class TestCombinedStore:
     @pytest.fixture()
     def logstore(self, caplog):
@@ -86,8 +91,8 @@ class TestCombinedStore:
 
         for logger_name in ["logger_a", "logger_b"]:
             assert self._messages(logger_name, caplog) == [
-                "Workflow 'empty_workflow': execution started",
-                "Workflow 'empty_workflow': execution ended",
+                f"Workflow 'empty_workflow': execution started at {TIMESTR}",
+                f"Workflow 'empty_workflow': execution ended at {TIMESTR}",
             ]
 
     def test_on_error(self, caplog, logstore):
@@ -99,10 +104,10 @@ class TestCombinedStore:
 
         for logger_name in ["logger_a", "logger_b"]:
             assert self._messages(logger_name, caplog) == [
-                "Workflow 'bad_ref_workflow': execution started",
-                "Workflow 'bad_ref_workflow': execution failed with:"
-                " AttributeError(\"'int' object has no attribute 'c'\")",
-                "Workflow 'bad_ref_workflow': execution ended",
+                f"Workflow 'bad_ref_workflow': execution started at {TIMESTR}",
+                f"Workflow 'bad_ref_workflow': execution failed at {TIMESTR} with:"
+                f" AttributeError(\"'int' object has no attribute 'c'\")",
+                f"Workflow 'bad_ref_workflow': execution ended at {TIMESTR}",
             ]
 
     def test_on_task_start_and_end(self, caplog, logstore):
@@ -111,10 +116,10 @@ class TestCombinedStore:
 
         for logger_name in ["logger_a", "logger_b"]:
             assert self._messages(logger_name, caplog) == [
-                "Workflow 'simple_workflow': execution started",
-                "Task 'add_task': started",
-                "Task 'add_task': ended",
-                "Workflow 'simple_workflow': execution ended",
+                f"Workflow 'simple_workflow': execution started at {TIMESTR}",
+                f"Task 'add_task': started at {TIMESTR}",
+                f"Task 'add_task': ended at {TIMESTR}",
+                f"Workflow 'simple_workflow': execution ended at {TIMESTR}",
             ]
 
     def test_on_task_error(self, caplog, logstore):
@@ -125,12 +130,12 @@ class TestCombinedStore:
         assert str(err.value) == "This is not a happy task."
         for logger_name in ["logger_a", "logger_b"]:
             assert self._messages(logger_name, caplog) == [
-                "Workflow 'error_workflow': execution started",
-                "Task 'error_task': started",
-                "Task 'error_task': failed with:"
-                " ValueError('This is not a happy task.')",
-                "Task 'error_task': ended",
-                "Workflow 'error_workflow': execution ended",
+                f"Workflow 'error_workflow': execution started at {TIMESTR}",
+                f"Task 'error_task': started at {TIMESTR}",
+                f"Task 'error_task': failed at {TIMESTR} with:"
+                f" ValueError('This is not a happy task.')",
+                f"Task 'error_task': ended at {TIMESTR}",
+                f"Workflow 'error_workflow': execution ended at {TIMESTR}",
             ]
 
     def test_comment(self, caplog, logstore):
@@ -139,11 +144,11 @@ class TestCombinedStore:
 
         for logger_name in ["logger_a", "logger_b"]:
             assert self._messages(logger_name, caplog) == [
-                "Workflow 'comment_workflow': execution started",
-                "Task 'comment_task': started",
+                f"Workflow 'comment_workflow': execution started at {TIMESTR}",
+                f"Task 'comment_task': started at {TIMESTR}",
                 "Comment: A comment!",
-                "Task 'comment_task': ended",
-                "Workflow 'comment_workflow': execution ended",
+                f"Task 'comment_task': ended at {TIMESTR}",
+                f"Workflow 'comment_workflow': execution ended at {TIMESTR}",
             ]
 
     def test_save(self, caplog, logstore):
@@ -163,9 +168,9 @@ class TestCombinedStore:
 
         for logger_name in ["logger_a", "logger_b"]:
             assert self._messages(logger_name, caplog) == [
-                "Workflow 'save_workflow': execution started",
-                "Task 'save_task': started",
-                "Artifact: 'an_obj' of type 'DummyObj' logged",
-                "Task 'save_task': ended",
-                "Workflow 'save_workflow': execution ended",
+                f"Workflow 'save_workflow': execution started at {TIMESTR}",
+                f"Task 'save_task': started at {TIMESTR}",
+                f"Artifact: 'an_obj' of type 'DummyObj' logged at {TIMESTR}",
+                f"Task 'save_task': ended at {TIMESTR}",
+                f"Workflow 'save_workflow': execution ended at {TIMESTR}",
             ]

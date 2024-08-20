@@ -35,21 +35,13 @@ class WorkflowBlock(Block):
 
     def execute(self, executor: ExecutorState) -> Any:  # noqa: ANN401
         """Execute the block."""
-        executor._logbook.on_start()
-        try:
-            input_opts = executor.resolve_inputs(self).get("options")
-            if input_opts is None:
-                input_opts = self._options()
-            executor.options = input_opts
-            with executor:
-                for block in self._body:
-                    block.execute(executor)
-        except Exception as error:
-            if not getattr(error, "_logged_by_task", False):  # TODO: better mechanism
-                executor._logbook.on_error(error)
-            raise
-        finally:
-            executor._logbook.on_end()
+        input_opts = executor.resolve_inputs(self).get("options")
+        if input_opts is None:
+            input_opts = self._options()
+        executor.options = input_opts
+        with executor:
+            for block in self._body:
+                block.execute(executor)
 
     @classmethod
     def from_callable(cls, func: Callable) -> WorkflowBlock:

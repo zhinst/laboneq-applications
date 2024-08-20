@@ -95,7 +95,10 @@ def folder(tmp_path):
     return FolderStoreFixture(tmp_path / "store")
 
 
-@freeze_time("2024-07-28 17:55:00")
+TIMEDICTENTRY = {"time": "2024-07-28 17:55:00+00:00"}
+
+
+@freeze_time("2024-07-28 17:55:00", tz_offset=0)
 class TestFolderStore:
     def test_on_start_and_end(self, logstore, folder):
         wf = empty_workflow(3, 5, options={"logstore": logstore})
@@ -106,8 +109,8 @@ class TestFolderStore:
         assert folder.store_contents() == [workflow_folder_name]
         assert folder.contents(workflow_folder_name) == ["log.jsonl"]
         assert folder.log(workflow_folder_name) == [
-            {"event": "start"},
-            {"event": "end"},
+            {"event": "start"} | TIMEDICTENTRY,
+            {"event": "end"} | TIMEDICTENTRY,
         ]
 
     def test_on_error(self, logstore, folder):
@@ -122,12 +125,13 @@ class TestFolderStore:
         assert folder.store_contents() == [workflow_folder_name]
         assert folder.contents(workflow_folder_name) == ["log.jsonl"]
         assert folder.log(workflow_folder_name) == [
-            {"event": "start"},
+            {"event": "start"} | TIMEDICTENTRY,
             {
                 "event": "error",
                 "error": "AttributeError(\"'int' object has no attribute 'c'\")",
-            },
-            {"event": "end"},
+            }
+            | TIMEDICTENTRY,
+            {"event": "end"} | TIMEDICTENTRY,
         ]
 
     def test_on_task_start_and_end(self, logstore, folder):
@@ -139,10 +143,18 @@ class TestFolderStore:
         assert folder.store_contents() == [workflow_folder_name]
         assert folder.contents(workflow_folder_name) == ["log.jsonl"]
         assert folder.log(workflow_folder_name) == [
-            {"event": "start"},
-            {"event": "task_start", "task": "add_task"},
-            {"event": "task_end", "task": "add_task"},
-            {"event": "end"},
+            {"event": "start"} | TIMEDICTENTRY,
+            {
+                "event": "task_start",
+                "task": "add_task",
+            }
+            | TIMEDICTENTRY,
+            {
+                "event": "task_end",
+                "task": "add_task",
+            }
+            | TIMEDICTENTRY,
+            {"event": "end"} | TIMEDICTENTRY,
         ]
 
     def test_on_task_error(self, logstore, folder):
@@ -156,15 +168,24 @@ class TestFolderStore:
         assert folder.store_contents() == [workflow_folder_name]
         assert folder.contents(workflow_folder_name) == ["log.jsonl"]
         assert folder.log(workflow_folder_name) == [
-            {"event": "start"},
-            {"event": "task_start", "task": "error_task"},
+            {"event": "start"} | TIMEDICTENTRY,
+            {
+                "event": "task_start",
+                "task": "error_task",
+            }
+            | TIMEDICTENTRY,
             {
                 "event": "task_error",
                 "task": "error_task",
                 "error": "ValueError('This is not a happy task.')",
-            },
-            {"event": "task_end", "task": "error_task"},
-            {"event": "end"},
+            }
+            | TIMEDICTENTRY,
+            {
+                "event": "task_end",
+                "task": "error_task",
+            }
+            | TIMEDICTENTRY,
+            {"event": "end"} | TIMEDICTENTRY,
         ]
 
     def test_comment(self, logstore, folder):
@@ -176,14 +197,23 @@ class TestFolderStore:
         assert folder.store_contents() == [workflow_folder_name]
         assert folder.contents(workflow_folder_name) == ["log.jsonl"]
         assert folder.log(workflow_folder_name) == [
-            {"event": "start"},
-            {"event": "task_start", "task": "comment_task"},
+            {"event": "start"} | TIMEDICTENTRY,
+            {
+                "event": "task_start",
+                "task": "comment_task",
+            }
+            | TIMEDICTENTRY,
             {
                 "event": "comment",
                 "message": "A comment!",
-            },
-            {"event": "task_end", "task": "comment_task"},
-            {"event": "end"},
+            }
+            | TIMEDICTENTRY,
+            {
+                "event": "task_end",
+                "task": "comment_task",
+            }
+            | TIMEDICTENTRY,
+            {"event": "end"} | TIMEDICTENTRY,
         ]
 
     def test_save(self, logstore, folder):
@@ -203,8 +233,8 @@ class TestFolderStore:
         assert folder.store_contents() == [workflow_folder_name]
         assert folder.contents(workflow_folder_name) == ["an-obj.npy", "log.jsonl"]
         assert folder.log(workflow_folder_name) == [
-            {"event": "start"},
-            {"event": "task_start", "task": "save_task"},
+            {"event": "start"} | TIMEDICTENTRY,
+            {"event": "task_start", "task": "save_task"} | TIMEDICTENTRY,
             {
                 "event": "artifact",
                 "artifact_name": "an_obj",
@@ -216,9 +246,10 @@ class TestFolderStore:
                 "artifact_files": [
                     {"filename": "an-obj.npy"},
                 ],
-            },
-            {"event": "task_end", "task": "save_task"},
-            {"event": "end"},
+            }
+            | TIMEDICTENTRY,
+            {"event": "task_end", "task": "save_task"} | TIMEDICTENTRY,
+            {"event": "end"} | TIMEDICTENTRY,
         ]
 
     def test_save_with_popped_options(self, logstore, folder):
@@ -238,8 +269,8 @@ class TestFolderStore:
         assert folder.store_contents() == [workflow_folder_name]
         assert folder.contents(workflow_folder_name) == ["image.jpg", "log.jsonl"]
         assert folder.log(workflow_folder_name) == [
-            {"event": "start"},
-            {"event": "task_start", "task": "save_task"},
+            {"event": "start"} | TIMEDICTENTRY,
+            {"event": "task_start", "task": "save_task"} | TIMEDICTENTRY,
             {
                 "event": "artifact",
                 "artifact_name": "image",
@@ -253,7 +284,8 @@ class TestFolderStore:
                 "artifact_files": [
                     {"filename": "image.jpg"},
                 ],
-            },
-            {"event": "task_end", "task": "save_task"},
-            {"event": "end"},
+            }
+            | TIMEDICTENTRY,
+            {"event": "task_end", "task": "save_task"} | TIMEDICTENTRY,
+            {"event": "end"} | TIMEDICTENTRY,
         ]

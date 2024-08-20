@@ -5,12 +5,15 @@ from __future__ import annotations
 import inspect
 import textwrap
 from functools import partial, update_wrapper
-from typing import Callable, Generic, Protocol, TypeVar, overload
+from typing import TYPE_CHECKING, Callable, Generic, Protocol, TypeVar, overload
 
 from typing_extensions import ParamSpec
 
 from laboneq_applications.workflow import _context, _utils
 from laboneq_applications.workflow.exceptions import WorkflowError
+
+if TYPE_CHECKING:
+    from datetime import datetime
 
 
 class TaskStorageProtocol(Protocol):
@@ -45,6 +48,8 @@ class Task:
         self._input = input or {}
         self._task_store: TaskStorageProtocol | None = None
         self._figures = []
+        self._start_time: datetime | None = None
+        self._end_time: datetime | None = None
 
     @property
     def name(self) -> str:
@@ -70,6 +75,16 @@ class Task:
     def input(self) -> dict:
         """Input parameters of the task."""
         return self._input
+
+    @property
+    def start_time(self) -> datetime | None:
+        """Time when the task has started."""
+        return self._start_time
+
+    @property
+    def end_time(self) -> datetime | None:
+        """Time when the task has ended regulrarly or failed."""
+        return self._end_time
 
     def rerun(
         self,

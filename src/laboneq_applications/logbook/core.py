@@ -3,11 +3,14 @@
 from __future__ import annotations
 
 import abc
+from datetime import datetime, timezone
 from typing import TYPE_CHECKING, Protocol
+
+from laboneq_applications.core import now
 
 if TYPE_CHECKING:
     from laboneq_applications.typing import SimpleDict
-    from laboneq_applications.workflow.engine.core import Workflow
+    from laboneq_applications.workflow.engine.core import Workflow, WorkflowResult
     from laboneq_applications.workflow.task import Task
 
 
@@ -16,7 +19,7 @@ class Artifact:
 
     An artifact consists of a Python object that a workflow wishes to
     record plus the additional information required to store and
-    reference it.
+    reference it, including the artifact's creation time.
 
     Arguments:
         name:
@@ -42,6 +45,7 @@ class Artifact:
         self.obj = obj
         self.metadata = metadata or {}
         self.options = options or {}
+        self.timestamp = now()
 
 
 class LogbookStore(abc.ABC):
@@ -85,16 +89,19 @@ class Logbook(Protocol):
 
     def on_start(
         self,
+        workflow_result: WorkflowResult,
     ) -> None:
         """Called when the workflow execution starts."""
 
     def on_end(
         self,
+        workflow_result: WorkflowResult,
     ) -> None:
         """Called when the workflow execution ends."""
 
     def on_error(
         self,
+        workflow_result: WorkflowResult,
         error: Exception,
     ) -> None:
         """Called when the workflow raises an exception."""
@@ -188,3 +195,8 @@ def save_artifact(
         raise RuntimeError(
             "Workflow artifact saving is currently not supported outside of tasks.",
         )
+
+
+def format_time(time: datetime) -> str:
+    """Format a datetime object as a string."""
+    return time.astimezone(timezone.utc).strftime("%Y-%m-%d %H:%M:%S.%fZ")

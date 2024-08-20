@@ -23,10 +23,10 @@ class ExecutionRecorder(Protocol):
     """
 
     def on_task_end(self, task: Task) -> None:
-        """Add a task result."""
+        """Record a task result."""
 
     def on_workflow_end(self, result: Any) -> None:  # noqa: ANN401
-        """Add a workflow result."""
+        """Record the workflow result."""
 
 
 class _ExecutionRecorderManager(ExecutionRecorder):
@@ -44,12 +44,12 @@ class _ExecutionRecorderManager(ExecutionRecorder):
         self._recorders.append(recorder)
 
     def on_task_end(self, task: Task) -> None:
-        """Add a task result."""
+        """Record a task result."""
         for recorder in self._recorders:
             recorder.on_task_end(task)
 
     def on_workflow_end(self, result: Any) -> None:  # noqa: ANN401
-        """Add a workflow result."""
+        """Record the workflow result."""
         for recorder in self._recorders:
             recorder.on_workflow_end(result)
 

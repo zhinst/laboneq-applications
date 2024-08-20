@@ -2,11 +2,11 @@
 
 from __future__ import annotations
 
-import datetime
 import json
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+from laboneq_applications.core import now
 from laboneq_applications.logbook import Logbook, LogbookStore
 from laboneq_applications.logbook.serializer import (
     SerializeOpener,
@@ -18,8 +18,9 @@ from laboneq_applications.logbook.serializer import (
 if TYPE_CHECKING:
     from typing import IO, Callable
 
-    from laboneq_applications.logbook import Artifact, SerializerOptions
-    from laboneq_applications.workflow.engine.core import Workflow
+    from laboneq_applications.logbook.core import Artifact
+    from laboneq_applications.typing import SimpleDict
+    from laboneq_applications.workflow.engine.core import Workflow, WorkflowResult
     from laboneq_applications.workflow.task import Task
 
 
@@ -65,7 +66,7 @@ class FolderStore(LogbookStore):
         # TODO: Decide whether UTC is the correct timezone.
         #       Likely local time is correct.
         #       What about daylight savings?
-        ts = datetime.datetime.now(datetime.timezone.utc).strftime("%Y%m%dT%H%M%S")
+        ts = now().strftime("%Y%m%dT%H%M%S")
         workflow_name = _sanitize_filename(workflow_name)
         count = 0
         while True:
@@ -99,7 +100,7 @@ class FolderLogbookOpener(SerializeOpener):
         self,
         logbook: FolderLogbook,
         artifact_name: str,
-        serializer_options: SerializerOptions,
+        serializer_options: SimpleDict,
     ):
         self._logbook = logbook
         self._artifact_name = artifact_name
@@ -169,10 +170,14 @@ class ArtifactFiles:
 class FolderLogbook(Logbook):
     """A logbook that stores a workflow's results and artifacts in a folder."""
 
-    def __init__(self, folder: Path | str, serialize: Callable) -> None:
+    def __init__(
+        self,
+        folder: Path | str,
+        serialize: Callable[[object, FolderLogbookOpener], None],
+    ) -> None:
         self._folder = Path(folder)
         self._folder.mkdir(parents=False, exist_ok=False)
-        self._log = Path(folder / "log.jsonl")
+        self._log = Path(self._folder / "log.jsonl")
         self._log.touch(exist_ok=False)
         self._serialize = serialize
 
@@ -204,42 +209,78 @@ class FolderLogbook(Logbook):
             count += 1
 
     def _append_log(self, data: dict[str, object]) -> None:
-        with self._log.open(mode="a") as f:
+        with self._log.open(mode="a", encoding="utf-8") as f:
             json.dump(data, f)
             f.write("\n")
 
-    def on_start(self) -> None:
+    def on_start(self, workflow_result: WorkflowResult) -> None:
         """Called when the workflow execution starts."""
-        self._append_log({"event": "start"})
+        self._append_log(
+            {"event": "start", "time": str(now(workflow_result.start_time))},
+        )
 
-    def on_end(self) -> None:
+    def on_end(self, workflow_result: WorkflowResult) -> None:
         """Called when the workflow execution ends."""
-        self._append_log({"event": "end"})
+        self._append_log(
+            {"event": "end", "time": str(now(workflow_result.end_time))},
+        )
 
-    def on_error(self, error: Exception) -> None:
+    def on_error(
+        self,
+        workflow_result: WorkflowResult,
+        error: Exception,
+    ) -> None:
         """Called when the workflow raises an exception."""
-        self._append_log({"event": "error", "error": repr(error)})
+        self._append_log(
+            {
+                "event": "error",
+                "error": repr(error),
+                "time": str(now(workflow_result.end_time)),
+            },
+        )
 
     def on_task_start(
         self,
         task: Task,
     ) -> None:
         """Called when a task begins execution."""
-        self._append_log({"event": "task_start", "task": task.name})
+        self._append_log(
+            {
+                "event": "task_start",
+                "task": task.name,
+                "time": str(now(task.start_time)),
+            },
+        )
 
-    def on_task_end(self, task: Task) -> None:
+    def on_task_end(
+        self,
+        task: Task,
+    ) -> None:
         """Called when a task ends execution."""
-        self._append_log({"event": "task_end", "task": task.name})
+        self._append_log(
+            {"event": "task_end", "task": task.name, "time": str(now(task.end_time))},
+        )
 
-    def on_task_error(self, task: Task, error: Exception) -> None:
+    def on_task_error(
+        self,
+        task: Task,
+        error: Exception,
+    ) -> None:
         """Called when a task raises an exception."""
         self._append_log(
-            {"event": "task_error", "task": task.name, "error": repr(error)},
+            {
+                "event": "task_error",
+                "task": task.name,
+                "error": repr(error),
+                "time": str(now(task.end_time)),
+            },
         )
 
     def comment(self, message: str) -> None:
         """Called to leave a comment."""
-        self._append_log({"event": "comment", "message": message})
+        self._append_log(
+            {"event": "comment", "message": message, "time": str(now())},
+        )
 
     def _save(self, artifact: Artifact) -> ArtifactFiles:
         """Store an artifact in one or more files."""
@@ -256,6 +297,7 @@ class FolderLogbook(Logbook):
         self._append_log(
             {
                 "event": "artifact",
+                "time": str(now(artifact.timestamp)),
                 "artifact_name": artifact.name,
                 "artifact_type": type(artifact.obj).__name__,
                 "artifact_metadata": artifact.metadata,
