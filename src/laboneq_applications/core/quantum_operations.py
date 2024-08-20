@@ -208,8 +208,12 @@ class QuantumOperations:
         return name in self._ops
 
     def __dir__(self):
-        """Return the attributes these quantum operations."""
+        """Return the attributes of these quantum operations."""
         return sorted(super().__dir__() + list(self._ops.keys()))
+
+    def keys(self) -> list[str]:
+        """Return the names of the registered quantum operations."""
+        return sorted(self._ops.keys())
 
     def register(self, f: Callable, name: str | None = None) -> None:
         """Registers a quantum operation.

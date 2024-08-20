@@ -290,9 +290,15 @@ class TestQuantumOperations:
         assert public_attrs == [
             "BASE_OPS",
             "QUBIT_TYPES",
+            "keys",
             "register",
             "x",
         ]
+
+    def test_keys(self, dummy_ops):
+        assert dummy_ops.keys() == ["x"]
+        dummy_ops.register(dummy_ops.x, "a")
+        assert dummy_ops.keys() == ["a", "x"]
 
     def test_register(self, dummy_ops):
         def y(q):

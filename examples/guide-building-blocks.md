@@ -198,21 +198,18 @@ Have a look through the generated experiment and check that:
 So far we've treated the quantum operations as a black box. Now let's look inside. We can start by listing the quantum operations:
 
 ```{code-cell} ipython3
-[op for op in dir(qop) if not op.startswith("_")]
+qop.keys()
 ```
 
-The `QUBIT_TYPES` specify the type of qubits support by the quantum operations object we've created.
-In our case, that's the `TunableTransmonQubit`:
+The quantum operations have an attribute `QUBIT_TYPES` which specifies the type of qubits support by the quantum operations object we've created. In our case, that's the `TunableTransmonQubit`:
 
 ```{code-cell} ipython3
 qop.QUBIT_TYPES
 ```
 
-The `BASE_OPS` is an implementation detail -- they contain the original definitions of the quantum operations. We will ignore it for now except to mention that individual quantum operations can be overridden with alternative implementations if required.
+Under the hood there is a `BASE_OPS` attribute. This is an implementation detail -- it contains the original definitions of the quantum operations. We will ignore it for now except to mention that individual quantum operations can be overridden with alternative implementations if required.
 
-The remainder of the items in the list are the quantum operations themselves.
-
-Let's take a look at one.
+Let's take a look at one of the quantum operations.
 
 +++
 
