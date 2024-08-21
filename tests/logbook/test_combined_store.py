@@ -7,10 +7,15 @@ import logging
 import pytest
 from freezegun import freeze_time
 
-from laboneq_applications import logbook
 from laboneq_applications.logbook.combined_store import CombinedStore
 from laboneq_applications.logbook.logging_store import LoggingStore
-from laboneq_applications.workflow import WorkflowOptions, task, workflow
+from laboneq_applications.workflow import (
+    WorkflowOptions,
+    comment,
+    save_artifact,
+    task,
+    workflow,
+)
 
 
 @workflow
@@ -45,7 +50,7 @@ def bad_ref_workflow(a, b, options: WorkflowOptions | None = None):
 
 @task
 def comment_task(a):
-    logbook.comment(a)
+    comment(a)
 
 
 @workflow
@@ -55,7 +60,7 @@ def comment_workflow(a, options: WorkflowOptions | None = None):
 
 @task
 def save_task(name, obj, metadata, opts):
-    logbook.save_artifact(name, obj, metadata=metadata, options=opts)
+    save_artifact(name, obj, metadata=metadata, options=opts)
 
 
 @workflow

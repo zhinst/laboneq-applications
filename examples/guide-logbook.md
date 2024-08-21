@@ -225,7 +225,9 @@ Our amplitude Rabi experiment is the most recent one run, so let's look at the f
 ```{code-cell} ipython3
 amplitude_rabi_folder = amplitude_rabi_folders[-1]
 
-amplitude_rabi_files = sorted(amplitude_rabi_folder.iterdir())
+amplitude_rabi_files = sorted(
+    amplitude_rabi_folder.iterdir()
+)
 amplitude_rabi_files
 ```
 
@@ -256,8 +258,7 @@ This is done by calling the `comment(...)` function within a task.
 We'll work through an example below:
 
 ```{code-cell} ipython3
-from laboneq_applications.logbook import comment
-from laboneq_applications.workflow import task, workflow
+from laboneq_applications.workflow import comment, task, workflow
 ```
 
 Let's write a small workflow and a tiny task that just writes a comment to the logbook:
@@ -313,7 +314,7 @@ Support for more kinds of objects coming soon (e.g. `DeviceSetup`, `Experiment`)
 import PIL
 from matplotlib import pyplot as plt
 
-from laboneq_applications.logbook import save_artifact
+from laboneq_applications.workflow import save_artifact
 ```
 
 Let's write a small workflow that plots the sine function and saves the plot using `save_artifact`:

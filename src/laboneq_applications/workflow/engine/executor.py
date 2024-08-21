@@ -2,56 +2,23 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Protocol
+from contextlib import contextmanager
+from typing import TYPE_CHECKING, Any
 
-from laboneq_applications.logbook import LoggingStore
 from laboneq_applications.workflow.engine.reference import Reference
 from laboneq_applications.workflow.exceptions import WorkflowError
 from laboneq_applications.workflow.options import WorkflowOptions
+from laboneq_applications.workflow.recorder import (
+    ExecutionRecorder,
+    ExecutionRecorderManager,
+)
 
 if TYPE_CHECKING:
-    from laboneq_applications.logbook import Logbook
+    from collections.abc import Generator
+
     from laboneq_applications.workflow.engine.block import Block
+    from laboneq_applications.workflow.engine.core import WorkflowResult
     from laboneq_applications.workflow.task import Task
-
-
-class ExecutionRecorder(Protocol):
-    """A class that defines interface for an execution recorder.
-
-    The recorder provides an interface to record specific actions
-    during the execution.
-    """
-
-    def on_task_end(self, task: Task) -> None:
-        """Record a task result."""
-
-    def on_workflow_end(self, result: Any) -> None:  # noqa: ANN401
-        """Record the workflow result."""
-
-
-class _ExecutionRecorderManager(ExecutionRecorder):
-    """A class that manages multiple execution recorders."""
-
-    def __init__(self) -> None:
-        self._recorders: list[ExecutionRecorder] = []
-
-    def add_recorder(self, recorder: ExecutionRecorder) -> None:
-        """Add a recorder to the execution.
-
-        Arguments:
-            recorder: A recorder that records the execution information.
-        """
-        self._recorders.append(recorder)
-
-    def on_task_end(self, task: Task) -> None:
-        """Record a task result."""
-        for recorder in self._recorders:
-            recorder.on_task_end(task)
-
-    def on_workflow_end(self, result: Any) -> None:  # noqa: ANN401
-        """Record the workflow result."""
-        for recorder in self._recorders:
-            recorder.on_workflow_end(result)
 
 
 class _ExecutorInterrupt(Exception):  # noqa: N818
@@ -63,18 +30,29 @@ class ExecutorState:
 
     def __init__(
         self,
-        logbook: Logbook | None = None,
         options: WorkflowOptions | None = None,
     ) -> None:
-        if logbook is None:
-            logstore = LoggingStore()
-            logbook = logstore.create_logbook("unknown")
         if options is None:
             options = WorkflowOptions()
-        self._logbook = logbook
         self._graph_variable_states = {}
-        self._recorder_manager = _ExecutionRecorderManager()
+        self._recorder_manager = ExecutionRecorderManager()
         self.options = options
+        self._results: list[WorkflowResult] = []
+
+    @contextmanager
+    def set_active_result(self, result: WorkflowResult) -> Generator[None]:
+        """Set an active result object for the duration of the context."""
+        self._results.append(result)
+        yield
+        self._results.pop()
+
+    def add_task_result(self, task: Task) -> None:
+        """Add executed task result."""
+        self._results[-1].add_task(task)
+
+    def set_execution_output(self, output: Any) -> None:  # noqa: ANN401
+        """Set an output for the workflow being executed."""
+        self._results[-1]._output = output
 
     @property
     def states(self) -> dict:
@@ -92,7 +70,7 @@ class ExecutorState:
         raise _ExecutorInterrupt
 
     @property
-    def recorder(self) -> ExecutionRecorder:
+    def recorder(self) -> ExecutionRecorderManager:
         """Execution recorder."""
         return self._recorder_manager
 

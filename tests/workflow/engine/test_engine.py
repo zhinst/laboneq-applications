@@ -103,9 +103,12 @@ class TestWorkflow:
             wf().run()
 
         result = wf.recover()
-        [task] = result.tasks
-        assert task.name == "addition"
-        assert task.output == 2
+        task1, task2 = result.tasks
+        assert task1.name == "addition"
+        assert task1.output == 2
+
+        assert task2.name == "addition"
+        assert task2.output is None
 
         # check that the recovered result is removed:
         with pytest.raises(exceptions.WorkflowError) as err:

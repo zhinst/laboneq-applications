@@ -129,20 +129,18 @@ class TaskBlock(Block):
         )
 
         task._start_time = now()
-        executor._logbook.on_task_start(task)
+        executor.recorder.on_task_start(task)
         try:
             task._output = self.task.func(**params)
+            task._end_time = now()
         except Exception as error:
             task._end_time = now()
-            executor._logbook.on_task_error(task, error)
+            executor.recorder.on_task_error(task, error)
             error._logged_by_task = True  # TODO: Nicer mechanism
             raise
         finally:
-            if task._end_time is None:
-                task._end_time = now()
-            executor._logbook.on_task_end(task)
-
-        executor.recorder.on_task_end(task)
+            executor.add_task_result(task)
+            executor.recorder.on_task_end(task)
         executor.set_state(self, task.output)
 
     def __repr__(self):

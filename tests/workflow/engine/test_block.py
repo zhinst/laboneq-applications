@@ -3,6 +3,7 @@
 import textwrap
 
 from laboneq_applications.workflow.engine.block import Block, TaskBlock
+from laboneq_applications.workflow.engine.core import WorkflowResult
 from laboneq_applications.workflow.engine.executor import ExecutorState
 from laboneq_applications.workflow.engine.reference import Reference
 from laboneq_applications.workflow.task import task
@@ -79,7 +80,10 @@ class TestTaskBlock:
 
         block = TaskBlock(addition, x=Reference("x"), y=Reference("y"))
         state = ExecutorState()
-        state.set_state("x", 1)
-        state.set_state("y", 5)
-        block.execute(state)
-        assert state.get_state(block) == 6
+        result = WorkflowResult()
+        with state.set_active_result(result):
+            state.set_state("x", 1)
+            state.set_state("y", 5)
+            block.execute(state)
+            assert state.get_state(block) == 6
+        assert result.tasks[0].output == 6

@@ -24,7 +24,6 @@ from laboneq_applications.workflow.engine.block import (
     WorkflowBlockBuilder,
 )
 from laboneq_applications.workflow.engine.executor import (
-    ExecutionRecorder,
     ExecutorState,
 )
 from laboneq_applications.workflow.engine.graph import WorkflowGraph
@@ -90,21 +89,6 @@ class WorkflowResult:
     def end_time(self) -> datetime | None:
         """The time when the workflow execution has ended regularly or failed."""
         return self._end_time
-
-
-class _ResultCollector(ExecutionRecorder):
-    """A workflow result collector."""
-
-    def __init__(self, result: WorkflowResult) -> None:
-        self._result = result
-
-    def on_task_end(self, task: Task) -> None:
-        """Register task end."""
-        self._result.add_task(task)
-
-    def on_workflow_end(self, output: Any) -> None:  # noqa: ANN401
-        """Register workflow end."""
-        self._result._output = output
 
 
 Parameters = ParamSpec("Parameters")
@@ -203,33 +187,31 @@ class Workflow(Generic[Parameters]):
         logstore = self._logstore(options.logstore)
         logbook = logstore.create_logbook(self)
 
-        state = ExecutorState(logbook=logbook, options=options)
-
-        # TODO: Result collector should be injected from the outside. E.g a logbook
-        results = WorkflowResult()
-        collector = _ResultCollector(results)
-        state.add_recorder(collector)
+        state = ExecutorState(options=options)
+        state.add_recorder(logbook)
         with ExecutorStateContext.scoped(state):
+            result = WorkflowResult()
             try:
-                results._start_time = now()
-                logbook.on_start(results)
-                self._graph.execute(state, **self._input)
+                result._start_time = now()
+                logbook.on_start(result)
+                # TODO: Must be moved to WorkflowGraph for nested workflows.
+                with state.set_active_result(result):
+                    self._graph.execute(state, **self._input)
+                result._end_time = now()
             except Exception as error:
-                results._end_time = now()
+                result._end_time = now()
                 if self._recovery is not None:
-                    self._recovery.results = results
+                    self._recovery.results = result
                 if not getattr(
                     error,
                     "_logged_by_task",
                     False,
                 ):  # TODO: better mechanism
-                    logbook.on_error(results, error)
+                    logbook.on_error(result, error)
                 raise
             finally:
-                if results._end_time is None:
-                    results._end_time = now()
-                logbook.on_end(results)
-        return results
+                logbook.on_end(result)
+        return result
 
 
 class WorkflowBuilder(Generic[Parameters]):
