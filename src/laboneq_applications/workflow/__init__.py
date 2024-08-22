@@ -23,6 +23,7 @@ from laboneq_applications.workflow.engine import (
     workflow,
 )
 from laboneq_applications.workflow.options import (
+    SpectroscopyWorkflowOptions,
     TuneUpWorkflowOptions,
     WorkflowOptions,
 )
@@ -36,6 +37,7 @@ __all__ = [
     "WorkflowResult",
     "workflow",
     "WorkflowOptions",
+    "SpectroscopyWorkflowOptions",
     "return_",
     "comment",
     "save_artifact",

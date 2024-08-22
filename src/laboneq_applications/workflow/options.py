@@ -9,7 +9,11 @@ from typing import Any, Callable, ForwardRef, Union, get_args, get_origin
 
 from pydantic import Field
 
-from laboneq_applications.core.options import BaseOptions, TuneupExperimentOptions
+from laboneq_applications.core.options import (
+    BaseOptions,
+    SpectroscopyExperimentOptions,
+    TuneupExperimentOptions,
+)
 from laboneq_applications.logbook import LogbookStore  # noqa: TCH001
 
 
@@ -180,3 +184,13 @@ def get_and_validate_param_type(
             )
         return compatible_types[0]
     return None
+
+class SpectroscopyWorkflowOptions(WorkflowOptions):
+    """Option class for spectroscopy workflow.
+
+    Attributes:
+        create_experiment (SpectroscopyExperimentOptions):
+            The options for creating the experiment.
+            Default: SpectroscopyExperimentOptions().
+    """
+    create_experiment: SpectroscopyExperimentOptions = SpectroscopyExperimentOptions()

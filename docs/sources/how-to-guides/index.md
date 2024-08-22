@@ -10,5 +10,5 @@ of the page.
 ## Contents
 
 <!--nav-->
-
+* [Resonator Spectroscopy](sources/resonator_spectroscopy.ipynb)
 * [Amplitude Rabi](sources/amplitude_rabi.ipynb)

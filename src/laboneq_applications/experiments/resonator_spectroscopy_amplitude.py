@@ -1,11 +1,12 @@
-"""This module defines the resonator spectroscopy experiment.
+"""This module defines the resonator spectroscopy amplitude sweep experiment.
 
-In this experiment, we sweep the resonator frequency
-of a measure pulse to characterize the resonator coupled to the qubit.
+In this experiment, we sweep the resonator frequency and the amplitude
+of a measure pulse in a 2D fashion to characterize the resonator coupled to the qubit.
 
-The resonator spectroscopy experiment has the following pulse sequence:
+The resonator spectroscopy amplitude sweep experiment has the following pulse sequence:
 
     qb --- [ measure ]
+         sweep amplitude
 
 This experiment only supports 1 qubit at the time, and involves only
 its coupled resonator
@@ -48,9 +49,10 @@ def experiment_workflow(
     qpu: QPU,
     qubit: QuantumElement,
     frequencies: ArrayLike,
+    amplitudes: ArrayLike,
     options: SpectroscopyWorkflowOptions | None = None,
 ) -> WorkflowBuilder:
-    """The Resonator Spectroscopy Workflow.
+    """The Workflow for a resonator spectroscopy with a readout-amplitude sweep.
 
     The workflow consists of the following steps:
 
@@ -69,6 +71,9 @@ def experiment_workflow(
         frequencies:
             The resonator frequencies to sweep over for the readout pulse (or CW)
             sent to the resonator. Must be a list of numbers or an array.
+        amplitudes:
+            The amplitudes of the readout pulses to sweep over.
+            Must be a list of numbers or an array.
         options:
             The options for building the workflow.
             In addition to options from [WorkflowOptions], the following
@@ -93,6 +98,7 @@ def experiment_workflow(
             qpu=qpu,
             qubit=temp_qubits[0],
             frequencies=np.linspace(7.1e9, 7.6e9, 501),
+            amplitudes=np.linspace(0.1, 1, 10),
             options=options,
         )
         ```
@@ -101,6 +107,7 @@ def experiment_workflow(
         qpu,
         qubit,
         frequencies=frequencies,
+        amplitudes=amplitudes,
     )
     compiled_exp = compile_experiment(session, exp)
     _result = run_experiment(session, compiled_exp)
@@ -112,9 +119,10 @@ def create_experiment(
     qpu: QPU,
     qubit: QuantumElement,
     frequencies: ArrayLike,
+    amplitudes: ArrayLike,
     options: SpectroscopyExperimentOptions | None = None,
 ) -> Experiment:
-    """Creates an Resonator Spectroscopy Experiment.
+    """A Resonator Spectroscopy where the measure-pulse amplitude is also swept.
 
     Arguments:
         qpu:
@@ -125,6 +133,9 @@ def create_experiment(
         frequencies:
             The resonator frequencies to sweep over for each qubit.
             It must be a list of lists of numbers or arrays.
+        amplitudes:
+            The amplitudes to sweep over for each resonator.
+            it must be a list of lists of numbers or arrays.
         options:
             The options for building the experiment.
             See [SpectroscopyExperimentOptions] and [BaseExperimentOptions] for
@@ -138,7 +149,10 @@ def create_experiment(
 
     Raises:
         ValueError:
-            If the acquisition_type is not AcquisitionType.SPECTROSCOPY.
+            If the qubit and qubit_amplitudes are not of the same length.
+
+        ValueError:
+            If qubit_amplitudes or qubit_amplitudes is not a list of numbers.
 
     Example:
         ```python
@@ -157,6 +171,7 @@ def create_experiment(
             qpu=qpu,
             qubit=temp_qubits[0],
             frequencies=np.linspace(7.1e9, 7.6e9, 501),
+            amplitudes=np.linspace(0.1, 1, 10),
             options=options,
         )
         ```
@@ -171,21 +186,26 @@ def create_experiment(
             "because it contains a sweep"
             "of the frequency of a hardware oscillator.",
             )
-    with dsl.acquire_loop_rt(
-        count=opts.count,
-        averaging_mode=opts.averaging_mode,
-        acquisition_type=opts.acquisition_type,
-        repetition_mode=opts.repetition_mode,
-        repetition_time=opts.repetition_time,
-        reset_oscillator_phase=opts.reset_oscillator_phase,
-    ):
-        with dsl.sweep(
-            name=f"freq_{qubit.uid}",
-            parameter=SweepParameter(f"frequencies_{qubit.uid}", frequencies),
-        ) as frequency:
-            qpu.qop.set_frequency(qubit, frequency=frequency, readout=True)
-            if opts.use_cw:
-                qpu.qop.acquire(qubit, handles.result_handle(qubit.uid))
-            else:
-                qpu.qop.measure(qubit, handles.result_handle(qubit.uid))
-            qpu.qop.delay(qubit, opts.spectroscopy_reset_delay)
+
+    with dsl.sweep(
+        parameter=SweepParameter(f"amplitudes_{qubit.uid}", amplitudes),
+        ) as amplitude:
+        with dsl.acquire_loop_rt(
+            count=opts.count,
+            averaging_mode=opts.averaging_mode,
+            acquisition_type=opts.acquisition_type,
+            repetition_mode=opts.repetition_mode,
+            repetition_time=opts.repetition_time,
+            reset_oscillator_phase=opts.reset_oscillator_phase,
+        ):
+            with dsl.sweep(
+                name=f"freq_{qubit.uid}",
+                parameter=SweepParameter(f"frequencies_{qubit.uid}", frequencies),
+            ) as frequency:
+                qpu.qop.set_readout_amplitude(qubit, amplitude=amplitude)
+                qpu.qop.set_frequency(qubit, frequency=frequency, readout=True)
+                if opts.use_cw:
+                    qpu.qop.acquire(qubit, handles.result_handle(qubit.uid))
+                else:
+                    qpu.qop.measure(qubit, handles.result_handle(qubit.uid))
+                qpu.qop.delay(qubit, opts.spectroscopy_reset_delay)

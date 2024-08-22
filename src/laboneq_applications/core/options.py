@@ -153,3 +153,24 @@ class TuneupExperimentOptions(BaseExperimentOptions):
         if id_value is None and transition is not None:
             values["cal_states"] = transition
         return values
+
+# create additional options for spectroscopy
+class SpectroscopyExperimentOptions(BaseExperimentOptions):
+    """Base options for the resonator spectroscopy experiment.
+
+    Additional attributes:
+        use_cw:
+            Perform a CW spectroscopy instead.
+            No pulse is emitted on measure and the corresponding
+            dictionary is ignored.
+            Default: False.
+        spectroscopy_reset_delay:
+            How long to wait after an acquisition in seconds.
+            Default: 1e-6.
+        acquisition_type:
+            Acquisition type to use for the experiment.
+            Default: `AcquisitionType.SPECTROSCOPY`.
+    """
+    use_cw: bool = False
+    spectroscopy_reset_delay: float = 1e-6
+    acquisition_type: AcquisitionType = AcquisitionType.SPECTROSCOPY

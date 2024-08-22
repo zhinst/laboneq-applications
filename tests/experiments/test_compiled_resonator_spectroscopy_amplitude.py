@@ -1,18 +1,20 @@
-"""Tests for the compiled resonator spectroscopy experiment using the testing utilities
-provided by the LabOne Q Applications Library.
+"""Tests for the compiled resonator spectroscopy amplitude sweep experiment
+using the testing utilities provided by the LabOne Q Applications Library.
 """
 
 import pytest
+from laboneq.simple import show_pulse_sheet
 
 from laboneq_applications.experiments import (
-    resonator_spectroscopy,
+    resonator_spectroscopy_amplitude,
 )
 from laboneq_applications.testing import CompiledExperimentVerifier
 
 
-def create_res_spectroscopy_verifier(
+def create_res_spectroscopy_amp_verifier(
     tunable_transmon_platform,
     frequencies,
+    amplitudes,
     count,
     use_cw,
     spectroscopy_reset_delay,
@@ -22,17 +24,20 @@ def create_res_spectroscopy_verifier(
     # for this specific experiment, I force just one qubit by default
     qubit = qubits[0]
     session = tunable_transmon_platform.session(do_emulation=True)
-    options = resonator_spectroscopy.options()
+    options = resonator_spectroscopy_amplitude.options()
     options.create_experiment.count = count
     options.create_experiment.use_cw = use_cw
     options.create_experiment.spectroscopy_reset_delay = spectroscopy_reset_delay
-    res = resonator_spectroscopy.experiment_workflow(
+    res = resonator_spectroscopy_amplitude.experiment_workflow(
         session=session,
         qubit=qubit,
         qpu=tunable_transmon_platform.qpu,
         frequencies=frequencies,
+        amplitudes=amplitudes,
         options=options,
     ).run()
+    compiled_exp = res.tasks["compile_experiment"].output
+    show_pulse_sheet("res_spec", compiled_exp)
     return CompiledExperimentVerifier(res.tasks["compile_experiment"].output)
 
 
@@ -41,6 +46,12 @@ def create_res_spectroscopy_verifier(
 
 # use pytest.mark.parametrize to generate test cases for
 # all combinations of the parameters.
+@pytest.mark.parametrize(
+    "amplitudes",
+    [
+        [0.1, 0.5, 0.9],
+    ],
+)
 @pytest.mark.parametrize(
     "frequencies",
     [
@@ -58,26 +69,30 @@ def create_res_spectroscopy_verifier(
 )
 @pytest.mark.parametrize(
     "spectroscopy_reset_delay",
-    [1e-6, 100e-6],
+    [3e-6, 100e-6],
 )
 class TestResonatorSpectroscopySingleQubit:
     def test_pulse_count_measure_acquire(
         self,
         single_tunable_transmon_platform,
         frequencies,
+        amplitudes,
         count,
         use_cw,
         spectroscopy_reset_delay,
     ):
         """Test the number of measure and acquire pulses."""
-        verifier = create_res_spectroscopy_verifier(
+        verifier = create_res_spectroscopy_amp_verifier(
             single_tunable_transmon_platform,
             frequencies,
+            amplitudes,
             count,
             use_cw,
             spectroscopy_reset_delay,
         )
         expected_measure_count = count * len(frequencies)
+        # not counting amplitudes,
+        # near-time sweep not accounted for in the pulse_sheet_viewer
         expected_acquire_count = expected_measure_count
         if use_cw:
             expected_measure_count = 0
@@ -97,6 +112,7 @@ class TestResonatorSpectroscopySingleQubit:
         self,
         single_tunable_transmon_platform,
         frequencies,
+        amplitudes,
         count,
         use_cw,
         spectroscopy_reset_delay,
@@ -106,9 +122,10 @@ class TestResonatorSpectroscopySingleQubit:
         Here, we assert the start, end, and the parameterization of the pulses.
 
         """
-        verifier = create_res_spectroscopy_verifier(
+        verifier = create_res_spectroscopy_amp_verifier(
             single_tunable_transmon_platform,
             frequencies,
+            amplitudes,
             count,
             use_cw,
             spectroscopy_reset_delay,
