@@ -1,6 +1,19 @@
 """A sub-package for creating workflows.
 
 This package provides tools and building blocks to define workflows.
+
+# Summary
+
+Workflow is a collection of tasks and other constructs.
+To determine and control the execution of an workflow, the tasks
+and other constructs do not behave normally within it and a specific
+domain specific language (DSL) must be used.
+
+To achieve this behavior, workflow first runs through the code
+to build a dependency graph of tasks and constructs used in it. The actual code
+within the tasks is not yet executed.
+For this reason, regular Python expressions cannot be used within the workflow
+and it is recommended to use tasks for any complex logic.
 """
 
 from laboneq_applications.workflow.engine import (
