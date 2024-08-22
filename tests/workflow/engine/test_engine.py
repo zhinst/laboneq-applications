@@ -532,7 +532,7 @@ def test_constant_defined_in_workflow():
     assert res.tasks["addition"].output == 2
 
 
-class TestForLoopExpression:
+class TestForExpression:
     def test_at_root(self):
         @workflow
         def my_wf(x):

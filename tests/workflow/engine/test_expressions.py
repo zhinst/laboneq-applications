@@ -63,10 +63,10 @@ def addition(x, y):
     return x + y
 
 
-class TestForLoopExpression:
+class TestForExpression:
     def test_execute(self):
         expr = ForExpression([0, 1])
-        block = TaskBlock(addition, x=Reference(expr), y=1)
+        block = TaskBlock(addition, x=expr.ref, y=1)
         expr.extend(block)
 
         executor = ExecutorState()
@@ -82,7 +82,7 @@ class TestForLoopExpression:
 
     def test_empty_iterable(self):
         expr = ForExpression([])
-        block = TaskBlock(addition, x=Reference(expr), y=1)
+        block = TaskBlock(addition, x=expr.ref, y=1)
         expr.extend(block)
 
         executor = ExecutorState()
@@ -99,7 +99,7 @@ class TestForLoopExpression:
 
     def test_input_reference(self):
         expr = ForExpression(Reference("abc"))
-        block = TaskBlock(addition, x=Reference(expr), y=1)
+        block = TaskBlock(addition, x=expr.ref, y=1)
         expr.extend(block)
 
         executor = ExecutorState()
@@ -114,7 +114,7 @@ class TestForLoopExpression:
 
     def test_input_reference_within_container_error(self):
         expr = ForExpression([Reference("abc"), 5])
-        block = TaskBlock(addition, x=Reference(expr), y=1)
+        block = TaskBlock(addition, x=expr.ref, y=1)
         expr.extend(block)
         executor = ExecutorState()
         executor.set_state("abc", [1, 2])

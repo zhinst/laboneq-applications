@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-from collections.abc import Iterable
-from typing import TYPE_CHECKING, Any, Generic, TypeVar
+from contextlib import contextmanager
+from typing import TYPE_CHECKING, Any, TypeVar, cast
 
 from laboneq_applications.workflow._context import TaskExecutorContext
 from laboneq_applications.workflow.engine.block import (
@@ -13,13 +13,13 @@ from laboneq_applications.workflow.engine.block import (
 from laboneq_applications.workflow.engine.reference import Reference
 
 if TYPE_CHECKING:
-    from collections.abc import Iterable
+    from collections.abc import Generator, Iterable
 
     from laboneq_applications.workflow.engine.executor import ExecutorState
 
 
 class IFExpression(Block):
-    """IF expression.
+    """If expression.
 
     A block that is executed if a given `condition` is true.
 
@@ -39,10 +39,30 @@ class IFExpression(Block):
                 block.execute(executor)
 
 
+@contextmanager
+def if_(condition: Any) -> Generator[None, None, None]:  # noqa: ANN401
+    """Workflow if statement.
+
+    The equivalent of Python's if-statement.
+
+    Arguments:
+        condition: A condition that has to be `True` for code block to be
+            executed.
+
+    Example:
+        ```python
+       with if_(x == 1):
+            ...
+        ```
+    """
+    with IFExpression(condition=condition):
+        yield
+
+
 T = TypeVar("T")
 
 
-class ForExpression(Block, Generic[T]):
+class ForExpression(Block):
     """For expression.
 
     A block that iterates workflow blocks over the given values.
@@ -52,18 +72,23 @@ class ForExpression(Block, Generic[T]):
             Iterable can contain workflow objects.
     """
 
-    def __init__(self, values: Iterable[T]) -> None:
+    def __init__(self, values: Iterable | Reference) -> None:
         super().__init__(values=values)
         self._ref = Reference(self)
 
-    def __enter__(self) -> T:
+    @property
+    def ref(self) -> Reference:
+        """Reference to the object."""
+        return self._ref
+
+    def __enter__(self) -> Reference:
         """Enter the loop context.
 
         Returns:
             Individual values of the given iterable.
         """
         super().__enter__()
-        return self._ref
+        return self.ref
 
     def execute(self, executor: ExecutorState) -> None:
         """Execute the block."""
@@ -72,6 +97,25 @@ class ForExpression(Block, Generic[T]):
             executor.set_state(self, val)
             for block in self.body:
                 block.execute(executor)
+
+
+@contextmanager
+def for_(values: Iterable[T]) -> Generator[T, None, None]:
+    """For expression to iterate over the values within a code block.
+
+    The equivalent of Python's for loop.
+
+    Arguments:
+        values: An iterable.
+
+    Example:
+        ```python
+       with for_([1, 2, 3]) as x:
+            ...
+        ```
+    """
+    with ForExpression(values=values) as x:
+        yield cast(T, x)
 
 
 class ReturnStatement(Block):
@@ -99,6 +143,8 @@ def return_(value: Any | None = None) -> None:  # noqa: ANN401
 
     Sets the active workflow output value to the given `value` and interrupts
     the current workflow execution. Comparative to Python's `return` statement.
+
+    The equivalent of Python's `return` statement.
 
     Arguments:
         value: Value to be set for workflow output.
