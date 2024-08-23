@@ -92,7 +92,7 @@ class TestTaskBlock:
 
         block = TaskBlock(addition, x=Reference("x"), y=Reference("y"))
         state = ExecutorState()
-        result = WorkflowResult()
+        result = WorkflowResult("test")
         with state.set_active_result(result):
             state.set_state("x", 1)
             state.set_state("y", 5)

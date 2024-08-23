@@ -40,11 +40,17 @@ if TYPE_CHECKING:
 class WorkflowResult:
     """Workflow result."""
 
-    def __init__(self):
+    def __init__(self, name: str):
+        self._name = name
         self._tasks: list[Task] = []
         self._output = None
         self._start_time: datetime | None = None
         self._end_time: datetime | None = None
+
+    @property
+    def name(self) -> str:
+        """Name of the workflow producing the results."""
+        return self._name
 
     @property
     def output(self) -> Any:  # noqa: ANN401
@@ -251,7 +257,7 @@ class Workflow(Generic[Parameters]):
             msg = "Nesting Workflows is not allowed."
             raise exceptions.WorkflowError(msg)
         self._reset()
-        result = WorkflowResult()
+        result = WorkflowResult(self.name)
         options = self._options()
         logstore = self._logstore(options.logstore)
         logbook = logstore.create_logbook(self)

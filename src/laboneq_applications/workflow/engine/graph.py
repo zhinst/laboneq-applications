@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from inspect import signature
-from typing import TYPE_CHECKING, Any, Callable, cast
+from typing import TYPE_CHECKING, Callable, cast
 
 from laboneq_applications.workflow import exceptions
 from laboneq_applications.workflow._context import TaskExecutorContext
@@ -47,7 +47,7 @@ class WorkflowBlock(Block):
         """Type of block options."""
         return self._options
 
-    def execute(self, executor: ExecutorState) -> Any:  # noqa: ANN401
+    def execute(self, executor: ExecutorState) -> None:
         """Execute the block."""
         executor.set_block_status(self, ExecutionStatus.IN_PROGRESS)
         input_opts = executor.resolve_inputs(self).get("options")

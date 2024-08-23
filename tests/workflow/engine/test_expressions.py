@@ -34,7 +34,7 @@ class TestIFExpression:
             a_function()
         executor = ExecutorState()
         executor.set_state("condition", condition)
-        result = WorkflowResult()
+        result = WorkflowResult("test")
         with executor.set_active_result(result):
             expr.execute(executor)
         assert len(executor.states) == states + 1
@@ -53,7 +53,7 @@ class TestIFExpression:
             a_function()
         executor = ExecutorState()
         executor.set_state("condition", condition)
-        with executor.set_active_result(WorkflowResult()):
+        with executor.set_active_result(WorkflowResult("test")):
             expr.execute(executor)
         assert len(executor.states) == result + 1
 
@@ -70,7 +70,7 @@ class TestForExpression:
         expr.extend(block)
 
         executor = ExecutorState()
-        result = WorkflowResult()
+        result = WorkflowResult("test")
         with executor.set_active_result(result):
             expr.execute(executor)
         assert len(executor.states) == 1 + 1
@@ -86,14 +86,14 @@ class TestForExpression:
         expr.extend(block)
 
         executor = ExecutorState()
-        with executor.set_active_result(WorkflowResult()):
+        with executor.set_active_result(WorkflowResult("test")):
             expr.execute(executor)
         assert len(executor.states) == 0
 
     def test_not_iterable_raises_exception(self):
         expr = ForExpression(2)
         executor = ExecutorState()
-        with executor.set_active_result(WorkflowResult()):
+        with executor.set_active_result(WorkflowResult("test")):
             with pytest.raises(TypeError, match="'int' object is not iterable"):
                 expr.execute(executor)
 
@@ -104,7 +104,7 @@ class TestForExpression:
 
         executor = ExecutorState()
         executor.set_state("abc", [1, 2])
-        with executor.set_active_result(WorkflowResult()):
+        with executor.set_active_result(WorkflowResult("test")):
             expr.execute(executor)
         assert executor.states == {
             expr: 2,
@@ -119,7 +119,7 @@ class TestForExpression:
         executor = ExecutorState()
         executor.set_state("abc", [1, 2])
 
-        with executor.set_active_result(WorkflowResult()):
+        with executor.set_active_result(WorkflowResult("test")):
             with pytest.raises(
                 TypeError,
                 match=re.escape(

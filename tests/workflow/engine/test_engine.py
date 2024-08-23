@@ -37,8 +37,12 @@ def substraction(x, y) -> float:
 
 
 class TestWorkflowResult:
+    def test_name(self):
+        obj = WorkflowResult("test")
+        assert obj.name == "test"
+
     def test_add_task(self):
-        obj = WorkflowResult()
+        obj = WorkflowResult("test")
         assert len(obj.tasks) == 0
         t = Task(addition, output=1)
         obj.add_task(t)
@@ -48,7 +52,7 @@ class TestWorkflowResult:
 
 class TestWorkflowResultCollector:
     def test_add_task(self):
-        obj = WorkflowResult()
+        obj = WorkflowResult("test")
         assert len(obj.tasks) == 0
         t = Task(addition, output=1)
         obj.add_task(t)
