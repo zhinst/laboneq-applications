@@ -10,5 +10,4 @@ __all__ = [
 
 
 from .compile_experiment import compile_experiment
-from .datatypes import RunExperimentResults
-from .run_experiment import run_experiment
+from .run_experiment import RunExperimentResults, run_experiment

@@ -1,14 +1,13 @@
-"""Tests for the datatypes module."""
+"""Test the AttributeWrapper class."""
 
 from __future__ import annotations
 
 from contextlib import nullcontext as does_not_raise
-from textwrap import dedent
 
 import pytest
 
-import laboneq_applications.tasks.datatypes as tasks_datatypes
-from laboneq_applications.tasks.datatypes import AttributeWrapper, RunExperimentResults
+import laboneq_applications.common.classformatter as common_classformatter
+from laboneq_applications.common.attribute_wrapper import AttributeWrapper
 
 
 class PrettyPrinter:
@@ -79,7 +78,7 @@ def test_attribute_wrapper():
 
 
 def test_attribute_wrapper_formatting():
-    assert tasks_datatypes.use_rich_pprint
+    assert common_classformatter.use_rich_pprint
     try:
         data = {"cal_trace/q1/g": 2345}
         wrapper = AttributeWrapper(data)
@@ -105,118 +104,13 @@ def test_attribute_wrapper_formatting():
         assert isinstance(wrapper.cal_trace, AttributeWrapper)
         wrapper.cal_trace._repr_pretty_(p, None)
         assert str(wrapper.cal_trace) == p.pretty_text
-        tasks_datatypes.use_rich_pprint = False
+        common_classformatter.use_rich_pprint = False
         from pprint import pprint as pprint_pprint
 
-        tasks_datatypes.pprint_pprint = pprint_pprint
+        common_classformatter.pprint_pprint = pprint_pprint
         assert str(wrapper) == "{'cal_trace': {'q1': {'g': 2345}}}\n"
     finally:
-        tasks_datatypes.use_rich_pprint = True
-
-
-def test_run_experiment_results():
-    data = {"cal_trace/q0/g": 12345, "cal_trace/q1/g": 2345, "sweep_data/q0": 345}
-    neartime_results = {"nt1": 12345, "nt2": {"a": "b", "c": "d"}}
-    errors = [(0, "error1", "error1 message"), (1, "error2", "error2 message")]
-    results = RunExperimentResults(data, neartime_results, errors)
-    assert set(results._keys()) == {
-        "cal_trace",
-        "sweep_data",
-        "neartime_callbacks",
-        "errors",
-    }
-    assert set(results) == {"cal_trace", "sweep_data", "neartime_callbacks", "errors"}
-    assert all(
-        k in dir(results)
-        for k in ["cal_trace", "sweep_data", "neartime_callbacks", "errors"]
-    )
-    assert results.errors is errors
-    assert results["errors"] is errors
-    assert isinstance(results.neartime_callbacks, AttributeWrapper)
-    assert results["neartime_callbacks"] == results.neartime_callbacks
-    assert "nt1" in results.neartime_callbacks
-    assert isinstance(results.neartime_callbacks, AttributeWrapper)
-    assert results.neartime_callbacks.nt2 == neartime_results["nt2"]
-    result_str = dedent("""\
-            │   'sweep_data': {
-            │   │   'q0': 345
-            │   }""")
-    q1_str = dedent("""\
-            │   │   'q1': {
-            │   │   │   'g': 2345
-            │   │   }""")
-    q0_str = dedent("""\
-            │   │   'q0': {
-            │   │   │   'g': 12345
-            │   │   }""")
-    error_str = dedent("""\
-            │   'errors': [
-            │   │   (
-            │   │   │   0,
-            │   │   │   'error1',
-            │   │   │   'error1 message'
-            │   │   ),
-            │   │   (
-            │   │   │   1,
-            │   │   │   'error2',
-            │   │   │   'error2 message'
-            │   │   )
-            │   ]""")
-    nt1_str = dedent("""\
-            │   │   'nt1': 12345""")
-    nt2_str = dedent("""\
-            │   │   'nt2': {
-            │   │   │   'a': 'b',
-            │   │   │   'c': 'd'
-            │   │   }""")
-    s = str(results)
-    assert result_str in s
-    assert q1_str in s
-    assert q0_str in s
-    assert error_str in s
-    assert nt1_str in s
-    assert nt2_str in s
-
-
-def test_result_formatting():
-    data = {"cal_trace/q0/g": 12345}
-    neartime_results = {"nt2": {"a": "b", "c": "d"}}
-    errors = [(0, "error1", "error1 message")]
-    results = RunExperimentResults(data, neartime_results, errors)
-
-    assert "'cal_trace': {'q0': {'g': 12345}}" in f"{results}"
-    assert "'errors': [(0, 'error1', 'error1 message')]" in f"{results}"
-    assert "'neartime_callbacks': {'nt2': {'a': 'b', 'c': 'd'}}" in f"{results}"
-    assert (
-        "'cal_trace': {\n│   │   'q0': {\n│   │   │   'g': 12345\n│   │   }\n│   }"
-        in str(results)
-    )
-    assert (
-        "'errors': [\n│   │   (\n│   │   │   0,\n│   │   │   'error1',\n│   │   │   "
-        "'error1 message'\n│   │   )\n│   ]" in str(results)
-    )
-    assert (
-        "'neartime_callbacks': {\n│   │   'nt2': {\n│   │   │   'a': 'b',\n│   │   │   "
-        "'c': 'd'\n│   │   }\n│   }" in str(results)
-    )
-    assert (
-        repr(results)
-        == "RunExperimentResults(data={'cal_trace/q0/g': 12345}, near_time_callbacks="
-        "{'nt2': {'a': 'b', 'c': 'd'}}, errors=[(0, 'error1', 'error1 message')], "
-        "path = '', separator='/')"
-    )
-    assert f"{results.cal_trace}" == "{'q0': {'g': 12345}}"
-    assert (
-        repr(results.cal_trace)
-        == "AttributeWrapper(data={'cal_trace/q0/g': 12345}, path='cal_trace', "
-        "separator='/')"
-    )
-
-    p = PrettyPrinter()
-    results._repr_pretty_(p, None)
-    assert str(results) == p.pretty_text
-    results.cal_trace._repr_pretty_(p, None)
-    assert str(results.cal_trace) == p.pretty_text
+        common_classformatter.use_rich_pprint = True
 
 
 @pytest.mark.parametrize(
@@ -247,7 +141,12 @@ def test_check_unique_key_classes(handles: list[str], k1: str | None, k2: str | 
         with does_not_raise():
             AttributeWrapper(d)
     else:
-        with pytest.raises(ValueError, match=f"Key '{k1}' is a prefix of '{k2}'."):
+        with pytest.raises(
+            ValueError,
+            match=f"Handle '{k1}' is a prefix of handle '{k2}', which is not "
+            "allowed, because a results entry cannot contain both data and "
+            "another results subtree. Please rename one of the handles.",
+        ):
             AttributeWrapper(d)
 
 

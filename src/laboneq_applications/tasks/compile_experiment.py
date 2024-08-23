@@ -4,12 +4,31 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from laboneq_applications.common.attribute_wrapper import find_common_prefix
+from laboneq_applications.workflow.task import task
+
 if TYPE_CHECKING:
     from laboneq.core.types import CompiledExperiment
-    from laboneq.dsl.experiment import Experiment
+    from laboneq.dsl.experiment import Experiment, Section
     from laboneq.dsl.session import Session
 
-from laboneq_applications.workflow.task import task
+
+def _validate_handles(experiment: Experiment) -> None:
+    handles: set[str] = set()
+
+    def update_handles(section: Section) -> None:
+        handles.update(
+            filter(None, (getattr(s, "handle", None) for s in section.children)),
+        )
+
+    experiment.accept_section_visitor(update_handles)
+    k = find_common_prefix(handles, "/")
+    if k is not None:
+        raise ValueError(
+            f"Handle '{k[0]}' is a prefix of handle '{k[1]}', which is not"
+            " allowed, because a results entry cannot contain both data and "
+            "another results subtree. Please rename one of the handles.",
+        )
 
 
 @task
@@ -35,6 +54,12 @@ def compile_experiment(
         [CompiledExperiment][laboneq.core.types.compiled_experiment.CompiledExperiment]
             The `laboneq` compiled experiment.
     """
+    try:
+        _validate_handles(experiment)
+    except ValueError as error:
+        raise ValueError(
+            "Invalid input. The following issues were detected: " + str(error),
+        ) from error
     return session.compile(
         experiment=experiment,
         compiler_settings=compiler_settings,
