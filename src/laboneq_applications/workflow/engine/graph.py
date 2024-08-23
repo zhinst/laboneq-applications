@@ -12,6 +12,7 @@ from laboneq_applications.workflow.engine.block import (
     TaskBlock,
     WorkflowBlockBuilder,
 )
+from laboneq_applications.workflow.engine.executor import ExecutionStatus
 from laboneq_applications.workflow.engine.reference import Reference
 from laboneq_applications.workflow.options import (
     WorkflowOptions,
@@ -36,13 +37,17 @@ class WorkflowBlock(Block):
 
     def execute(self, executor: ExecutorState) -> Any:  # noqa: ANN401
         """Execute the block."""
+        executor.set_block_status(self, ExecutionStatus.IN_PROGRESS)
         input_opts = executor.resolve_inputs(self).get("options")
         if input_opts is None:
             input_opts = self._options()
         executor.options = input_opts
         with executor:
             for block in self._body:
+                if executor.get_block_status(block) == ExecutionStatus.FINISHED:
+                    continue
                 block.execute(executor)
+            executor.set_block_status(self, ExecutionStatus.FINISHED)
 
     @classmethod
     def from_callable(cls, func: Callable) -> WorkflowBlock:
@@ -111,7 +116,7 @@ class WorkflowGraph:
                 )
                 raise TypeError(msg)
 
-    def execute(self, executor: ExecutorState, **kwargs: object) -> Any:  # noqa: ANN401
+    def execute(self, executor: ExecutorState, **kwargs: object) -> None:
         """Execute the graph.
 
         Arguments:
@@ -120,4 +125,4 @@ class WorkflowGraph:
         """
         for k, v in kwargs.items():
             executor.set_state(k, v)
-        return self._root.execute(executor)
+        self._root.execute(executor)

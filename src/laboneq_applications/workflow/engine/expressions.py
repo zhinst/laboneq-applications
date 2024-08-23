@@ -10,6 +10,7 @@ from laboneq_applications.workflow.engine.block import (
     Block,
     WorkflowBlockBuilder,
 )
+from laboneq_applications.workflow.engine.executor import ExecutionStatus
 from laboneq_applications.workflow.engine.reference import Reference
 
 if TYPE_CHECKING:
@@ -35,8 +36,12 @@ class IFExpression(Block):
         """Execute the block."""
         arg = executor.resolve_inputs(self)["condition"]
         if bool(arg):
+            executor.set_block_status(self, ExecutionStatus.IN_PROGRESS)
             for block in self.body:
+                if executor.get_block_status(block) == ExecutionStatus.FINISHED:
+                    continue
                 block.execute(executor)
+            executor.set_block_status(self, ExecutionStatus.FINISHED)
 
 
 @contextmanager
@@ -67,6 +72,9 @@ class ForExpression(Block):
 
     A block that iterates workflow blocks over the given values.
 
+    The expression will always fully execute regardless if the workflow
+    is partially executed or not.
+
     Arguments:
         values: An iterable.
             Iterable can contain workflow objects.
@@ -93,10 +101,19 @@ class ForExpression(Block):
     def execute(self, executor: ExecutorState) -> None:
         """Execute the block."""
         vals = executor.resolve_inputs(self)["values"]
-        for val in vals:
-            executor.set_state(self, val)
-            for block in self.body:
-                block.execute(executor)
+        executor.set_block_status(self, ExecutionStatus.IN_PROGRESS)
+        # Disable run until within the loop
+        # TODO: Add support if seen necessary
+        run_until = executor.settings.run_until
+        executor.settings.run_until = None
+        try:
+            for val in vals:
+                executor.set_state(self, val)
+                for block in self.body:
+                    block.execute(executor)
+        finally:
+            executor.settings.run_until = run_until
+        executor.set_block_status(self, ExecutionStatus.FINISHED)
 
 
 @contextmanager
@@ -133,8 +150,10 @@ class ReturnStatement(Block):
 
     def execute(self, executor: ExecutorState) -> None:
         """Execute the block."""
+        executor.set_block_status(self, ExecutionStatus.IN_PROGRESS)
         value = executor.resolve_inputs(self).get("value")
         executor.set_execution_output(value)
+        executor.set_block_status(self, ExecutionStatus.FINISHED)
         executor.interrupt()
 
 

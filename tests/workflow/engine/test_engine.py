@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import contextlib
 import re
 import textwrap
 from typing import TYPE_CHECKING, Optional, Union
@@ -114,6 +115,113 @@ class TestWorkflow:
         with pytest.raises(exceptions.WorkflowError) as err:
             wf.recover()
         assert str(err.value) == "Workflow has no result to recover."
+
+    def test_run_until(self):
+        @workflow
+        def wf():
+            addition(1, 1)
+            substraction(1, 1)
+
+        # Test stop at first
+        flow = wf()
+        result = flow.run(until="addition")
+        assert len(result.tasks) == 1
+        # Test run to last
+        flow = wf()
+        result_sub = flow.run(until="substraction")
+        assert len(result_sub.tasks) == 2
+        # Test run workflow until the end
+        result_final = flow.resume()
+        assert result_final == result_sub
+
+    def test_run_until_if_expression(self):
+        @workflow
+        def wf(x):
+            with if_(x == 1):
+                addition(1, 1)
+            substraction(1, 1)
+
+        # IF condition true
+        flow = wf(1)
+        result = flow.run(until="addition")
+        assert len(result.tasks) == 1
+        result = flow.resume()
+        assert len(result.tasks) == 2
+        assert result.tasks[0].name == "addition"
+        assert result.tasks[1].name == "substraction"
+
+        # IF condition false
+        flow = wf(0)
+        result = flow.run(until="addition")
+        assert len(result.tasks) == 1
+        assert result.tasks[0].name == "substraction"
+
+    def test_run_until_for_loop(self):
+        @workflow
+        def wf():
+            with for_([1, 1]) as y:
+                addition(y, 1)
+
+        flow = wf()
+        result = flow.run(until="addition")
+        assert len(result.tasks) == 2
+
+    def test_in_progress_state_reset_when_exception(self):
+        @task
+        def raise_error():
+            raise RuntimeError("test")
+
+        @workflow
+        def wf():
+            addition(1, 1)
+            raise_error()
+
+        flow = wf()
+        with contextlib.suppress(RuntimeError):
+            flow.run()
+        assert flow._state is None
+
+        with contextlib.suppress(RuntimeError):
+            flow.run(until="raise_error")
+        assert flow._state is None
+
+    def test_reset_happens_on_run(self):
+        mock_obj = Mock()
+
+        @task
+        def create_subject():
+            return mock_obj()
+
+        @workflow
+        def wf():
+            create_subject()
+
+        flow = wf()
+        flow.run(until="create_subject")
+        mock_obj.assert_called_once()
+        mock_obj.reset_mock()
+        flow.run(until="create_subject")
+        mock_obj.assert_called_once()
+        mock_obj.reset_mock()
+        flow.resume()
+        mock_obj.assert_not_called()
+
+    def test_resume_on_unexecuted_workflow(self):
+        @workflow
+        def wf(): ...
+
+        flow = wf()
+        with pytest.raises(
+            exceptions.WorkflowError, match="Workflow is not in progress."
+        ):
+            flow.resume()
+
+        flow = wf()
+        flow.run()
+        with pytest.raises(
+            exceptions.WorkflowError, match="Workflow is not in progress."
+        ):
+            flow.resume()
 
 
 class TestMultipleTasks:

@@ -6,8 +6,6 @@ import abc
 from datetime import datetime, timezone
 from typing import TYPE_CHECKING
 
-from laboneq_applications.workflow.recorder import ExecutionRecorder
-
 if TYPE_CHECKING:
     from laboneq_applications.workflow.engine.core import Workflow
 
@@ -48,7 +46,7 @@ def active_logbook_store() -> LogbookStore | None:
     return CombinedStore(_active_logbook_stores)
 
 
-class Logbook(ExecutionRecorder):
+class Logbook:
     """Protocol for storing the record of a single workflow execution."""
 
 

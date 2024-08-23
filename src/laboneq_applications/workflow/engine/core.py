@@ -23,9 +23,7 @@ from laboneq_applications.workflow._context import (
 from laboneq_applications.workflow.engine.block import (
     WorkflowBlockBuilder,
 )
-from laboneq_applications.workflow.engine.executor import (
-    ExecutorState,
-)
+from laboneq_applications.workflow.engine.executor import ExecutionStatus, ExecutorState
 from laboneq_applications.workflow.engine.graph import WorkflowGraph
 from laboneq_applications.workflow.options import (
     WorkflowOptions,
@@ -120,6 +118,8 @@ class Workflow(Generic[Parameters]):
         self._recovery = (
             None  # WorkflowRecovery (unused if left as None, set by WorkflowBuilder)
         )
+        self._result: WorkflowResult | None = None
+        self._state: ExecutorState | None = None
 
     @classmethod
     def from_callable(cls, func: Callable, *args: object, **kwargs: object) -> Workflow:
@@ -165,13 +165,81 @@ class Workflow(Generic[Parameters]):
             logstore = LoggingStore()
         return logstore
 
-    def run(
-        self,
-    ) -> WorkflowResult:
-        """Run the workflow.
+    def _reset(self) -> None:
+        """Reset workflow execution state."""
+        self._state = None
+        self._result = None
+
+    def _execute(self, state: ExecutorState, result: WorkflowResult) -> WorkflowResult:
+        with ExecutorStateContext.scoped(state):
+            try:
+                result._start_time = now()
+                state.recorder.on_start(result)
+                # TODO: Must be moved to WorkflowGraph for nested workflows.
+                with state.set_active_result(result):
+                    self._graph.execute(state, **self._input)
+                result._end_time = now()
+                state.recorder.on_end(result)
+            except Exception as error:
+                result._end_time = now()
+                if self._recovery is not None:
+                    self._recovery.results = result
+                if not getattr(
+                    error,
+                    "_logged_by_task",
+                    False,
+                ):  # TODO: better mechanism
+                    state.recorder.on_error(result, error)
+                state.recorder.on_end(result)
+                self._reset()
+                raise
+        if state.get_block_status(self._graph._root) == ExecutionStatus.IN_PROGRESS:
+            self._result = result
+            self._state = state
+        return result
+
+    def resume(self, until: str | None = None) -> WorkflowResult:
+        """Resume workflow execution.
+
+        Resumes the workflow execution from the previous state.
+
+        Arguments:
+            until: Run until a first task with the given name.
+                `None` will fully execute the workflow.
 
         Returns:
             Result of the workflow execution.
+
+            if `until` is used, returns the results up to the selected task.
+
+        Raises:
+            WorkflowError: An error occurred during workflow execution or
+                workflow is not in progress.
+        """
+        if not self._state or not self._result:
+            raise exceptions.WorkflowError("Workflow is not in progress.")
+        self._state.settings.run_until = until
+        return self._execute(self._state, self._result)
+
+    def run(
+        self,
+        until: str | None = None,
+    ) -> WorkflowResult:
+        """Run the workflow.
+
+        Resets the state of an workflow before execution.
+
+        Arguments:
+            until: Run until the first task with the given name.
+                `None` will fully execute the workflow.
+
+                If `until` is used, the workflow execution can be resumed with
+                `.resume()`.
+
+        Returns:
+            Result of the workflow execution.
+
+            if `until` is used, returns the results up to the selected task.
 
         Raises:
             WorkflowError: An error occurred during workflow execution.
@@ -182,36 +250,15 @@ class Workflow(Generic[Parameters]):
         ):
             msg = "Nesting Workflows is not allowed."
             raise exceptions.WorkflowError(msg)
-
+        self._reset()
+        result = WorkflowResult()
         options = self._options()
         logstore = self._logstore(options.logstore)
         logbook = logstore.create_logbook(self)
-
         state = ExecutorState(options=options)
         state.add_recorder(logbook)
-        with ExecutorStateContext.scoped(state):
-            result = WorkflowResult()
-            try:
-                result._start_time = now()
-                logbook.on_start(result)
-                # TODO: Must be moved to WorkflowGraph for nested workflows.
-                with state.set_active_result(result):
-                    self._graph.execute(state, **self._input)
-                result._end_time = now()
-            except Exception as error:
-                result._end_time = now()
-                if self._recovery is not None:
-                    self._recovery.results = result
-                if not getattr(
-                    error,
-                    "_logged_by_task",
-                    False,
-                ):  # TODO: better mechanism
-                    logbook.on_error(result, error)
-                raise
-            finally:
-                logbook.on_end(result)
-        return result
+        state.settings.run_until = until
+        return self._execute(state, result)
 
 
 class WorkflowBuilder(Generic[Parameters]):

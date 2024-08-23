@@ -11,6 +11,7 @@ from laboneq_applications.workflow._context import (
     TaskExecutor,
     TaskExecutorContext,
 )
+from laboneq_applications.workflow.engine.executor import ExecutionStatus
 from laboneq_applications.workflow.engine.reference import (
     Reference,
 )
@@ -157,6 +158,7 @@ class TaskBlock(Block):
         task._start_time = now()
         executor.recorder.on_task_start(task)
         try:
+            executor.set_block_status(self, ExecutionStatus.IN_PROGRESS)
             task._output = self.task.func(**params)
             task._end_time = now()
         except Exception as error:
@@ -167,7 +169,10 @@ class TaskBlock(Block):
         finally:
             executor.add_task_result(task)
             executor.recorder.on_task_end(task)
+            executor.set_block_status(self, ExecutionStatus.FINISHED)
         executor.set_state(self, task.output)
+        if executor.settings.run_until == self.name:
+            executor.interrupt()
 
     def __repr__(self):
         return f"TaskBlock(task={self.task}, parameters={self.parameters})"

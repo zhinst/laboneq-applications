@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 from contextlib import contextmanager
+from dataclasses import dataclass
+from enum import Enum
 from typing import TYPE_CHECKING, Any
 
 from laboneq_applications.workflow.engine.reference import Reference
@@ -25,17 +27,40 @@ class _ExecutorInterrupt(Exception):  # noqa: N818
     """Executor interrupt signal."""
 
 
+@dataclass
+class ExecutorSettings:
+    """A class that defines the settings for the executor.
+
+    Attributes:
+        run_until: Execute until a task with given name was executed and exit.
+            If `None`, the execution will continue until the end.
+    """
+
+    run_until: str | None = None
+
+
+class ExecutionStatus(Enum):
+    """Execution status of an block."""
+
+    NOT_STARTED = "not_started"
+    IN_PROGRESS = "in_progress"
+    FINISHED = "finished"
+
+
 class ExecutorState:
     """A class that holds the graph execution state."""
 
     def __init__(
         self,
         options: WorkflowOptions | None = None,
+        settings: ExecutorSettings | None = None,
     ) -> None:
         if options is None:
             options = WorkflowOptions()
+        self._settings = settings or ExecutorSettings()
         self._graph_variable_states = {}
         self._recorder_manager = ExecutionRecorderManager()
+        self._block_states: dict[Block, ExecutionStatus] = {}
         self.options = options
         self._results: list[WorkflowResult] = []
 
@@ -55,9 +80,24 @@ class ExecutorState:
         self._results[-1]._output = output
 
     @property
+    def settings(self) -> ExecutorSettings:
+        """Executor settings."""
+        return self._settings
+
+    @property
     def states(self) -> dict:
         """States of the graph."""
         return self._graph_variable_states
+
+    def set_block_status(self, block: Block, status: ExecutionStatus) -> None:
+        """Set block status."""
+        # TODO: Move to executor blocks once a proper executor is ready.
+        self._block_states[block] = status
+
+    def get_block_status(self, block: Block) -> ExecutionStatus:
+        """Get block status."""
+        # TODO: Move to executor blocks once a proper executor is ready.
+        return self._block_states.get(block, ExecutionStatus.NOT_STARTED)
 
     def __enter__(self):
         return self
@@ -102,8 +142,10 @@ class ExecutorState:
 
     def set_state(self, block: Block | str, state) -> None:  # noqa: ANN001
         """Set the block state."""
+        # TODO: Move to executor blocks once a proper executor is ready.
         self._graph_variable_states[block] = state
 
     def get_state(self, item: Block | str) -> Any:  # noqa: ANN401
         """Get state of an item."""
+        # TODO: Move to executor blocks once a proper executor is ready.
         return self._graph_variable_states[item]
