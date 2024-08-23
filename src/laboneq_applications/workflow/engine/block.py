@@ -126,6 +126,11 @@ class TaskBlock(Block):
         self._ref = Reference(self)
 
     @property
+    def ref(self) -> Reference:
+        """Reference to the object."""
+        return self._ref
+
+    @property
     def src(self) -> str:
         """Source code of the task."""
         return self.task.src
@@ -207,7 +212,7 @@ class WorkflowBlockBuilder(TaskExecutor):
             **_utils.create_argument_map(task.func, *args, **kwargs),
         )
         self.register(block)
-        return block._ref
+        return block.ref
 
     def register(self, block: Block) -> None:
         """Register a block."""

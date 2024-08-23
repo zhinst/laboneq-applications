@@ -46,12 +46,12 @@ def test_get_active_context():
     assert LocalContext.get_active() is None
 
 
-def test_executor_context():
+def test_task_executor_context():
     class TaskExecutorTest(TaskExecutor):
         results = []  # noqa: RUF012
 
         def execute_task(self, task, *args, **kwargs):
-            self.results.append((task._run(*args, **kwargs), task.name))
+            self.results.append((task, args, kwargs))
 
     @task
     def mytask(x): ...
@@ -60,4 +60,4 @@ def test_executor_context():
         assert LocalContext.get_active() is None
         mytask(1)
         ctx = TaskExecutorContext.get_active()
-        assert len(ctx.results) == 1
+        assert ctx.results == [(mytask, (1,), {})]

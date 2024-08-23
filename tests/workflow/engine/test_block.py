@@ -73,6 +73,10 @@ class TestTaskBlock:
         block = TaskBlock(self.no_args_callable)
         assert block.parameters == {}
 
+    def test_ref(self):
+        block = TaskBlock(self.no_args_callable)
+        assert block.ref == Reference(block)
+
     def test_src(self):
         @task
         def addition(x, y):
