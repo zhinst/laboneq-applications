@@ -3,12 +3,13 @@
 from __future__ import annotations
 
 from inspect import signature
-from typing import TYPE_CHECKING, Any, Callable
+from typing import TYPE_CHECKING, Any, Callable, cast
 
 from laboneq_applications.workflow import exceptions
 from laboneq_applications.workflow._context import TaskExecutorContext
 from laboneq_applications.workflow.engine.block import (
     Block,
+    TaskBlock,
     WorkflowBlockBuilder,
 )
 from laboneq_applications.workflow.engine.reference import Reference
@@ -81,6 +82,11 @@ class WorkflowGraph:
             raise exceptions.WorkflowError(msg)
         self._root = root
         self.name = name
+
+    @property
+    def tasks(self) -> list[TaskBlock]:
+        """A flat list of individual tasks within the graph."""
+        return cast(list[TaskBlock], self._root.find(by=TaskBlock, recursive=True))
 
     @classmethod
     def from_callable(cls, func: Callable) -> WorkflowGraph:

@@ -42,6 +42,18 @@ class TestBlock:
                 ...
         assert a.body == [b]
 
+    def test_find(self):
+        a = CustomBlock()
+        b = CustomBlock()
+        c = CustomBlock()
+        a.extend(b)
+        b.extend(c)
+
+        assert a.find(CustomBlock) == [b]
+        assert a.find(CustomBlock, recursive=True) == [b, c]
+        assert a.find(TaskBlock) == []
+        assert b.find(CustomBlock) == [c]
+
 
 class TestTaskBlock:
     @task
