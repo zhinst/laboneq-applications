@@ -253,7 +253,7 @@ class TestQuantumOperations:
     def test_getattr(self, dummy_ops):
         assert dummy_ops.x.op is dummy_ops.BASE_OPS["x"]
         with pytest.raises(AttributeError) as exc:
-            dummy_ops.y  # noqa: B018
+            dummy_ops.y #noqa: B018
         assert str(exc.value) == "'DummyOperations' object has no attribute 'y'"
 
     def test_getitem(self, dummy_ops):

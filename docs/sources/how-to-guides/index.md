@@ -12,3 +12,4 @@ of the page.
 <!--nav-->
 * [Resonator Spectroscopy](sources/resonator_spectroscopy.ipynb)
 * [Amplitude Rabi](sources/amplitude_rabi.ipynb)
+* [T1](sources/T1.ipynb)
