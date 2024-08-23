@@ -377,14 +377,3 @@ class TunableTransmonQubit(Transmon):
             self.parameters._override(parameters)
         except ValueError as err:
             raise ValueError(f"Cannot update {self.uid}: {err}.") from err
-
-    def _get_invalid_params_to_update(self, parameters: dict) -> Sequence:
-        """Check if the parameters to update exist in the qubit.
-
-        Args:
-            parameters: A dictionary of parameter and values to update.
-
-        Returns:
-            invalid_params: A list of parameters that are not found in the qubit.
-        """
-        return self.parameters._get_invalid_param_paths(parameters)
