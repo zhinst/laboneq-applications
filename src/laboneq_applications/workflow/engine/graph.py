@@ -26,9 +26,21 @@ if TYPE_CHECKING:
 class WorkflowBlock(Block):
     """Workflow block."""
 
-    def __init__(self, **parameters: object) -> None:
-        super().__init__(**parameters)
-        self._options: type[WorkflowOptions] = WorkflowOptions
+    def __init__(
+        self,
+        name: str,
+        options_type_hint: type[WorkflowOptions] | None = WorkflowOptions,
+        parameters: dict | None = None,
+    ) -> None:
+        params = parameters or {}
+        super().__init__(**params)
+        self._name = name
+        self._options = options_type_hint or WorkflowOptions
+
+    @property
+    def name(self) -> str:
+        """Name of the block."""
+        return self._name
 
     @property
     def options(self) -> type[WorkflowOptions]:
@@ -50,21 +62,21 @@ class WorkflowBlock(Block):
             executor.set_block_status(self, ExecutionStatus.FINISHED)
 
     @classmethod
-    def from_callable(cls, func: Callable) -> WorkflowBlock:
+    def from_callable(cls, name: str, func: Callable) -> WorkflowBlock:
         """Create the block from a callable."""
         params = {}
-        arg_opt = None
+        opt_type_hint = None
         for arg in signature(func).parameters:
             if arg == "options":
-                arg_opt = get_and_validate_param_type(func, "options", WorkflowOptions)
+                opt_type_hint = get_and_validate_param_type(
+                    func, "options", WorkflowOptions
+                )
             # TODO: Improve reference system to unique reference,
             #       Otherwise blocks nesting workflows
             params[arg] = Reference(arg)
-        obj = cls(**params)
+        obj = cls(name, opt_type_hint, params)
         with obj:
             func(**obj.parameters)
-        if arg_opt:
-            obj._options = arg_opt
         return obj
 
 
@@ -78,7 +90,7 @@ class WorkflowGraph:
         name: The name of the workflow.
     """
 
-    def __init__(self, root: WorkflowBlock, name: str) -> None:
+    def __init__(self, root: WorkflowBlock) -> None:
         if isinstance(
             TaskExecutorContext.get_active(),
             WorkflowBlockBuilder,
@@ -86,7 +98,11 @@ class WorkflowGraph:
             msg = "Nesting Workflows is not allowed."
             raise exceptions.WorkflowError(msg)
         self._root = root
-        self.name = name
+
+    @property
+    def name(self) -> str:
+        """Name of the graph."""
+        return self._root.name
 
     @property
     def tasks(self) -> list[TaskBlock]:
@@ -96,7 +112,7 @@ class WorkflowGraph:
     @classmethod
     def from_callable(cls, func: Callable) -> WorkflowGraph:
         """Create the graph from a callable."""
-        return cls(WorkflowBlock.from_callable(func), func.__name__)
+        return cls(WorkflowBlock.from_callable(func.__name__, func))
 
     def validate_input(self, **kwargs: object) -> None:
         """Validate input parameters of the graph.
