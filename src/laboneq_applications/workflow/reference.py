@@ -5,6 +5,13 @@ from __future__ import annotations
 import operator
 from typing import Any, Callable
 
+notset = object()
+
+
+def get_default(reference: Reference) -> object:
+    """Get reference default value."""
+    return reference._default
+
 
 class Reference:
     """A reference class.
@@ -43,6 +50,7 @@ class Reference:
 
     Attributes:
         ref: Reference object.
+        default: Default value of the reference.
     """
 
     # TODO: Which operators should be supported?
@@ -50,11 +58,9 @@ class Reference:
     #       typical Python error message, the operators must either way be implemented.
     #       And therefore not supporting them might not be needed since they are
     #       implemented either way.
-    def __init__(
-        self,
-        ref: object,
-    ):
+    def __init__(self, ref: object, default: object = notset):
         self._ref = ref
+        self._default = default
         # Head of the reference
         self._head: Reference = self
         # Operations that was done on the reference

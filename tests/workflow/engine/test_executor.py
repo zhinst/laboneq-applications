@@ -2,8 +2,8 @@ import pytest
 
 from laboneq_applications.workflow.engine.block import Block
 from laboneq_applications.workflow.engine.executor import ExecutorState
-from laboneq_applications.workflow.engine.reference import Reference
 from laboneq_applications.workflow.exceptions import WorkflowError
+from laboneq_applications.workflow.reference import Reference
 
 
 class NoOpBlock(Block):
@@ -69,3 +69,8 @@ class TestExecutorState:
         block = NoOpBlock(x=1, y=Reference("z"))
         with pytest.raises(WorkflowError, match="Result for 'z' is not resolved."):
             obj.resolve_inputs(block)
+
+    def test_resolve_reference_default(self):
+        obj = ExecutorState()
+        block = NoOpBlock(y=Reference(None, default=1))
+        assert obj.resolve_inputs(block) == {"y": 1}

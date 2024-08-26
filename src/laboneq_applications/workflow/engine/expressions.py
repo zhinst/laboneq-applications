@@ -11,7 +11,7 @@ from laboneq_applications.workflow.engine.block import (
     WorkflowBlockBuilder,
 )
 from laboneq_applications.workflow.engine.executor import ExecutionStatus
-from laboneq_applications.workflow.engine.reference import Reference
+from laboneq_applications.workflow.reference import Reference
 
 if TYPE_CHECKING:
     from collections.abc import Generator, Iterable

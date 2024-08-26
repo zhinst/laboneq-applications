@@ -10,7 +10,7 @@ from laboneq_applications.workflow.engine.expressions import (
     ForExpression,
     IFExpression,
 )
-from laboneq_applications.workflow.engine.reference import (
+from laboneq_applications.workflow.reference import (
     Reference,
 )
 

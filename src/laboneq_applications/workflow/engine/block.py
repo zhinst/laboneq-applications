@@ -12,7 +12,7 @@ from laboneq_applications.workflow._context import (
     TaskExecutorContext,
 )
 from laboneq_applications.workflow.engine.executor import ExecutionStatus
-from laboneq_applications.workflow.engine.reference import (
+from laboneq_applications.workflow.reference import (
     Reference,
 )
 from laboneq_applications.workflow.task import Task

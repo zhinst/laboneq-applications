@@ -1,8 +1,6 @@
 import pytest
 
-from laboneq_applications.workflow.engine.reference import (
-    Reference,
-)
+from laboneq_applications.workflow.reference import Reference, get_default, notset
 
 
 class TestReference:
@@ -64,3 +62,22 @@ class TestReference:
 
         child = head["key"]
         assert child.ref is ref
+
+    def test_default(self):
+        ref = Reference(None)
+        assert get_default(ref) == notset
+
+        ref = Reference(None, default=None)
+        assert get_default(ref) is None
+
+        ref = Reference(None, default=1)
+        assert get_default(ref) == 1
+
+    def test_child_default(self):
+        ref = Reference(None)
+        child = ref[0]
+        assert get_default(child) == notset
+
+        ref = Reference(None, default=1)
+        child = ref[0]
+        assert get_default(child) == notset

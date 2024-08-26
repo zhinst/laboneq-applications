@@ -13,11 +13,11 @@ from laboneq_applications.workflow.engine.block import (
     WorkflowBlockBuilder,
 )
 from laboneq_applications.workflow.engine.executor import ExecutionStatus
-from laboneq_applications.workflow.engine.reference import Reference
 from laboneq_applications.workflow.options import (
     WorkflowOptions,
     get_and_validate_param_type,
 )
+from laboneq_applications.workflow.reference import Reference
 
 if TYPE_CHECKING:
     from laboneq_applications.workflow.engine.executor import ExecutorState

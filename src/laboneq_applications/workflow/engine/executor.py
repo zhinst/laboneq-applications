@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import TYPE_CHECKING, Any
 
-from laboneq_applications.workflow.engine.reference import Reference
+from laboneq_applications.workflow import reference
 from laboneq_applications.workflow.exceptions import WorkflowError
 from laboneq_applications.workflow.options import WorkflowOptions
 from laboneq_applications.workflow.recorder import (
@@ -126,16 +126,21 @@ class ExecutorState:
         """Resolve the inputs of the block."""
         inp = {}
         for k, v in block.parameters.items():
-            if isinstance(v, Reference):
+            if isinstance(v, reference.Reference):
                 try:
-                    ref = self._graph_variable_states[v.ref]
+                    value = self._graph_variable_states[v.ref]
                 except KeyError as error:
-                    # Reference was never executed.
-                    # TODO: Validate at graph definition time for branching statements.
-                    raise WorkflowError(
-                        f"Result for '{v.ref}' is not resolved.",
-                    ) from error
-                inp[k] = v.unwrap(ref)
+                    default = reference.get_default(v)
+                    if default != reference.notset:
+                        value = default
+                    else:
+                        # Reference was never executed.
+                        # TODO: Validate at graph definition time for
+                        #       branching statements.
+                        raise WorkflowError(
+                            f"Result for '{v.ref}' is not resolved.",
+                        ) from error
+                inp[k] = v.unwrap(value)
             else:
                 inp[k] = v
         return inp

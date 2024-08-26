@@ -3,7 +3,7 @@ from __future__ import annotations
 from laboneq_applications.workflow import WorkflowOptions, task
 from laboneq_applications.workflow.engine import if_
 from laboneq_applications.workflow.engine.graph import WorkflowBlock, WorkflowGraph
-from laboneq_applications.workflow.engine.reference import Reference
+from laboneq_applications.workflow.reference import Reference
 
 
 class TestWorkflowGraph:
