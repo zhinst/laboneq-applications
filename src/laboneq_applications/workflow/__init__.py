@@ -18,7 +18,6 @@ and it is recommended to use tasks for any complex logic.
 
 from laboneq_applications.workflow.engine import (
     Workflow,
-    WorkflowResult,
     return_,
     workflow,
 )
@@ -28,6 +27,7 @@ from laboneq_applications.workflow.options import (
     WorkflowOptions,
 )
 from laboneq_applications.workflow.recorder import comment, save_artifact
+from laboneq_applications.workflow.result import WorkflowResult
 from laboneq_applications.workflow.task import task
 
 __all__ = [

@@ -12,7 +12,6 @@ from laboneq_applications.core.options import BaseExperimentOptions, BaseOptions
 from laboneq_applications.workflow import exceptions, task
 from laboneq_applications.workflow.engine import (
     Workflow,
-    WorkflowResult,
     for_,
     if_,
     return_,
@@ -34,30 +33,6 @@ def addition(x, y) -> float:
 @task
 def substraction(x, y) -> float:
     return x - y
-
-
-class TestWorkflowResult:
-    def test_name(self):
-        obj = WorkflowResult("test")
-        assert obj.name == "test"
-
-    def test_add_task(self):
-        obj = WorkflowResult("test")
-        assert len(obj.tasks) == 0
-        t = Task(addition, output=1)
-        obj.add_task(t)
-        assert len(obj.tasks) == 1
-        assert obj.tasks["addition"] == t
-
-
-class TestWorkflowResultCollector:
-    def test_add_task(self):
-        obj = WorkflowResult("test")
-        assert len(obj.tasks) == 0
-        t = Task(addition, output=1)
-        obj.add_task(t)
-        assert len(obj.tasks) == 1
-        assert obj.tasks["addition"] == t
 
 
 def test_task_within_task_normal_behaviour():

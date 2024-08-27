@@ -3,9 +3,9 @@
 import textwrap
 
 from laboneq_applications.workflow.engine.block import Block, TaskBlock
-from laboneq_applications.workflow.engine.core import WorkflowResult
 from laboneq_applications.workflow.engine.executor import ExecutorState
 from laboneq_applications.workflow.reference import Reference
+from laboneq_applications.workflow.result import WorkflowResult
 from laboneq_applications.workflow.task import task
 
 

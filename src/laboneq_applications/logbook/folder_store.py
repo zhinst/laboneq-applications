@@ -19,7 +19,7 @@ if TYPE_CHECKING:
     from typing import IO, Callable
 
     from laboneq_applications.typing import SimpleDict
-    from laboneq_applications.workflow.engine.core import Workflow, WorkflowResult
+    from laboneq_applications.workflow import Workflow, WorkflowResult
     from laboneq_applications.workflow.recorder import Artifact
     from laboneq_applications.workflow.task import Task
 

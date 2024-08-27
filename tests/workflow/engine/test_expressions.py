@@ -4,7 +4,6 @@ import pytest
 
 from laboneq_applications.workflow import task
 from laboneq_applications.workflow.engine.block import TaskBlock
-from laboneq_applications.workflow.engine.core import WorkflowResult
 from laboneq_applications.workflow.engine.executor import ExecutorState
 from laboneq_applications.workflow.engine.expressions import (
     ForExpression,
@@ -13,6 +12,7 @@ from laboneq_applications.workflow.engine.expressions import (
 from laboneq_applications.workflow.reference import (
     Reference,
 )
+from laboneq_applications.workflow.result import WorkflowResult
 
 
 @task

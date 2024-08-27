@@ -19,7 +19,7 @@ if TYPE_CHECKING:
     from collections.abc import Generator
 
     from laboneq_applications.workflow.engine.block import Block
-    from laboneq_applications.workflow.engine.core import WorkflowResult
+    from laboneq_applications.workflow.result import WorkflowResult
     from laboneq_applications.workflow.task import Task
 
 
