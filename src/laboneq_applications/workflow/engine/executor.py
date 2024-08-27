@@ -67,13 +67,15 @@ class ExecutorState:
     @contextmanager
     def set_active_result(self, result: WorkflowResult) -> Generator[None]:
         """Set an active result object for the duration of the context."""
+        # TODO: Remove dependency to `WorkflowResult` and add intermediate execution
+        # result object
         self._results.append(result)
         yield
         self._results.pop()
 
     def add_task_result(self, task: Task) -> None:
         """Add executed task result."""
-        self._results[-1].add_task(task)
+        self._results[-1]._tasks.append(task)
 
     def set_execution_output(self, output: Any) -> None:  # noqa: ANN401
         """Set an output for the workflow being executed."""

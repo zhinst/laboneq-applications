@@ -13,6 +13,6 @@ class TestWorkflowResult:
         obj = WorkflowResult("test")
         assert len(obj.tasks) == 0
         t = Task(addition, output=1)
-        obj.add_task(t)
+        obj._tasks.append(t)
         assert len(obj.tasks) == 1
         assert obj.tasks["addition"] == t

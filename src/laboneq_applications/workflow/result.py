@@ -55,10 +55,6 @@ class WorkflowResult:
         """
         return TaskView(self._tasks)
 
-    def add_task(self, task: Task) -> None:
-        """Add a task result."""
-        self._tasks.append(task)
-
     @property
     def start_time(self) -> datetime | None:
         """The time when the workflow execution has started."""
