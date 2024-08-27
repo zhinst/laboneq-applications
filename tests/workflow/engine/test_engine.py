@@ -18,7 +18,7 @@ from laboneq_applications.workflow.engine import (
     workflow,
 )
 from laboneq_applications.workflow.options import WorkflowOptions
-from laboneq_applications.workflow.task import Task
+from laboneq_applications.workflow.task import TaskResult
 from laboneq_applications.workflow.taskview import TaskView
 
 if TYPE_CHECKING:
@@ -860,12 +860,12 @@ class TestWorkflowOptions:
 
         for tb in tbs:
             res = tb(options=opt).run()
-            assert res.tasks[0] == Task(
+            assert res.tasks[0] == TaskResult(
                 task=task_foo,
                 output=1,
                 input={"foo": 1, "options": opt.task_foo},
             )
-            assert res.tasks[1] == Task(
+            assert res.tasks[1] == TaskResult(
                 task=task_bar,
                 output=2,
                 input={"bar": 2, "options": opt.task_bar},
@@ -873,12 +873,12 @@ class TestWorkflowOptions:
 
         for tb in tbs:
             res = tb().run()
-            assert res.tasks[0] == Task(
+            assert res.tasks[0] == TaskResult(
                 task=task_foo,
                 output=1,
                 input={"foo": 1, "options": opt.task_foo},
             )
-            assert res.tasks[1] == Task(
+            assert res.tasks[1] == TaskResult(
                 task=task_bar,
                 output=2,
                 input={"bar": 2, "options": opt.task_bar},
@@ -897,12 +897,12 @@ class TestWorkflowOptions:
         opts = OptionFooBar(task_foo=opt1, task_bar=opt2)
 
         res = workflow_a(options=opts).run()
-        assert res.tasks[0] == Task(
+        assert res.tasks[0] == TaskResult(
             task=task_foo,
             output=1,
             input={"foo": 1, "options": opt1},
         )
-        assert res.tasks[1] == Task(
+        assert res.tasks[1] == TaskResult(
             task=task_bar,
             output=2,
             input={"bar": 2, "options": opt2},
@@ -920,12 +920,12 @@ class TestWorkflowOptions:
         opts = OptionNotExisting(task_foo=opt1, task_not_existing=opt2)
 
         res = workflow_a(options=opts).run()
-        assert res.tasks[0] == Task(
+        assert res.tasks[0] == TaskResult(
             task=task_foo,
             output=1,
             input={"foo": 1, "options": opt1},
         )
-        assert res.tasks[1] == Task(
+        assert res.tasks[1] == TaskResult(
             task=task_bar,
             output=2,
             input={"bar": 2, "options": opt2},
@@ -944,8 +944,8 @@ class TestWorkflowOptions:
 
         res = workflow_a(opts)
         assert res.tasks == [
-            Task(task=task_foo, output=1, input={"foo": 1, "options": opt1}),
-            Task(task=task_bar, output=2, input={"bar": 2, "options": opt2}),
+            TaskResult(task=task_foo, output=1, input={"foo": 1, "options": opt1}),
+            TaskResult(task=task_bar, output=2, input={"bar": 2, "options": opt2}),
         ]
 
     def test_task_requires_options_but_not_provided(self):
@@ -956,12 +956,12 @@ class TestWorkflowOptions:
 
         opts = FooOptWorkFlow(task_foo=FooOpt(foo=11))
         res = workflow_a(options=opts).run()
-        assert res.tasks[0] == Task(
+        assert res.tasks[0] == TaskResult(
             task=task_foo,
             output=1,
             input={"foo": 1, "options": FooOpt(foo=11)},
         )
-        assert res.tasks[1] == Task(
+        assert res.tasks[1] == TaskResult(
             task=task_bar,
             output=2,
             input={"bar": 2, "options": None},
@@ -988,12 +988,12 @@ class TestWorkflowOptions:
         # default values of options are used.
         assert res.tasks == TaskView(
             [
-                Task(
+                TaskResult(
                     task=task_foo,
                     output=(1, FooOpt().foo),
                     input={"foo": 1, "options": FooOpt()},
                 ),
-                Task(
+                TaskResult(
                     task=task_bar,
                     output=(2, BarOpt().bar),
                     input={"bar": 2, "options": BarOpt()},
@@ -1011,8 +1011,8 @@ class TestWorkflowOptions:
         res = workflow_a().run()
         assert res.tasks == TaskView(
             [
-                Task(task=task_foo, output=1, input={"foo": 1, "options": None}),
-                Task(task=task_bar, output=2, input={"bar": 2, "options": None}),
+                TaskResult(task=task_foo, output=1, input={"foo": 1, "options": None}),
+                TaskResult(task=task_bar, output=2, input={"bar": 2, "options": None}),
             ],
         )
 
@@ -1027,7 +1027,7 @@ class TestWorkflowOptions:
         res = workflow_b().run()
         assert res.tasks == TaskView(
             [
-                Task(task=task_fed, output=0, input={"options": 0}),
+                TaskResult(task=task_fed, output=0, input={"options": 0}),
             ],
         )
 
@@ -1042,8 +1042,12 @@ class TestWorkflowOptions:
         res = workflow_a(options)
         assert res.tasks == TaskView(
             [
-                Task(task=task_foo, output=1, input={"foo": 1, "options": options[0]}),
-                Task(task=task_bar, output=2, input={"bar": 2, "options": options[1]}),
+                TaskResult(
+                    task=task_foo, output=1, input={"foo": 1, "options": options[0]}
+                ),
+                TaskResult(
+                    task=task_bar, output=2, input={"bar": 2, "options": options[1]}
+                ),
             ],
         )
 
@@ -1056,8 +1060,12 @@ class TestWorkflowOptions:
         res = workflow_a(options)
         assert res.tasks == TaskView(
             [
-                Task(task=task_foo, output=1, input={"foo": 1, "options": options[0]}),
-                Task(task=task_bar, output=2, input={"bar": 2, "options": options[1]}),
+                TaskResult(
+                    task=task_foo, output=1, input={"foo": 1, "options": options[0]}
+                ),
+                TaskResult(
+                    task=task_bar, output=2, input={"bar": 2, "options": options[1]}
+                ),
             ],
         )
 
@@ -1074,12 +1082,12 @@ class TestWorkflowOptions:
 
         res = workflow_a(options=opts)
 
-        assert res.tasks[0] == Task(
+        assert res.tasks[0] == TaskResult(
             task=task_foo,
             output=1,
             input={"foo": 1, "options": FooOpt()},
         )
-        assert res.tasks[1] == Task(
+        assert res.tasks[1] == TaskResult(
             task=task_bar,
             output=2,
             input={"bar": 2, "options": BarOpt()},

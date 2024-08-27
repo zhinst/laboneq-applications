@@ -19,7 +19,7 @@ if TYPE_CHECKING:
 
     from laboneq_applications.workflow import Workflow, WorkflowResult
     from laboneq_applications.workflow.recorder import Artifact
-    from laboneq_applications.workflow.task import Task
+    from laboneq_applications.workflow.task import TaskResult
 
 
 class LoggingStore(LogbookStore):
@@ -112,7 +112,7 @@ class LoggingLogbook(Logbook):
             error,
         )
 
-    def on_task_start(self, task: Task) -> None:
+    def on_task_start(self, task: TaskResult) -> None:
         """Called when a task begins execution."""
         self._log_in_rich_bold(
             self._logger.info,
@@ -121,7 +121,7 @@ class LoggingLogbook(Logbook):
             format_time(now(task.start_time)),
         )
 
-    def on_task_end(self, task: Task) -> None:
+    def on_task_end(self, task: TaskResult) -> None:
         """Called when a task ends execution."""
         self._log_in_rich_bold(
             self._logger.info,
@@ -132,7 +132,7 @@ class LoggingLogbook(Logbook):
 
     def on_task_error(
         self,
-        task: Task,
+        task: TaskResult,
         error: Exception,
     ) -> None:
         """Called when a task raises an exception."""

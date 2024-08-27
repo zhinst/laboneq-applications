@@ -1,7 +1,7 @@
 import pytest
 from IPython.lib.pretty import pretty
 
-from laboneq_applications.workflow.task import Task, task
+from laboneq_applications.workflow.task import TaskResult, task
 from laboneq_applications.workflow.taskview import TaskView
 
 
@@ -20,14 +20,14 @@ class TestTaskView:
     def view(self):
         return TaskView(
             [
-                Task(task=task_a, output=1),
-                Task(task=task_b, output=2),
-                Task(task=task_b, output=3),
+                TaskResult(task=task_a, output=1),
+                TaskResult(task=task_b, output=2),
+                TaskResult(task=task_b, output=3),
             ],
         )
 
     def test_no_copy(self):
-        t = Task(task=task_a, output=1)
+        t = TaskResult(task=task_a, output=1)
         tasks = [t]
         view = TaskView(tasks)
         assert view[0] is tasks[0]
@@ -37,46 +37,46 @@ class TestTaskView:
         assert view.unique() == ["task_a", "task_b"]
 
     def test_repr(self, view):
-        t = Task(task=task_a, output=1)
+        t = TaskResult(task=task_a, output=1)
         view = TaskView([t])
         assert (
             repr(view)
-            == f"[Task(name=task_a, output=1, input={{}}, func={task_a.func})]"
+            == f"[TaskResult(name=task_a, output=1, input={{}}, func={task_a.func})]"
         )
 
     def test_str(self):
-        t = Task(task=task_a, output=1)
+        t = TaskResult(task=task_a, output=1)
         view = TaskView([t])
-        assert str(view) == "Task(task_a)"
+        assert str(view) == "TaskResult(task_a)"
 
     def test_ipython_pretty(self):
-        t = Task(task=task_a, output=1)
+        t = TaskResult(task=task_a, output=1)
         view = TaskView([t])
-        assert pretty(view) == "Task(task_a)"
+        assert pretty(view) == "TaskResult(task_a)"
 
     def test_len(self, view):
         assert len(view) == 3
 
     def test_getitem(self, view):
         # Test index
-        assert view[1] == Task(task=task_b, output=2)
+        assert view[1] == TaskResult(task=task_b, output=2)
         # Test slice
         assert view[0:2] == [
-            Task(task=task_a, output=1),
-            Task(task=task_b, output=2),
+            TaskResult(task=task_a, output=1),
+            TaskResult(task=task_b, output=2),
         ]
         # Test string
-        assert view["task_b"] == Task(task=task_b, output=2)
+        assert view["task_b"] == TaskResult(task=task_b, output=2)
         # Test slice
-        assert view["task_b", 0] == Task(task=task_b, output=2)
-        assert view["task_b", 1] == Task(task=task_b, output=3)
+        assert view["task_b", 0] == TaskResult(task=task_b, output=2)
+        assert view["task_b", 1] == TaskResult(task=task_b, output=3)
         assert view["task_b", 0:4] == [
-            Task(task=task_b, output=2),
-            Task(task=task_b, output=3),
+            TaskResult(task=task_b, output=2),
+            TaskResult(task=task_b, output=3),
         ]
         assert view["task_b", :] == [
-            Task(task=task_b, output=2),
-            Task(task=task_b, output=3),
+            TaskResult(task=task_b, output=2),
+            TaskResult(task=task_b, output=3),
         ]
 
         with pytest.raises(IndexError):
@@ -91,35 +91,35 @@ class TestTaskView:
     def test_eq(self):
         assert TaskView(
             [
-                Task(task=task_b, output=2),
-                Task(task=task_b, output=3),
+                TaskResult(task=task_b, output=2),
+                TaskResult(task=task_b, output=3),
             ],
         ) == TaskView(
             [
-                Task(task=task_b, output=2),
-                Task(task=task_b, output=3),
+                TaskResult(task=task_b, output=2),
+                TaskResult(task=task_b, output=3),
             ],
         )
 
         assert TaskView(
             [
-                Task(task=task_b, output=2),
-                Task(task=task_b, output=3),
+                TaskResult(task=task_b, output=2),
+                TaskResult(task=task_b, output=3),
             ],
         ) != [
-            Task(task=task_b, output=2),
-            Task(task=task_b, output=3),
+            TaskResult(task=task_b, output=2),
+            TaskResult(task=task_b, output=3),
         ]
         assert list(
             TaskView(
                 [
-                    Task(task=task_b, output=2),
-                    Task(task=task_b, output=3),
+                    TaskResult(task=task_b, output=2),
+                    TaskResult(task=task_b, output=3),
                 ],
             ),
         ) == [
-            Task(task=task_b, output=2),
-            Task(task=task_b, output=3),
+            TaskResult(task=task_b, output=2),
+            TaskResult(task=task_b, output=3),
         ]
         assert TaskView() != []
         assert TaskView() != [1, 2]

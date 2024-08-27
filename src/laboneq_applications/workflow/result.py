@@ -9,7 +9,7 @@ from laboneq_applications.workflow.taskview import TaskView
 if TYPE_CHECKING:
     from datetime import datetime
 
-    from laboneq_applications.workflow.task import Task
+    from laboneq_applications.workflow.task import TaskResult
 
 
 class WorkflowResult:
@@ -17,7 +17,7 @@ class WorkflowResult:
 
     def __init__(self, name: str):
         self._name = name
-        self._tasks: list[Task] = []
+        self._tasks: list[TaskResult] = []
         self._output = None
         self._start_time: datetime | None = None
         self._end_time: datetime | None = None

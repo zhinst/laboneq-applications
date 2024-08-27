@@ -6,7 +6,7 @@ from collections.abc import Sequence
 from typing import TYPE_CHECKING, overload
 
 if TYPE_CHECKING:
-    from laboneq_applications.workflow.task import Task
+    from laboneq_applications.workflow.task import TaskResult
 
 
 class TaskView(Sequence):
@@ -25,7 +25,7 @@ class TaskView(Sequence):
         - Lookup by name and slicing
     """
 
-    def __init__(self, tasks: list[Task] | None = None) -> None:
+    def __init__(self, tasks: list[TaskResult] | None = None) -> None:
         self._tasks = tasks or []
 
     def unique(self) -> list[str]:
@@ -43,18 +43,18 @@ class TaskView(Sequence):
         p.text(str(self))
 
     @overload
-    def __getitem__(self, item: tuple[str, int]) -> Task: ...
+    def __getitem__(self, item: tuple[str, int]) -> TaskResult: ...
 
     @overload
-    def __getitem__(self, item: tuple[str, slice] | slice) -> list[Task]: ...
+    def __getitem__(self, item: tuple[str, slice] | slice) -> list[TaskResult]: ...
 
     @overload
-    def __getitem__(self, item: str | int) -> Task: ...
+    def __getitem__(self, item: str | int) -> TaskResult: ...
 
     def __getitem__(
         self,
         item: str | int | tuple[str, int | slice] | slice,
-    ) -> Task | list[Task]:
+    ) -> TaskResult | list[TaskResult]:
         """Get a single or multiple tasks.
 
         Arguments:

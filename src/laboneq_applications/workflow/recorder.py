@@ -10,7 +10,7 @@ from laboneq_applications.workflow import _context
 if TYPE_CHECKING:
     from laboneq_applications.typing import SimpleDict
     from laboneq_applications.workflow.result import WorkflowResult
-    from laboneq_applications.workflow.task import Task
+    from laboneq_applications.workflow.task import TaskResult
 
 
 class Artifact:
@@ -69,19 +69,19 @@ class ExecutionRecorder(Protocol):
 
     def on_task_start(
         self,
-        task: Task,
+        task: TaskResult,
     ) -> None:
         """Called when a task begins execution."""
 
     def on_task_end(
         self,
-        task: Task,
+        task: TaskResult,
     ) -> None:
         """Called when a task ends execution."""
 
     def on_task_error(
         self,
-        task: Task,
+        task: TaskResult,
         error: Exception,
     ) -> None:
         """Called when a task raises an exception."""
@@ -139,20 +139,20 @@ class ExecutionRecorderManager(ExecutionRecorder):
 
     def on_task_start(
         self,
-        task: Task,
+        task: TaskResult,
     ) -> None:
         """Called when a task begins execution."""
         for recorder in self._recorders:
             recorder.on_task_start(task)
 
-    def on_task_end(self, task: Task) -> None:
+    def on_task_end(self, task: TaskResult) -> None:
         """Add a task result."""
         for recorder in self._recorders:
             recorder.on_task_end(task)
 
     def on_task_error(
         self,
-        task: Task,
+        task: TaskResult,
         error: Exception,
     ) -> None:
         """Called when a task raises an exception."""

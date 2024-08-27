@@ -15,7 +15,7 @@ from laboneq_applications.workflow.engine.executor import ExecutionStatus
 from laboneq_applications.workflow.reference import (
     Reference,
 )
-from laboneq_applications.workflow.task import Task
+from laboneq_applications.workflow.task import TaskResult
 
 if TYPE_CHECKING:
     from collections.abc import Iterable
@@ -154,7 +154,7 @@ class TaskBlock(Block):
                 if task_opts:
                     params["options"] = task_opts
 
-        task = Task(
+        task = TaskResult(
             task=self.task,
             output=None,
             input=_utils.create_argument_map(self.task.func, **params),

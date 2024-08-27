@@ -20,7 +20,7 @@ if TYPE_CHECKING:
 
     from laboneq_applications.workflow.engine.block import Block
     from laboneq_applications.workflow.result import WorkflowResult
-    from laboneq_applications.workflow.task import Task
+    from laboneq_applications.workflow.task import TaskResult
 
 
 class _ExecutorInterrupt(Exception):  # noqa: N818
@@ -73,7 +73,7 @@ class ExecutorState:
         yield
         self._results.pop()
 
-    def add_task_result(self, task: Task) -> None:
+    def add_task_result(self, task: TaskResult) -> None:
         """Add executed task result."""
         self._results[-1]._tasks.append(task)
 

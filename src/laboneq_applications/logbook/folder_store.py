@@ -21,7 +21,7 @@ if TYPE_CHECKING:
     from laboneq_applications.typing import SimpleDict
     from laboneq_applications.workflow import Workflow, WorkflowResult
     from laboneq_applications.workflow.recorder import Artifact
-    from laboneq_applications.workflow.task import Task
+    from laboneq_applications.workflow.task import TaskResult
 
 
 def _sanitize_filename(filename: str) -> str:
@@ -241,7 +241,7 @@ class FolderLogbook(Logbook):
 
     def on_task_start(
         self,
-        task: Task,
+        task: TaskResult,
     ) -> None:
         """Called when a task begins execution."""
         self._append_log(
@@ -254,7 +254,7 @@ class FolderLogbook(Logbook):
 
     def on_task_end(
         self,
-        task: Task,
+        task: TaskResult,
     ) -> None:
         """Called when a task ends execution."""
         self._append_log(
@@ -263,7 +263,7 @@ class FolderLogbook(Logbook):
 
     def on_task_error(
         self,
-        task: Task,
+        task: TaskResult,
         error: Exception,
     ) -> None:
         """Called when a task raises an exception."""

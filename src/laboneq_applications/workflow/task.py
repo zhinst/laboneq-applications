@@ -15,8 +15,8 @@ if TYPE_CHECKING:
     from datetime import datetime
 
 
-class Task:
-    """A task.
+class TaskResult:
+    """Task result.
 
     The instance holds execution information of an task.
     """
@@ -69,7 +69,7 @@ class Task:
         return self._end_time
 
     def __eq__(self, value: object) -> bool:
-        if not isinstance(value, Task):
+        if not isinstance(value, TaskResult):
             return NotImplemented
         return (
             self._task == value._task
@@ -86,10 +86,10 @@ class Task:
                 f"func={self.func}",
             ],
         )
-        return f"Task({attrs})"
+        return f"TaskResult({attrs})"
 
     def __str__(self) -> str:
-        return f"Task({self.name})"
+        return f"TaskResult({self.name})"
 
     def _repr_pretty_(self, p, cycle):  # noqa: ANN001, ANN202, ARG002
         # For Notebooks

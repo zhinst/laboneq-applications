@@ -9,7 +9,7 @@ from laboneq_applications.logbook import Logbook, LogbookStore
 if TYPE_CHECKING:
     from laboneq_applications.workflow import Workflow, WorkflowResult
     from laboneq_applications.workflow.recorder import Artifact
-    from laboneq_applications.workflow.task import Task
+    from laboneq_applications.workflow.task import TaskResult
 
 
 class CombinedStore(LogbookStore):
@@ -52,19 +52,19 @@ class CombinedLogbook(Logbook):
         for logbook in self._logbooks:
             logbook.on_error(workflow_result, error)
 
-    def on_task_start(self, task: Task) -> None:
+    def on_task_start(self, task: TaskResult) -> None:
         """Called when a task begins execution."""
         for logbook in self._logbooks:
             logbook.on_task_start(task)
 
-    def on_task_end(self, task: Task) -> None:
+    def on_task_end(self, task: TaskResult) -> None:
         """Called when a task ends execution."""
         for logbook in self._logbooks:
             logbook.on_task_end(task)
 
     def on_task_error(
         self,
-        task: Task,
+        task: TaskResult,
         error: Exception,
     ) -> None:
         """Called when a task raises an exception."""
