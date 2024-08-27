@@ -3,7 +3,6 @@ using the testing utilities provided by the LabOne Q Applications Library.
 """
 
 import pytest
-from laboneq.simple import show_pulse_sheet
 
 from laboneq_applications.experiments import (
     resonator_spectroscopy_amplitude,
@@ -36,8 +35,6 @@ def create_res_spectroscopy_amp_verifier(
         amplitudes=amplitudes,
         options=options,
     ).run()
-    compiled_exp = res.tasks["compile_experiment"].output
-    show_pulse_sheet("res_spec", compiled_exp)
     return CompiledExperimentVerifier(res.tasks["compile_experiment"].output)
 
 
