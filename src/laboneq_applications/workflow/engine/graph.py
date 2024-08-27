@@ -17,7 +17,7 @@ from laboneq_applications.workflow.options import (
     WorkflowOptions,
     get_and_validate_param_type,
 )
-from laboneq_applications.workflow.reference import Reference
+from laboneq_applications.workflow.reference import Reference, notset
 
 if TYPE_CHECKING:
     from laboneq_applications.workflow.engine.executor import ExecutorState
@@ -32,10 +32,15 @@ class WorkflowBlock(Block):
         options_type_hint: type[WorkflowOptions] | None = WorkflowOptions,
         parameters: dict | None = None,
     ) -> None:
-        params = parameters or {}
-        super().__init__(**params)
         self._name = name
         self._options = options_type_hint or WorkflowOptions
+        params = {}
+        for param, default in (parameters or {}).items():
+            if isinstance(default, Reference):
+                params[param] = default
+            else:
+                params[param] = Reference((self, param), default=default)
+        super().__init__(**params)
 
     @property
     def name(self) -> str:
@@ -62,18 +67,33 @@ class WorkflowBlock(Block):
             executor.set_block_status(self, ExecutionStatus.FINISHED)
 
     @classmethod
-    def from_callable(cls, name: str, func: Callable) -> WorkflowBlock:
-        """Create the block from a callable."""
+    def from_callable(cls, name: str, func: Callable, **kwargs) -> WorkflowBlock:
+        """Create the block from a callable.
+
+        By default the signature of the function is used to define
+        the default parameters of the block.
+
+        Arguments:
+            name: Name of the block.
+            func: A function defining the workflow
+            **kwargs: Default parameter values that overwrite function
+                signature
+        """
         params = {}
+        for k, v in signature(func).parameters.items():
+            if k in kwargs:
+                value = kwargs[k]
+            elif v.default == v.empty:
+                value = notset
+            else:
+                value = v.default
+            params[k] = value
+
         opt_type_hint = None
-        for arg in signature(func).parameters:
-            if arg == "options":
-                opt_type_hint = get_and_validate_param_type(
-                    func, "options", WorkflowOptions
-                )
-            # TODO: Improve reference system to unique reference,
-            #       Otherwise blocks nesting workflows
-            params[arg] = Reference(arg)
+        if "options" in params:
+            opt_type_hint = get_and_validate_param_type(
+                func, "options", WorkflowOptions
+            )
         obj = cls(name, opt_type_hint, params)
         with obj:
             func(**obj.parameters)
@@ -140,5 +160,5 @@ class WorkflowGraph:
             **kwargs: Input parameters of the workflow.
         """
         for k, v in kwargs.items():
-            executor.set_state(k, v)
+            executor.set_state((self._root, k), v)
         self._root.execute(executor)

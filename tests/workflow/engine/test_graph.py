@@ -3,7 +3,7 @@ from __future__ import annotations
 from laboneq_applications.workflow import WorkflowOptions, task
 from laboneq_applications.workflow.engine import if_
 from laboneq_applications.workflow.engine.graph import WorkflowBlock, WorkflowGraph
-from laboneq_applications.workflow.reference import Reference
+from laboneq_applications.workflow.reference import Reference, get_default, notset
 
 
 class TestWorkflowGraph:
@@ -66,25 +66,38 @@ class TestWorkflowBlock:
         block = WorkflowBlock(name="test")
         assert block.parameters == {}
 
-        block = WorkflowBlock(name="test", parameters={"foo": 1, "bar": 5})
-        assert block.parameters == {"foo": 1, "bar": 5}
+        params = {"foo": 1, "bar": 5}
+        block = WorkflowBlock(name="test", parameters=params)
+        assert params == {"foo": 1, "bar": 5}
+        assert get_default(block.parameters["foo"]) == 1
+        assert get_default(block.parameters["bar"]) == 5
+
+        block = WorkflowBlock(
+            name="test", parameters={"foo": Reference(ref=None, default=3)}
+        )
+        assert get_default(block.parameters["foo"]) == 3
 
     def test_options(self):
         block = WorkflowBlock(name="test")
         assert block.options == WorkflowOptions
 
-    def test_from_callable(self):
+    def test_from_callable_defaults(self):
         def work(x, y=5): ...
 
         block = WorkflowBlock.from_callable("test", work)
         assert block.options == WorkflowOptions
-        assert block.parameters == {"x": Reference("x"), "y": Reference("y")}
+        assert get_default(block.parameters["x"]) == notset
+        assert get_default(block.parameters["y"]) == 5
 
-        def work_opts(x, options: Opts | None = None): ...
+    def test_from_callable_default_options(self):
+        def work_opts(options: Opts | None = None): ...
 
         block = WorkflowBlock.from_callable("test", work_opts)
         assert block.options == Opts
-        assert block.parameters == {
-            "x": Reference("x"),
-            "options": Reference("options"),
-        }
+        assert get_default(block.parameters["options"]) is None
+
+    def test_from_callable_overwrite_default(self):
+        def work_opts(x: int = 5): ...
+
+        block = WorkflowBlock.from_callable("test", work_opts, x=7)
+        assert get_default(block.parameters["x"]) == 7
