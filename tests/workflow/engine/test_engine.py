@@ -9,7 +9,7 @@ from unittest.mock import Mock
 import pytest
 
 from laboneq_applications.core.options import BaseExperimentOptions, BaseOptions
-from laboneq_applications.workflow import exceptions, task
+from laboneq_applications.workflow import WorkflowResult, exceptions, task
 from laboneq_applications.workflow.engine import (
     Workflow,
     for_,
@@ -289,7 +289,7 @@ class TestMultipleTasks:
 
 
 class TestNestedWorkflows:
-    def test_nested_workflow_definition(self):
+    def test_workflow_definition_inside_workflow(self):
         @workflow
         def outer():
             addition(1, 1)
@@ -302,11 +302,11 @@ class TestNestedWorkflows:
 
         with pytest.raises(
             exceptions.WorkflowError,
-            match="Nesting Workflows is not allowed.",
+            match="Defining a workflow inside a workflow is not allowed.",
         ):
             outer()
 
-    def test_executing_workflow_within_workflow(self):
+    def test_call_run_workflow_nested(self):
         @workflow
         def inner():
             addition(1, 1)
@@ -319,9 +319,113 @@ class TestNestedWorkflows:
 
         with pytest.raises(
             exceptions.WorkflowError,
-            match="Nesting Workflows is not allowed.",
+            match=re.escape(
+                "Calling '.run()' within another workflow is " "not allowed.",
+            ),
         ):
             outer()
+
+    def test_task_output(self):
+        @task
+        def task1(y):
+            return y
+
+        @workflow
+        def wf1(x: int = 1):
+            task1(x)
+
+        @workflow
+        def wf2(x, y):
+            wf1(x)
+            wf1(y)
+            wf1()
+
+        wf = wf2(2, 3)
+        res = wf.run()
+        assert res.tasks[0].tasks[0].output == 2
+        assert res.tasks[1].tasks[0].output == 3
+        assert res.tasks[2].tasks[0].output == 1
+
+    def test_output(self):
+        @task
+        def task1(): ...
+
+        @workflow
+        def wf1(x: int):
+            task1()
+            return_(x)
+
+        @workflow
+        def wf2(x):
+            output = wf1(x)
+            return_(output.output)
+
+        wf = wf2(2)
+        res = wf.run()
+        assert res.output == 2
+        # Tested nested workflow result added to tasks
+        assert len(res.tasks) == 1
+        assert isinstance(res.tasks[0], WorkflowResult)
+        assert res.tasks[0].output == 2
+
+        # Test nested workflow tasks
+        assert len(res.tasks[0].tasks) == 1
+        assert res.tasks[0].tasks[0].name == "task1"
+
+    def test_nested_workflow_runtime_error(self):
+        # Test more than one level deep nesting of workflows
+        @task
+        def task1(): ...
+
+        @task
+        def task2():
+            raise RuntimeError
+
+        @workflow
+        def wf1():
+            task1()
+            task2()
+
+        @workflow
+        def wf2():
+            wf1()
+
+        wf = wf2()
+        try:
+            wf.run()
+        except RuntimeError:
+            res = wf2.recover()
+        assert len(res.tasks) == 1
+        assert isinstance(res.tasks[0], WorkflowResult)
+
+        # Test nested workflow tasks
+        assert len(res.tasks[0].tasks) == 2
+        assert res.tasks[0].tasks[0].name == "task1"
+        assert res.tasks[0].tasks[1].name == "task2"
+
+    def test_nested_nested_workflow_result(self):
+        @task
+        def task1(x):
+            return x
+
+        @workflow
+        def wf3(x):
+            task1(x)
+
+        @workflow
+        def wf2(x):
+            wf3(x)
+
+        @workflow
+        def wf1(x):
+            wf2(x)
+
+        wf = wf1(3)
+        result = wf.run()
+        assert len(result.tasks) == 1
+        assert len(result.tasks[0].tasks) == 1
+        assert len(result.tasks[0].tasks[0].tasks) == 1
+        assert result.tasks[0].tasks[0].tasks[0].output == 3
 
 
 class TestWorkflowReferences:
@@ -690,7 +794,7 @@ class TestWorkflowValidOptions:
 
         wf = my_wf()
         result = wf.run()
-        assert result.tasks["task_with_opts"].output == WfOptions().task_with_opts
+        assert result.tasks["task_with_opts"].output == WfOptions()
 
     def test_workflow_valid_options_invalid_input_type(self, task_with_opts):
         @workflow
@@ -1092,3 +1196,47 @@ class TestWorkflowOptions:
             output=2,
             input={"bar": 2, "options": BarOpt()},
         )
+
+
+class TaskOptions(BaseOptions):
+    foo: int = 1
+
+
+class NestedOptions(WorkflowOptions):
+    mytask: TaskOptions = TaskOptions()
+
+
+class TopLevelOptions(WorkflowOptions):
+    mytask: TaskOptions = TaskOptions()
+    workflow_nested: NestedOptions = NestedOptions()
+
+
+def test_nested_workflows_options():
+    @task
+    def mytask(options: TaskOptions | None = None): ...
+
+    @workflow
+    def workflow_nested(options: NestedOptions | None = None):
+        mytask()
+        return_(options)
+
+    @workflow
+    def workflow_b(options: TopLevelOptions | None = None):
+        mytask()
+        workflow_nested()
+        mytask()
+        return_(options)
+
+    opts = TopLevelOptions(
+        workflow_nested=NestedOptions(mytask=TaskOptions(foo=1)),
+        mytask=TaskOptions(foo=2),
+    )
+    wf = workflow_b(options=opts)
+    result = wf.run()
+    assert len(result.tasks) == 3
+    assert result.output == opts
+    assert result.tasks[0].input == {"options": opts.mytask}
+    assert result.tasks[2].input == {"options": opts.mytask}
+
+    assert result.tasks[1].tasks[0].input == {"options": opts.workflow_nested.mytask}
+    assert result.tasks[1].output == opts.workflow_nested

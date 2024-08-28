@@ -5,19 +5,15 @@ from __future__ import annotations
 from inspect import signature
 from typing import TYPE_CHECKING, Callable, cast
 
-from laboneq_applications.workflow import exceptions
-from laboneq_applications.workflow._context import TaskExecutorContext
-from laboneq_applications.workflow.engine.block import (
-    Block,
-    TaskBlock,
-    WorkflowBlockBuilder,
-)
+from laboneq_applications.core import now
+from laboneq_applications.workflow.engine.block import Block, TaskBlock
 from laboneq_applications.workflow.engine.executor import ExecutionStatus
 from laboneq_applications.workflow.options import (
     WorkflowOptions,
     get_and_validate_param_type,
 )
 from laboneq_applications.workflow.reference import Reference, notset
+from laboneq_applications.workflow.result import WorkflowResult
 
 if TYPE_CHECKING:
     from laboneq_applications.workflow.engine.executor import ExecutorState
@@ -41,6 +37,7 @@ class WorkflowBlock(Block):
             else:
                 params[param] = Reference((self, param), default=default)
         super().__init__(**params)
+        self._ref = Reference(self)
 
     @property
     def name(self) -> str:
@@ -52,19 +49,64 @@ class WorkflowBlock(Block):
         """Type of block options."""
         return self._options
 
+    @property
+    def ref(self) -> Reference:
+        """Reference to the object."""
+        return self._ref
+
+    def set_params(self, executor: ExecutorState, **kwargs) -> None:
+        """Set the initial parameters of the block."""
+        inputs = kwargs
+        input_opts = kwargs.get("options")  # Options from input arguments
+        if input_opts is None and executor.options:
+            # Options from parent options
+            input_opts = getattr(executor.options, self.name, None)
+        if input_opts is None:
+            input_opts = self._options()  # Default options
+        inputs["options"] = input_opts
+        for k, v in inputs.items():
+            executor.set_state((self, k), v)
+
     def execute(self, executor: ExecutorState) -> None:
         """Execute the block."""
-        executor.set_block_status(self, ExecutionStatus.IN_PROGRESS)
-        input_opts = executor.resolve_inputs(self).get("options")
-        if input_opts is None:
-            input_opts = self._options()
-        executor.options = input_opts
-        with executor:
-            for block in self._body:
-                if executor.get_block_status(block) == ExecutionStatus.FINISHED:
-                    continue
-                block.execute(executor)
+        # TODO: Separate executor results and WorkflowResult
+        if executor.get_block_status(self) == ExecutionStatus.NOT_STARTED:
+            executor.set_block_status(self, ExecutionStatus.IN_PROGRESS)
+            inputs = executor.resolve_inputs(self)
+            self.set_params(executor, **inputs)
+            input_opts = executor.get_state((self, "options"))
+            result = WorkflowResult(self.name)
+            result._start_time = now()
+            executor.recorder.on_start(result)
+            executor.set_state(self, result)
+        elif executor.get_block_status(self) == ExecutionStatus.IN_PROGRESS:
+            result = executor.get_state(self)
+            input_opts = executor.get_state((self, "options"))
+        else:
+            # Block is finished
+            return
+        executor.add_workflow_result(result)
+        try:
+            with executor.set_active_workflow_settings(result, input_opts):
+                with executor:
+                    for block in self._body:
+                        if executor.get_block_status(block) == ExecutionStatus.FINISHED:
+                            continue
+                        block.execute(executor)
+                    executor.set_block_status(self, ExecutionStatus.FINISHED)
+                    result._end_time = now()
+                    executor.recorder.on_end(result)
+        except Exception as error:
             executor.set_block_status(self, ExecutionStatus.FINISHED)
+            result._end_time = now()
+            if not getattr(
+                error,
+                "_logged_by_task",
+                False,
+            ):  # TODO: better mechanism
+                executor.recorder.on_error(result, error)
+            executor.recorder.on_end(result)
+            raise
 
     @classmethod
     def from_callable(cls, name: str, func: Callable, **kwargs) -> WorkflowBlock:
@@ -111,12 +153,6 @@ class WorkflowGraph:
     """
 
     def __init__(self, root: WorkflowBlock) -> None:
-        if isinstance(
-            TaskExecutorContext.get_active(),
-            WorkflowBlockBuilder,
-        ):
-            msg = "Nesting Workflows is not allowed."
-            raise exceptions.WorkflowError(msg)
         self._root = root
 
     @property
@@ -159,6 +195,5 @@ class WorkflowGraph:
             executor: Block executor.
             **kwargs: Input parameters of the workflow.
         """
-        for k, v in kwargs.items():
-            executor.set_state((self._root, k), v)
+        self._root.set_params(executor, **kwargs)
         self._root.execute(executor)

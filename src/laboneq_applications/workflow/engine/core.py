@@ -5,11 +5,10 @@ from __future__ import annotations
 import inspect
 import textwrap
 from functools import update_wrapper
-from typing import Callable, Generic, cast
+from typing import TYPE_CHECKING, Callable, Generic, cast
 
 from typing_extensions import ParamSpec
 
-from laboneq_applications.core import now
 from laboneq_applications.logbook import (
     LogbookStore,
     LoggingStore,
@@ -24,12 +23,14 @@ from laboneq_applications.workflow.engine.block import (
     WorkflowBlockBuilder,
 )
 from laboneq_applications.workflow.engine.executor import ExecutionStatus, ExecutorState
-from laboneq_applications.workflow.engine.graph import WorkflowGraph
+from laboneq_applications.workflow.engine.graph import WorkflowBlock, WorkflowGraph
 from laboneq_applications.workflow.options import (
     WorkflowOptions,
     get_and_validate_param_type,
 )
-from laboneq_applications.workflow.result import WorkflowResult
+
+if TYPE_CHECKING:
+    from laboneq_applications.workflow.result import WorkflowResult
 
 Parameters = ParamSpec("Parameters")
 
@@ -60,7 +61,6 @@ class Workflow(Generic[Parameters]):
         self._recovery = (
             None  # WorkflowRecovery (unused if left as None, set by WorkflowBuilder)
         )
-        self._result: WorkflowResult | None = None
         self._state: ExecutorState | None = None
 
     @classmethod
@@ -110,33 +110,18 @@ class Workflow(Generic[Parameters]):
     def _reset(self) -> None:
         """Reset workflow execution state."""
         self._state = None
-        self._result = None
 
-    def _execute(self, state: ExecutorState, result: WorkflowResult) -> WorkflowResult:
+    def _execute(self, state: ExecutorState) -> WorkflowResult:
         with ExecutorStateContext.scoped(state):
             try:
-                result._start_time = now()
-                state.recorder.on_start(result)
-                # TODO: Must be moved to WorkflowGraph for nested workflows.
-                with state.set_active_result(result):
-                    self._graph.execute(state, **self._input)
-                result._end_time = now()
-                state.recorder.on_end(result)
-            except Exception as error:
-                result._end_time = now()
+                self._graph.execute(state, **self._input)
+                result = state.get_state(self._graph._root)
+            except Exception:
                 if self._recovery is not None:
+                    result = state.get_state(self._graph._root)
                     self._recovery.results = result
-                if not getattr(
-                    error,
-                    "_logged_by_task",
-                    False,
-                ):  # TODO: better mechanism
-                    state.recorder.on_error(result, error)
-                state.recorder.on_end(result)
-                self._reset()
                 raise
         if state.get_block_status(self._graph._root) == ExecutionStatus.IN_PROGRESS:
-            self._result = result
             self._state = state
         return result
 
@@ -158,10 +143,10 @@ class Workflow(Generic[Parameters]):
             WorkflowError: An error occurred during workflow execution or
                 workflow is not in progress.
         """
-        if not self._state or not self._result:
+        if not self._state:
             raise exceptions.WorkflowError("Workflow is not in progress.")
         self._state.settings.run_until = until
-        return self._execute(self._state, self._result)
+        return self._execute(self._state)
 
     def run(
         self,
@@ -190,17 +175,16 @@ class Workflow(Generic[Parameters]):
             TaskExecutorContext.get_active(),
             WorkflowBlockBuilder,
         ):
-            msg = "Nesting Workflows is not allowed."
+            msg = "Calling '.run()' within another workflow is not allowed."
             raise exceptions.WorkflowError(msg)
         self._reset()
-        result = WorkflowResult(self.name)
         options = self._options()
         logstore = self._logstore(options.logstore)
         logbook = logstore.create_logbook(self)
         state = ExecutorState(options=options)
         state.add_recorder(logbook)
         state.settings.run_until = until
-        return self._execute(state, result)
+        return self._execute(state)
 
 
 class WorkflowBuilder(Generic[Parameters]):
@@ -258,6 +242,14 @@ class WorkflowBuilder(Generic[Parameters]):
         *args: Parameters.args,
         **kwargs: Parameters.kwargs,
     ) -> Workflow[Parameters]:
+        active_ctx = TaskExecutorContext.get_active()
+        if isinstance(active_ctx, WorkflowBlockBuilder):
+            blk = WorkflowBlock.from_callable(
+                self._func.__name__,
+                self._func,
+                **_utils.create_argument_map(self._func, *args, **kwargs),
+            )
+            return blk.ref
         wf = Workflow.from_callable(self._func, *args, **kwargs)
         wf._recovery = self._recovery
         return wf
@@ -268,22 +260,27 @@ def workflow(func: Callable[Parameters]) -> WorkflowBuilder[Parameters]:
 
     The arguments of the function will be the input values for the wrapped function.
 
+    If `workflow` decorated function is called within another workflow definition,
+    it adds a sub-graph to the workflow being built.
+
     Arguments:
-        func: A function that acts as the core of the workflow.
+        func: A function that defines the workflow structure.
 
             The arguments of `func` can be freely defined, except for an optional
             argument `options`, which must have a type hint that indicates it is of type
             `WorkflowOptions` or its' subclass, otherwise an error is raised.
 
     Returns:
-        A Workflow builder, which can be used to generate a workflow out of the
-        wrapped function.
+        A wrapper which returns a `Workflow` instance if called outside of
+            another workflow definition.
+        A wrapper which returns a `WorkflowResult` if called within
+            another workflow definition.
 
     Example:
         ```python
-        from laboneq_applications.workflow.engine import workflow
+        from laboneq_applications import workflow
 
-        @workflow
+        @workflow.workflow
         def my_workflow(x: int):
             ...
 
@@ -291,6 +288,12 @@ def workflow(func: Callable[Parameters]) -> WorkflowBuilder[Parameters]:
         results = wf.run()
         ```
     """
+    if isinstance(
+        TaskExecutorContext.get_active(),
+        WorkflowBlockBuilder,
+    ):
+        msg = "Defining a workflow inside a workflow is not allowed."
+        raise exceptions.WorkflowError(msg)
     return cast(
         WorkflowBuilder[Parameters],
         update_wrapper(

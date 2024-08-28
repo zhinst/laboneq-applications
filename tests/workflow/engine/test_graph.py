@@ -1,7 +1,8 @@
 from __future__ import annotations
 
-from laboneq_applications.workflow import WorkflowOptions, task
+from laboneq_applications.workflow import WorkflowOptions, WorkflowResult, task
 from laboneq_applications.workflow.engine import if_
+from laboneq_applications.workflow.engine.executor import ExecutionStatus, ExecutorState
 from laboneq_applications.workflow.engine.graph import WorkflowBlock, WorkflowGraph
 from laboneq_applications.workflow.reference import Reference, get_default, notset
 
@@ -101,3 +102,26 @@ class TestWorkflowBlock:
 
         block = WorkflowBlock.from_callable("test", work_opts, x=7)
         assert get_default(block.parameters["x"]) == 7
+
+    def test_execution_status(self):
+        task_calls = 0
+
+        def t():
+            nonlocal task_calls
+            task_calls += 1
+
+        def work():
+            t()
+
+        block = WorkflowBlock.from_callable("test", work)
+        executor = ExecutorState()
+        result = WorkflowResult("test")
+
+        with executor.set_active_workflow_settings(result):
+            block.execute(executor)
+        assert executor.get_block_status(block) == ExecutionStatus.FINISHED
+
+        with executor.set_active_workflow_settings(result):
+            block.execute(executor)
+        assert executor.get_block_status(block) == ExecutionStatus.FINISHED
+        assert task_calls == 1

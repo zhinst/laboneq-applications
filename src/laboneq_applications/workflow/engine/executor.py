@@ -65,13 +65,36 @@ class ExecutorState:
         self._results: list[WorkflowResult] = []
 
     @contextmanager
-    def set_active_result(self, result: WorkflowResult) -> Generator[None]:
-        """Set an active result object for the duration of the context."""
-        # TODO: Remove dependency to `WorkflowResult` and add intermediate execution
-        # result object
+    def set_active_workflow_settings(
+        self, result: WorkflowResult, options: WorkflowOptions | None = None
+    ) -> Generator[None]:
+        """Set an active workflow settings for the duration of the context.
+
+        Given settings are then used and are available for sub-blocks executed
+        within the context.
+        """
         self._results.append(result)
-        yield
-        self._results.pop()
+        opts_old = self.options
+        self.options = options
+        try:
+            yield
+        finally:
+            self._results.pop()
+            self.options = opts_old
+
+    def add_workflow_result(self, result: WorkflowResult) -> None:
+        """Add executed workflow result.
+
+        If workflow is within another workflow, the result is added
+        to the parent workflow, otherwise not action is done.
+        """
+        # self._results is a list of active workflows and self._results[-1]
+        # is the parent of the workflow producing the 'result' and therefore
+        # we append it into the parent workflow results.
+        # If self._results is empty, the result is from the active workflow itself
+        # and nothing should be done.
+        if self._results:
+            self._results[-1]._tasks.append(result)
 
     def add_task_result(self, task: TaskResult) -> None:
         """Add executed task result."""
