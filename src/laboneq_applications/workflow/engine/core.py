@@ -90,12 +90,10 @@ class Workflow(Generic[Parameters]):
     def _options(self) -> WorkflowOptions:
         """Return the workflow options passed."""
         options = self._input.get("options", None)
-        # TODO: Expose functionality on the graph so that
-        #       we don't have to grub about for _root.options
         if options is None:
-            options = self._graph._root.options()
+            options = self._graph.options()
         elif isinstance(options, dict):
-            options = self._graph._root.options.from_dict(options)
+            options = self._graph.options.from_dict(options)
         return options
 
     def _logstore(self, options_logstore: LogbookStore | None) -> LogbookStore:

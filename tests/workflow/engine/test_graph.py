@@ -14,6 +14,18 @@ class TestWorkflowGraph:
         graph = WorkflowGraph.from_callable(wf_block)
         assert graph.name == "wf_block"
 
+    def test_options_from_argument(self):
+        def wf_block(options: WorkflowOptions | None = None): ...
+
+        graph = WorkflowGraph.from_callable(wf_block)
+        assert graph.options == WorkflowOptions
+
+    def test_options_default(self):
+        def wf_block(): ...
+
+        graph = WorkflowGraph.from_callable(wf_block)
+        assert graph.options == WorkflowOptions
+
     def test_tasks_flat(self):
         @task
         def task_a(): ...

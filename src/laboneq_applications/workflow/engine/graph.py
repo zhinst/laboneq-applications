@@ -161,6 +161,11 @@ class WorkflowGraph:
         return self._root.name
 
     @property
+    def options(self) -> type[WorkflowOptions]:
+        """Options of the graph."""
+        return self._root.options
+
+    @property
     def tasks(self) -> list[TaskBlock]:
         """A flat list of individual tasks within the graph."""
         return cast(list[TaskBlock], self._root.find(by=TaskBlock, recursive=True))
