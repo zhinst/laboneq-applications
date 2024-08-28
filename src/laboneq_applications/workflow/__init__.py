@@ -21,6 +21,7 @@ from laboneq_applications.workflow.engine import (
     return_,
     workflow,
 )
+from laboneq_applications.workflow.engine.expressions import for_, if_
 from laboneq_applications.workflow.options import (
     SpectroscopyWorkflowOptions,
     TuneUpWorkflowOptions,
@@ -41,4 +42,6 @@ __all__ = [
     "return_",
     "comment",
     "save_artifact",
+    "if_",
+    "for_",
 ]
