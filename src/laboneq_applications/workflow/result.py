@@ -18,7 +18,7 @@ class WorkflowResult:
     def __init__(self, name: str, input: dict | None = None):  # noqa: A002
         self._name = name
         self._input = input or {}
-        self._tasks: list[TaskResult] = []
+        self._tasks: list[TaskResult | WorkflowResult] = []
         self._output = None
         self._start_time: datetime | None = None
         self._end_time: datetime | None = None

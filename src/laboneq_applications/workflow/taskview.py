@@ -6,6 +6,7 @@ from collections.abc import Sequence
 from typing import TYPE_CHECKING, overload
 
 if TYPE_CHECKING:
+    from laboneq_applications.workflow import WorkflowResult
     from laboneq_applications.workflow.task import TaskResult
 
 
@@ -25,7 +26,7 @@ class TaskView(Sequence):
         - Lookup by name and slicing
     """
 
-    def __init__(self, tasks: list[TaskResult] | None = None) -> None:
+    def __init__(self, tasks: list[TaskResult | WorkflowResult] | None = None) -> None:
         self._tasks = tasks or []
 
     def unique(self) -> list[str]:
@@ -43,24 +44,26 @@ class TaskView(Sequence):
         p.text(str(self))
 
     @overload
-    def __getitem__(self, item: tuple[str, int]) -> TaskResult: ...
+    def __getitem__(self, item: tuple[str, int]) -> TaskResult | WorkflowResult: ...
 
     @overload
-    def __getitem__(self, item: tuple[str, slice] | slice) -> list[TaskResult]: ...
+    def __getitem__(
+        self, item: tuple[str, slice] | slice
+    ) -> list[TaskResult | WorkflowResult]: ...
 
     @overload
-    def __getitem__(self, item: str | int) -> TaskResult: ...
+    def __getitem__(self, item: str | int) -> TaskResult | WorkflowResult: ...
 
     def __getitem__(
         self,
         item: str | int | tuple[str, int | slice] | slice,
-    ) -> TaskResult | list[TaskResult]:
+    ) -> TaskResult | WorkflowResult | list[TaskResult | WorkflowResult]:
         """Get a single or multiple tasks.
 
         Arguments:
             item: Index, name of the task, slice or a tuple.
 
-                If index or name is given, the return value will be a single `Task`,
+                If index or name is given, the return value will be a single object,
                 the first one found in the sequence.
 
                 tuple: A tuple of format (<name>, <slice>) will return
