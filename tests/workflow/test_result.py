@@ -32,3 +32,13 @@ class TestWorkflowResult:
 
     def test_ipython_pretty(self):
         assert pretty(WorkflowResult("test")) == "WorkflowResult(test)"
+
+    def test_eq(self):
+        assert WorkflowResult("test") == WorkflowResult("test")
+        assert WorkflowResult("test") != WorkflowResult("test1")
+        assert WorkflowResult("test", {"a": 1}) == WorkflowResult(
+            "test", input={"a": 1}
+        )
+        assert WorkflowResult("test", {"a": 1}) != WorkflowResult(
+            "test", input={"a": 2}
+        )

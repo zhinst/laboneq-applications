@@ -77,3 +77,15 @@ class WorkflowResult:
     def _repr_pretty_(self, p, cycle):  # noqa: ANN001, ANN202, ARG002
         # For Notebooks
         p.text(str(self))
+
+    def __eq__(self, other: object):
+        if not isinstance(other, WorkflowResult):
+            return NotImplemented
+        return (
+            self.name == other.name
+            and self.input == other.input
+            and self.output == other.output
+            and self.tasks == other.tasks
+            and self.end_time == other.end_time
+            and self.start_time == other.start_time
+        )
