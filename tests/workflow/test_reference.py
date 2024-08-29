@@ -81,3 +81,11 @@ class TestReference:
         ref = Reference(None, default=1)
         child = ref[0]
         assert get_default(child) == notset
+
+    def test_iter(self):
+        ref = Reference(None)
+        with pytest.raises(
+            NotImplementedError,
+            match="Iterating a workflow Reference is not supported.",
+        ):
+            iter(ref)

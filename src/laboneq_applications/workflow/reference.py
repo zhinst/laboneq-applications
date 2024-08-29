@@ -105,3 +105,6 @@ class Reference:
             self._head,
             [*self._ops, (getattr, other)],
         )
+
+    def __iter__(self):
+        raise NotImplementedError("Iterating a workflow Reference is not supported.")
