@@ -75,7 +75,10 @@ class WorkflowBlock(Block):
             inputs = executor.resolve_inputs(self)
             self.set_params(executor, **inputs)
             input_opts = executor.get_state((self, "options"))
-            result = WorkflowResult(self.name)
+            # NOTE: Correct input options are resolved only after 'set_param()'
+            # Therefore they need to be overwritten for result
+            inputs["options"] = input_opts
+            result = WorkflowResult(self.name, input=inputs)
             result._start_time = now()
             executor.recorder.on_start(result)
             executor.set_state(self, result)

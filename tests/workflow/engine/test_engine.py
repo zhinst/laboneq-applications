@@ -202,6 +202,22 @@ class TestWorkflow:
         ):
             flow.resume()
 
+    def test_result_input(self):
+        @workflow
+        def work(x, y, options: WorkflowOptions | None = None): ...
+
+        wf = work(x=1, y=4)
+        result = wf.run()
+        assert result.input == {"options": WorkflowOptions(), "x": 1, "y": 4}
+
+        class OptsTest(WorkflowOptions):
+            foobar: int = 5
+
+        opts = OptsTest()
+        wf = work(x=1, y=4, options=opts)
+        result = wf.run()
+        assert result.input == {"options": opts, "x": 1, "y": 4}
+
 
 class TestMultipleTasks:
     def test_each_call_produces_task(self):
@@ -346,6 +362,24 @@ class TestNestedWorkflows:
         assert res.tasks[1].tasks[0].output == 3
         assert res.tasks[2].tasks[0].output == 1
 
+    def test_nested_workflow_task_output(self):
+        @task
+        def task1():
+            return 1
+
+        @workflow
+        def wf1():
+            task1()
+
+        @workflow
+        def wf2():
+            output = wf1()
+            return_(output.tasks["task1"].output)
+
+        wf = wf2()
+        res = wf.run()
+        assert res.output == 1
+
     def test_output(self):
         @task
         def task1(): ...
@@ -426,6 +460,31 @@ class TestNestedWorkflows:
         assert len(result.tasks[0].tasks) == 1
         assert len(result.tasks[0].tasks[0].tasks) == 1
         assert result.tasks[0].tasks[0].tasks[0].output == 3
+
+    def test_nested_workflow_result_inputs(self):
+        @task
+        def t():
+            return 0
+
+        @workflow
+        def wf1(x, y, z: int = 5): ...
+
+        @workflow
+        def wf2(x, y):
+            output_task = t()
+            wf1(x, output_task)
+
+        wf = wf2(1, 2)
+        res = wf.run()
+        # Top level workflow
+        assert res.input == {"options": WorkflowOptions(), "x": 1, "y": 2}
+        # Nested workflow
+        assert res.tasks[1].input == {
+            "options": WorkflowOptions(),
+            "x": 1,
+            "y": 0,
+            "z": 5,
+        }
 
 
 class TestWorkflowReferences:

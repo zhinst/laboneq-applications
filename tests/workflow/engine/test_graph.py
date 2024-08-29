@@ -137,3 +137,24 @@ class TestWorkflowBlock:
             block.execute(executor)
         assert executor.get_block_status(block) == ExecutionStatus.FINISHED
         assert task_calls == 1
+
+    def test_result_input(self):
+        def work(x, y: int = 5): ...
+
+        block = WorkflowBlock.from_callable("test", work)
+        executor = ExecutorState()
+        block.set_params(executor, x=1)
+        block.execute(executor)
+        result = executor.get_state(block)
+        assert result.input == {"x": 1, "y": 5, "options": WorkflowOptions()}
+
+    def test_result_input_reference(self):
+        def work(x, y: int = 5): ...
+
+        block = WorkflowBlock.from_callable("test", work, y=Reference("param"))
+        executor = ExecutorState()
+        block.set_params(executor, x=1)
+        executor.set_state("param", 8)
+        block.execute(executor)
+        result = executor.get_state(block)
+        assert result.input == {"x": 1, "y": 8, "options": WorkflowOptions()}
