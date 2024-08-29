@@ -70,3 +70,10 @@ class WorkflowResult:
     def end_time(self) -> datetime | None:
         """The time when the workflow execution has ended regularly or failed."""
         return self._end_time
+
+    def __str__(self) -> str:
+        return f"WorkflowResult({self.name})"
+
+    def _repr_pretty_(self, p, cycle):  # noqa: ANN001, ANN202, ARG002
+        # For Notebooks
+        p.text(str(self))

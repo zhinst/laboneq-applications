@@ -1,3 +1,5 @@
+from IPython.lib.pretty import pretty
+
 from laboneq_applications.workflow.result import WorkflowResult
 from laboneq_applications.workflow.task import TaskResult
 
@@ -24,3 +26,9 @@ class TestWorkflowResult:
         obj._tasks.append(t)
         assert len(obj.tasks) == 1
         assert obj.tasks["addition"] == t
+
+    def test_str(self):
+        assert str(WorkflowResult("test")) == "WorkflowResult(test)"
+
+    def test_ipython_pretty(self):
+        assert pretty(WorkflowResult("test")) == "WorkflowResult(test)"
