@@ -1492,3 +1492,178 @@ class TestTunableTransmonOperations:
         )
 
         self.check_op_builds_and_compiles(section, single_tunable_transmon_platform)
+
+    @pytest.mark.parametrize(
+        "transition",
+        ["ge", "ef"],
+    )
+    def test_ramsey(self, qops, single_tunable_transmon_platform, transition):
+        [q0] = single_tunable_transmon_platform.qpu.qubits
+        section = qops.ramsey(q0, 1e-06, 0.1, transition=transition)
+        if transition == "ef":
+            on_system_grid = True
+            amplitude = 0.3
+            pulse_length = 5.2e-8
+            drive_signal = "/logical_signal_groups/q0/drive_ef"
+        elif transition == "ge":
+            on_system_grid = False
+            amplitude = 0.4
+            pulse_length = 5.1e-8
+            drive_signal = "/logical_signal_groups/q0/drive"
+
+        truth_section = tsl.section(
+            uid="__ramsey_q0_0",
+        ).children(
+            self.reserve_ops(q0),
+            tsl.section(uid="__ramsey_q0_1", on_system_grid=on_system_grid).children(
+                tsl.section(uid="__x90_q0_0", on_system_grid=False).children(
+                    self.reserve_ops(q0),
+                    tsl.play_pulse_op(
+                        signal=drive_signal,
+                        amplitude=amplitude,
+                        length=pulse_length,
+                        phase=0.0,
+                        pulse_parameters=None,
+                        pulse=tsl.pulse(
+                            function="drag",
+                            amplitude=1.0,
+                            length=1e-7,
+                            pulse_parameters={"beta": 0.01, "sigma": 0.21},
+                        ),
+                    ),
+                ),
+                tsl.section(
+                    uid="__delay_q0_0",
+                    on_system_grid=False,
+                ).children(
+                    self.reserve_ops(q0),
+                    tsl.delay_op(
+                        signal="/logical_signal_groups/q0/drive",
+                        time=1e-06,
+                        precompensation_clear=None,
+                    ),
+                ),
+                tsl.section(uid="__x90_q0_1", on_system_grid=False).children(
+                    self.reserve_ops(q0),
+                    tsl.play_pulse_op(
+                        signal=drive_signal,
+                        amplitude=amplitude,
+                        length=pulse_length,
+                        phase=0.1,
+                        pulse_parameters=None,
+                        pulse=tsl.pulse(
+                            function="drag",
+                            amplitude=1.0,
+                            length=1e-7,
+                            pulse_parameters={"beta": 0.01, "sigma": 0.21},
+                        ),
+                    ),
+                ),
+            ),
+        )
+
+        assert section == truth_section
+
+        self.check_op_builds_and_compiles(section, single_tunable_transmon_platform)
+
+    @pytest.mark.parametrize(
+        "transition",
+        ["ge", "ef"],
+    )
+    def test_ramsey_with_echo(self, qops, single_tunable_transmon_platform, transition):
+        [q0] = single_tunable_transmon_platform.qpu.qubits
+        section = qops.ramsey(q0, 1e-06, 0.1, echo_pulse="x180", transition=transition)
+        if transition == "ef":
+            on_system_grid = True
+            amplitude = 0.3
+            amplitude_ef = 0.7
+            pulse_length = 5.2e-8
+            drive_signal = "/logical_signal_groups/q0/drive_ef"
+        elif transition == "ge":
+            on_system_grid = False
+            amplitude = 0.4
+            amplitude_ef = 0.8
+            pulse_length = 5.1e-8
+            drive_signal = "/logical_signal_groups/q0/drive"
+
+        truth_section = tsl.section(
+            uid="__ramsey_q0_0",
+        ).children(
+            self.reserve_ops(q0),
+            tsl.section(uid="__ramsey_q0_1", on_system_grid=on_system_grid).children(
+                tsl.section(uid="__x90_q0_0", on_system_grid=False).children(
+                    self.reserve_ops(q0),
+                    tsl.play_pulse_op(
+                        signal=drive_signal,
+                        amplitude=amplitude,
+                        length=pulse_length,
+                        phase=0.0,
+                        pulse_parameters=None,
+                        pulse=tsl.pulse(
+                            function="drag",
+                            amplitude=1.0,
+                            length=1e-7,
+                            pulse_parameters={"beta": 0.01, "sigma": 0.21},
+                        ),
+                    ),
+                ),
+                tsl.section(
+                    uid="__delay_q0_0",
+                    on_system_grid=False,
+                ).children(
+                    self.reserve_ops(q0),
+                    tsl.delay_op(
+                        signal="/logical_signal_groups/q0/drive",
+                        time=5.0e-7,
+                        precompensation_clear=None,
+                    ),
+                ),
+                tsl.section(uid="__x180_q0_0", on_system_grid=False).children(
+                    self.reserve_ops(q0),
+                    tsl.play_pulse_op(
+                        signal=drive_signal,
+                        amplitude=amplitude_ef,
+                        length=pulse_length,
+                        phase=0.0,
+                        pulse_parameters=None,
+                        pulse=tsl.pulse(
+                            function="drag",
+                            amplitude=1.0,
+                            length=1e-7,
+                            pulse_parameters={"beta": 0.01, "sigma": 0.21},
+                        ),
+                    ),
+                ),
+                tsl.section(
+                    uid="__delay_q0_1",
+                    on_system_grid=False,
+                ).children(
+                    self.reserve_ops(q0),
+                    tsl.delay_op(
+                        signal="/logical_signal_groups/q0/drive",
+                        time=5.0e-7,
+                        precompensation_clear=None,
+                    ),
+                ),
+                tsl.section(uid="__x90_q0_1", on_system_grid=False).children(
+                    self.reserve_ops(q0),
+                    tsl.play_pulse_op(
+                        signal=drive_signal,
+                        amplitude=amplitude,
+                        length=pulse_length,
+                        phase=0.1,
+                        pulse_parameters=None,
+                        pulse=tsl.pulse(
+                            function="drag",
+                            amplitude=1.0,
+                            length=1e-7,
+                            pulse_parameters={"beta": 0.01, "sigma": 0.21},
+                        ),
+                    ),
+                ),
+            ),
+        )
+
+        assert section == truth_section
+
+        self.check_op_builds_and_compiles(section, single_tunable_transmon_platform)

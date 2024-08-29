@@ -776,3 +776,69 @@ class TunableTransmonOperations(QuantumOperations):
                 (i.e. the 0-1 transition).
         """
         self.rz.omit_section(q, self._PI, transition=transition)
+
+    @quantum_operation
+    def ramsey(
+        self,
+        q: TunableTransmonQubit,
+        delay: float,
+        phase: float,
+        echo_pulse: Literal["x180", "y180"] | None = None,
+        transition: str | None = None,
+    ) -> None:
+        """Performs a Ramsey operation on a qubit.
+
+        This operation consists of the following steps:
+        x90 - delay/2 - [x180] or [y180] - delay/2 - x90
+
+        Arguments:
+            q:
+                The qubit to rotate
+            delay:
+                The duration between two rotations, excluding the
+                echo pulse length if an echo pulse is included.
+            phase:
+                The phase of the second rotation
+            echo_pulse:
+                The echo pulse to include.
+            transition:
+                The transition to rotate. By default this is "ge"
+                (i.e. the 0-1 transition).
+
+        Raise:
+            ValueError:
+                If the transition is not "ge" nor "ef".
+
+            ValueError:
+                If the echo pulse is not None and not x180 or y180.
+        """
+        transition = "ge" if transition is None else transition
+        if transition == "ef":
+            on_system_grid = True
+        elif transition == "ge":
+            on_system_grid = False
+        else:
+            raise ValueError(f"Support only ge or ef transitions, not {transition!r}")
+
+        if echo_pulse is not None and echo_pulse not in ("x180", "y180"):
+            raise ValueError(
+                f"Support only x180 or y180 for echo pulse, not {echo_pulse}"
+            )
+
+        with dsl.section(
+            name=f"ramsey_{q.uid}",
+            on_system_grid=on_system_grid,
+        ):
+            sec_x90_1 = self.x90(q, transition=transition)
+            if echo_pulse is not None:
+                self.delay(q, time=delay / 2)
+                sec_echo = self[echo_pulse](q, transition=transition)
+                self.delay(q, time=delay / 2)
+            else:
+                self.delay(q, time=delay)
+            sec_x90_2 = self.x90(q, phase=phase, transition=transition)
+        # to remove the gap due to oscillator switching for driving ef transitions.
+        if echo_pulse is not None:
+            sec_echo.on_system_grid = False
+        sec_x90_1.on_system_grid = False
+        sec_x90_2.on_system_grid = False
