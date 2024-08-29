@@ -15,8 +15,9 @@ if TYPE_CHECKING:
 class WorkflowResult:
     """Workflow result."""
 
-    def __init__(self, name: str):
+    def __init__(self, name: str, input: dict | None = None):  # noqa: A002
         self._name = name
+        self._input = input or {}
         self._tasks: list[TaskResult] = []
         self._output = None
         self._start_time: datetime | None = None
@@ -26,6 +27,11 @@ class WorkflowResult:
     def name(self) -> str:
         """Name of the workflow producing the results."""
         return self._name
+
+    @property
+    def input(self) -> dict:
+        """Input of the workflow."""
+        return self._input
 
     @property
     def output(self) -> Any:  # noqa: ANN401

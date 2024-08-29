@@ -9,6 +9,14 @@ class TestWorkflowResult:
         obj = WorkflowResult("test")
         assert obj.name == "test"
 
+    def test_input(self):
+        obj = WorkflowResult("test")
+        assert obj.input == {}
+
+        inp = {"foo": 1, "bar": 2}
+        obj = WorkflowResult("test", input=inp)
+        assert obj.input == inp
+
     def test_add_task(self):
         obj = WorkflowResult("test")
         assert len(obj.tasks) == 0
