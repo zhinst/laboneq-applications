@@ -104,11 +104,12 @@ class WorkflowBlock(Block):
             result._end_time = now()
             if not getattr(
                 error,
-                "_logged_by_task",
+                "_is_recorded",
                 False,
             ):  # TODO: better mechanism
                 executor.recorder.on_error(result, error)
             executor.recorder.on_end(result)
+            error._is_recorded = True
             raise
 
     @classmethod

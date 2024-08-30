@@ -89,7 +89,7 @@ class LoggingLogbook(Logbook):
         self._log_in_rich_panel(
             self._logger.info,
             "Workflow %r: execution started at %s",
-            self._workflow.name,
+            workflow_result.name,
             format_time(now(workflow_result.start_time)),
         )
 
@@ -98,7 +98,7 @@ class LoggingLogbook(Logbook):
         self._log_in_rich_panel(
             self._logger.info,
             "Workflow %r: execution ended at %s",
-            self._workflow.name,
+            workflow_result.name,
             format_time(now(workflow_result.end_time)),
         )
 
@@ -107,7 +107,7 @@ class LoggingLogbook(Logbook):
         self._log_in_rich_bold(
             self._logger.error,
             "Workflow %r: execution failed at %s with: %r",
-            self._workflow.name,
+            workflow_result.name,
             format_time(now(workflow_result.end_time)),
             error,
         )

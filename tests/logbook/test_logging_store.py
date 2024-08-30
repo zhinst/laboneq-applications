@@ -162,6 +162,87 @@ class TestLoggingStore:
         ]
 
 
+@freeze_time(TIMESTR, tz_offset=0)
+class TestLoggingStoreNestedWorkflows:
+    @pytest.fixture()
+    def logstore(self, caplog):
+        caplog.set_level(logging.INFO)
+        return LoggingStore(rich=False)
+
+    def test_on_start_and_end(self, caplog, logstore):
+        @workflow
+        def inner(): ...
+
+        @workflow
+        def outer(options: WorkflowOptions | None = None):
+            inner()
+
+        wf = outer(options={"logstore": logstore})
+        wf.run()
+
+        assert caplog.messages == [
+            f"Workflow 'outer': execution started at {TIMESTR}",
+            f"Workflow 'inner': execution started at {TIMESTR}",
+            f"Workflow 'inner': execution ended at {TIMESTR}",
+            f"Workflow 'outer': execution ended at {TIMESTR}",
+        ]
+
+    def test_on_error(self, caplog, logstore):
+        @task
+        def a_task(x): ...
+
+        @workflow
+        def inner(x):
+            a_task(x.a)
+
+        @workflow
+        def outer(options: WorkflowOptions | None = None):
+            inner(1)
+
+        wf = outer(options={"logstore": logstore})
+
+        with pytest.raises(AttributeError) as err:
+            wf.run()
+        assert str(err.value) == "'int' object has no attribute 'a'"
+
+        assert caplog.messages == [
+            f"Workflow 'outer': execution started at {TIMESTR}",
+            f"Workflow 'inner': execution started at {TIMESTR}",
+            f"Workflow 'inner': execution failed at {TIMESTR} with:"
+            " AttributeError(\"'int' object has no attribute 'a'\")",
+            f"Workflow 'inner': execution ended at {TIMESTR}",
+            f"Workflow 'outer': execution ended at {TIMESTR}",
+        ]
+
+    def test_on_task_error(self, caplog, logstore):
+        @task
+        def a_task():
+            raise RuntimeError("test")
+
+        @workflow
+        def inner():
+            a_task()
+
+        @workflow
+        def outer(options: WorkflowOptions | None = None):
+            inner()
+
+        wf = outer(options={"logstore": logstore})
+        with pytest.raises(RuntimeError) as err:
+            wf.run()
+
+        assert str(err.value) == "test"
+        assert caplog.messages == [
+            f"Workflow 'outer': execution started at {TIMESTR}",
+            f"Workflow 'inner': execution started at {TIMESTR}",
+            f"Task 'a_task': started at {TIMESTR}",
+            f"Task 'a_task': failed at {TIMESTR} with: " "RuntimeError('test')",
+            f"Task 'a_task': ended at {TIMESTR}",
+            f"Workflow 'inner': execution ended at {TIMESTR}",
+            f"Workflow 'outer': execution ended at {TIMESTR}",
+        ]
+
+
 class pad:  # noqa: N801
     """Pad to the given width using the second last character."""
 
