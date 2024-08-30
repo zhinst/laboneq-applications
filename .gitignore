@@ -176,3 +176,6 @@ examples/*/*.yaml
 
 # Do not track anything saved in experiment_store folders
 experiment_store
+
+# MacOS related stuffs
+.DS_Store
