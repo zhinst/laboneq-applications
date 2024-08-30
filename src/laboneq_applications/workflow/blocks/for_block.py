@@ -5,6 +5,7 @@ from __future__ import annotations
 from contextlib import contextmanager
 from typing import TYPE_CHECKING, TypeVar, cast
 
+from laboneq_applications.workflow import variable_tracker
 from laboneq_applications.workflow.blocks.block import Block
 from laboneq_applications.workflow.executor import ExecutionStatus, ExecutorState
 from laboneq_applications.workflow.reference import Reference
@@ -65,6 +66,7 @@ class ForExpression(Block):
 T = TypeVar("T")
 
 
+@variable_tracker.track
 @contextmanager
 def for_(values: Iterable[T]) -> Generator[T, None, None]:
     """For expression to iterate over the values within a code block.

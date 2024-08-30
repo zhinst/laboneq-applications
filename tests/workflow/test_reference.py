@@ -2,6 +2,7 @@ import pytest
 
 from laboneq_applications.workflow.reference import (
     Reference,
+    add_overwrite,
     get_default,
     get_ref,
     notset,
@@ -110,3 +111,23 @@ class TestReference:
 
         ref = Reference(None, default=123)
         assert repr(ref) == "Reference(ref=None, default=123)"
+
+
+def test_add_overwrite():
+    a = Reference(1)
+    b = Reference(2)
+    add_overwrite(a, b)
+    assert b._overwrites == []
+    assert get_ref(a._overwrites[0]) == 2
+
+    c = Reference(3)
+    add_overwrite(a, c)
+    assert c._overwrites == []
+    assert get_ref(a._overwrites[0]) == 2
+    assert get_ref(a._overwrites[1]) == 3
+
+    constant = 5
+    add_overwrite(a, constant)
+    assert get_ref(a._overwrites[-1]) is None
+    assert get_default(a._overwrites[-1]) == 5
+    assert constant == 5

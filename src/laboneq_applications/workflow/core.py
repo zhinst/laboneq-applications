@@ -15,7 +15,7 @@ from laboneq_applications.logbook import (
     LoggingStore,
     active_logbook_store,
 )
-from laboneq_applications.workflow import _utils, exceptions, executor
+from laboneq_applications.workflow import _utils, exceptions, executor, variable_tracker
 from laboneq_applications.workflow.blocks import (
     BlockBuilderContext,
     TaskBlock,
@@ -285,6 +285,7 @@ class WorkflowBuilder(Generic[Parameters]):
         self._recovery.results = None
         return result
 
+    @variable_tracker.track
     def __call__(  #  noqa: D102
         self,
         *args: Parameters.args,

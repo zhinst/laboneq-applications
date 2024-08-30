@@ -10,7 +10,7 @@ from typing import Callable, Generic, TypeVar, cast, overload
 from typing_extensions import ParamSpec
 
 from laboneq_applications.core.utils import pygmentize
-from laboneq_applications.workflow import _utils
+from laboneq_applications.workflow import _utils, variable_tracker
 from laboneq_applications.workflow.blocks import BlockBuilderContext, TaskBlock
 from laboneq_applications.workflow.options_base import BaseOptions
 from laboneq_applications.workflow.options_parser import (
@@ -57,6 +57,7 @@ class task_(Generic[T, B]):  # noqa: N801
         """The name of the task."""
         return self._name
 
+    @variable_tracker.track
     def __call__(self, *args: T.args, **kwargs: T.kwargs) -> B:  # noqa: D102
         ctx = BlockBuilderContext.get_active()
         if ctx:

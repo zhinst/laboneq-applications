@@ -5,6 +5,8 @@ from __future__ import annotations
 import operator
 from typing import Any, Callable
 
+from laboneq_applications.workflow.exceptions import WorkflowError
+
 notset = object()
 
 
@@ -85,6 +87,7 @@ class Reference:
         self._head: Reference = self
         # Operations that was done on the reference
         self._ops: list[tuple[Callable, Any]] = []
+        self._overwrites: list[Reference] = []
 
     def _create_child_reference(
         self,
@@ -119,3 +122,41 @@ class Reference:
 
     def __repr__(self):
         return f"Reference(ref={self._ref}, default={self._default})"
+
+
+def add_overwrite(one: Reference, other: Reference | object) -> None:
+    """Add an overwrite to an reference."""
+    if isinstance(other, Reference):
+        one._overwrites.append(other)
+    else:
+        obj = Reference(None, other)
+        one._overwrites.append(obj)
+
+
+def resolve_to_value(ref: Reference, states: dict, *, only_ref=False) -> Any:  # noqa: ANN001, ANN401
+    """Resolve reference."""
+    if not ref._overwrites or only_ref:
+        ref_unwrapped = get_ref(ref)
+        try:
+            return states[ref_unwrapped]
+        except KeyError as error:
+            default = get_default(ref)
+            if default != notset:
+                return default
+            # Reference was never executed.
+            # TODO: Validate at graph definition time for
+            #       branching statements.
+            raise WorkflowError(
+                f"Result for '{ref_unwrapped}' is not resolved.",
+            ) from error
+    else:
+        to_try = [ref, *ref._overwrites]
+        for x in to_try:
+            ref_unwrapped = get_ref(x)
+            # Constant, not from workflow construct
+            if ref_unwrapped is None:
+                return get_default(x)
+            if ref_unwrapped not in states:
+                continue
+            return states[ref_unwrapped]
+        return resolve_to_value(ref, states, only_ref=True)

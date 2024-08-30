@@ -885,6 +885,133 @@ class TestWorkflowIfExpression:
         res = my_wf().run()
         assert len(res.tasks) == 2
 
+    def test_overwrite_variable_simple_branch(self):
+        @task
+        def return_value(x):
+            return x
+
+        @workflow
+        def my_wf(x):
+            maybe_value = return_value(0)
+            with if_(x):
+                maybe_value = return_value(1)
+            return_(maybe_value)
+
+        result = my_wf(x=True).run()
+        assert result.output == 1
+        result = my_wf(x=False).run()
+        assert result.output == 0
+
+    def test_overwrite_variable_nested_stack(self):
+        # Test that variables are resolved on nested stack.
+        def define_task_call(x):
+            def deep_stack(x):
+                @task
+                def return_value(x):
+                    return x
+
+                return return_value(x)
+
+            return deep_stack(x)
+
+        def define_task():
+            def deep_stack():
+                @task
+                def return_value(x):
+                    return x
+
+                return return_value
+
+            return deep_stack()
+
+        @workflow
+        def my_wf(x):
+            maybe_value = define_task_call(0)
+            with if_(x):
+                maybe_value = define_task()(1)
+                maybe_value = define_task()(2)
+            return_(maybe_value)
+
+        result = my_wf(x=True).run()
+        assert result.output == 2
+        result = my_wf(x=False).run()
+        assert result.output == 0
+
+    def test_overwrite_variable_nested_branch(self):
+        @task
+        def return_value(x):
+            return x
+
+        @workflow
+        def my_wf(x, y):
+            maybe_value = return_value(0)
+            with if_(x):
+                maybe_value = return_value(1)
+                with if_(y):
+                    maybe_value = return_value(2)
+            return_(maybe_value)
+
+        result = my_wf(x=False, y=False).run()
+        assert result.output == 0
+
+        result = my_wf(x=True, y=False).run()
+        assert result.output == 1
+
+        result = my_wf(x=True, y=True).run()
+        assert result.output == 2
+
+        result = my_wf(x=False, y=True).run()
+        assert result.output == 0
+
+    def test_overwrite_variable_workflow_constant(self):
+        @task
+        def return_value(x):
+            return x
+
+        @workflow
+        def my_wf(x):
+            constant = 0
+            with if_(x):
+                constant = 123
+                constant = return_value(1)
+            return_(constant)
+
+        result = my_wf(x=True).run()
+        assert result.output == 1
+
+        result = my_wf(x=False).run()
+        # Constant always overwrites constants,
+        # overwrite works only on references
+        assert result.output == 123
+
+    def test_overwrite_variable_nested_workflow(self):
+        @task
+        def return_value(x):
+            return x
+
+        @workflow
+        def inner(x):
+            constant = return_value(5)
+            with if_(x):
+                constant = return_value(6)
+                with if_(condition=False):
+                    constant = return_value(10)
+            return_(constant)
+
+        @workflow
+        def outer(x):
+            constant = return_value(0)
+            with if_(x):
+                constant = inner(1)
+            return_(constant)
+
+        result = outer(x=True).run()
+        # Run inner workflow
+        assert result.output.output == 6
+        # No inner workflow
+        result = outer(x=False).run()
+        assert result.output == 0
+
 
 class TestTaskDependencyOutsideOfBlock:
     def test_task_dependency_outside_of_assigned_block_nested(self):
