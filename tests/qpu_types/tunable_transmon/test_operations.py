@@ -6,7 +6,7 @@ from contextlib import nullcontext
 import numpy as np
 import pytest
 from laboneq.dsl.enums import ModulationType
-from laboneq.simple import SectionAlignment, Session, SweepParameter
+from laboneq.simple import AcquisitionType, SectionAlignment, Session, SweepParameter
 
 from laboneq_applications import dsl
 from laboneq_applications.core.build_experiment import build
@@ -312,7 +312,9 @@ class TestTunableTransmonOperations:
         @dsl.qubit_experiment
         def exp_set_freq(q):
             # set_frequency requires an experiment context to access the calibration
-            with dsl.acquire_loop_rt(count=10):
+            with dsl.acquire_loop_rt(
+                count=10, acquisition_type=AcquisitionType.SPECTROSCOPY
+            ):
                 with dsl.sweep(
                     parameter=SweepParameter(values=freqs),
                 ) as frequency:

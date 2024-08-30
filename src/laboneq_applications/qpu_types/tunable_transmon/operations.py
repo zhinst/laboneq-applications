@@ -90,7 +90,9 @@ class TunableTransmonOperations(QuantumOperations):
                 (i.e. the 0-1 transition).
             readout:
                 If true, the frequency of the readout line is set
-                instead.
+                instead. Setting the readout frequency to a sweep parameter
+                is only supported in spectroscopy mode. The LabOne Q compiler
+                will raise an error in other modes.
             rf:
                 If True, set the RF frequency of the transition.
                 If False, set the oscillator frequency directly instead.
