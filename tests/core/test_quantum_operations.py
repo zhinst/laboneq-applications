@@ -5,7 +5,7 @@ import functools
 import numpy as np
 import pytest
 from laboneq.core.exceptions import LabOneQException
-from laboneq.dsl.experiment import builtins
+from laboneq.dsl.experiment import builtins, pulse_library
 from laboneq.simple import (
     QuantumElement,
     Section,
@@ -197,6 +197,30 @@ class TestCreatePulse:
             )
         assert pulse_1 is pulse_2
         assert pulse_1.uid == "rx_pulse_0"
+
+    def test_pulse_from_user_cache(self):
+        @pulse_library.register_pulse_functional
+        def test_pulse(x, **_):
+            return np.ones(len(x))
+
+        with dsl.experiment():
+            pulse_1 = create_pulse(
+                {"function": "test_pulse", "amplitude": 0.2, "length": 1e-6},
+                name="some_pulse",
+            )
+            pulse_2 = create_pulse(
+                {"function": "test_pulse", "amplitude": 0.2, "length": 1e-6},
+                name="some_pulse",
+            )
+        assert pulse_1 is pulse_2
+        assert pulse_1.uid == "some_pulse_0"
+        assert pulse_1.amplitude == 0.2
+        assert pulse_1.function == "test_pulse"
+
+    def test_unsupported_pulse_function(self):
+        with pytest.raises(ValueError) as err:
+            create_pulse({"function": "missing"}, name="rx")
+        assert str(err.value) == "Unsupported pulse function 'missing'."
 
 
 class TestDsl:

@@ -127,9 +127,10 @@ def create_pulse(
 
     function = parameters.pop("function")
 
-    pulse_function = getattr(dsl.pulse_library, function, None)
-    if pulse_function is None:
-        raise ValueError(f"Unsupported pulse function {function!r}.")
+    try:
+        pulse_function = dsl.pulse_library.pulse_factory(function)
+    except KeyError as err:
+        raise ValueError(f"Unsupported pulse function {function!r}.") from err
 
     if name is None:
         name = "unnamed"
