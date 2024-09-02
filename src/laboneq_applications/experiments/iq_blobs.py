@@ -8,6 +8,7 @@ The IQ blob experiment has the following pulse sequence:
     qb --- [ prepare transition ] --- [ measure ]
 
 """
+
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
@@ -43,8 +44,10 @@ class IQBlobExperimentOptions(BaseExperimentOptions):
         use_cal_traces:
             Default: `False`.
     """
-    averaging_mode : AveragingMode = AveragingMode.SINGLE_SHOT
+
+    averaging_mode: AveragingMode = AveragingMode.SINGLE_SHOT
     use_cal_traces: bool = False
+
 
 class IQBlobsWorkflowOptions(WorkflowOptions):
     """Option for iq_blobs workflow.
@@ -55,6 +58,7 @@ class IQBlobsWorkflowOptions(WorkflowOptions):
     """
 
     create_experiment: IQBlobExperimentOptions = IQBlobExperimentOptions()
+
 
 options = IQBlobsWorkflowOptions
 
@@ -186,8 +190,8 @@ def create_experiment(
 
     with dsl.acquire_loop_rt(
         count=opts.count,
-        averaging_mode = opts.averaging_mode,
-        acquisition_type= opts.acquisition_type,
+        averaging_mode=opts.averaging_mode,
+        acquisition_type=opts.acquisition_type,
         repetition_mode=opts.repetition_mode,
         repetition_time=opts.repetition_time,
         reset_oscillator_phase=opts.reset_oscillator_phase,
@@ -198,8 +202,8 @@ def create_experiment(
             ):
                 for state in states:
                     qpu.qop.prepare_state(q, state)
-                    qpu.qop.measure(q,
+                    qpu.qop.measure(
+                        q,
                         handles.calibration_trace_handle(q.uid, state),
                     )
                     qpu.qop.passive_reset(q)
-

@@ -179,17 +179,17 @@ def create_experiment(
     # Define the custom options for the experiment
     opts = SpectroscopyExperimentOptions() if options is None else options
     # guard against wrong options for the acquisition type
-    if AcquisitionType(opts.acquisition_type)  != AcquisitionType.SPECTROSCOPY:
+    if AcquisitionType(opts.acquisition_type) != AcquisitionType.SPECTROSCOPY:
         raise ValueError(
             "The only allowed acquisition_type for this experiment"
             "is 'AcquisitionType.SPECTROSCOPY' (or 'spectrsocopy')"
             "because it contains a sweep"
             "of the frequency of a hardware oscillator.",
-            )
+        )
 
     with dsl.sweep(
         parameter=SweepParameter(f"amplitudes_{qubit.uid}", amplitudes),
-        ) as amplitude:
+    ) as amplitude:
         with dsl.acquire_loop_rt(
             count=opts.count,
             averaging_mode=opts.averaging_mode,

@@ -12,4 +12,5 @@ of the page.
 <!--nav-->
 * [Resonator Spectroscopy](sources/resonator_spectroscopy.ipynb)
 * [Amplitude Rabi](sources/amplitude_rabi.ipynb)
+* [Ramsey inteferometry](sources/ramsey.ipynb)
 * [T1](sources/T1.ipynb)

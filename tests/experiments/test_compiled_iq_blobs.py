@@ -74,14 +74,13 @@ class TestIQBlobsSingleQubit:
         # /logical_signal_groups/q{i}/drive(measure/acquire/drive_ef)
         # Note that with cal_state on, there is 1 additional drive pulse.
         if "f" in states:
-            expected_drive_count = count*(states.count("f"))
+            expected_drive_count = count * (states.count("f"))
             verifier.assert_number_of_pulses(
                 "/logical_signal_groups/q0/drive_ef",
                 expected_drive_count,
             )
         if "e" in states:
-            expected_drive_count = count*(states.count("e")
-                                        + states.count("f"))
+            expected_drive_count = count * (states.count("e") + states.count("f"))
             verifier.assert_number_of_pulses(
                 "/logical_signal_groups/q0/drive",
                 expected_drive_count,
@@ -99,11 +98,11 @@ class TestIQBlobsSingleQubit:
             single_tunable_transmon_platform,
             count,
             states,
-
         )
         # Note that with cal_state on, there are 2 additional measure pulses
-        expected_measure_count = count*(states.count("g") + states.count("e")
-                                        + states.count("f"))
+        expected_measure_count = count * (
+            states.count("g") + states.count("e") + states.count("f")
+        )
 
         verifier.assert_number_of_pulses(
             "/logical_signal_groups/q0/measure",
@@ -121,7 +120,6 @@ class TestIQBlobsSingleQubit:
         single_tunable_transmon_platform,
         count,
         states,
-
     ):
         """Test the properties of drive pulses."""
         # Here, we can assert the start, end, and the parameterization of the pulses.
@@ -134,14 +132,12 @@ class TestIQBlobsSingleQubit:
         # In this test, all the qubit ge drive pulses have lengths of 51ns,
         # and all the ef pulses have lengths of 52ns.
 
-
         verifier = create_iq_blobs_verifier(
             single_tunable_transmon_platform,
             count,
             states,
-
         )
-        if states=="ge":
+        if states == "ge":
             # ge pulses
             # Here, we give an example of verifying the first drive pulse of q0
             # More pulses should be tested in a similar way
@@ -149,20 +145,17 @@ class TestIQBlobsSingleQubit:
             verifier.assert_pulse(
                 signal="/logical_signal_groups/q0/drive",
                 index=0,
-                start = 2e-6 + 1e-6,
-                end = 2e-6 + 1e-6 + 51e-9,
-                parameterized_with=[
-                ],
+                start=2e-6 + 1e-6,
+                end=2e-6 + 1e-6 + 51e-9,
+                parameterized_with=[],
             )
-        elif states=="gef":
-
+        elif states == "gef":
             verifier.assert_pulse(
                 signal="/logical_signal_groups/q0/drive_ef",
                 index=0,
                 start=2e-6 + 1e-6 + 56e-9 + 2e-6 + 1e-6 + 56e-9,
                 end=2e-6 + 1e-6 + 56e-9 + 2e-6 + 1e-6 + 56e-9 + 52e-9,
-                parameterized_with=[
-                ],
+                parameterized_with=[],
             )
 
     def test_pulse_measure(
@@ -170,7 +163,6 @@ class TestIQBlobsSingleQubit:
         single_tunable_transmon_platform,
         count,
         states,
-
     ):
         """Test the properties of measure pulses.
 
@@ -182,20 +174,19 @@ class TestIQBlobsSingleQubit:
             single_tunable_transmon_platform,
             count,
             states,
-
         )
 
         verifier.assert_pulse(
             signal="/logical_signal_groups/q0/measure",
             index=0,
-            start = 0e-9,
-            end = 2e-6,
+            start=0e-9,
+            end=2e-6,
         )
         verifier.assert_pulse(
             signal="/logical_signal_groups/q0/acquire",
             index=0,
-            start= 0e-9,
-            end= 2e-6,
+            start=0e-9,
+            end=2e-6,
         )
 
 
@@ -212,14 +203,12 @@ class TestIQBlobsSingleQubit:
     "count",
     [2, 4],
 )
-
 class TestIQBlobsTwoQubit:
     def test_pulse_count_drive(
         self,
         two_tunable_transmon_platform,
         count,
         states,
-
     ):
         """Test the number of drive pulses.
 
@@ -233,7 +222,6 @@ class TestIQBlobsTwoQubit:
             two_tunable_transmon_platform,
             count,
             states,
-
         )
 
         # The signal names can be looked up in device_setup,
@@ -241,7 +229,7 @@ class TestIQBlobsTwoQubit:
         # /logical_signal_groups/q{i}/drive(measure/acquire/drive_ef)
         # Note that with cal_state on, there is 1 additional drive pulse.
         if "f" in states:
-            expected_drive_count = count*(states.count("f"))
+            expected_drive_count = count * (states.count("f"))
 
             verifier.assert_number_of_pulses(
                 "/logical_signal_groups/q0/drive_ef",
@@ -252,8 +240,7 @@ class TestIQBlobsTwoQubit:
                 expected_drive_count,
             )
         if "e" in states:
-            expected_drive_count = count*(states.count("e")
-                                        + states.count("f"))
+            expected_drive_count = count * (states.count("e") + states.count("f"))
 
             verifier.assert_number_of_pulses(
                 "/logical_signal_groups/q0/drive",
@@ -269,7 +256,6 @@ class TestIQBlobsTwoQubit:
         two_tunable_transmon_platform,
         count,
         states,
-
     ):
         """Test the number of measure and acquire pulses."""
 
@@ -277,11 +263,11 @@ class TestIQBlobsTwoQubit:
             two_tunable_transmon_platform,
             count,
             states,
-
         )
         # Note that with cal_state on, there are 2 additional measure pulses
-        expected_measure_count = count*(states.count("g") + states.count("e")
-                                        + states.count("f"))
+        expected_measure_count = count * (
+            states.count("g") + states.count("e") + states.count("f")
+        )
         # q0
         verifier.assert_number_of_pulses(
             "/logical_signal_groups/q0/measure",
@@ -310,7 +296,6 @@ class TestIQBlobsTwoQubit:
         two_tunable_transmon_platform,
         count,
         states,
-
     ):
         """Test the properties of drive pulses."""
         # Here, we can assert the start, end, and the parameterization of the pulses.
@@ -323,14 +308,12 @@ class TestIQBlobsTwoQubit:
         # In this test, all the qubit ge drive pulses have lengths of 51ns,
         # and all the ef pulses have lengths of 52ns.
 
-
         verifier = create_iq_blobs_verifier(
             two_tunable_transmon_platform,
             count,
             states,
-
         )
-        if states=="ge":
+        if states == "ge":
             # ge pulses
             # Here, we give an example of verifying the first drive pulse of q0
             # More pulses should be tested in a similar way
@@ -338,36 +321,31 @@ class TestIQBlobsTwoQubit:
             verifier.assert_pulse(
                 signal="/logical_signal_groups/q0/drive",
                 index=0,
-                start = 2e-6 + 1e-6,
-                end = 2e-6 + 1e-6 + 51e-9,
-                parameterized_with=[
-                ],
+                start=2e-6 + 1e-6,
+                end=2e-6 + 1e-6 + 51e-9,
+                parameterized_with=[],
             )
             verifier.assert_pulse(
                 signal="/logical_signal_groups/q1/drive",
                 index=0,
-                start = 2e-6 + 1e-6,
-                end = 2e-6 + 1e-6 + 51e-9,
-                parameterized_with=[
-                ],
+                start=2e-6 + 1e-6,
+                end=2e-6 + 1e-6 + 51e-9,
+                parameterized_with=[],
             )
-        elif states=="gef":
-
+        elif states == "gef":
             verifier.assert_pulse(
                 signal="/logical_signal_groups/q0/drive_ef",
                 index=0,
                 start=2e-6 + 1e-6 + 56e-9 + 2e-6 + 1e-6 + 56e-9,
                 end=2e-6 + 1e-6 + 56e-9 + 2e-6 + 1e-6 + 56e-9 + 52e-9,
-                parameterized_with=[
-                ],
+                parameterized_with=[],
             )
             verifier.assert_pulse(
                 signal="/logical_signal_groups/q1/drive_ef",
                 index=0,
                 start=2e-6 + 1e-6 + 56e-9 + 2e-6 + 1e-6 + 56e-9,
                 end=2e-6 + 1e-6 + 56e-9 + 2e-6 + 1e-6 + 56e-9 + 52e-9,
-                parameterized_with=[
-                ],
+                parameterized_with=[],
             )
 
     def test_pulse_measure(
@@ -375,7 +353,6 @@ class TestIQBlobsTwoQubit:
         two_tunable_transmon_platform,
         count,
         states,
-
     ):
         """Test the properties of measure pulses.
 
@@ -387,33 +364,29 @@ class TestIQBlobsTwoQubit:
             two_tunable_transmon_platform,
             count,
             states,
-
         )
-
 
         verifier.assert_pulse(
             signal="/logical_signal_groups/q0/measure",
             index=0,
-            start = 0e-9,
-            end = 2e-6,
+            start=0e-9,
+            end=2e-6,
         )
         verifier.assert_pulse(
             signal="/logical_signal_groups/q0/acquire",
             index=0,
-            start= 0e-9,
-            end= 2e-6,
+            start=0e-9,
+            end=2e-6,
         )
         verifier.assert_pulse(
             signal="/logical_signal_groups/q1/measure",
             index=0,
-            start = 0e-9,
-            end = 2e-6,
+            start=0e-9,
+            end=2e-6,
         )
         verifier.assert_pulse(
             signal="/logical_signal_groups/q1/acquire",
             index=0,
-            start= 0e-9,
-            end= 2e-6,
+            start=0e-9,
+            end=2e-6,
         )
-
-
