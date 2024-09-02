@@ -212,11 +212,9 @@ def create_experiment(
                 parameter=SweepParameter(f"delay_{q.uid}", q_delays),
             ) as delay:
                 qpu.qop.prepare_state(q, opts.transition[0])
-                qpu.qop.x90(q, transition=opts.transition)
-                qpu.qop.delay(q, time=delay/2)
-                qpu.qop[opts.refocus_qop](q, transition=opts.transition)
-                qpu.qop.delay(q, time=delay/2)
-                qpu.qop.x90(q, transition=opts.transition)
+                qpu.qop.ramsey(
+                    q, delay, 0, echo_pulse=opts.refocus_qop, transition=opts.transition
+                )
                 qpu.qop.measure(q, handles.result_handle(q.uid))
                 qpu.qop.passive_reset(q)
             if opts.use_cal_traces:

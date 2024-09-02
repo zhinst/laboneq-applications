@@ -10,14 +10,15 @@ from laboneq_applications.experiments import (
 from laboneq_applications.testing import CompiledExperimentVerifier
 
 
-def on_system_grid(time, system_grid = 8):
+def on_system_grid(time, system_grid=8):
     # time_ns is time in ns, system_grid is minimum stepsize in ns
-    time_ns = time *1e9
+    time_ns = time * 1e9
 
     remainder = round(time_ns % system_grid, 2)
     if remainder != 0.0:
         time_ns = time_ns + system_grid - remainder
-    return round(time_ns*1e-9, 12)
+    return round(time_ns * 1e-9, 12)
+
 
 def create_echo_verifier(
     tunable_transmon_platform,
@@ -77,8 +78,6 @@ def create_echo_verifier(
     "cal_states",
     ["ge", "ef", "gef"],
 )
-
-
 class TestEchoSingleQubit:
     def test_pulse_count_drive(
         self,
@@ -122,8 +121,8 @@ class TestEchoSingleQubit:
 
         if cal_states == "ge":
             expected_drive_count_ge += count * int(use_cal_traces)
-        elif cal_states in ("ef","gef"):
-            expected_drive_count_ge += count * 2*int(use_cal_traces)
+        elif cal_states in ("ef", "gef"):
+            expected_drive_count_ge += count * 2 * int(use_cal_traces)
             expected_drive_count_ef += count * int(use_cal_traces)
 
         verifier.assert_number_of_pulses(
@@ -156,7 +155,7 @@ class TestEchoSingleQubit:
         )
         # Note that with cal_state on, there are additional measure pulses
         expected_measure_count = count * (len(delays))
-        if cal_states in ("ge","ef"):
+        if cal_states in ("ge", "ef"):
             expected_measure_count += count * 2 * int(use_cal_traces)
         elif cal_states == "gef":
             expected_measure_count += count * 3 * int(use_cal_traces)
@@ -192,7 +191,6 @@ class TestEchoSingleQubit:
         # In this test, all the qubit ge drive pulses have lengths of 51ns,
         # and all the ef pulses have lengths of 52ns.
 
-
         verifier = create_echo_verifier(
             single_tunable_transmon_platform,
             delays,
@@ -211,11 +209,10 @@ class TestEchoSingleQubit:
                 index=0,
                 start=0e-6,
                 end=51e-9,
-                parameterized_with=[ # empty for echo: pulses are constant
+                parameterized_with=[  # empty for echo: pulses are constant
                 ],
             )
         elif transition == "ef":
-
             verifier.assert_pulse(
                 signal="/logical_signal_groups/q0/drive_ef",
                 index=0,
@@ -248,50 +245,39 @@ class TestEchoSingleQubit:
             cal_states,
         )
 
-        delay = delays[0]/2
+        delay = delays[0] / 2
 
         if transition == "ge":
+            measure_pulse_start = on_system_grid(51e-9 + delay + 51e-9 + delay + 51e-9)
             verifier.assert_pulse(
                 signal="/logical_signal_groups/q0/measure",
                 index=0,
-                start= on_system_grid(51e-9 + delay +
-                    51e-9 + delay + 51e-9),
-                end= on_system_grid(51e-9 + delay +
-                    51e-9 + delay + 51e-9)  + 2e-6,
-                tolerance = 1e-9,
+                start=measure_pulse_start,
+                end=measure_pulse_start + 2e-6,
+                tolerance=1e-9,
             )
             verifier.assert_pulse(
                 signal="/logical_signal_groups/q0/acquire",
                 index=0,
-                start= on_system_grid(51e-9 + delay +
-                    51e-9 + delay + 51e-9),
-                end= on_system_grid(51e-9 + delay +
-                    51e-9 + delay + 51e-9)  + 2e-6,
-                tolerance = 1e-9,
+                start=measure_pulse_start,
+                end=measure_pulse_start + 2e-6,
+                tolerance=1e-9,
             )
         elif transition == "ef":
-
+            measure_pulse_start = (
+                56e-9 + 52e-9 + delay + 52e-9 + delay + on_system_grid(52e-9)
+            )
             verifier.assert_pulse(
                 signal="/logical_signal_groups/q0/measure",
                 index=0,
-                start= 56e-9 + on_system_grid(52e-9)+on_system_grid(delay) +
-                    on_system_grid(52e-9) + on_system_grid(delay)
-                    + on_system_grid(52e-9),
-                end= 56e-9 + on_system_grid(52e-9)+on_system_grid(delay) +
-                    on_system_grid(52e-9) + on_system_grid(delay)
-                    + on_system_grid(52e-9) + 2e-6, # why extra 8 ns?
-                tolerance = 1e-9,
+                start=measure_pulse_start,
+                end=measure_pulse_start + 2e-6,
             )
             verifier.assert_pulse(
                 signal="/logical_signal_groups/q0/acquire",
                 index=0,
-                start= 56e-9 + on_system_grid(52e-9)+on_system_grid(delay) +
-                    on_system_grid(52e-9) + on_system_grid(delay)
-                    + on_system_grid(52e-9),
-                end= 56e-9 + on_system_grid(52e-9)+on_system_grid(delay) +
-                    on_system_grid(52e-9) + on_system_grid(delay)
-                    + on_system_grid(52e-9) + 2e-6,
-                tolerance = 1e-9,
+                start=measure_pulse_start,
+                end=measure_pulse_start + 2e-6,
             )
 
 
@@ -300,8 +286,8 @@ class TestEchoSingleQubit:
 @pytest.mark.parametrize(
     "delays",
     [
-        [[1e-6, 2e-6],[1e-6, 2e-6]],
-        [[1e-6, 2e-6, 3e-6],[1e-6, 2e-6, 3e-6]],
+        [[1e-6, 2e-6], [1e-6, 2e-6]],
+        [[1e-6, 2e-6, 3e-6], [1e-6, 2e-6, 3e-6]],
     ],
 )
 @pytest.mark.parametrize(
@@ -320,7 +306,6 @@ class TestEchoSingleQubit:
     "cal_states",
     ["ge", "ef", "gef"],
 )
-
 class TestEchoTwoQubits:
     def test_pulse_count_drive(
         self,
@@ -330,7 +315,6 @@ class TestEchoTwoQubits:
         transition,
         use_cal_traces,
         cal_states,
-
     ):
         """Test the number of drive pulses.
 
@@ -346,7 +330,6 @@ class TestEchoTwoQubits:
             transition,
             use_cal_traces,
             cal_states,
-
         )
 
         # The signal names can be looked up in device_setup,
@@ -364,8 +347,8 @@ class TestEchoTwoQubits:
 
         if cal_states == "ge":
             expected_drive_count_ge += count * int(use_cal_traces)
-        elif cal_states in ("ef","gef"):
-            expected_drive_count_ge += count * 2*int(use_cal_traces)
+        elif cal_states in ("ef", "gef"):
+            expected_drive_count_ge += count * 2 * int(use_cal_traces)
             expected_drive_count_ef += count * int(use_cal_traces)
 
         verifier.assert_number_of_pulses(
@@ -386,8 +369,8 @@ class TestEchoTwoQubits:
 
         if cal_states == "ge":
             expected_drive_count_ge += count * int(use_cal_traces)
-        elif cal_states in ("ef","gef"):
-            expected_drive_count_ge += count * 2*int(use_cal_traces)
+        elif cal_states in ("ef", "gef"):
+            expected_drive_count_ge += count * 2 * int(use_cal_traces)
             expected_drive_count_ef += count * int(use_cal_traces)
 
         verifier.assert_number_of_pulses(
@@ -407,7 +390,6 @@ class TestEchoTwoQubits:
         transition,
         use_cal_traces,
         cal_states,
-
     ):
         """Test the number of measure and acquire pulses."""
 
@@ -418,12 +400,11 @@ class TestEchoTwoQubits:
             transition,
             use_cal_traces,
             cal_states,
-
         )
         # Check for q0
         # Note that with cal_state on, there are additional measure pulses
         expected_measure_count = count * (len(delays[0]))
-        if cal_states in ("ge","ef"):
+        if cal_states in ("ge", "ef"):
             expected_measure_count += count * 2 * int(use_cal_traces)
         elif cal_states == "gef":
             expected_measure_count += count * 3 * int(use_cal_traces)
@@ -441,7 +422,7 @@ class TestEchoTwoQubits:
         # Check for q1
         # Note that with cal_state on, there are additional measure pulses
         expected_measure_count = count * (len(delays[1]))
-        if cal_states in ("ge","ef"):
+        if cal_states in ("ge", "ef"):
             expected_measure_count += count * 2 * int(use_cal_traces)
         elif cal_states == "gef":
             expected_measure_count += count * 3 * int(use_cal_traces)
@@ -465,7 +446,6 @@ class TestEchoTwoQubits:
         transition,
         use_cal_traces,
         cal_states,
-
     ):
         """Test the properties of drive pulses."""
         # Here, we can assert the start, end, and the parameterization of the pulses.
@@ -485,7 +465,6 @@ class TestEchoTwoQubits:
             transition,
             use_cal_traces,
             cal_states,
-
         )
         if transition == "ge":
             # Here, we give an example of verifying the first drive pulse of q0
@@ -495,34 +474,29 @@ class TestEchoTwoQubits:
                 index=0,
                 start=0e-6,
                 end=51e-9,
-                parameterized_with=[
-                ],
+                parameterized_with=[],
             )
             verifier.assert_pulse(
                 signal="/logical_signal_groups/q1/drive",
                 index=0,
                 start=0e-6,
                 end=51e-9,
-                parameterized_with=[
-                ],
+                parameterized_with=[],
             )
         elif transition == "ef":
-
             verifier.assert_pulse(
                 signal="/logical_signal_groups/q0/drive_ef",
                 index=0,
                 start=56e-9,
                 end=56e-9 + 52e-9,
-                parameterized_with=[
-                ],
+                parameterized_with=[],
             )
             verifier.assert_pulse(
                 signal="/logical_signal_groups/q1/drive_ef",
                 index=0,
                 start=56e-9,
                 end=56e-9 + 52e-9,
-                parameterized_with=[
-                ],
+                parameterized_with=[],
             )
 
     def test_pulse_measure(
@@ -533,7 +507,6 @@ class TestEchoTwoQubits:
         transition,
         use_cal_traces,
         cal_states,
-
     ):
         """Test the properties of measure pulses.
 
@@ -548,96 +521,76 @@ class TestEchoTwoQubits:
             transition,
             use_cal_traces,
             cal_states,
-
         )
 
         if transition == "ge":
             # Check for q0
-            delay = delays[0][0]/2
+            delay = delays[0][0] / 2
+            measure_start_time = on_system_grid(51e-9 + delay + 51e-9 + delay + 51e-9)
             verifier.assert_pulse(
                 signal="/logical_signal_groups/q0/measure",
                 index=0,
-                start= on_system_grid(51e-9 + delay +
-                    51e-9 + delay + 51e-9),
-                end= on_system_grid(51e-9 + delay +
-                    51e-9 + delay + 51e-9) + 2e-6,
-                tolerance = 1e-9,
+                start=measure_start_time,
+                end=measure_start_time + 2e-6,
+                tolerance=1e-9,
             )
             verifier.assert_pulse(
                 signal="/logical_signal_groups/q0/acquire",
                 index=0,
-                start= on_system_grid(51e-9 + delay +
-                    51e-9 + delay + 51e-9),
-                end= on_system_grid(51e-9 + delay +
-                    51e-9 + delay + 51e-9) + 2e-6,
-                tolerance = 1e-9,
+                start=measure_start_time,
+                end=measure_start_time + 2e-6,
+                tolerance=1e-9,
             )
-            delay = delays[1][0]/2
             # Check for q1
+            delay = delays[1][0] / 2
+            measure_start_time = on_system_grid(51e-9 + delay + 51e-9 + delay + 51e-9)
             verifier.assert_pulse(
                 signal="/logical_signal_groups/q1/measure",
                 index=0,
-                start= on_system_grid(51e-9 + delay +
-                    51e-9 + delay + 51e-9),
-                end= on_system_grid(51e-9 + delay +
-                    51e-9 + delay + 51e-9) + 2e-6,
-                tolerance = 1e-9,
+                start=measure_start_time,
+                end=measure_start_time + 2e-6,
+                tolerance=1e-9,
             )
             verifier.assert_pulse(
                 signal="/logical_signal_groups/q1/acquire",
                 index=0,
-                start= on_system_grid(51e-9 + delay +
-                    51e-9 + delay + 51e-9),
-                end= on_system_grid(51e-9 + delay +
-                    51e-9 + delay + 51e-9) + 2e-6,
-                tolerance = 1e-9,
+                start=measure_start_time,
+                end=measure_start_time + 2e-6,
+                tolerance=1e-9,
             )
         elif transition == "ef":
             # Check for q0
-            delay = delays[0][0]/2
+            delay = delays[0][0] / 2
+            measure_start_time = (
+                56e-9 + 52e-9 + delay + 52e-9 + delay + on_system_grid(52e-9)
+            )
             verifier.assert_pulse(
                 signal="/logical_signal_groups/q0/measure",
                 index=0,
-                start= 56e-9 + on_system_grid(52e-9)+on_system_grid(delay) +
-                    on_system_grid(52e-9) + on_system_grid(delay)
-                    + on_system_grid(52e-9),
-                end= 56e-9 + on_system_grid(52e-9)+on_system_grid(delay) +
-                    on_system_grid(52e-9) + on_system_grid(delay)
-                    + on_system_grid(52e-9) + 2e-6,
-                tolerance = 1e-9,
+                start=measure_start_time,
+                end=measure_start_time + 2e-6,
             )
             verifier.assert_pulse(
                 signal="/logical_signal_groups/q0/acquire",
                 index=0,
-                start= 56e-9 + on_system_grid(52e-9)+on_system_grid(delay) +
-                    on_system_grid(52e-9) + on_system_grid(delay)
-                    + on_system_grid(52e-9),
-                end= 56e-9 + on_system_grid(52e-9)+on_system_grid(delay) +
-                    on_system_grid(52e-9) + on_system_grid(delay)
-                    + on_system_grid(52e-9) + 2e-6,
-                tolerance = 1e-9,
+                start=measure_start_time,
+                end=measure_start_time + 2e-6,
             )
             # Check for q1
-            delay = delays[1][0]/2
+            delay = delays[1][0] / 2
+            measure_start_time = (
+                56e-9 + 52e-9 + delay + 52e-9 + delay + on_system_grid(52e-9)
+            )
             verifier.assert_pulse(
                 signal="/logical_signal_groups/q1/measure",
                 index=0,
-                start= 56e-9 + on_system_grid(52e-9)+on_system_grid(delay) +
-                    on_system_grid(52e-9) + on_system_grid(delay)
-                    + on_system_grid(52e-9),
-                end= 56e-9 + on_system_grid(52e-9)+on_system_grid(delay) +
-                    on_system_grid(52e-9) + on_system_grid(delay)
-                    + on_system_grid(52e-9) + 2e-6,
-                tolerance = 1e-9,
+                start=measure_start_time,
+                end=measure_start_time + 2e-6,
             )
             verifier.assert_pulse(
                 signal="/logical_signal_groups/q1/acquire",
                 index=0,
-                start= 56e-9 + on_system_grid(52e-9)+on_system_grid(delay) +
-                    on_system_grid(52e-9) + on_system_grid(delay)
-                    + on_system_grid(52e-9),
-                end= 56e-9 + on_system_grid(52e-9)+on_system_grid(delay) +
-                    on_system_grid(52e-9) + on_system_grid(delay)
-                    + on_system_grid(52e-9) + 2e-6,
-                tolerance = 1e-9,
+                start=measure_start_time,
+                end=measure_start_time + 2e-6,
+                tolerance=1e-9,
             )
