@@ -21,6 +21,7 @@ from laboneq_applications.core.options import (
     BaseExperimentOptions,
 )
 from laboneq_applications.core.quantum_operations import dsl
+from laboneq_applications.core.validation import validate_and_convert_qubits_sweeps
 from laboneq_applications.tasks import compile_experiment, run_experiment
 from laboneq_applications.workflow import WorkflowOptions, task, workflow
 
@@ -183,10 +184,7 @@ def create_experiment(
     """
     # Define the custom options for the experiment
     opts = IQBlobExperimentOptions() if options is None else options
-
-    # TODO: add validate_and_convert_qubits_sweeps(qubits=qubits, sweep_points=None)
-    if not isinstance(qubits, list):
-        qubits = [qubits]
+    qubits = validate_and_convert_qubits_sweeps(qubits)
 
     with dsl.acquire_loop_rt(
         count=opts.count,

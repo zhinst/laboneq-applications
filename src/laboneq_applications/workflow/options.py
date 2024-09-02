@@ -185,6 +185,7 @@ def get_and_validate_param_type(
         return compatible_types[0]
     return None
 
+
 class SpectroscopyWorkflowOptions(WorkflowOptions):
     """Option class for spectroscopy workflow.
 
@@ -193,4 +194,5 @@ class SpectroscopyWorkflowOptions(WorkflowOptions):
             The options for creating the experiment.
             Default: SpectroscopyExperimentOptions().
     """
+
     create_experiment: SpectroscopyExperimentOptions = SpectroscopyExperimentOptions()

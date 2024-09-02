@@ -177,14 +177,14 @@ class TestWorkflow:
 
         assert len(result.tasks) == 3
 
-        exp = result.tasks[0].output
+        exp = result.tasks["create_experiment"].output
         assert exp.uid == "create_experiment"
 
-        compiled_exp = result.tasks[1].output
+        compiled_exp = result.tasks["compile_experiment"].output
         assert compiled_exp.experiment.uid == "create_experiment"
         assert compiled_exp.device_setup.uid == "tunable_transmons_1"
 
-        exp_result = result.tasks[2].output
+        exp_result = result.tasks["run_experiment"].output
         np.testing.assert_array_almost_equal(
             exp_result.result.q0.axis,
             [[0.1, 0.2]],
@@ -211,14 +211,14 @@ class TestWorkflow:
 
         assert len(result.tasks) == 3
 
-        exp = result.tasks[0].output
+        exp = result.tasks["create_experiment"].output
         assert exp.uid == "create_experiment"
 
-        compiled_exp = result.tasks[1].output
+        compiled_exp = result.tasks["compile_experiment"].output
         assert compiled_exp.experiment.uid == "create_experiment"
         assert compiled_exp.device_setup.uid == "tunable_transmons_2"
 
-        exp_result = result.tasks[2].output
+        exp_result = result.tasks["run_experiment"].output
         np.testing.assert_array_almost_equal(
             exp_result.result.q0.axis,
             [[0.1, 0.2]],

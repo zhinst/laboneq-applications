@@ -7,6 +7,8 @@ from collections.abc import Sequence
 from laboneq.dsl.quantum.quantum_element import QuantumElement
 from numpy import ndarray
 
+from laboneq_applications.workflow import task
+
 
 def _is_sequence_of_numbers_or_nparray(obj: object) -> bool:
     return (
@@ -24,10 +26,17 @@ def _is_sequence_of_quantum_elements(obj: object) -> bool:
     )
 
 
+@task
 def validate_and_convert_qubits_sweeps(
     qubits: QuantumElement | Sequence[QuantumElement],
-    sweep_points: Sequence[float] | Sequence[Sequence[float] | ndarray] | ndarray,
-) -> tuple[Sequence[QuantumElement], Sequence[Sequence[float] | ndarray]]:
+    sweep_points: Sequence[float]
+    | Sequence[Sequence[float] | ndarray]
+    | ndarray
+    | None = None,
+) -> (
+    tuple[Sequence[QuantumElement], Sequence[Sequence[float] | ndarray]]
+    | Sequence[QuantumElement]
+):
     """Validate the qubits and sweep points.
 
     Check for the following conditions:
@@ -55,6 +64,11 @@ def validate_and_convert_qubits_sweeps(
         raise ValueError(
             "Qubits must be a QuantumElement or a sequence of QuantumElements.",
         )
+    if sweep_points is None:
+        if isinstance(qubits, QuantumElement):
+            qubits = [qubits]
+        return qubits
+
     if not isinstance(qubits, Sequence):
         if not _is_sequence_of_numbers_or_nparray(sweep_points):
             raise ValueError(

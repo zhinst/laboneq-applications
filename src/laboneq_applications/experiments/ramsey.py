@@ -226,7 +226,7 @@ def create_experiment(
         with dsl.sweep(
             name="sweep_delays_phases",
             parameter=swp_delays + swp_phases,
-            alignment = SectionAlignment.RIGHT,
+            alignment=SectionAlignment.RIGHT,
         ):
             for q, wait_time, phase in zip(qubits, swp_delays, swp_phases):
                 qpu.qop.prepare_state(q, opts.transition[0])

@@ -467,7 +467,7 @@ Let's create, compile and run the rabi experiment with some simple input paramet
 qop = TunableTransmonOperations()
 amplitudes = np.linspace(0.0, 1.0, 10)
 options = TuneupExperimentOptions(count=10)
-exp = create_experiment(qpu, qubits[0], amplitudes, options)
+exp = create_experiment(qpu, [qubits[0]], [amplitudes], options)
 compiled_exp = compile_experiment(session, exp)
 result = run_experiment(session, compiled_exp)
 ```
