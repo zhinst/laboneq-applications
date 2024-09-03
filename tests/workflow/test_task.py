@@ -1,9 +1,12 @@
+from __future__ import annotations
+
 import inspect
 import textwrap
 
 import pytest
 from IPython.lib.pretty import pretty
 
+from laboneq_applications.core.options import BaseOptions
 from laboneq_applications.workflow.task import TaskResult, task, task_
 
 
@@ -31,8 +34,8 @@ class TestTask_:  # noqa: N801
     def test_name(self, obj):
         assert obj.name == "foobar"
 
-    def test_has_opts(self, obj):
-        assert obj.has_opts is False
+    def test_options(self, obj):
+        assert obj._options is None
 
 
 class TestTaskDecorator:
@@ -74,15 +77,34 @@ class TestTaskDecorator:
         assert task1 is not task2
 
 
-class TestTaskOptions:
-    """Test tasks called with options outside of workflow."""
+class NotABaseOptionTypeOptions:
+    def __init__(self) -> None:
+        pass
 
-    def test_task_options(self):
+
+class ProperOptions(BaseOptions): ...
+
+
+class TestTaskOptions:
+    def test_task_called_outside_of_workflow_with_options(self):
         @task
         def task_a(a, options=None):
             return a, options["count"]
 
         assert task_a(1, options={"count": 2}) == (1, 2)
+
+    def test_task_options_not_base_type(self):
+        # TODO: Should this raise an exception instead of None?
+        @task
+        def task_a(options: NotABaseOptionTypeOptions | None = None): ...
+
+        assert task_a._options is None
+
+    def test_task_options_base_type(self):
+        @task
+        def task_a(options: ProperOptions | None = None): ...
+
+        assert task_a._options == ProperOptions
 
 
 class TestTaskResult:

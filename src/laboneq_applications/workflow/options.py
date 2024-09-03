@@ -139,6 +139,13 @@ def _is_union_type(opt_type: type, is_py_39: bool) -> bool:  # noqa: FBT001
 T = typing.TypeVar("T")
 
 
+def _unwrap_wrapped_func(func: Callable) -> Callable:
+    """Unwrap wrappers from a function."""
+    while hasattr(func, "__wrapped__"):
+        func = func.__wrapped__
+    return func
+
+
 def get_and_validate_param_type(
     fn: Callable,
     parameter: str = "options",
@@ -160,8 +167,8 @@ def get_and_validate_param_type(
         `Optional[Type]`.
     """
     expected_args_length = 2
-    opt_type = _get_argument_types(fn, parameter)
-    opt_default = _get_default_argument(fn, parameter)
+    opt_type = _get_argument_types(_unwrap_wrapped_func(fn), parameter)
+    opt_default = _get_default_argument(_unwrap_wrapped_func(fn), parameter)
     compatible_types = [
         t for t in opt_type if isinstance(t, type) and issubclass(t, type_check)
     ]

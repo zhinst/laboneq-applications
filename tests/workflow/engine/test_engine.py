@@ -1094,23 +1094,6 @@ class TestWorkflowOptions:
             input={"bar": 2, "options": opt2},
         )
 
-    @pytest.mark.xfail(reason="Do we allow to pass options as a position argument?")
-    def test_options_passed_as_args(self):
-        @workflow(options=OptionFooBar)
-        def workflow_a(options: OptionFooBar | None = None):
-            task_foo(1)
-            task_bar(2)
-
-        opt1 = FooOpt(foo=11)
-        opt2 = BarOpt(bar=12)
-        opts = OptionFooBar(task_foo=opt1, task_bar=opt2)
-
-        res = workflow_a(opts)
-        assert res.tasks == [
-            TaskResult(task=task_foo, output=1, input={"foo": 1, "options": opt1}),
-            TaskResult(task=task_bar, output=2, input={"bar": 2, "options": opt2}),
-        ]
-
     def test_task_requires_options_but_not_provided(self):
         @workflow
         def workflow_a(options: FooOptWorkFlow | None = None):

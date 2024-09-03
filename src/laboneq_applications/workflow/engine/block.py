@@ -20,6 +20,7 @@ from laboneq_applications.workflow.task import TaskResult
 if TYPE_CHECKING:
     from collections.abc import Iterable
 
+    from laboneq_applications.core.options import BaseOptions
     from laboneq_applications.workflow.engine.block import Block
     from laboneq_applications.workflow.engine.executor import ExecutorState
     from laboneq_applications.workflow.task import task_
@@ -131,6 +132,11 @@ class TaskBlock(Block):
         return self._ref
 
     @property
+    def options(self) -> type[BaseOptions] | None:
+        """Type of block options."""
+        return self.task._options
+
+    @property
     def src(self) -> str:
         """Source code of the task."""
         return self.task.src
@@ -145,11 +151,7 @@ class TaskBlock(Block):
         params = {}
         if self.parameters:
             params = executor.resolve_inputs(self)
-            if (
-                self.task.has_opts
-                and executor.options
-                and params.get("options") is None
-            ):
+            if self.options and executor.options and params.get("options") is None:
                 task_opts = getattr(executor.options, self.name, None)
                 if task_opts:
                     params["options"] = task_opts

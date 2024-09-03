@@ -1,7 +1,10 @@
 """Tests for laboneq_applications.workflow.engine.block."""
 
+from __future__ import annotations
+
 import textwrap
 
+from laboneq_applications.core.options import BaseOptions
 from laboneq_applications.workflow.engine.block import Block, TaskBlock
 from laboneq_applications.workflow.engine.executor import ExecutorState
 from laboneq_applications.workflow.reference import Reference
@@ -55,6 +58,10 @@ class TestBlock:
         assert b.find(CustomBlock) == [c]
 
 
+class TaskOptions(BaseOptions):
+    param: int = 0
+
+
 class TestTaskBlock:
     @task
     def no_args_callable(): ...
@@ -88,6 +95,19 @@ class TestTaskBlock:
             def addition(x, y):
                 return x + y
         """)
+
+    def test_options(self):
+        @task
+        def a_task(): ...
+
+        blk = TaskBlock(a_task)
+        assert blk.options is None
+
+        @task
+        def b_task(options: TaskOptions | None = None): ...
+
+        blk = TaskBlock(b_task)
+        assert blk.options == TaskOptions
 
     def test_execute(self):
         @task

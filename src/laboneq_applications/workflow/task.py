@@ -10,6 +10,10 @@ from typing import TYPE_CHECKING, Callable, Generic, TypeVar, cast, overload
 from typing_extensions import ParamSpec
 
 from laboneq_applications.workflow import _context
+from laboneq_applications.workflow.options import (
+    BaseOptions,
+    get_and_validate_param_type,
+)
 
 if TYPE_CHECKING:
     from datetime import datetime
@@ -117,6 +121,7 @@ class task_(Generic[T, B]):  # noqa: N801
         self._func = func
         self._name: str = name if name is not None else func.__name__
         self.__doc__ = func.__doc__
+        self._options = get_and_validate_param_type(self._func, "options", BaseOptions)
 
     @property
     def src(self) -> str:
@@ -133,11 +138,6 @@ class task_(Generic[T, B]):  # noqa: N801
     def name(self) -> str:
         """The name of the task."""
         return self._name
-
-    @property
-    def has_opts(self) -> bool:
-        """Return `True` if the task has options in its arguments."""
-        return "options" in inspect.signature(self._func).parameters
 
     def __call__(self, *args: T.args, **kwargs: T.kwargs) -> B:  # noqa: D102
         ctx = _context.TaskExecutorContext.get_active()
