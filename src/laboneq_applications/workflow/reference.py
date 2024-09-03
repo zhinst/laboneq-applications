@@ -13,6 +13,19 @@ def get_default(reference: Reference) -> object:
     return reference._default
 
 
+def unwrap(reference: Reference, value: Any) -> Any:  # noqa: ANN401
+    """Unwrap the reference and any operations done on it."""
+    res = value
+    for op, *args in reference._ops:
+        res = op(res, *args)
+    return res
+
+
+def get_ref(reference: Reference) -> Any:  # noqa: ANN401
+    """Return an object reference points to."""
+    return reference._ref
+
+
 class Reference:
     """A reference class.
 
@@ -65,18 +78,6 @@ class Reference:
         self._head: Reference = self
         # Operations that was done on the reference
         self._ops: list[tuple[Callable, Any]] = []
-
-    @property
-    def ref(self) -> object:
-        """The object reference points to."""
-        return self._ref
-
-    def unwrap(self, value: Any) -> Any:  # noqa: ANN401
-        """Unwrap the reference and any operations done on it."""
-        res = value
-        for op, *args in self._ops:
-            res = op(res, *args)
-        return res
 
     def _create_child_reference(
         self,

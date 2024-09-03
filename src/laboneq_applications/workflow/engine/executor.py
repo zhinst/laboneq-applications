@@ -153,7 +153,8 @@ class ExecutorState:
         for k, v in block.parameters.items():
             if isinstance(v, reference.Reference):
                 try:
-                    value = self._graph_variable_states[v.ref]
+                    ref = reference.get_ref(v)
+                    value = self._graph_variable_states[ref]
                 except KeyError as error:
                     default = reference.get_default(v)
                     if default != reference.notset:
@@ -163,9 +164,9 @@ class ExecutorState:
                         # TODO: Validate at graph definition time for
                         #       branching statements.
                         raise WorkflowError(
-                            f"Result for '{v.ref}' is not resolved.",
+                            f"Result for '{ref}' is not resolved.",
                         ) from error
-                inp[k] = v.unwrap(value)
+                inp[k] = reference.unwrap(v, value)
             else:
                 inp[k] = v
         return inp
