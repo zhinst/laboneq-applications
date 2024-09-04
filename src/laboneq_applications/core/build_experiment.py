@@ -3,11 +3,12 @@
 from __future__ import annotations
 
 import functools
-from typing import TYPE_CHECKING, Callable
+from typing import TYPE_CHECKING, Callable, overload
 
 from laboneq.core.exceptions import LabOneQException
 from laboneq.dsl.experiment import builtins
 from laboneq.dsl.quantum import QuantumElement
+from typing_extensions import ParamSpec
 
 if TYPE_CHECKING:
     from laboneq.simple import (
@@ -91,10 +92,25 @@ class ExperimentBuilder:
         return exp
 
 
+T = ParamSpec("T")
+
+
+@overload
 def qubit_experiment(
-    exp_func: Callable | None = None,
+    exp_func: None = ..., name: str | None = ...
+) -> Callable[[Callable[T]], Callable[T, Experiment]]: ...
+
+
+@overload
+def qubit_experiment(
+    exp_func: Callable[T], name: str | None = ...
+) -> Callable[T, Experiment]: ...
+
+
+def qubit_experiment(
+    exp_func: Callable[T] | None = None,
     name: str | None = None,
-) -> Callable:
+) -> Callable[T, Experiment] | Callable[[Callable[T]], Callable[T, Experiment]]:
     """Decorator for functions that build experiments for qubits.
 
     Arguments:
