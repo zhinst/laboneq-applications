@@ -39,7 +39,6 @@ if TYPE_CHECKING:
 
     from laboneq_applications.qpu_types import QPU
     from laboneq_applications.typing import Qubits, QubitSweepPoints
-    from laboneq_applications.workflow.engine.core import WorkflowBuilder
 
 
 class EchoExperimentOptions(TuneupExperimentOptions):
@@ -75,7 +74,7 @@ def experiment_workflow(
     qubits: Qubits,
     delays: QubitSweepPoints,
     options: EchoWorkflowOptions | None = None,
-) -> WorkflowBuilder:
+) -> None:
     """The Hahn echo Workflow.
 
     The workflow consists of the following steps:

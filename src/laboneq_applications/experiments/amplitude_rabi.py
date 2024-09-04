@@ -32,7 +32,6 @@ if TYPE_CHECKING:
 
     from laboneq_applications.qpu_types import QPU
     from laboneq_applications.typing import Qubits, QubitSweepPoints
-    from laboneq_applications.workflow.engine.core import WorkflowBuilder
 
 
 options = TuneUpWorkflowOptions
@@ -45,7 +44,7 @@ def experiment_workflow(
     qubits: Qubits,
     amplitudes: QubitSweepPoints,
     options: TuneUpWorkflowOptions | None = None,
-) -> WorkflowBuilder:
+) -> None:
     """The Amplitude Rabi Workflow.
 
     The workflow consists of the following steps:

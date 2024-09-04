@@ -38,7 +38,6 @@ if TYPE_CHECKING:
     from numpy.typing import ArrayLike
 
     from laboneq_applications.qpu_types import QPU
-    from laboneq_applications.workflow.engine.core import WorkflowBuilder
 
 options = SpectroscopyWorkflowOptions
 
@@ -51,7 +50,7 @@ def experiment_workflow(
     frequencies: ArrayLike,
     amplitudes: ArrayLike,
     options: SpectroscopyWorkflowOptions | None = None,
-) -> WorkflowBuilder:
+) -> None:
     """The Workflow for a resonator spectroscopy with a readout-amplitude sweep.
 
     The workflow consists of the following steps:

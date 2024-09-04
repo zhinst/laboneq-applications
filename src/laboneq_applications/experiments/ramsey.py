@@ -37,7 +37,6 @@ if TYPE_CHECKING:
 
     from laboneq_applications.qpu_types import QPU
     from laboneq_applications.typing import Qubits, QubitSweepPoints
-    from laboneq_applications.workflow.engine.core import WorkflowBuilder
 
 
 options = TuneUpWorkflowOptions
@@ -51,7 +50,7 @@ def experiment_workflow(
     delays: QubitSweepPoints,
     detunings: dict[str, float] | None = None,
     options: TuneUpWorkflowOptions | None = None,
-) -> WorkflowBuilder:
+) -> None:
     """The Ramsey Workflow.
 
     The workflow consists of the following steps:

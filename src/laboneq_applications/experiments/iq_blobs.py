@@ -32,7 +32,6 @@ if TYPE_CHECKING:
 
     from laboneq_applications.qpu_types import QPU
     from laboneq_applications.typing import Qubits
-    from laboneq_applications.workflow.engine.core import WorkflowBuilder
 
 
 class IQBlobExperimentOptions(BaseExperimentOptions):
@@ -71,7 +70,7 @@ def experiment_workflow(
     qubits: Qubits,
     states: Sequence[str],
     options: IQBlobsWorkflowOptions | None = None,
-) -> WorkflowBuilder:
+) -> None:
     """The IQblob Workflow.
 
     The workflow consists of the following steps:

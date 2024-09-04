@@ -37,7 +37,6 @@ if TYPE_CHECKING:
     from numpy.typing import ArrayLike
 
     from laboneq_applications.qpu_types import QPU
-    from laboneq_applications.workflow.engine.core import WorkflowBuilder
 
 options = SpectroscopyWorkflowOptions
 
@@ -49,7 +48,7 @@ def experiment_workflow(
     qubit: QuantumElement,
     frequencies: ArrayLike,
     options: SpectroscopyWorkflowOptions | None = None,
-) -> WorkflowBuilder:
+) -> None:
     """The Resonator Spectroscopy Workflow.
 
     The workflow consists of the following steps:
