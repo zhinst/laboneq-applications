@@ -13,7 +13,7 @@ def get_default(reference: Reference) -> object:
     return reference._default
 
 
-def unwrap(reference: Reference, value: Any) -> Any:  # noqa: ANN401
+def unwrap(reference: Reference, value: object) -> object:
     """Unwrap the reference and any operations done on it."""
     res = value
     for op, *args in reference._ops:
@@ -21,27 +21,26 @@ def unwrap(reference: Reference, value: Any) -> Any:  # noqa: ANN401
     return res
 
 
-def get_ref(reference: Reference) -> Any:  # noqa: ANN401
-    """Return an object reference points to."""
+def get_ref(reference: Reference) -> object:
+    """Return an object the reference points to."""
     return reference._ref
 
 
 class Reference:
     """A reference class.
 
-    A `Reference` is a placeholder for input and result objects used while a workflow
+    A `Reference` is a placeholder for objects used while a workflow
     graph is being constructed.
 
     If tasks are the nodes in the workflow graph, then references define the edges.
 
-    For example, in a workflow builder like:
+    For example, in a workflow definition like:
 
     ```python
     @workflow
     def add_and_multiply(a, b):
         c = add_task(a, 2)
         d = multiply_task(c, 3)
-        return d
     ```
 
     the values `a`, `b`, `c` and `d` are all references. By tracking where references
@@ -61,9 +60,9 @@ class Reference:
         * __getattr__()
         * __eq__()
 
-    Attributes:
-        ref: Reference object.
-        default: Default value of the reference.
+    Arguments:
+        ref: An object this reference points to.
+        default: Default value of `ref`.
     """
 
     # TODO: Which operators should be supported?
@@ -89,7 +88,7 @@ class Reference:
         obj._ops = ops
         return obj
 
-    def __getitem__(self, item):  # noqa: ANN001
+    def __getitem__(self, item: object):
         return self._create_child_reference(
             self._head,
             [*self._ops, (operator.getitem, item)],
