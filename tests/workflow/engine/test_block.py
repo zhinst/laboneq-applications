@@ -73,7 +73,7 @@ class TestTaskBlock:
     def test_repr(self):
         block = TaskBlock(self.no_args_callable)
         assert (
-            str(block) == "TaskBlock(task=Task(name=no_args_callable), parameters={})"
+            str(block) == "TaskBlock(task=task(name=no_args_callable), parameters={})"
         )
 
     def test_parameters(self):

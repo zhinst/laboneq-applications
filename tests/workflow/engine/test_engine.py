@@ -761,7 +761,7 @@ class TestTaskDependencyOutsideOfBlock:
                 addition(a, 1)
 
         error_msg = (
-            "Result for 'TaskBlock(task=Task(name=addition), "
+            "Result for 'TaskBlock(task=task(name=addition), "
             "parameters={'x': 1, 'y': 1})' is not resolved."
         )
         with pytest.raises(

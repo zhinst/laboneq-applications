@@ -3,50 +3,21 @@ from __future__ import annotations
 import inspect
 import textwrap
 
-import pytest
 from IPython.lib.pretty import pretty
 
 from laboneq_applications.core.options import BaseOptions
-from laboneq_applications.workflow.task import TaskResult, task, task_
-
-
-def foobar(x, y):
-    return x + y
-
-
-class TestTask_:  # noqa: N801
-    @pytest.fixture()
-    def obj(self):
-        def foobar(x, y):
-            return x + y
-
-        return task_(foobar, "foobar")
-
-    def test_call(self, obj):
-        assert obj(1, 2) == 3
-
-    def test_src(self, obj):
-        assert obj.src == textwrap.dedent("""\
-            def foobar(x, y):
-                return x + y
-        """)
-
-    def test_name(self, obj):
-        assert obj.name == "foobar"
-
-    def test_options(self, obj):
-        assert obj._options is None
+from laboneq_applications.workflow.task import TaskResult, task
 
 
 class TestTaskDecorator:
     def test_name(self):
         @task(name="test")
-        def foo1(x): ...
+        def foo1(): ...
 
         assert foo1.name == "test"
 
         @task
-        def foo2(x): ...
+        def foo2(): ...
 
         assert foo2.name == "foo2"
 
@@ -63,7 +34,28 @@ class TestTaskDecorator:
 
         assert inspect.signature(task(myfunc)) == inspect.signature(myfunc)
 
+    def test_call(self):
+        @task
+        def a_task(x, y):
+            return x + y
+
+        assert a_task(1, 2) == 3
+
+    def test_src(self):
+        @task
+        def a_task(x, y):
+            return x + y
+
+        assert a_task.src == textwrap.dedent("""\
+            @task
+            def a_task(x, y):
+                return x + y
+        """)
+
     def test_task_reinitialized(self):
+        def foobar():
+            return None
+
         task1 = task(foobar, "foobar")
         task2 = task(task1)
         assert task2.name == "foobar"
@@ -75,6 +67,27 @@ class TestTaskDecorator:
         assert task2.name == "foobar2"
         assert task1._func == task2._func
         assert task1 is not task2
+
+    def test_options(self):
+        @task
+        def a_task():
+            return None
+
+        assert a_task._options is None
+
+    def test_repr(self):
+        @task
+        def a_task(x, y):
+            return x + y
+
+        assert repr(a_task) == f"task(func={a_task.func}, name=a_task)"
+
+    def test_str(self):
+        @task
+        def a_task(x, y):
+            return x + y
+
+        assert str(a_task) == "task(name=a_task)"
 
 
 class NotABaseOptionTypeOptions:

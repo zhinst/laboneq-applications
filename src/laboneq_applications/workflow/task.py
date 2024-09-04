@@ -146,7 +146,10 @@ class task_(Generic[T, B]):  # noqa: N801
         return cast(B, ctx.execute_task(self, *args, **kwargs))
 
     def __repr__(self):
-        return f"Task(name={self.name})"
+        return f"task(func={self.func}, name={self.name})"
+
+    def __str__(self):
+        return f"task(name={self.name})"
 
 
 @overload
