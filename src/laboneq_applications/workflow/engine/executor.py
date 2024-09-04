@@ -18,6 +18,7 @@ from laboneq_applications.workflow.recorder import (
 if TYPE_CHECKING:
     from collections.abc import Generator
 
+    from laboneq_applications.core.options import BaseOptions
     from laboneq_applications.workflow.engine.block import Block
     from laboneq_applications.workflow.result import WorkflowResult
     from laboneq_applications.workflow.task import TaskResult
@@ -52,17 +53,18 @@ class ExecutorState:
 
     def __init__(
         self,
-        options: WorkflowOptions | None = None,
         settings: ExecutorSettings | None = None,
     ) -> None:
-        if options is None:
-            options = WorkflowOptions()
         self._settings = settings or ExecutorSettings()
         self._graph_variable_states = {}
         self._recorder_manager = ExecutionRecorderManager()
         self._block_states: dict[Block, ExecutionStatus] = {}
-        self.options = options
+        self._options = WorkflowOptions()
         self._results: list[WorkflowResult] = []
+
+    def get_options(self, name: str) -> BaseOptions | None:
+        """Get options by block name."""
+        return getattr(self._options, name, None)
 
     @contextmanager
     def set_active_workflow_settings(
@@ -74,13 +76,13 @@ class ExecutorState:
         within the context.
         """
         self._results.append(result)
-        opts_old = self.options
-        self.options = options
+        opts_old = self._options
+        self._options = options
         try:
             yield
         finally:
             self._results.pop()
-            self.options = opts_old
+            self._options = opts_old
 
     def add_workflow_result(self, result: WorkflowResult) -> None:
         """Add executed workflow result.

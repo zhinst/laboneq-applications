@@ -132,7 +132,7 @@ class TaskBlock(Block):
         return self._ref
 
     @property
-    def options(self) -> type[BaseOptions] | None:
+    def options_type(self) -> type[BaseOptions] | None:
         """Type of block options."""
         return self.task._options
 
@@ -151,11 +151,8 @@ class TaskBlock(Block):
         params = {}
         if self.parameters:
             params = executor.resolve_inputs(self)
-            if self.options and executor.options and params.get("options") is None:
-                task_opts = getattr(executor.options, self.name, None)
-                if task_opts:
-                    params["options"] = task_opts
-
+            if self.options_type and params.get("options") is None:
+                params["options"] = executor.get_options(self.name)
         task = TaskResult(
             task=self.task,
             output=None,

@@ -91,10 +91,11 @@ class Workflow(Generic[Parameters]):
         """Return the workflow options passed."""
         options = self._input.get("options", None)
         if options is None:
-            options = self._graph.options()
+            # TODO: Replace with create_options() when new options are in
+            options = self._graph.options_type()
         elif isinstance(options, dict):
-            options = self._graph.options.from_dict(options)
-        return options
+            options = self._graph.options_type.from_dict(options)
+        return cast(WorkflowOptions, options)
 
     def _logstore(self, options_logstore: LogbookStore | None) -> LogbookStore:
         """Return the appropriate logbook store."""
@@ -179,7 +180,7 @@ class Workflow(Generic[Parameters]):
         options = self._options()
         logstore = self._logstore(options.logstore)
         logbook = logstore.create_logbook(self)
-        state = ExecutorState(options=options)
+        state = ExecutorState()
         state.add_recorder(logbook)
         state.settings.run_until = until
         return self._execute(state)
@@ -251,6 +252,18 @@ class WorkflowBuilder(Generic[Parameters]):
         wf = Workflow.from_callable(self._func, *args, **kwargs)
         wf._recovery = self._recovery
         return wf
+
+    def options(self) -> WorkflowOptions:
+        """Create default options for the workflow.
+
+        The option attribute `tasks` is populated with all the sub-task
+        and sub-workflow options within this workflow.
+        """
+        params = {}
+        for key in inspect.signature(self._func).parameters:
+            params[key] = None
+        wf = self(**params)
+        return wf._graph.create_options()
 
 
 def workflow(func: Callable[Parameters]) -> WorkflowBuilder[Parameters]:

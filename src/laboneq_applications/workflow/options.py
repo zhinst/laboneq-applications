@@ -24,9 +24,12 @@ class WorkflowOptions(BaseOptions):
         logbook:
             The logbook to use. Not serialized/deserialized.
             Default: `None`.
+        task_options:
+            A mapping of sub-task and sub-workflow options.
     """
 
     logstore: LogbookStore | None = Field(default=None, repr=False, exclude=True)
+    task_options: dict[str, BaseOptions] = Field(default_factory=dict)
 
     class Config:
         """Pydantic configuration."""

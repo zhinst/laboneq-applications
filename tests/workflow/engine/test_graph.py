@@ -18,13 +18,13 @@ class TestWorkflowGraph:
         def wf_block(options: WorkflowOptions | None = None): ...
 
         graph = WorkflowGraph.from_callable(wf_block)
-        assert graph.options == WorkflowOptions
+        assert graph.options_type == WorkflowOptions
 
     def test_options_default(self):
         def wf_block(): ...
 
         graph = WorkflowGraph.from_callable(wf_block)
-        assert graph.options == WorkflowOptions
+        assert graph.options_type == WorkflowOptions
 
     def test_tasks_flat(self):
         @task
@@ -92,13 +92,13 @@ class TestWorkflowBlock:
 
     def test_options(self):
         block = WorkflowBlock(name="test")
-        assert block.options == WorkflowOptions
+        assert block.options_type == WorkflowOptions
 
     def test_from_callable_defaults(self):
         def work(x, y=5): ...
 
         block = WorkflowBlock.from_callable("test", work)
-        assert block.options == WorkflowOptions
+        assert block.options_type == WorkflowOptions
         assert get_default(block.parameters["x"]) == notset
         assert get_default(block.parameters["y"]) == 5
 
@@ -106,7 +106,7 @@ class TestWorkflowBlock:
         def work_opts(options: Opts | None = None): ...
 
         block = WorkflowBlock.from_callable("test", work_opts)
-        assert block.options == Opts
+        assert block.options_type == Opts
         assert get_default(block.parameters["options"]) is None
 
     def test_from_callable_overwrite_default(self):

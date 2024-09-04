@@ -101,13 +101,13 @@ class TestTaskBlock:
         def a_task(): ...
 
         blk = TaskBlock(a_task)
-        assert blk.options is None
+        assert blk.options_type is None
 
         @task
         def b_task(options: TaskOptions | None = None): ...
 
         blk = TaskBlock(b_task)
-        assert blk.options == TaskOptions
+        assert blk.options_type == TaskOptions
 
     def test_execute(self):
         @task

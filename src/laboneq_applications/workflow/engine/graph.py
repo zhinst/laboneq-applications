@@ -16,6 +16,7 @@ from laboneq_applications.workflow.reference import Reference, notset
 from laboneq_applications.workflow.result import WorkflowResult
 
 if TYPE_CHECKING:
+    from laboneq_applications.core.options import BaseOptions
     from laboneq_applications.workflow.engine.executor import ExecutorState
 
 
@@ -25,11 +26,11 @@ class WorkflowBlock(Block):
     def __init__(
         self,
         name: str,
-        options_type_hint: type[WorkflowOptions] | None = WorkflowOptions,
+        options_type: type[WorkflowOptions] | None = WorkflowOptions,
         parameters: dict | None = None,
     ) -> None:
         self._name = name
-        self._options = options_type_hint or WorkflowOptions
+        self._options_type = options_type or WorkflowOptions
         params = {}
         for param, default in (parameters or {}).items():
             if isinstance(default, Reference):
@@ -45,9 +46,42 @@ class WorkflowBlock(Block):
         return self._name
 
     @property
-    def options(self) -> type[WorkflowOptions]:
-        """Type of block options."""
-        return self._options
+    def options_type(self) -> type[WorkflowOptions]:
+        """Type of workflow options."""
+        return self._options_type
+
+    def create_options(self) -> WorkflowOptions:
+        """Create options for the block.
+
+        The method goes over the sub-blocks and finds which blocks has
+            options available.
+
+        Same task option instance is shared across the same named task executions
+        per workflow, therefore the same task calls within a single workflow block
+        cannot have multiple option definitions.
+
+        Returns:
+            Workflow options where `tasks` is populated with the default options
+                of sub-blocks.
+        """
+
+        def get_options(block: Block, opts: dict) -> BaseOptions | None:
+            if isinstance(block, WorkflowBlock):
+                return block.create_options()
+            if isinstance(block, TaskBlock) and block.options_type is not None:
+                return block.options_type()
+            for x in block.body:
+                maybe_opts = get_options(x, opts)
+                if maybe_opts:
+                    opts[x.name] = maybe_opts
+            return None
+
+        tasks = {}
+        for x in self.body:
+            maybe_opts = get_options(x, tasks)
+            if maybe_opts:
+                tasks[x.name] = maybe_opts
+        return self.options_type(task_options=tasks)
 
     @property
     def ref(self) -> Reference:
@@ -58,11 +92,12 @@ class WorkflowBlock(Block):
         """Set the initial parameters of the block."""
         inputs = kwargs
         input_opts = kwargs.get("options")  # Options from input arguments
-        if input_opts is None and executor.options:
-            # Options from parent options
-            input_opts = getattr(executor.options, self.name, None)
         if input_opts is None:
-            input_opts = self._options()  # Default options
+            # Options from parent options
+            input_opts = executor.get_options(self.name)
+        if input_opts is None:
+            # TODO: Replace with create_options() when new options are in
+            input_opts = self.options_type()  # Default options
         inputs["options"] = input_opts
         for k, v in inputs.items():
             executor.set_state((self, k), v)
@@ -164,10 +199,14 @@ class WorkflowGraph:
         """Name of the graph."""
         return self._root.name
 
+    def create_options(self) -> WorkflowOptions:
+        """Create options for the graph."""
+        return self._root.create_options()
+
     @property
-    def options(self) -> type[WorkflowOptions]:
-        """Options of the graph."""
-        return self._root.options
+    def options_type(self) -> type[WorkflowOptions]:
+        """Type of graph options."""
+        return self._root.options_type
 
     @property
     def tasks(self) -> list[TaskBlock]:
@@ -189,11 +228,11 @@ class WorkflowGraph:
             opt_param = kwargs["options"]
             if opt_param is not None and not isinstance(
                 opt_param,
-                (self._root.options, dict),
+                (self._root.options_type, dict),
             ):
                 msg = (
                     "Workflow input options must be of "
-                    f"type '{self._root.options.__name__}', 'dict' or 'None'"
+                    f"type '{self._root.options_type.__name__}', 'dict' or 'None'"
                 )
                 raise TypeError(msg)
 

@@ -1282,3 +1282,86 @@ def test_nested_workflows_options():
 
     assert result.tasks[1].tasks[0].input == {"options": opts.workflow_nested.mytask}
     assert result.tasks[1].output == opts.workflow_nested
+
+
+class BTaskOptions(BaseOptions):
+    param: int = 1
+
+
+class InnerWorkflowOptions(WorkflowOptions):
+    param: int = 1
+
+
+class TestWorkflowGeneratedOptions:
+    @pytest.fixture()
+    def tasks(self):
+        @task
+        def a_task(options: TaskOptions | None = None):
+            return
+
+        @task
+        def b_task(options: BTaskOptions | None = None):
+            return
+
+        @task
+        def c_task():
+            return
+
+        return a_task, b_task, c_task
+
+    def test_tasks_with_options(self, tasks):
+        a_task, b_task, c_task = tasks
+
+        @workflow
+        def wf_options_provided(options: WorkflowOptions | None = None):
+            a_task()
+            with if_(None):
+                b_task()
+            c_task()
+
+        opts = wf_options_provided.options()
+        assert opts == WorkflowOptions(
+            task_options={
+                "a_task": TaskOptions(),
+                "b_task": BTaskOptions(),
+            }
+        )
+
+        @workflow
+        def wf_options_not_provided():
+            a_task()
+            with if_(None):
+                b_task()
+            c_task()
+
+        opts = wf_options_not_provided.options()
+        assert opts == WorkflowOptions(
+            task_options={
+                "a_task": TaskOptions(),
+                "b_task": BTaskOptions(),
+            }
+        )
+
+    def test_nested_workflows(self, tasks):
+        a_task, b_task, _ = tasks
+
+        @workflow
+        def inner(options: InnerWorkflowOptions | None = None):
+            b_task()
+            a_task()
+
+        @workflow
+        def outer(options: WorkflowOptions | None = None):
+            inner()
+            a_task()
+
+        opts = outer.options()
+
+        assert opts == WorkflowOptions(
+            task_options={
+                "inner": InnerWorkflowOptions(
+                    task_options={"a_task": TaskOptions(), "b_task": BTaskOptions()}
+                ),
+                "a_task": TaskOptions(),
+            }
+        )
