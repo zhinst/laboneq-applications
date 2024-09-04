@@ -162,11 +162,14 @@ def task(func: Callable[T, B]) -> task_[T, B]: ...
 
 @overload
 def task(
+    func: None = ...,
     name: str | None = None,
 ) -> Callable[[Callable[T, B]], task_[T, B]]: ...
 
 
-def task(func: Callable[T, B] | None = None, name: str | None = None):
+def task(
+    func: Callable[T, B] | None = None, name: str | None = None
+) -> task_[T, B] | Callable[[Callable[T, B]], task_[T, B]]:
     """Mark a function as a task.
 
     If the decorated function is used outside of an workflow related context, or
