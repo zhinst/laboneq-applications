@@ -10,7 +10,7 @@ from laboneq.dsl.result.results import Results
 
 from laboneq_applications.common.attribute_wrapper import AttributeWrapper
 from laboneq_applications.tasks import RunExperimentResults, run_experiment
-from laboneq_applications.workflow.engine import workflow
+from laboneq_applications.workflow import workflow
 
 
 @pytest.fixture()

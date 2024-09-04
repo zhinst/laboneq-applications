@@ -17,7 +17,7 @@ from laboneq.dsl.experiment.builtins import (
 
 from laboneq_applications.tasks import compile_experiment
 from laboneq_applications.tasks.compile_experiment import _validate_handles
-from laboneq_applications.workflow.engine import workflow
+from laboneq_applications.workflow import workflow
 
 if TYPE_CHECKING:
     from laboneq_applications.qpu_types.qpu import QuantumPlatform

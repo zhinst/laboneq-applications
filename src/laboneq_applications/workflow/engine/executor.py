@@ -8,6 +8,7 @@ from enum import Enum
 from typing import TYPE_CHECKING, Any
 
 from laboneq_applications.workflow import reference
+from laboneq_applications.workflow._context import LocalContext
 from laboneq_applications.workflow.exceptions import WorkflowError
 from laboneq_applications.workflow.options import WorkflowOptions
 from laboneq_applications.workflow.recorder import (
@@ -182,3 +183,9 @@ class ExecutorState:
         """Get state of an item."""
         # TODO: Move to executor blocks once a proper executor is ready.
         return self._graph_variable_states[item]
+
+
+class ExecutorStateContext(LocalContext[ExecutorState]):
+    """Context for workflow execution state."""
+
+    _scope = "workflow_executor"

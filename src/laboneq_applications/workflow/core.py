@@ -16,13 +16,16 @@ from laboneq_applications.logbook import (
 )
 from laboneq_applications.workflow import _utils, exceptions
 from laboneq_applications.workflow._context import (
-    ExecutorStateContext,
     TaskExecutorContext,
 )
 from laboneq_applications.workflow.engine.block import (
     WorkflowBlockBuilder,
 )
-from laboneq_applications.workflow.engine.executor import ExecutionStatus, ExecutorState
+from laboneq_applications.workflow.engine.executor import (
+    ExecutionStatus,
+    ExecutorState,
+    ExecutorStateContext,
+)
 from laboneq_applications.workflow.engine.graph import WorkflowBlock, WorkflowGraph
 from laboneq_applications.workflow.options import (
     WorkflowOptions,

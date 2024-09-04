@@ -6,8 +6,6 @@ from collections import defaultdict
 from contextlib import contextmanager
 from typing import TYPE_CHECKING, ClassVar, Generic, TypeVar
 
-from laboneq_applications.workflow.engine.executor import ExecutorState
-
 if TYPE_CHECKING:
     from collections.abc import Generator
 
@@ -82,9 +80,3 @@ class TaskExecutorContext(LocalContext[TaskExecutor]):
     """Context for executing tasks."""
 
     _scope = "task_executor"
-
-
-class ExecutorStateContext(LocalContext[ExecutorState]):
-    """Context for workflow execution state."""
-
-    _scope = "workflow_executor"

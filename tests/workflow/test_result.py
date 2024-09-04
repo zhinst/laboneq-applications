@@ -1,9 +1,7 @@
 from IPython.lib.pretty import pretty
 
 from laboneq_applications.workflow.result import WorkflowResult
-from laboneq_applications.workflow.task import TaskResult
-
-from tests.workflow.engine.test_engine import addition
+from laboneq_applications.workflow.task import TaskResult, task_
 
 
 class TestWorkflowResult:
@@ -20,9 +18,11 @@ class TestWorkflowResult:
         assert obj.input == inp
 
     def test_add_task(self):
+        def addition(): ...
+
         obj = WorkflowResult("test")
         assert len(obj.tasks) == 0
-        t = TaskResult(addition, output=1)
+        t = TaskResult(task_(addition), output=1)
         obj._tasks.append(t)
         assert len(obj.tasks) == 1
         assert obj.tasks["addition"] == t

@@ -16,12 +16,11 @@ For this reason, regular Python expressions cannot be used within the workflow
 and it is recommended to use tasks for any complex logic.
 """
 
-from laboneq_applications.workflow.engine import (
+from laboneq_applications.workflow.core import (
     Workflow,
-    return_,
     workflow,
 )
-from laboneq_applications.workflow.engine.expressions import for_, if_
+from laboneq_applications.workflow.engine.expressions import for_, if_, return_
 from laboneq_applications.workflow.options import (
     SpectroscopyWorkflowOptions,
     TuneUpWorkflowOptions,

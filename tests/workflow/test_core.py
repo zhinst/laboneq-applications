@@ -9,12 +9,14 @@ from unittest.mock import Mock
 import pytest
 
 from laboneq_applications.core.options import BaseExperimentOptions, BaseOptions
-from laboneq_applications.workflow import WorkflowResult, exceptions, task
-from laboneq_applications.workflow.engine import (
+from laboneq_applications.workflow import (
     Workflow,
+    WorkflowResult,
+    exceptions,
     for_,
     if_,
     return_,
+    task,
     workflow,
 )
 from laboneq_applications.workflow.options import WorkflowOptions
@@ -22,7 +24,7 @@ from laboneq_applications.workflow.task import TaskResult
 from laboneq_applications.workflow.taskview import TaskView
 
 if TYPE_CHECKING:
-    from laboneq_applications.workflow.engine.core import WorkflowBuilder
+    from laboneq_applications.workflow.core import WorkflowBuilder
 
 
 @task
@@ -260,7 +262,7 @@ class TestMultipleTasks:
         assert result.tasks["addition"].output == 2
         assert result.tasks["substraction"].output == 1
 
-    def test_multiple_dependecy(self):
+    def test_multiple_dependency(self):
         @workflow
         def wf():
             x = addition(1, 1)

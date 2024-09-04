@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Protocol
 
 from laboneq_applications.core import now
-from laboneq_applications.workflow import _context
+from laboneq_applications.workflow.engine import executor
 
 if TYPE_CHECKING:
     from laboneq_applications.typing import SimpleDict
@@ -188,7 +188,7 @@ def comment(message: str) -> None:
         message:
             The comment to record.
     """
-    ctx = _context.ExecutorStateContext.get_active()
+    ctx = executor.ExecutorStateContext.get_active()
     if ctx is not None:
         ctx.recorder.comment(message)
     else:
@@ -218,7 +218,7 @@ def save_artifact(
         options:
             Serialization options for the artifact (optional).
     """
-    ctx = _context.ExecutorStateContext.get_active()
+    ctx = executor.ExecutorStateContext.get_active()
     if ctx is not None:
         artifact = Artifact(name, artifact, metadata=metadata, options=options)
         ctx.recorder.save(artifact)
