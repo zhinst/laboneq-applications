@@ -18,6 +18,7 @@ plugins:
   macros:
     include_dir: ""
   mkdocstrings:
+    enabled: !ENV [ENABLE_MKDOCSTRINGS, false]
     handlers:
       python:
         import: ["https://docs.zhinst.com/labone_q_user_manual/objects.inv"]

@@ -1,1 +1,3 @@
 -r zi_mkdocs/requirements.txt
+
+jupyter_contrib_nbextensions
