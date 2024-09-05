@@ -10,13 +10,13 @@ from laboneq_applications.workflow.engine.block import (
     Block,
     WorkflowBlockBuilder,
 )
-from laboneq_applications.workflow.engine.executor import ExecutionStatus
+from laboneq_applications.workflow.executor import ExecutionStatus
 from laboneq_applications.workflow.reference import Reference
 
 if TYPE_CHECKING:
     from collections.abc import Generator, Iterable
 
-    from laboneq_applications.workflow.engine.executor import ExecutorState
+    from laboneq_applications.workflow.executor import ExecutorState
 
 
 class IFExpression(Block):

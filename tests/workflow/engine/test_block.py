@@ -6,7 +6,7 @@ import textwrap
 
 from laboneq_applications.core.options import BaseOptions
 from laboneq_applications.workflow.engine.block import Block, TaskBlock
-from laboneq_applications.workflow.engine.executor import ExecutorState
+from laboneq_applications.workflow.executor import ExecutorState
 from laboneq_applications.workflow.reference import Reference
 from laboneq_applications.workflow.result import WorkflowResult
 from laboneq_applications.workflow.task import task

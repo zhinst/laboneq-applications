@@ -2,8 +2,8 @@ from __future__ import annotations
 
 from laboneq_applications.workflow import WorkflowOptions, WorkflowResult, task
 from laboneq_applications.workflow.engine import if_
-from laboneq_applications.workflow.engine.executor import ExecutionStatus, ExecutorState
 from laboneq_applications.workflow.engine.graph import WorkflowBlock, WorkflowGraph
+from laboneq_applications.workflow.executor import ExecutionStatus, ExecutorState
 from laboneq_applications.workflow.reference import Reference, get_default, notset
 
 

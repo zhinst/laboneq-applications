@@ -11,7 +11,7 @@ from laboneq_applications.workflow._context import (
     TaskExecutor,
     TaskExecutorContext,
 )
-from laboneq_applications.workflow.engine.executor import ExecutionStatus
+from laboneq_applications.workflow.executor import ExecutionStatus
 from laboneq_applications.workflow.reference import (
     Reference,
 )
@@ -22,7 +22,7 @@ if TYPE_CHECKING:
 
     from laboneq_applications.core.options import BaseOptions
     from laboneq_applications.workflow.engine.block import Block
-    from laboneq_applications.workflow.engine.executor import ExecutorState
+    from laboneq_applications.workflow.executor import ExecutorState
     from laboneq_applications.workflow.task import task_
 
 

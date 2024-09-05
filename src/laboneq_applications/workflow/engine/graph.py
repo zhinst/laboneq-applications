@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING, Callable, cast
 
 from laboneq_applications.core import now
 from laboneq_applications.workflow.engine.block import Block, TaskBlock
-from laboneq_applications.workflow.engine.executor import ExecutionStatus
+from laboneq_applications.workflow.executor import ExecutionStatus
 from laboneq_applications.workflow.options import (
     WorkflowOptions,
     get_and_validate_param_type,
@@ -17,7 +17,7 @@ from laboneq_applications.workflow.result import WorkflowResult
 
 if TYPE_CHECKING:
     from laboneq_applications.core.options import BaseOptions
-    from laboneq_applications.workflow.engine.executor import ExecutorState
+    from laboneq_applications.workflow.executor import ExecutorState
 
 
 class WorkflowBlock(Block):

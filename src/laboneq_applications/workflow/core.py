@@ -21,12 +21,12 @@ from laboneq_applications.workflow._context import (
 from laboneq_applications.workflow.engine.block import (
     WorkflowBlockBuilder,
 )
-from laboneq_applications.workflow.engine.executor import (
+from laboneq_applications.workflow.engine.graph import WorkflowBlock, WorkflowGraph
+from laboneq_applications.workflow.executor import (
     ExecutionStatus,
     ExecutorState,
     ExecutorStateContext,
 )
-from laboneq_applications.workflow.engine.graph import WorkflowBlock, WorkflowGraph
 from laboneq_applications.workflow.options import (
     WorkflowOptions,
     get_and_validate_param_type,

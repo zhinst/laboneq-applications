@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Protocol
 
 from laboneq_applications.core import now
-from laboneq_applications.workflow.engine import executor
+from laboneq_applications.workflow import executor
 
 if TYPE_CHECKING:
     from laboneq_applications.typing import SimpleDict
