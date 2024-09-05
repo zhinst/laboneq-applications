@@ -4,8 +4,8 @@ from __future__ import annotations
 
 import inspect
 import textwrap
-from functools import update_wrapper
-from typing import TYPE_CHECKING, Callable, Generic, cast
+from functools import partial, update_wrapper
+from typing import TYPE_CHECKING, Callable, Generic, cast, overload
 
 from typing_extensions import ParamSpec
 
@@ -50,34 +50,40 @@ class Workflow(Generic[Parameters]):
 
     Arguments:
         graph: A workflow graph.
-        **parameters: Parameters of the graph.
+        input: Input parameters of the workflow.
     """
 
     def __init__(
         self,
         graph: WorkflowGraph,
-        **parameters: object,
+        input: dict | None = None,  # noqa: A002
     ) -> None:
         self._graph = graph
-        self._graph.validate_input(**parameters)
-        self._input = parameters
+        self._input = input or {}
+        self._graph.validate_input(**self._input)
         self._recovery = (
             None  # WorkflowRecovery (unused if left as None, set by WorkflowBuilder)
         )
         self._state: ExecutorState | None = None
 
     @classmethod
-    def from_callable(cls, func: Callable, *args: object, **kwargs: object) -> Workflow:
+    def from_callable(
+        cls,
+        func: Callable,
+        name: str | None = None,
+        input: dict | None = None,  # noqa: A002
+    ) -> Workflow:
         """Create a workflow from a callable.
 
         Arguments:
             func: A callable defining the workflow
-            *args: Arguments of the callable
-            **kwargs: Keyword arguments of the callable
+            name: Name of the workflow
+            input: Input parameters of the workflow
         """
+        params = input or {}
         return cls(
-            WorkflowGraph.from_callable(func),
-            **_utils.create_argument_map(func, *args, **kwargs),
+            WorkflowGraph.from_callable(func, name),
+            _utils.create_argument_map(func, **params),
         )
 
     @property
@@ -196,10 +202,13 @@ class WorkflowBuilder(Generic[Parameters]):
 
     Arguments:
         func: A python function, which acts as the core of the workflow.
+        name: Name of the workflow.
+            Defaults to wrapped function name.
     """
 
-    def __init__(self, func: Callable[Parameters]) -> None:
+    def __init__(self, func: Callable[Parameters], name: str | None = None) -> None:
         self._func = func
+        self._name = name or self._func.__name__
         self._recovery = WorkflowRecovery()
         if "options" in inspect.signature(func).parameters:
             opt_type = get_and_validate_param_type(
@@ -247,12 +256,16 @@ class WorkflowBuilder(Generic[Parameters]):
         active_ctx = TaskExecutorContext.get_active()
         if isinstance(active_ctx, WorkflowBlockBuilder):
             blk = WorkflowBlock.from_callable(
-                self._func.__name__,
+                self._name,
                 self._func,
                 **_utils.create_argument_map(self._func, *args, **kwargs),
             )
             return blk.ref
-        wf = Workflow.from_callable(self._func, *args, **kwargs)
+        wf = Workflow.from_callable(
+            self._func,
+            name=self._name,
+            input=_utils.create_argument_map(self._func, *args, **kwargs),
+        )
         wf._recovery = self._recovery
         return wf
 
@@ -269,7 +282,27 @@ class WorkflowBuilder(Generic[Parameters]):
         return wf._graph.create_options()
 
 
-def workflow(func: Callable[Parameters]) -> WorkflowBuilder[Parameters]:
+@overload
+def workflow(func: Callable[Parameters], name: str) -> WorkflowBuilder[Parameters]: ...
+
+
+@overload
+def workflow(func: Callable[Parameters]) -> WorkflowBuilder[Parameters]: ...
+
+
+@overload
+def workflow(
+    func: None = ...,
+    name: str | None = ...,
+) -> Callable[[Callable[Parameters]], WorkflowBuilder[Parameters]]: ...
+
+
+def workflow(
+    func: Callable[Parameters] | None = None, name: str | None = None
+) -> (
+    WorkflowBuilder[Parameters]
+    | Callable[[Callable[Parameters]], WorkflowBuilder[Parameters]]
+):
     """A decorator to mark a function as workflow.
 
     The arguments of the function will be the input values for the wrapped function.
@@ -283,6 +316,8 @@ def workflow(func: Callable[Parameters]) -> WorkflowBuilder[Parameters]:
             The arguments of `func` can be freely defined, except for an optional
             argument `options`, which must have a type hint that indicates it is of type
             `WorkflowOptions` or its' subclass, otherwise an error is raised.
+        name: Name of the workflow.
+            Defaults to wrapped function name.
 
     Returns:
         A wrapper which returns a `Workflow` instance if called outside of
@@ -308,10 +343,13 @@ def workflow(func: Callable[Parameters]) -> WorkflowBuilder[Parameters]:
     ):
         msg = "Defining a workflow inside a workflow is not allowed."
         raise exceptions.WorkflowError(msg)
+
+    if func is None:
+        return cast(WorkflowBuilder[Parameters], partial(WorkflowBuilder, name=name))
     return cast(
         WorkflowBuilder[Parameters],
         update_wrapper(
-            WorkflowBuilder(func),
+            WorkflowBuilder(func, name=name),
             func,
         ),
     )

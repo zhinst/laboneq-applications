@@ -214,9 +214,9 @@ class WorkflowGraph:
         return cast(list[TaskBlock], self._root.find(by=TaskBlock, recursive=True))
 
     @classmethod
-    def from_callable(cls, func: Callable) -> WorkflowGraph:
+    def from_callable(cls, func: Callable, name: str | None = None) -> WorkflowGraph:
         """Create the graph from a callable."""
-        return cls(WorkflowBlock.from_callable(func.__name__, func))
+        return cls(WorkflowBlock.from_callable(name or func.__name__, func))
 
     def validate_input(self, **kwargs: object) -> None:
         """Validate input parameters of the graph.

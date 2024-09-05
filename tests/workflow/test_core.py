@@ -51,11 +51,18 @@ def test_task_within_task_normal_behaviour():
 
 
 class TestWorkflow:
+    def test_name(self):
+        wf = Workflow.from_callable(addition, name="test", input={"x": 1, "y": 2})
+        assert wf.name == "test"
+
+        wf = Workflow.from_callable(addition, input={"x": 1, "y": 2})
+        assert wf.name == "addition"
+
     def test_input(self):
         wf = Workflow.from_callable(lambda: addition(1, 2))
         assert wf.input == {}
 
-        wf = Workflow.from_callable(lambda x, y: addition(x, y), 1, 2)
+        wf = Workflow.from_callable(lambda x, y: addition(x, y), input={"x": 1, "y": 2})
         assert wf.input == {"x": 1, "y": 2}
 
     def test_run_multiple_times(self):
@@ -219,6 +226,31 @@ class TestWorkflow:
         wf = work(x=1, y=4, options=opts)
         result = wf.run()
         assert result.input == {"options": opts, "x": 1, "y": 4}
+
+    def test_result_has_correct_name(self):
+        @workflow
+        def noname2(): ...
+
+        @workflow
+        def noname():
+            noname2()
+
+        wf = noname()
+        result = wf.run()
+        assert result.name == "noname"
+        assert result.tasks[0].name == "noname2"
+
+        @workflow(name="test2")
+        def a_name2(): ...
+
+        @workflow(name="test")
+        def a_name():
+            a_name2()
+
+        wf = a_name()
+        result = wf.run()
+        assert result.name == "test"
+        assert result.tasks[0].name == "test2"
 
 
 class TestMultipleTasks:
@@ -517,6 +549,30 @@ class TestWorkFlowDecorator:
             addition(x, y)
 
         return my_wf
+
+    def test_decorator_name(self):
+        @workflow(name="test")
+        def wf_with_name(): ...
+
+        obj = wf_with_name()
+        assert obj.name == "test"
+
+        @workflow
+        def wf_no_name(): ...
+
+        obj = wf_no_name()
+        assert obj.name == "wf_no_name"
+
+    def test_decorator_as_callable(self):
+        def work(): ...
+
+        obj = workflow(work, name="test")
+        wf = obj()
+        assert wf.name == "test"
+
+        obj_partial = workflow(name="test")
+        wf = obj_partial(work)
+        assert wf().name == "test"
 
     def test_call_arguments(self, builder: WorkflowBuilder):
         result = builder(x=1, y=2).run()
