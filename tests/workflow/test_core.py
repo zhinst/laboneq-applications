@@ -132,27 +132,40 @@ class TestWorkflow:
         # Test stateless workflow
         flow = wf()
         with pytest.raises(
-            ValueError, match="Task 'test' does not exist in the workflow."
+            ValueError, match="Task or workflow 'test' does not exist in the workflow."
         ):
             flow.run(until="test")
 
         # Test workflow in progress, but invalid task
         flow.run(until="addition")
         with pytest.raises(
-            ValueError, match="Task 'test' does not exist in the workflow."
+            ValueError, match="Task or workflow 'test' does not exist in the workflow."
         ):
             flow.resume(until="test")
 
-        # Test trying to run until a nested workflow
+    def test_run_until_nested_workflow(self):
+        @task
+        def a_task():
+            return 0
+
+        @workflow
+        def wf_nested():
+            return_(1)
+
         @workflow
         def wf_top():
-            wf()
+            wf_nested()
+            a_task()
 
         flow = wf_top()
-        with pytest.raises(
-            ValueError, match="Task 'wf' does not exist in the workflow."
-        ):
-            flow.run(until="wf")
+        result = flow.run(until="wf_nested")
+        assert len(result.tasks) == 1
+        assert result.tasks["wf_nested"].output == 1
+
+        result = flow.resume()
+        assert len(result.tasks) == 2
+        assert result.tasks["wf_nested"] == result.tasks["wf_nested"]
+        assert result.tasks["a_task"].output == 0
 
     def test_run_until_if_expression(self):
         @workflow

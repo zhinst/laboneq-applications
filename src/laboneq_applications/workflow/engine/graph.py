@@ -136,6 +136,8 @@ class WorkflowBlock(Block):
                     executor.set_block_status(self, ExecutionStatus.FINISHED)
                     result._end_time = now()
                     executor.recorder.on_end(result)
+            if executor.settings.run_until == self.name:
+                executor.interrupt()
         except Exception as error:
             executor.set_block_status(self, ExecutionStatus.FINISHED)
             result._end_time = now()

@@ -18,9 +18,7 @@ from laboneq_applications.workflow import _utils, exceptions
 from laboneq_applications.workflow._context import (
     TaskExecutorContext,
 )
-from laboneq_applications.workflow.engine.block import (
-    WorkflowBlockBuilder,
-)
+from laboneq_applications.workflow.engine.block import WorkflowBlockBuilder
 from laboneq_applications.workflow.engine.graph import WorkflowBlock, WorkflowGraph
 from laboneq_applications.workflow.executor import (
     ExecutionStatus,
@@ -122,14 +120,6 @@ class Workflow(Generic[Parameters]):
         self._state = None
 
     def _execute(self, state: ExecutorState) -> WorkflowResult:
-        if state.settings.run_until:
-            tasks = {x.name for x in self._graph.tasks}
-            if state.settings.run_until not in tasks:
-                msg = (
-                    f"Task '{state.settings.run_until}' "
-                    "does not exist in the workflow."
-                )
-                raise ValueError(msg)
         with ExecutorStateContext.scoped(state):
             try:
                 self._graph.execute(state, **self._input)
@@ -143,6 +133,17 @@ class Workflow(Generic[Parameters]):
             self._state = state
         return result
 
+    def _validate_run_params(self, until: str | None) -> None:
+        """Validate workflow run parameters."""
+        if until:
+            tasks = {x.name for x in self._graph.tasks}
+            wfs = {
+                x.name for x in self._graph._root.find(by=WorkflowBlock, recursive=True)
+            }
+            if until not in tasks and until not in wfs:
+                msg = f"Task or workflow '{until}' " "does not exist in the workflow."
+                raise ValueError(msg)
+
     def resume(self, until: str | None = None) -> WorkflowResult:
         """Resume workflow execution.
 
@@ -155,7 +156,8 @@ class Workflow(Generic[Parameters]):
         Returns:
             Result of the workflow execution.
 
-            if `until` is used, returns the results up to the selected task.
+            if `until` is used, returns the results up to the selected task or
+                sub-workflow.
 
         Raises:
             WorkflowError: An error occurred during workflow execution or
@@ -164,6 +166,7 @@ class Workflow(Generic[Parameters]):
         """
         if not self._state:
             raise exceptions.WorkflowError("Workflow is not in progress.")
+        self._validate_run_params(until=until)
         self._state.settings.run_until = until
         return self._execute(self._state)
 
@@ -176,7 +179,7 @@ class Workflow(Generic[Parameters]):
         Resets the state of an workflow before execution.
 
         Arguments:
-            until: Run until the first task with the given name.
+            until: Run until the first task or sub-workflow with the given name.
                 `None` will fully execute the workflow.
 
                 If `until` is used, the workflow execution can be resumed with
@@ -197,6 +200,7 @@ class Workflow(Generic[Parameters]):
         ):
             msg = "Calling '.run()' within another workflow is not allowed."
             raise exceptions.WorkflowError(msg)
+        self._validate_run_params(until=until)
         self._reset()
         options = self._options()
         logstore = self._logstore(options.logstore)
