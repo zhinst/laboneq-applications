@@ -6,17 +6,6 @@ lint:python:
     - docker
   script:
     - pip install -r requirements-lint.txt
-    - ruff check --exclude= # Overwrite exclude set in pyproject toml
-  allow_failure: true
-
-lint:python:core:
-  stage: pre-build
-  image: $DEFAULT_PYTHON_IMAGE
-  tags:
-    - linux
-    - docker
-  script:
-    - pip install -r requirements-lint.txt
     - ruff check
 
 lint:notebooks:examples:
