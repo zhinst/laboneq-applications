@@ -451,8 +451,8 @@ Let's use some of the predefined tasks to run an amplitude Rabi experiment.
 ### Using provided tasks to run an experiment
 
 ```{code-cell} ipython3
-from laboneq_applications.core.options import TuneupExperimentOptions
 from laboneq_applications.experiments.amplitude_rabi import create_experiment
+from laboneq_applications.experiments.options import TuneupExperimentOptions
 from laboneq_applications.tasks import compile_experiment, run_experiment
 from laboneq_applications.workflow import task
 ```

@@ -21,13 +21,13 @@ from laboneq.simple import Experiment, SweepParameter
 
 from laboneq_applications.core import handles
 from laboneq_applications.core.build_experiment import qubit_experiment
-from laboneq_applications.core.options import (
-    SpectroscopyExperimentOptions,
-)
 from laboneq_applications.core.quantum_operations import dsl
+from laboneq_applications.experiments.options import (
+    SpectroscopyExperimentOptions,
+    SpectroscopyWorkflowOptions,
+)
 from laboneq_applications.tasks import compile_experiment, run_experiment
 from laboneq_applications.workflow import (
-    SpectroscopyWorkflowOptions,
     task,
     workflow,
 )

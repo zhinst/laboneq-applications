@@ -21,26 +21,21 @@ from laboneq_applications.workflow.core import (
     workflow,
 )
 from laboneq_applications.workflow.engine.expressions import for_, if_, return_
-from laboneq_applications.workflow.options import (
-    SpectroscopyWorkflowOptions,
-    TuneUpWorkflowOptions,
-    WorkflowOptions,
-)
+from laboneq_applications.workflow.options import TaskOptions, WorkflowOptions
 from laboneq_applications.workflow.recorder import comment, save_artifact
 from laboneq_applications.workflow.result import WorkflowResult
 from laboneq_applications.workflow.task import task
 
 __all__ = [
     "task",
-    "TuneUpWorkflowOptions",
     "Workflow",
     "WorkflowResult",
     "workflow",
     "WorkflowOptions",
-    "SpectroscopyWorkflowOptions",
     "return_",
     "comment",
     "save_artifact",
+    "TaskOptions",
     "if_",
     "for_",
 ]

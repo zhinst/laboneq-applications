@@ -5,8 +5,8 @@ from collections.abc import Sequence
 import numpy as np
 import pytest
 
-from laboneq_applications.core.options import TuneupExperimentOptions
 from laboneq_applications.experiments import amplitude_rabi
+from laboneq_applications.experiments.options import TuneupExperimentOptions
 
 import tests.helpers.dsl as tsl
 

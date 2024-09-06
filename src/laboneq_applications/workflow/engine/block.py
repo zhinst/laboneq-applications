@@ -20,9 +20,9 @@ from laboneq_applications.workflow.task import TaskResult
 if TYPE_CHECKING:
     from collections.abc import Iterable
 
-    from laboneq_applications.core.options import BaseOptions
     from laboneq_applications.workflow.engine.block import Block
     from laboneq_applications.workflow.executor import ExecutorState
+    from laboneq_applications.workflow.options_base import BaseOptions
     from laboneq_applications.workflow.task import task_
 
 

@@ -5,7 +5,7 @@ import textwrap
 
 from IPython.lib.pretty import pretty
 
-from laboneq_applications.core.options import BaseOptions
+from laboneq_applications.workflow.options_base import BaseOptions
 from laboneq_applications.workflow.task import TaskResult, task
 
 

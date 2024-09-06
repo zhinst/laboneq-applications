@@ -10,8 +10,8 @@ from typing import TYPE_CHECKING, Callable, Generic, TypeVar, cast, overload
 from typing_extensions import ParamSpec
 
 from laboneq_applications.workflow import _context
-from laboneq_applications.workflow.options import (
-    BaseOptions,
+from laboneq_applications.workflow.options_base import BaseOptions
+from laboneq_applications.workflow.options_parser import (
     get_and_validate_param_type,
 )
 

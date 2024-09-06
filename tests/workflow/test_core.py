@@ -8,8 +8,8 @@ from unittest.mock import Mock
 
 import pytest
 
-from laboneq_applications.core.options import BaseExperimentOptions, BaseOptions
 from laboneq_applications.workflow import (
+    TaskOptions,
     Workflow,
     WorkflowResult,
     exceptions,
@@ -20,6 +20,7 @@ from laboneq_applications.workflow import (
     workflow,
 )
 from laboneq_applications.workflow.options import WorkflowOptions
+from laboneq_applications.workflow.options_base import BaseOptions
 from laboneq_applications.workflow.task import TaskResult
 from laboneq_applications.workflow.taskview import TaskView
 
@@ -872,14 +873,14 @@ class TestForExpression:
 
 
 class WfOptions(WorkflowOptions):
-    task_with_opts: BaseExperimentOptions = BaseExperimentOptions()
+    task_with_opts: TaskOptions = TaskOptions()
 
 
 class TestWorkflowValidOptions:
     @pytest.fixture()
     def task_with_opts(self):
         @task
-        def task_with_opts(options: BaseExperimentOptions | None = None):
+        def task_with_opts(options: TaskOptions | None = None):
             return options
 
         return task_with_opts
@@ -1298,16 +1299,16 @@ class TestWorkflowOptions:
         )
 
 
-class TaskOptions(BaseOptions):
+class TaskOptionsTest(BaseOptions):
     foo: int = 1
 
 
 class NestedOptions(WorkflowOptions):
-    mytask: TaskOptions = TaskOptions()
+    mytask: TaskOptionsTest = TaskOptionsTest()
 
 
 class TopLevelOptions(WorkflowOptions):
-    mytask: TaskOptions = TaskOptions()
+    mytask: TaskOptionsTest = TaskOptionsTest()
     workflow_nested: NestedOptions = NestedOptions()
 
 
@@ -1328,8 +1329,8 @@ def test_nested_workflows_options():
         return_(options)
 
     opts = TopLevelOptions(
-        workflow_nested=NestedOptions(mytask=TaskOptions(foo=1)),
-        mytask=TaskOptions(foo=2),
+        workflow_nested=NestedOptions(mytask=TaskOptionsTest(foo=1)),
+        mytask=TaskOptionsTest(foo=2),
     )
     wf = workflow_b(options=opts)
     result = wf.run()
@@ -1380,7 +1381,7 @@ class TestWorkflowGeneratedOptions:
         opts = wf_options_provided.options()
         assert opts == WorkflowOptions(
             task_options={
-                "a_task": TaskOptions(),
+                "a_task": TaskOptionsTest(),
                 "b_task": BTaskOptions(),
             }
         )
@@ -1395,7 +1396,7 @@ class TestWorkflowGeneratedOptions:
         opts = wf_options_not_provided.options()
         assert opts == WorkflowOptions(
             task_options={
-                "a_task": TaskOptions(),
+                "a_task": TaskOptionsTest(),
                 "b_task": BTaskOptions(),
             }
         )
@@ -1418,8 +1419,8 @@ class TestWorkflowGeneratedOptions:
         assert opts == WorkflowOptions(
             task_options={
                 "inner": InnerWorkflowOptions(
-                    task_options={"a_task": TaskOptions(), "b_task": BTaskOptions()}
+                    task_options={"a_task": TaskOptionsTest(), "b_task": BTaskOptions()}
                 ),
-                "a_task": TaskOptions(),
+                "a_task": TaskOptionsTest(),
             }
         )

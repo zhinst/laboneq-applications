@@ -1,79 +1,23 @@
-"""Options for the experiment tasks."""
+"""Experiment task and workflow options."""
 
 from __future__ import annotations
 
-from io import StringIO
-from typing import Annotated, Literal, TypeVar, final
+from typing import Annotated, Literal, TypeVar
 
 from laboneq.simple import AcquisitionType, AveragingMode, RepetitionMode
 from pydantic import (
-    BaseModel,
-    ConfigDict,
     Field,
     field_validator,
     model_validator,
 )
-from pydantic_core import PydanticUndefinedType
-from rich.console import Console
-from rich.pretty import pprint
+
+from laboneq_applications.workflow.options import TaskOptions, WorkflowOptions
 
 NonNegativeInt = Annotated[int, Field(ge=0)]
 T = TypeVar("T")
 
 
-class BaseOptions(BaseModel):
-    """Base class for all Option classes."""
-
-    model_config = ConfigDict(
-        validate_assignment=True,
-        validate_default=True,
-        extra="forbid",
-    )
-
-    @model_validator(mode="before")
-    @classmethod
-    def _check_defaults(cls, data):  # noqa: ANN206, ANN001
-        for name, field in cls.model_fields.items():
-            if (
-                isinstance(field.default, PydanticUndefinedType)
-                and field.default_factory is None
-            ):
-                raise ValueError(f"Field {name!r} does not have a default value")
-        return data
-
-    def to_dict(self) -> dict:
-        """Generate a dictionary representation of the options."""
-        return self.model_dump()
-
-    @classmethod
-    def from_dict(cls, data: dict) -> BaseOptions:
-        """Create an instance of the class from a dictionary."""
-        return cls(**data)
-
-    def __eq__(self, other: BaseOptions) -> bool:
-        """Check if two options are equal."""
-        if not isinstance(other, BaseOptions):
-            return False
-        return self.to_dict() == other.to_dict()
-
-    @final
-    def __str__(self):
-        with StringIO() as buffer:
-            console = Console(file=buffer)
-            pprint(self, console=console, expand_all=True, indent_guides=True)
-            return buffer.getvalue()
-
-    @final
-    def __format__(self, _):  # noqa: ANN001
-        return self.__repr__()
-
-    @final
-    def _repr_pretty_(self, p, _cycle):  # noqa: ANN001, ANN202
-        # For Notebooks
-        p.text(str(self))
-
-
-class BaseExperimentOptions(BaseOptions):
+class BaseExperimentOptions(TaskOptions):
     """Base options for the experiment.
 
     Attributes:
@@ -172,6 +116,31 @@ class SpectroscopyExperimentOptions(BaseExperimentOptions):
             Acquisition type to use for the experiment.
             Default: `AcquisitionType.SPECTROSCOPY`.
     """
+
     use_cw: bool = False
     spectroscopy_reset_delay: float = 1e-6
     acquisition_type: AcquisitionType = AcquisitionType.SPECTROSCOPY
+
+
+class SpectroscopyWorkflowOptions(WorkflowOptions):
+    """Option class for spectroscopy workflow.
+
+    Attributes:
+        create_experiment (SpectroscopyExperimentOptions):
+            The options for creating the experiment.
+            Default: SpectroscopyExperimentOptions().
+    """
+
+    create_experiment: SpectroscopyExperimentOptions = SpectroscopyExperimentOptions()
+
+
+class TuneUpWorkflowOptions(WorkflowOptions):
+    """Option class for tune-up workflow.
+
+    Attributes:
+        create_experiment (TuneupExperimentOptions):
+            The options for creating the experiment.
+            Default: TuneupExperimentOptions().
+    """
+
+    create_experiment: TuneupExperimentOptions = TuneupExperimentOptions()

@@ -17,11 +17,11 @@ from laboneq.simple import AveragingMode, Experiment
 
 from laboneq_applications.core import handles
 from laboneq_applications.core.build_experiment import qubit_experiment
-from laboneq_applications.core.options import (
-    BaseExperimentOptions,
-)
 from laboneq_applications.core.quantum_operations import dsl
 from laboneq_applications.core.validation import validate_and_convert_qubits_sweeps
+from laboneq_applications.experiments.options import (
+    BaseExperimentOptions,
+)
 from laboneq_applications.tasks import compile_experiment, run_experiment
 from laboneq_applications.workflow import WorkflowOptions, task, workflow
 

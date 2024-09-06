@@ -29,6 +29,8 @@ from laboneq_applications.workflow.executor import (
 )
 from laboneq_applications.workflow.options import (
     WorkflowOptions,
+)
+from laboneq_applications.workflow.options_parser import (
     get_and_validate_param_type,
 )
 

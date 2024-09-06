@@ -8,3 +8,4 @@ This is the `laboneq_applications.experiments` reference documentation.
 
 * [amplitude_rabi](amplitude_rabi.md)
 * [resonator_spectroscopy](resonator_spectroscopy.md)
+* [options](options.md)
