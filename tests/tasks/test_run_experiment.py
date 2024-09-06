@@ -76,11 +76,8 @@ class TestRunExperiment:
             compiled_experiment=simple_compiled_experiment,
             return_raw_results=True,
         )
-        # Then the session should run the compiled experiment
-        assert isinstance(results[0], RunExperimentResults)
-        assert isinstance(results[1], Results)
-        assert "ac0" in results[0]
-        assert "ac0" in results[1].acquired_results
+        assert isinstance(results, Results)
+        assert "ac0" in results.acquired_results
 
     def test_run_experiment_as_task(
         self,

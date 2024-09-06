@@ -1,4 +1,4 @@
-"""Test the run_experiment task."""
+"""Test the compile_experiment task."""
 
 from __future__ import annotations
 

@@ -158,27 +158,24 @@ def run_experiment(
     *,
     return_raw_results: bool = False,
     options: dict | None = None,  # pylint: disable=W0613
-) -> RunExperimentResults | tuple[RunExperimentResults, Results | None]:
+) -> RunExperimentResults | Results:
     """Run the compiled experiment on the quantum processor via the specified session.
 
     Args:
         session: The connected session to use for running the experiment.
         compiled_experiment: The compiled experiment to run.
-        return_raw_results: If true, the raw LabOne Q results are returned in addition.
+        return_raw_results: If true, the raw (possibly None) LabOne Q results are
+            returned.
         options:
             The options for building the workflow.
 
     Returns:
         The measurement results as ...
-            ... an a tuple consisting of an instance of the LabOne Q Results class
-                (returned from `Session.run()`) and an instance of
-                `RunExperimentResults` if `return_raw_results` is `True`.
+            ... the LabOne Q Results class (returned from `Session.run()`) if
+                `return_raw_results` is `True`.
             ... an instance of RunExperimentResults if `return_raw_results` is `False`.
     """
     laboneq_results = session.run(compiled_experiment)
-    extracted_results = extract_results(laboneq_results)
-    return (
-        (extracted_results, laboneq_results)
-        if return_raw_results
-        else extracted_results
-    )
+    if return_raw_results:
+        return laboneq_results
+    return extract_results(laboneq_results)
