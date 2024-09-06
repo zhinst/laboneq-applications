@@ -20,8 +20,7 @@ from typing import TYPE_CHECKING
 
 from laboneq.simple import Experiment, SweepParameter
 
-from laboneq_applications.core import handles
-from laboneq_applications.core.quantum_operations import dsl
+from laboneq_applications import dsl
 from laboneq_applications.core.validation import validate_and_convert_qubits_sweeps
 from laboneq_applications.experiments.options import (
     TuneupExperimentOptions,
@@ -192,7 +191,7 @@ def create_experiment(
                 qpu.qop.prepare_state(q, opts.transition[0])
                 qpu.qop.x180(q, transition=opts.transition)
                 qpu.qop.delay(q, time=delay)
-                qpu.qop.measure(q, handles.result_handle(q.uid))
+                qpu.qop.measure(q, dsl.handles.result_handle(q.uid))
                 qpu.qop.passive_reset(q)
             if opts.use_cal_traces:
                 with dsl.section(
@@ -202,6 +201,6 @@ def create_experiment(
                         qpu.qop.prepare_state(q, state)
                         qpu.qop.measure(
                             q,
-                            handles.calibration_trace_handle(q.uid, state),
+                            dsl.handles.calibration_trace_handle(q.uid, state),
                         )
                         qpu.qop.passive_reset(q)

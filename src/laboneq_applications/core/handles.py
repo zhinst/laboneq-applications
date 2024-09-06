@@ -1,4 +1,4 @@
-"""Provide helpers for creating and parsing acquisition handles."""
+"""Module that defines acquisition handle formatters for LabOneQ experiments."""
 
 from __future__ import annotations
 

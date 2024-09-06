@@ -18,8 +18,7 @@ from typing import TYPE_CHECKING
 from laboneq.dsl.enums import AcquisitionType
 from laboneq.simple import Experiment, SweepParameter
 
-from laboneq_applications.core import handles
-from laboneq_applications.core.quantum_operations import dsl
+from laboneq_applications import dsl
 from laboneq_applications.experiments.options import (
     SpectroscopyExperimentOptions,
     SpectroscopyWorkflowOptions,
@@ -183,7 +182,7 @@ def create_experiment(
         ) as frequency:
             qpu.qop.set_frequency(qubit, frequency=frequency, readout=True)
             if opts.use_cw:
-                qpu.qop.acquire(qubit, handles.result_handle(qubit.uid))
+                qpu.qop.acquire(qubit, dsl.handles.result_handle(qubit.uid))
             else:
-                qpu.qop.measure(qubit, handles.result_handle(qubit.uid))
+                qpu.qop.measure(qubit, dsl.handles.result_handle(qubit.uid))
             qpu.qop.delay(qubit, opts.spectroscopy_reset_delay)

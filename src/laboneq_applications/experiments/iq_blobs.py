@@ -15,8 +15,7 @@ from typing import TYPE_CHECKING
 
 from laboneq.simple import AveragingMode, Experiment
 
-from laboneq_applications.core import handles
-from laboneq_applications.core.quantum_operations import dsl
+from laboneq_applications import dsl
 from laboneq_applications.core.validation import validate_and_convert_qubits_sweeps
 from laboneq_applications.experiments.options import (
     BaseExperimentOptions,
@@ -200,6 +199,6 @@ def create_experiment(
                     qpu.qop.prepare_state(q, state)
                     qpu.qop.measure(
                         q,
-                        handles.calibration_trace_handle(q.uid, state),
+                        dsl.handles.calibration_trace_handle(q.uid, state),
                     )
                     qpu.qop.passive_reset(q)
