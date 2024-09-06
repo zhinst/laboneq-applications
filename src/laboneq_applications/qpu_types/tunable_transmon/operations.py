@@ -780,6 +780,43 @@ class TunableTransmonOperations(QuantumOperations):
         self.rz.omit_section(q, self._PI, transition=transition)
 
     @quantum_operation
+    def spectroscopy_drive(
+        self,
+        q: TunableTransmonQubit,
+        amplitude: float | SweepParameter | None = None,
+        phase: float = 0.0,
+    ) -> None:
+        """Long pulse used for qubit spectroscopy that emulates a coherent field.
+
+        Arguments:
+            q:
+                The qubit to apply the spectroscopy drive.
+            amplitude:
+                The amplitude of the pulse. By default the
+                qubit parameter "spectroscopy_amplitude".
+            phase:
+                The phase of the pulse in radians. By default
+                this is 0.0.
+        """
+        drive_line, _ = q.transition_parameters("ge")
+        if amplitude is None:
+            amplitude = q.parameters.spectroscopy_amplitude
+        spectroscopy_drive = create_pulse(
+            {
+                "function": "const",
+                "can_compress": True,
+            },
+            name="coherent_drive",
+        )
+        dsl.play(
+            q.signals[drive_line],
+            amplitude=amplitude,
+            phase=phase,
+            length=q.parameters.spectroscopy_length,
+            pulse=spectroscopy_drive,
+        )
+
+    @quantum_operation
     def ramsey(
         self,
         q: TunableTransmonQubit,

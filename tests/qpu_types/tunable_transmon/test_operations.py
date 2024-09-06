@@ -1669,3 +1669,71 @@ class TestTunableTransmonOperations:
         assert section == truth_section
 
         self.check_op_builds_and_compiles(section, single_tunable_transmon_platform)
+
+    @pytest.mark.parametrize(
+        ("amplitude"),
+        [
+            pytest.param(0.8, id="constant"),
+            pytest.param(
+                SweepParameter(uid="sweep", values=[0, 0.1, 0.2]),
+                id="sweep_parameter",
+            ),
+        ],
+    )
+    def test_spectroscopy_drive_amplitude(
+        self,
+        amplitude,
+        qops,
+        single_tunable_transmon_platform,
+    ):
+        [q0] = single_tunable_transmon_platform.qpu.qubits
+        section = qops.spectroscopy_drive(q0, amplitude=amplitude)
+
+        assert section == tsl.section(uid="__spectroscopy_drive_q0_0").children(
+            self.reserve_ops(q0),
+            tsl.play_pulse_op(
+                signal="/logical_signal_groups/q0/drive",
+                amplitude=amplitude,
+            ),
+        )
+
+        sweep = amplitude if isinstance(amplitude, SweepParameter) else None
+        self.check_op_builds_and_compiles(
+            section,
+            single_tunable_transmon_platform,
+            sweep=sweep,
+        )
+
+    @pytest.mark.parametrize(
+        ("phase"),
+        [
+            pytest.param(np.pi / 4, id="constant"),
+            pytest.param(
+                SweepParameter(uid="sweep", values=[np.pi / 4, np.pi / 2, np.pi]),
+                id="sweep_parameter",
+            ),
+        ],
+    )
+    def test_spectroscopy_drive_phase(
+        self,
+        phase,
+        qops,
+        single_tunable_transmon_platform,
+    ):
+        [q0] = single_tunable_transmon_platform.qpu.qubits
+        section = qops.spectroscopy_drive(q0, phase=phase)
+
+        assert section == tsl.section(uid="__spectroscopy_drive_q0_0").children(
+            self.reserve_ops(q0),
+            tsl.play_pulse_op(
+                signal="/logical_signal_groups/q0/drive",
+                phase=phase,
+            ),
+        )
+
+        sweep = phase if isinstance(phase, SweepParameter) else None
+        self.check_op_builds_and_compiles(
+            section,
+            single_tunable_transmon_platform,
+            sweep=sweep,
+        )
