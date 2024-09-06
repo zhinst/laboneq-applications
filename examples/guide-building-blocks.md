@@ -770,7 +770,7 @@ result_unmodified = amplitude_rabi.experiment_workflow(
     session,
     qpu,
     qubits[0],  # pass original qubits
-    [0.1,0.2],
+    np.linspace(0, 1, 21),
     options=options,
 ).run()
 
@@ -778,7 +778,7 @@ result_modified = amplitude_rabi.experiment_workflow(
     session,
     qpu,
     temp_qubits[0],  # pass temporary qubits
-    [0.1,0.2],
+    np.linspace(0, 1, 21),
     options=options,
 ).run()
 ```

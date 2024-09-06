@@ -3,7 +3,14 @@
 import numpy as np
 import pytest
 
-from laboneq_applications.core.validation import validate_and_convert_qubits_sweeps
+from laboneq_applications.core.validation import (
+    validate_and_convert_qubits_sweeps,
+    validate_result,
+)
+from laboneq_applications.tasks.run_experiment import (
+    AcquiredResult,
+    RunExperimentResults,
+)
 
 
 class TestValidateAndConvertQubitSweeps:
@@ -80,4 +87,82 @@ class TestValidateAndConvertQubitSweeps:
 
         assert str(err.value) == (
             "All elements of sweep points must be lists of numbers."
+        )
+
+
+@pytest.fixture()
+def result():
+    """Results from AmplitudeRabi experiment."""
+    data = {
+        "result": {
+            "q0": AcquiredResult(
+                data=np.array(
+                    [
+                        0.05290302 - 0.13215136j,
+                        0.06067577 - 0.12907117j,
+                        0.05849071 - 0.09401458j,
+                        0.0683788 - 0.04265771j,
+                        0.07369121 + 0.0238058j,
+                        0.08271086 + 0.10077513j,
+                        0.09092848 + 0.1884216j,
+                        0.1063583 + 0.28337206j,
+                        0.11472132 + 0.38879551j,
+                        0.13147716 + 0.49203866j,
+                        0.13378882 + 0.59027211j,
+                        0.15108762 + 0.70302525j,
+                        0.16102455 + 0.77474721j,
+                        0.16483135 + 0.83853894j,
+                        0.17209631 + 0.88743935j,
+                        0.17435144 + 0.90659384j,
+                        0.17877636 + 0.92026812j,
+                        0.17153804 + 0.90921755j,
+                        0.17243493 + 0.88099388j,
+                        0.164842 + 0.82561295j,
+                        0.15646681 + 0.76574749j,
+                    ]
+                ),
+                axis=[
+                    np.array(
+                        [
+                            0.0,
+                            0.0238155,
+                            0.04763101,
+                            0.07144651,
+                            0.09526201,
+                            0.11907752,
+                            0.14289302,
+                            0.16670852,
+                            0.19052403,
+                            0.21433953,
+                            0.23815503,
+                            0.26197054,
+                            0.28578604,
+                            0.30960154,
+                            0.33341705,
+                            0.35723255,
+                            0.38104805,
+                            0.40486356,
+                            0.42867906,
+                            0.45249456,
+                            0.47631007,
+                        ]
+                    )
+                ],
+            )
+        },
+    }
+    return RunExperimentResults(data=data), data
+
+
+class TestValidateResult:
+    def test_valid_result(self, result):
+        validate_result(result[0])
+
+    def test_invalid_result(self, result):
+        with pytest.raises(TypeError) as err:
+            validate_result(result[1])
+
+        assert str(err.value) == (
+            "result has type <class 'dict'>, but only type "
+            "RunExperimentResults is supported."
         )

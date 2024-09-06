@@ -7,6 +7,7 @@ from collections.abc import Sequence
 from laboneq.dsl.quantum.quantum_element import QuantumElement
 from numpy import ndarray
 
+from laboneq_applications.tasks.run_experiment import RunExperimentResults
 from laboneq_applications.workflow import task
 
 
@@ -85,3 +86,19 @@ def validate_and_convert_qubits_sweeps(
                 "All elements of sweep points must be lists of numbers.",
             )
     return qubits, sweep_points
+
+
+def validate_result(result: RunExperimentResults) -> None:
+    """Checks that result is an instance of RunExperimentResults.
+
+    Args:
+        result: the acquired results
+
+    Raises:
+        TypeError if result is not an instance of RunExperimentResults.
+    """
+    if not isinstance(result, RunExperimentResults):
+        raise TypeError(
+            f"result has type {type(result)}, but only type RunExperimentResults "
+            f"is supported."
+        )

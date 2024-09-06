@@ -82,11 +82,15 @@ class TuneupExperimentOptions(BaseExperimentOptions):
             The states to prepare in the calibration traces. Can be any
             string or tuple made from combining the characters 'g', 'e', 'f'.
             Default: same as transition
+        update_qubits:
+            Whether to update the qubit parameters with the results from the fit.
+            Default: `False`.
     """
 
     transition: Literal["ge", "ef"] = "ge"
     use_cal_traces: bool = True
     cal_states: str | tuple = "ge"
+    update_qubits: bool = False
 
     @model_validator(mode="before")
     @classmethod
@@ -122,6 +126,38 @@ class SpectroscopyExperimentOptions(BaseExperimentOptions):
     acquisition_type: AcquisitionType = AcquisitionType.SPECTROSCOPY
 
 
+class TuneupAnalysisOptions(TuneupExperimentOptions):
+    """Base options for the analysis of a tune-up experiment.
+
+    Attributes:
+        do_rotation:
+            Whether to rotate the raw data based on calibration traces or principal
+            component analysis.
+            Default: `True`.
+        do_pca:
+            Whether to perform principal component analysis on the raw data independent
+            of whether there were calibration traces in the experiment.
+            Default: `False`.
+        do_fitting:
+            Whether to perform the fit.
+            Default: `True`.
+        fit_parameters_hints:
+            Parameters hints accepted by lmfit
+            Default: None.
+        close_figures:
+            Whether to close the figures.
+            Default: `True`.
+
+    """
+
+    do_rotation: bool = True
+    do_pca: bool = False
+    do_fitting: bool = True
+    fit_parameters_hints: dict | None = None
+    save_figures: bool = True
+    close_figures: bool = True
+
+
 class SpectroscopyWorkflowOptions(WorkflowOptions):
     """Option class for spectroscopy workflow.
 
@@ -134,13 +170,58 @@ class SpectroscopyWorkflowOptions(WorkflowOptions):
     create_experiment: SpectroscopyExperimentOptions = SpectroscopyExperimentOptions()
 
 
+class TuneUpAnalysisWorkflowOptions(WorkflowOptions):
+    """Option class for tune-up analysis workflows.
+
+    Attributes:
+        do_fitting:
+            Whether to perform the fit.
+            Default: `True`.
+        do_plotting:
+            Whether to make plots.
+            Default: 'True'.
+        calculate_qubit_population (TuneupAnalysisOptions):
+            The options for processing the raw data.
+            Default: TuneupAnalysisOptions().
+        fit_data (TuneupAnalysisOptions):
+            The options for performing a fit.
+            Default: TuneupAnalysisOptions().
+        extract_qubit_parameters (TuneupAnalysisOptions):
+            The options for extracting qubit parameters from the fit.
+            Default: TuneupAnalysisOptions().
+        plot_population (TuneupAnalysisOptions):
+            The options for plotting.
+            Default: TuneupAnalysisOptions().
+    """
+
+    do_fitting: bool = True
+    do_plotting: bool = True
+    do_raw_data_plotting: bool = True
+    do_qubit_population_plotting: bool = True
+
+    calculate_qubit_population: TuneupAnalysisOptions = TuneupAnalysisOptions()
+    fit_data: TuneupAnalysisOptions = TuneupAnalysisOptions()
+    extract_qubit_parameters: TuneupAnalysisOptions = TuneupAnalysisOptions()
+    plot_raw_complex_data_1d: TuneupAnalysisOptions = TuneupAnalysisOptions()
+    plot_population: TuneupAnalysisOptions = TuneupAnalysisOptions()
+
+
 class TuneUpWorkflowOptions(WorkflowOptions):
-    """Option class for tune-up workflow.
+    """Option class for tune-up experiment workflows.
 
     Attributes:
         create_experiment (TuneupExperimentOptions):
             The options for creating the experiment.
             Default: TuneupExperimentOptions().
+        do_analysis (bool):
+            Whether to run the analysis workflow.
+            Default: True
+        update (bool):
+            Whether to update the setup based on the results from the analysis.
+            Default: False
     """
 
     create_experiment: TuneupExperimentOptions = TuneupExperimentOptions()
+    analysis_workflow: TuneUpAnalysisWorkflowOptions = TuneUpAnalysisWorkflowOptions()
+    do_analysis: bool = True
+    update: bool = False

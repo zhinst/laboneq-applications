@@ -22,6 +22,7 @@ When writing a text for a new experiment using this file as a template:
  adapt this test file for a new experiment
 """
 
+import numpy as np
 import pytest
 
 from laboneq_applications.experiments import (
@@ -52,6 +53,7 @@ def create_rabi_verifier(
     # new ones for any additional input parameters you might have added
     options.create_experiment.transition = transition
     options.create_experiment.use_cal_traces = use_cal_traces
+    options.do_analysis = False  # TODO: fix tests to work with do_analysis=True
     # Run the experiment workflow
     # For new experiments: use the correct experiment name
     res = amplitude_rabi.experiment_workflow(
@@ -72,8 +74,8 @@ def create_rabi_verifier(
 @pytest.mark.parametrize(  # For new experiments: replace with relevant name and values
     "amplitudes",
     [
-        [0.1, 0.2, 0.3],
-        [0.1, 0.2, 0.3, 0.4],
+        np.linspace(0, 1, 11),
+        np.linspace(0, 0.5, 21),
     ],
 )
 @pytest.mark.parametrize(

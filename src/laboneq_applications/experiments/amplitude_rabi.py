@@ -17,6 +17,7 @@ from typing import TYPE_CHECKING
 
 from laboneq.simple import Experiment, SweepParameter
 
+from laboneq_applications.analysis.amplitude_rabi import analysis_workflow
 from laboneq_applications.core import handles
 from laboneq_applications.core.build_experiment import qubit_experiment
 from laboneq_applications.core.quantum_operations import dsl
@@ -26,9 +27,15 @@ from laboneq_applications.experiments.options import (
     TuneUpWorkflowOptions,
 )
 from laboneq_applications.tasks import compile_experiment, run_experiment
-from laboneq_applications.workflow import task, workflow
+from laboneq_applications.workflow import (
+    comment,
+    if_,
+    task,
+    workflow,
+)
 
 if TYPE_CHECKING:
+    import uncertainties as unc
     from laboneq.dsl.session import Session
 
     from laboneq_applications.qpu_types import QPU
@@ -53,6 +60,8 @@ def experiment_workflow(
     - [create_experiment]()
     - [compile_experiment]()
     - [run_experiment]()
+    - [analysis_workflow]()
+    - [update_qubits]()
 
     Arguments:
         session:
@@ -73,12 +82,12 @@ def experiment_workflow(
                 - create_experiment: The options for creating the experiment.
 
     Returns:
-        result:
-            The result of the workflow.
+        WorkflowBuilder:
+            The builder of the experiment workflow.
 
     Example:
         ```python
-        options = TuneUpWorkflowOptions()
+        options = TuneUpExperimentWorkflowOptions()
         options.create_experiment.count = 10
         options.create_experiment.transition = "ge"
         qpu = QPU(
@@ -105,6 +114,11 @@ def experiment_workflow(
     )
     compiled_exp = compile_experiment(session, exp)
     _result = run_experiment(session, compiled_exp)
+    with if_(options.do_analysis):
+        analysis_results = analysis_workflow(_result, qubits, amplitudes)
+        qubit_parameters = analysis_results.tasks["extract_qubit_parameters"].output
+        with if_(options.update):
+            update_qubits(qpu, qubit_parameters["new_parameter_values"])
 
 
 @task
@@ -115,7 +129,7 @@ def create_experiment(
     amplitudes: QubitSweepPoints,
     options: TuneupExperimentOptions | None = None,
 ) -> Experiment:
-    """Creates an Amplitude Rabi Experiment.
+    """Creates an Amplitude Rabi experiment Workflow.
 
     Arguments:
         qpu:
@@ -205,3 +219,34 @@ def create_experiment(
                             handles.calibration_trace_handle(q.uid, state),
                         )
                         qpu.qop.passive_reset(q)
+
+
+@task
+def update_qubits(
+    qpu: QPU,
+    qubit_parameters: dict[
+        str,
+        dict[str, dict[str, int | float | unc.core.Variable | None]],
+    ],
+) -> None:
+    """Updates the parameters of the qubits in the qpu.
+
+    Args:
+        qpu: the qpu containing the qubits to be updated
+        qubit_parameters: qubit parameters and the new values to be updated.
+            This  dictionary has the following form:
+            ```python
+            {
+                q.uid: {
+                    qb_param_name: qb_param_value
+                    }
+            }
+            ```
+    """
+    for qid, params_dict in qubit_parameters.items():
+        if len(params_dict) == 0:
+            comment(
+                f"{qid} could not be updated because its "
+                f"pi- and pi/2-pulse amplitudes could not be extracted."
+            )
+    qpu.update_qubits(qubit_parameters)

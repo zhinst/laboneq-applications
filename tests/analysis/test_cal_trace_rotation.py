@@ -1,14 +1,12 @@
 import numpy as np
 import pytest
-from laboneq.dsl.result import Results
-from laboneq.dsl.result.acquired_result import AcquiredResult, AcquiredResults
 from numpy.testing import assert_array_almost_equal
 
-from laboneq_applications.analysis_legacy.cal_trace_rotation import (
+from laboneq_applications.analysis.cal_trace_rotation import (
+    calculate_population_1d,
     principal_component_analysis,
     rotate_data_to_cal_trace_results,
 )
-from laboneq_applications.experiments_legacy.adapters import extract_and_rotate_data_1d
 
 
 @pytest.mark.parametrize(
@@ -36,7 +34,7 @@ def test_rotate_data_to_cal_trace_results():
 
 
 @pytest.fixture()
-def laboneq_results():
+def results():
     """Results from AmplitudeRabi experiment."""
     raw = np.array(
         [
@@ -88,47 +86,18 @@ def laboneq_results():
             0.42679909,
         ],
     )
-    acq_data = AcquiredResult(
-        data=raw,
-        axis_name=["Amplitude Scaling"],
-        axis=[sweep_points],
-        handle="Rabi_ge_qb1",
-    )
-    trace_g = AcquiredResult(
-        data=(-0.14148732183502724 + 0.7385117964730766j),
-        axis_name=[],
-        axis=[],
-        last_nt_step=[],
-        handle="Rabi_ge_qb1_cal_trace_g",
-    )
-    trace_e = AcquiredResult(
-        data=(0.3582122789731416 + 0.1005765204862131j),
-        axis_name=[],
-        axis=[],
-        last_nt_step=[],
-        handle="Rabi_ge_qb1_cal_trace_e",
-    )
-    return Results(
-        acquired_results=AcquiredResults(
-            {
-                "Rabi_ge_qb1": acq_data,
-                "Rabi_ge_qb1_cal_trace_g": trace_g,
-                "Rabi_ge_qb1_cal_trace_e": trace_e,
-            },
-        ),
-    )
+    calibration_traces = [
+        -0.14148732183502724 + 0.7385117964730766j,
+        0.3582122789731416 + 0.1005765204862131j,
+    ]
+    return raw, sweep_points, calibration_traces
 
 
-class TestExtractAndRotateData1D:
-    # NOTE: Test on intitial analysis implementation. Use output as a
-    # reference point if refactored.
+class TestCalculatePopulation1D:
     @pytest.fixture()
-    def analysis(self, laboneq_results):
-        return extract_and_rotate_data_1d(
-            laboneq_results,
-            data_handle="Rabi_ge_qb1",
-            cal_trace_handle_root="Rabi_ge_qb1",
-            cal_states="ge",
+    def analysis(self, results):
+        return calculate_population_1d(
+            *results,
             do_pca=False,
         )
 
@@ -164,7 +133,7 @@ class TestExtractAndRotateData1D:
 
     def test_sweep_points_w_cal_traces(self, analysis):
         assert_array_almost_equal(
-            analysis["sweep_points_w_cal_traces"],
+            analysis["sweep_points_with_cal_traces"],
             np.array(
                 [
                     0.0,
@@ -232,7 +201,7 @@ class TestExtractAndRotateData1D:
 
     def test_data_raw_w_cal_traces(self, analysis):
         assert_array_almost_equal(
-            analysis["data_raw_w_cal_traces"],
+            analysis["data_raw_with_cal_traces"],
             np.array(
                 [
                     -0.14181528 + 0.74110792j,
@@ -270,7 +239,7 @@ class TestExtractAndRotateData1D:
 
     def test_data_rotated(self, analysis):
         assert_array_almost_equal(
-            analysis["data_rotated"],
+            analysis["population"],
             np.array(
                 [
                     -0.00277166,
@@ -300,7 +269,7 @@ class TestExtractAndRotateData1D:
 
     def test_data_rotated_w_cal_traces(self, analysis):
         assert_array_almost_equal(
-            analysis["data_rotated_w_cal_traces"],
+            analysis["population_with_cal_traces"],
             np.array(
                 [
                     -0.00277166,
@@ -332,7 +301,7 @@ class TestExtractAndRotateData1D:
 
     def test_data_rotated_cal_traces(self, analysis):
         assert_array_almost_equal(
-            analysis["data_rotated_cal_traces"],
+            analysis["population_cal_traces"],
             np.array([0.0, 1.0]),
         )
 
@@ -340,16 +309,11 @@ class TestExtractAndRotateData1D:
         assert analysis["num_cal_traces"] == 2
 
 
-class TestExtractAndRotateData1DWithPCA:
-    # NOTE: Test on intitial analysis implementation. Use output as a
-    # reference point if refactored.
+class TestCalculatePopulation1DWithPCA:
     @pytest.fixture()
-    def analysis(self, laboneq_results):
-        return extract_and_rotate_data_1d(
-            laboneq_results,
-            data_handle="Rabi_ge_qb1",
-            cal_trace_handle_root="Rabi_ge_qb1",
-            cal_states="ge",
+    def analysis(self, results):
+        return calculate_population_1d(
+            *results,
             do_pca=True,
         )
 
@@ -385,7 +349,7 @@ class TestExtractAndRotateData1DWithPCA:
 
     def test_sweep_points_w_cal_traces(self, analysis):
         assert_array_almost_equal(
-            analysis["sweep_points_w_cal_traces"],
+            analysis["sweep_points_with_cal_traces"],
             np.array(
                 [
                     0.0,
@@ -453,7 +417,7 @@ class TestExtractAndRotateData1DWithPCA:
 
     def test_data_raw_w_cal_traces(self, analysis):
         assert_array_almost_equal(
-            analysis["data_raw_w_cal_traces"],
+            analysis["data_raw_with_cal_traces"],
             np.array(
                 [
                     -0.14181528 + 0.74110792j,
@@ -491,7 +455,7 @@ class TestExtractAndRotateData1DWithPCA:
 
     def test_data_rotated(self, analysis):
         assert_array_almost_equal(
-            analysis["data_rotated"],
+            analysis["population"],
             np.array(
                 [
                     -0.47517906,
@@ -521,7 +485,7 @@ class TestExtractAndRotateData1DWithPCA:
 
     def test_data_rotated_w_cal_traces(self, analysis):
         assert_array_almost_equal(
-            analysis["data_rotated_w_cal_traces"],
+            analysis["population_with_cal_traces"],
             np.array(
                 [
                     -0.47517906,
@@ -553,9 +517,346 @@ class TestExtractAndRotateData1DWithPCA:
 
     def test_data_rotated_cal_traces(self, analysis):
         assert_array_almost_equal(
-            analysis["data_rotated_cal_traces"],
+            analysis["population_cal_traces"],
             np.array([-0.472933, 0.337414]),
         )
 
     def test_num_cal_traces(self, analysis):
         assert analysis["num_cal_traces"] == 2
+
+
+@pytest.fixture()
+def results_failure():
+    """Results from AmplitudeRabi experiment with too many cal states."""
+    raw = np.array(
+        [
+            -0.14181528 + 0.74110792j,
+            -0.13743392 + 0.73537577j,
+            -0.12167174 + 0.71405756j,
+            -0.09305505 + 0.67498465j,
+            -0.06360052 + 0.63947572j,
+            -0.01566121 + 0.58065239j,
+            0.02906186 + 0.52455673j,
+            0.08227274 + 0.45812602j,
+            0.11847114 + 0.40637085j,
+            0.16929275 + 0.33847125j,
+            0.22506453 + 0.27189472j,
+            0.27475463 + 0.21382596j,
+            0.30095408 + 0.17743883j,
+            0.33585012 + 0.12845817j,
+            0.35314972 + 0.11077295j,
+            0.35619345 + 0.10518323j,
+            0.35681263 + 0.10114049j,
+            0.3439974 + 0.11990758j,
+            0.32719295 + 0.14280674j,
+            0.28974077 + 0.18369942j,
+            0.25877208 + 0.22439374j,
+        ],
+    )
+    sweep_points = np.array(
+        [
+            0.0,
+            0.02133995,
+            0.04267991,
+            0.06401986,
+            0.08535982,
+            0.10669977,
+            0.12803973,
+            0.14937968,
+            0.17071964,
+            0.19205959,
+            0.21339955,
+            0.2347395,
+            0.25607945,
+            0.27741941,
+            0.29875936,
+            0.32009932,
+            0.34143927,
+            0.36277923,
+            0.38411918,
+            0.40545914,
+            0.42679909,
+        ],
+    )
+    calibration_traces = [
+        -0.14148732183502724 + 0.7385117964730766j,
+        0.3582122789731416 + 0.1005765204862131j,
+        0.3582122789731416 + 0.1005765204862131j,
+    ]
+    return raw, sweep_points, calibration_traces
+
+
+class TestCalculatePopulation1DFailure:
+    def test_failure(self, results_failure):
+        with pytest.raises(NotImplementedError):
+            return calculate_population_1d(
+                *results_failure,
+                do_pca=False,
+            )
+
+
+@pytest.fixture()
+def results_fallback_pca():
+    """Results from AmplitudeRabi experiment with too many cal states."""
+    raw = np.array(
+        [
+            -0.14181528 + 0.74110792j,
+            -0.13743392 + 0.73537577j,
+            -0.12167174 + 0.71405756j,
+            -0.09305505 + 0.67498465j,
+            -0.06360052 + 0.63947572j,
+            -0.01566121 + 0.58065239j,
+            0.02906186 + 0.52455673j,
+            0.08227274 + 0.45812602j,
+            0.11847114 + 0.40637085j,
+            0.16929275 + 0.33847125j,
+            0.22506453 + 0.27189472j,
+            0.27475463 + 0.21382596j,
+            0.30095408 + 0.17743883j,
+            0.33585012 + 0.12845817j,
+            0.35314972 + 0.11077295j,
+            0.35619345 + 0.10518323j,
+            0.35681263 + 0.10114049j,
+            0.3439974 + 0.11990758j,
+            0.32719295 + 0.14280674j,
+            0.28974077 + 0.18369942j,
+            0.25877208 + 0.22439374j,
+        ],
+    )
+    sweep_points = np.array(
+        [
+            0.0,
+            0.02133995,
+            0.04267991,
+            0.06401986,
+            0.08535982,
+            0.10669977,
+            0.12803973,
+            0.14937968,
+            0.17071964,
+            0.19205959,
+            0.21339955,
+            0.2347395,
+            0.25607945,
+            0.27741941,
+            0.29875936,
+            0.32009932,
+            0.34143927,
+            0.36277923,
+            0.38411918,
+            0.40545914,
+            0.42679909,
+        ],
+    )
+    calibration_traces = []
+    return raw, sweep_points, calibration_traces
+
+
+class TestCalculatePopulation1DFallbackPca:
+    @pytest.fixture()
+    def analysis(self, results_fallback_pca):
+        return calculate_population_1d(
+            *results_fallback_pca,
+            do_pca=False,
+        )
+
+    def test_sweep_points(self, analysis):
+        assert_array_almost_equal(
+            analysis["sweep_points"],
+            np.array(
+                [
+                    0.0,
+                    0.02133995,
+                    0.04267991,
+                    0.06401986,
+                    0.08535982,
+                    0.10669977,
+                    0.12803973,
+                    0.14937968,
+                    0.17071964,
+                    0.19205959,
+                    0.21339955,
+                    0.2347395,
+                    0.25607945,
+                    0.27741941,
+                    0.29875936,
+                    0.32009932,
+                    0.34143927,
+                    0.36277923,
+                    0.38411918,
+                    0.40545914,
+                    0.42679909,
+                ],
+            ),
+        )
+
+    def test_sweep_points_w_cal_traces(self, analysis):
+        assert_array_almost_equal(
+            analysis["sweep_points_with_cal_traces"],
+            np.array(
+                [
+                    0.0,
+                    0.02133995,
+                    0.04267991,
+                    0.06401986,
+                    0.08535982,
+                    0.10669977,
+                    0.12803973,
+                    0.14937968,
+                    0.17071964,
+                    0.19205959,
+                    0.21339955,
+                    0.2347395,
+                    0.25607945,
+                    0.27741941,
+                    0.29875936,
+                    0.32009932,
+                    0.34143927,
+                    0.36277923,
+                    0.38411918,
+                    0.40545914,
+                    0.42679909,
+                ],
+            ),
+        )
+
+    def test_sweep_points_cal_traces(self, analysis):
+        assert_array_almost_equal(
+            analysis["sweep_points_cal_traces"],
+            np.array([]),
+        )
+
+    def test_data_raw(self, analysis):
+        assert_array_almost_equal(
+            analysis["data_raw"],
+            np.array(
+                [
+                    -0.14181528 + 0.74110792j,
+                    -0.13743392 + 0.73537577j,
+                    -0.12167174 + 0.71405756j,
+                    -0.09305505 + 0.67498465j,
+                    -0.06360052 + 0.63947572j,
+                    -0.01566121 + 0.58065239j,
+                    0.02906186 + 0.52455673j,
+                    0.08227274 + 0.45812602j,
+                    0.11847114 + 0.40637085j,
+                    0.16929275 + 0.33847125j,
+                    0.22506453 + 0.27189472j,
+                    0.27475463 + 0.21382596j,
+                    0.30095408 + 0.17743883j,
+                    0.33585012 + 0.12845817j,
+                    0.35314972 + 0.11077295j,
+                    0.35619345 + 0.10518323j,
+                    0.35681263 + 0.10114049j,
+                    0.3439974 + 0.11990758j,
+                    0.32719295 + 0.14280674j,
+                    0.28974077 + 0.18369942j,
+                    0.25877208 + 0.22439374j,
+                ],
+            ),
+        )
+
+    def test_data_raw_w_cal_traces(self, analysis):
+        assert_array_almost_equal(
+            analysis["data_raw_with_cal_traces"],
+            np.array(
+                [
+                    -0.14181528 + 0.74110792j,
+                    -0.13743392 + 0.73537577j,
+                    -0.12167174 + 0.71405756j,
+                    -0.09305505 + 0.67498465j,
+                    -0.06360052 + 0.63947572j,
+                    -0.01566121 + 0.58065239j,
+                    0.02906186 + 0.52455673j,
+                    0.08227274 + 0.45812602j,
+                    0.11847114 + 0.40637085j,
+                    0.16929275 + 0.33847125j,
+                    0.22506453 + 0.27189472j,
+                    0.27475463 + 0.21382596j,
+                    0.30095408 + 0.17743883j,
+                    0.33585012 + 0.12845817j,
+                    0.35314972 + 0.11077295j,
+                    0.35619345 + 0.10518323j,
+                    0.35681263 + 0.10114049j,
+                    0.3439974 + 0.11990758j,
+                    0.32719295 + 0.14280674j,
+                    0.28974077 + 0.18369942j,
+                    0.25877208 + 0.22439374j,
+                ],
+            ),
+        )
+
+    def test_data_raw_cal_traces(self, analysis):
+        assert_array_almost_equal(
+            analysis["data_raw_cal_traces"],
+            np.array([]),
+        )
+
+    def test_data_rotated(self, analysis):
+        assert_array_almost_equal(
+            analysis["population"],
+            np.array(
+                [
+                    -0.4816324,
+                    -0.47441804,
+                    -0.44791557,
+                    -0.39950894,
+                    -0.35339225,
+                    -0.27752302,
+                    -0.20578413,
+                    -0.1206752,
+                    -0.05760877,
+                    0.02718407,
+                    0.11398637,
+                    0.19034061,
+                    0.23514239,
+                    0.2952213,
+                    0.31981071,
+                    0.32608839,
+                    0.32965344,
+                    0.30697631,
+                    0.27858648,
+                    0.22330071,
+                    0.17216755,
+                ]
+            ),
+        )
+
+    def test_data_rotated_w_cal_traces(self, analysis):
+        assert_array_almost_equal(
+            analysis["population_with_cal_traces"],
+            np.array(
+                [
+                    -0.4816324,
+                    -0.47441804,
+                    -0.44791557,
+                    -0.39950894,
+                    -0.35339225,
+                    -0.27752302,
+                    -0.20578413,
+                    -0.1206752,
+                    -0.05760877,
+                    0.02718407,
+                    0.11398637,
+                    0.19034061,
+                    0.23514239,
+                    0.2952213,
+                    0.31981071,
+                    0.32608839,
+                    0.32965344,
+                    0.30697631,
+                    0.27858648,
+                    0.22330071,
+                    0.17216755,
+                ],
+            ),
+        )
+
+    def test_data_rotated_cal_traces(self, analysis):
+        assert_array_almost_equal(
+            analysis["population_cal_traces"],
+            np.array([]),
+        )
+
+    def test_num_cal_traces(self, analysis):
+        assert analysis["num_cal_traces"] == 0
