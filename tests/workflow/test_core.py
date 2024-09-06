@@ -123,6 +123,37 @@ class TestWorkflow:
         result_final = flow.resume()
         assert result_final == result_sub
 
+    def test_run_until_invalid_input(self):
+        @workflow
+        def wf():
+            addition(1, 1)
+            substraction(1, 1)
+
+        # Test stateless workflow
+        flow = wf()
+        with pytest.raises(
+            ValueError, match="Task 'test' does not exist in the workflow."
+        ):
+            flow.run(until="test")
+
+        # Test workflow in progress, but invalid task
+        flow.run(until="addition")
+        with pytest.raises(
+            ValueError, match="Task 'test' does not exist in the workflow."
+        ):
+            flow.resume(until="test")
+
+        # Test trying to run until a nested workflow
+        @workflow
+        def wf_top():
+            wf()
+
+        flow = wf_top()
+        with pytest.raises(
+            ValueError, match="Task 'wf' does not exist in the workflow."
+        ):
+            flow.run(until="wf")
+
     def test_run_until_if_expression(self):
         @workflow
         def wf(x):

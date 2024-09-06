@@ -122,6 +122,14 @@ class Workflow(Generic[Parameters]):
         self._state = None
 
     def _execute(self, state: ExecutorState) -> WorkflowResult:
+        if state.settings.run_until:
+            tasks = {x.name for x in self._graph.tasks}
+            if state.settings.run_until not in tasks:
+                msg = (
+                    f"Task '{state.settings.run_until}' "
+                    "does not exist in the workflow."
+                )
+                raise ValueError(msg)
         with ExecutorStateContext.scoped(state):
             try:
                 self._graph.execute(state, **self._input)
@@ -152,6 +160,7 @@ class Workflow(Generic[Parameters]):
         Raises:
             WorkflowError: An error occurred during workflow execution or
                 workflow is not in progress.
+            ValueError: 'until' value is invalid.
         """
         if not self._state:
             raise exceptions.WorkflowError("Workflow is not in progress.")
@@ -180,6 +189,7 @@ class Workflow(Generic[Parameters]):
 
         Raises:
             WorkflowError: An error occurred during workflow execution.
+            ValueError: 'until' value is invalid.
         """
         if isinstance(
             TaskExecutorContext.get_active(),
