@@ -123,6 +123,27 @@ class TestWorkflow:
         result_final = flow.resume()
         assert result_final == result_sub
 
+    def test_run_until_nested_workflow_same_name(self):
+        @workflow(name="wf")
+        def also_wf():
+            return_(1)
+
+        @workflow
+        def wf():
+            also_wf()
+            return_(0)
+
+        flow = wf()
+        result1 = flow.run(until="wf")
+        assert len(result1.tasks) == 1
+        assert result1.tasks["wf"].output == 1
+        assert result1.output is None
+
+        result2 = flow.resume()
+        assert len(result2.tasks) == 1
+        assert result2.tasks[0] == result1.tasks["wf"]
+        assert result2.output == 0
+
     def test_run_until_invalid_input(self):
         @workflow
         def wf():
@@ -142,6 +163,13 @@ class TestWorkflow:
             ValueError, match="Task or workflow 'test' does not exist in the workflow."
         ):
             flow.resume(until="test")
+
+        # Test workflow cannot run until itself
+        flow = wf()
+        with pytest.raises(
+            ValueError, match="Task or workflow 'wf' does not exist in the workflow."
+        ):
+            flow.run(until="wf")
 
     def test_run_until_nested_workflow(self):
         @task

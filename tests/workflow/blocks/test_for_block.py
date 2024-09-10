@@ -29,11 +29,9 @@ class TestForExpression:
         result = WorkflowResult("test")
         with executor.set_active_workflow_settings(result):
             expr.execute(executor)
-        assert len(executor.states) == 1 + 1
-        assert executor.states == {
-            expr: 1,
-            block: 2,
-        }
+        assert len(executor.block_variables) == 1 + 1
+        assert executor.get_variable(expr) == 1
+        assert executor.get_variable(block) == 2
         assert len(result.tasks) == 2
 
     def test_empty_iterable(self):
@@ -44,7 +42,7 @@ class TestForExpression:
         executor = ExecutorState()
         with executor.set_active_workflow_settings(WorkflowResult("test")):
             expr.execute(executor)
-        assert len(executor.states) == 0
+        assert len(executor.block_variables) == 0
 
     def test_not_iterable_raises_exception(self):
         expr = ForExpression(2)
@@ -59,21 +57,19 @@ class TestForExpression:
         expr.extend(block)
 
         executor = ExecutorState()
-        executor.set_state("abc", [1, 2])
+        executor.set_variable("abc", [1, 2])
         with executor.set_active_workflow_settings(WorkflowResult("test")):
             expr.execute(executor)
-        assert executor.states == {
-            expr: 2,
-            block: 3,
-            "abc": [1, 2],
-        }
+        assert executor.get_variable(expr) == 2
+        assert executor.get_variable(block) == 3
+        assert executor.get_variable("abc") == [1, 2]
 
     def test_input_reference_within_container_error(self):
         expr = ForExpression([Reference("abc"), 5])
         block = TaskBlock(addition, x=expr.ref, y=1)
         expr.extend(block)
         executor = ExecutorState()
-        executor.set_state("abc", [1, 2])
+        executor.set_variable("abc", [1, 2])
 
         with executor.set_active_workflow_settings(WorkflowResult("test")):
             with pytest.raises(

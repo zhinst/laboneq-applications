@@ -106,7 +106,7 @@ class WorkflowBlock(Block):
             input_opts = self.options_type()  # Default options
         inputs["options"] = input_opts
         for k, v in inputs.items():
-            executor.set_state((self, k), v)
+            executor.set_variable((self, k), v)
 
     def execute(self, executor: ExecutorState) -> None:
         """Execute the block."""
@@ -115,24 +115,24 @@ class WorkflowBlock(Block):
             executor.set_block_status(self, ExecutionStatus.IN_PROGRESS)
             inputs = executor.resolve_inputs(self)
             self.set_params(executor, **inputs)
-            input_opts = executor.get_state((self, "options"))
+            input_opts = executor.get_variable((self, "options"))
             # NOTE: Correct input options are resolved only after 'set_param()'
             # Therefore they need to be overwritten for result
             inputs["options"] = input_opts
             result = WorkflowResult(self.name, input=inputs)
             result._start_time = now()
             executor.recorder.on_start(result)
-            executor.set_state(self, result)
+            executor.set_variable(self, result)
         elif executor.get_block_status(self) == ExecutionStatus.IN_PROGRESS:
-            result = executor.get_state(self)
-            input_opts = executor.get_state((self, "options"))
+            result = executor.get_variable(self)
+            input_opts = executor.get_variable((self, "options"))
         else:
             # Block is finished
             return
         executor.add_workflow_result(result)
         try:
-            with executor.set_active_workflow_settings(result, input_opts):
-                with executor:
+            with executor:
+                with executor.set_active_workflow_settings(result, input_opts):
                     for block in self._body:
                         if executor.get_block_status(block) == ExecutionStatus.FINISHED:
                             continue
@@ -140,7 +140,7 @@ class WorkflowBlock(Block):
                     executor.set_block_status(self, ExecutionStatus.FINISHED)
                     result._end_time = now()
                     executor.recorder.on_end(result)
-            if executor.settings.run_until == self.name:
+            if executor.settings.run_until == self.name and executor.has_active_context:
                 executor.interrupt()
         except Exception as error:
             executor.set_block_status(self, ExecutionStatus.FINISHED)

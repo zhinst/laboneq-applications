@@ -54,7 +54,7 @@ class ForExpression(Block):
         executor.settings.run_until = None
         try:
             for val in vals:
-                executor.set_state(self, val)
+                executor.set_variable(self, val)
                 for block in self.body:
                     block.execute(executor)
         finally:

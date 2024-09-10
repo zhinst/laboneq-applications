@@ -70,8 +70,8 @@ class TestTaskBlock:
         state = ExecutorState()
         result = WorkflowResult("test")
         with state.set_active_workflow_settings(result):
-            state.set_state("x", 1)
-            state.set_state("y", 5)
+            state.set_variable("x", 1)
+            state.set_variable("y", 5)
             block.execute(state)
-            assert state.get_state(block) == 6
+            assert state.get_variable(block) == 6
         assert result.tasks[0].output == 6

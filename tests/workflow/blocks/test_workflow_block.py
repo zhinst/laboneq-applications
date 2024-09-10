@@ -84,7 +84,7 @@ class TestWorkflowBlock:
         executor = ExecutorState()
         block.set_params(executor, x=1)
         block.execute(executor)
-        result = executor.get_state(block)
+        result = executor.get_variable(block)
         assert result.input == {"x": 1, "y": 5, "options": WorkflowOptions()}
 
     def test_result_input_reference(self):
@@ -93,7 +93,7 @@ class TestWorkflowBlock:
         block = WorkflowBlock.from_callable("test", work, y=Reference("param"))
         executor = ExecutorState()
         block.set_params(executor, x=1)
-        executor.set_state("param", 8)
+        executor.set_variable("param", 8)
         block.execute(executor)
-        result = executor.get_state(block)
+        result = executor.get_variable(block)
         assert result.input == {"x": 1, "y": 8, "options": WorkflowOptions()}

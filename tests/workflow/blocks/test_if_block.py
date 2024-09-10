@@ -27,11 +27,11 @@ class TestIFExpression:
         with expr:
             a_function()
         executor = ExecutorState()
-        executor.set_state("condition", condition)
+        executor.set_variable("condition", condition)
         result = WorkflowResult("test")
         with executor.set_active_workflow_settings(result):
             expr.execute(executor)
-        assert len(executor.states) == states + 1
+        assert len(executor.block_variables) == states + 1
         assert len(result.tasks) == states
 
     @pytest.mark.parametrize(
@@ -46,7 +46,7 @@ class TestIFExpression:
         with expr:
             a_function()
         executor = ExecutorState()
-        executor.set_state("condition", condition)
+        executor.set_variable("condition", condition)
         with executor.set_active_workflow_settings(WorkflowResult("test")):
             expr.execute(executor)
-        assert len(executor.states) == result + 1
+        assert len(executor.block_variables) == result + 1

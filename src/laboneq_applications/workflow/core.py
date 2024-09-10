@@ -120,10 +120,10 @@ class Workflow(Generic[Parameters]):
         with ExecutorStateContext.scoped(state):
             try:
                 self._graph.execute(state, **self._input)
-                result = state.get_state(self._graph._root)
+                result = state.get_variable(self._graph._root)
             except Exception:
                 if self._recovery is not None:
-                    result = state.get_state(self._graph._root)
+                    result = state.get_variable(self._graph._root)
                     self._recovery.results = result
                 raise
         if state.get_block_status(self._graph._root) == ExecutionStatus.IN_PROGRESS:
