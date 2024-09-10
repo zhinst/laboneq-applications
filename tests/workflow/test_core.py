@@ -1342,6 +1342,42 @@ class TestWorkflowOptions:
             input={"bar": 2, "options": BarOpt()},
         )
 
+    def test_options_as_task_options(self):
+        @task
+        def b_task(options: FooOpt | None = None): ...
+
+        @task
+        def a_task(options: FooOpt | None = None): ...
+
+        @workflow
+        def wf_inner(options: WorkflowOptions | None = None):
+            a_task()
+            b_task()
+
+        @workflow
+        def wf(options: WorkflowOptions | None = None):
+            a_task()
+            wf_inner()
+            b_task()
+
+        opts = WorkflowOptions(
+            task_options={
+                "a_task": FooOpt(foo=10),
+                "wf_inner": WorkflowOptions(
+                    task_options={"a_task": FooOpt(foo=20), "b_task": FooOpt(foo=30)}
+                ),
+            }
+        )
+        result = wf(opts).run()
+        assert result.tasks["a_task"].input == {"options": FooOpt(foo=10)}
+        assert result.tasks["wf_inner"].tasks["a_task"].input == {
+            "options": FooOpt(foo=20)
+        }
+        assert result.tasks["wf_inner"].tasks["b_task"].input == {
+            "options": FooOpt(foo=30)
+        }
+        assert result.tasks["b_task"].input == {"options": None}
+
 
 class TaskOptionsTest(BaseOptions):
     foo: int = 1

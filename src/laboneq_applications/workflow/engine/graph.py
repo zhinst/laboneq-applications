@@ -94,7 +94,10 @@ class WorkflowBlock(Block):
         """Set the initial parameters of the block."""
         inputs = kwargs
         input_opts = kwargs.get("options")  # Options from input arguments
-        if input_opts is None:
+        # Options might be in a dict
+        if isinstance(input_opts, dict):
+            input_opts = self.options_type.from_dict(input_opts)
+        elif input_opts is None:
             # Options from parent options
             input_opts = executor.get_options(self.name)
         if input_opts is None:
