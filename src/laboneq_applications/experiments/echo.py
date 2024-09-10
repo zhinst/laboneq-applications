@@ -23,9 +23,6 @@ from typing import TYPE_CHECKING
 from laboneq.simple import Experiment, SweepParameter
 
 from laboneq_applications import dsl
-from laboneq_applications.core.validation import (
-    validate_and_convert_qubits_sweeps,
-)
 from laboneq_applications.experiments.options import (
     TuneupExperimentOptions,
 )
@@ -193,7 +190,7 @@ def create_experiment(
     # Define the custom options for the experiment
     opts = EchoExperimentOptions() if options is None else options
 
-    qubits, delays = validate_and_convert_qubits_sweeps(qubits, delays)
+    qubits, delays = dsl.validation.validate_and_convert_qubits_sweeps(qubits, delays)
 
     with dsl.acquire_loop_rt(
         count=opts.count,

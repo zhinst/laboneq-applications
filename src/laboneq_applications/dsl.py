@@ -28,6 +28,7 @@ __all__ = [
     "qubit_experiment",
     # formatter:
     "handles",
+    "validation",
 ]
 
 from laboneq.dsl.experiment.builtins import (
@@ -50,5 +51,5 @@ from laboneq.dsl.experiment.builtins import (
 from laboneq.dsl.experiment.section_context import active_section
 from laboneq.simple import pulse_library
 
-from laboneq_applications.core import handles
+from laboneq_applications.core import handles, validation
 from laboneq_applications.core.build_experiment import qubit_experiment

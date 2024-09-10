@@ -19,7 +19,6 @@ from laboneq.simple import Experiment, SweepParameter
 
 from laboneq_applications import dsl
 from laboneq_applications.analysis.amplitude_rabi import analysis_workflow
-from laboneq_applications.core.validation import validate_and_convert_qubits_sweeps
 from laboneq_applications.experiments.options import (
     TuneupExperimentOptions,
     TuneUpWorkflowOptions,
@@ -188,7 +187,9 @@ def create_experiment(
     """
     # Define the custom options for the experiment
     opts = TuneupExperimentOptions() if options is None else options
-    qubits, amplitudes = validate_and_convert_qubits_sweeps(qubits, amplitudes)
+    qubits, amplitudes = dsl.validation.validate_and_convert_qubits_sweeps(
+        qubits, amplitudes
+    )
     with dsl.acquire_loop_rt(
         count=opts.count,
         averaging_mode=opts.averaging_mode,

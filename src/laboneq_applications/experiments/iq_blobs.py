@@ -16,7 +16,6 @@ from typing import TYPE_CHECKING
 from laboneq.simple import AveragingMode, Experiment
 
 from laboneq_applications import dsl
-from laboneq_applications.core.validation import validate_and_convert_qubits_sweeps
 from laboneq_applications.experiments.options import (
     BaseExperimentOptions,
 )
@@ -181,7 +180,7 @@ def create_experiment(
     """
     # Define the custom options for the experiment
     opts = IQBlobExperimentOptions() if options is None else options
-    qubits = validate_and_convert_qubits_sweeps(qubits)
+    qubits = dsl.validation.validate_and_convert_qubits_sweeps(qubits)
 
     with dsl.acquire_loop_rt(
         count=opts.count,
