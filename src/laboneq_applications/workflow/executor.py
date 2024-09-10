@@ -19,10 +19,9 @@ from laboneq_applications.workflow.recorder import (
 if TYPE_CHECKING:
     from collections.abc import Generator
 
-    from laboneq_applications.workflow.engine.block import Block
+    from laboneq_applications.workflow.blocks import Block
     from laboneq_applications.workflow.options_base import BaseOptions
-    from laboneq_applications.workflow.result import WorkflowResult
-    from laboneq_applications.workflow.task import TaskResult
+    from laboneq_applications.workflow.result import TaskResult, WorkflowResult
 
 
 class _ExecutorInterrupt(Exception):  # noqa: N818

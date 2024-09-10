@@ -4,10 +4,13 @@ This is the `laboneq_applications.workflow` reference documentation.
 
 ## Contents
 
+* [core](core.md)
 * [task](task.md)
-* [engine](engine.md)
 * [result](result.md)
 * [taskview](taskview.md)
 * [options](options.md)
 * [reference](reference.md)
+* [graph](graph.md)
+* [blocks](blocks.md)
 * [exceptions](exceptions.md)
+ 

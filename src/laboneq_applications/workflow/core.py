@@ -15,16 +15,13 @@ from laboneq_applications.logbook import (
     active_logbook_store,
 )
 from laboneq_applications.workflow import _utils, exceptions
-from laboneq_applications.workflow._context import (
-    TaskExecutorContext,
-)
-from laboneq_applications.workflow.engine.block import WorkflowBlockBuilder
-from laboneq_applications.workflow.engine.graph import WorkflowBlock, WorkflowGraph
+from laboneq_applications.workflow.blocks import BlockBuilderContext, WorkflowBlock
 from laboneq_applications.workflow.executor import (
     ExecutionStatus,
     ExecutorState,
     ExecutorStateContext,
 )
+from laboneq_applications.workflow.graph import WorkflowGraph
 from laboneq_applications.workflow.options import (
     WorkflowOptions,
 )
@@ -194,10 +191,7 @@ class Workflow(Generic[Parameters]):
             WorkflowError: An error occurred during workflow execution.
             ValueError: 'until' value is invalid.
         """
-        if isinstance(
-            TaskExecutorContext.get_active(),
-            WorkflowBlockBuilder,
-        ):
+        if BlockBuilderContext.get_active():
             msg = "Calling '.run()' within another workflow is not allowed."
             raise exceptions.WorkflowError(msg)
         self._validate_run_params(until=until)
@@ -269,8 +263,8 @@ class WorkflowBuilder(Generic[Parameters]):
         *args: Parameters.args,
         **kwargs: Parameters.kwargs,
     ) -> Workflow[Parameters]:
-        active_ctx = TaskExecutorContext.get_active()
-        if isinstance(active_ctx, WorkflowBlockBuilder):
+        active_ctx = BlockBuilderContext.get_active()
+        if active_ctx:
             blk = WorkflowBlock.from_callable(
                 self._name,
                 self._func,
@@ -353,10 +347,7 @@ def workflow(
         results = wf.run()
         ```
     """
-    if isinstance(
-        TaskExecutorContext.get_active(),
-        WorkflowBlockBuilder,
-    ):
+    if BlockBuilderContext.get_active():
         msg = "Defining a workflow inside a workflow is not allowed."
         raise exceptions.WorkflowError(msg)
 

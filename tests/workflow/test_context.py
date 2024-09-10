@@ -1,10 +1,7 @@
 import pytest
 
-from laboneq_applications.workflow import task
 from laboneq_applications.workflow._context import (
     LocalContext,
-    TaskExecutor,
-    TaskExecutorContext,
 )
 
 
@@ -44,20 +41,3 @@ def test_get_active_context():
     with LocalContext.scoped(1):
         assert LocalContext.get_active() == 1
     assert LocalContext.get_active() is None
-
-
-def test_task_executor_context():
-    class TaskExecutorTest(TaskExecutor):
-        results = []  # noqa: RUF012
-
-        def execute_task(self, task, *args, **kwargs):
-            self.results.append((task, args, kwargs))
-
-    @task
-    def mytask(x): ...
-
-    with TaskExecutorContext.scoped(TaskExecutorTest()):
-        assert LocalContext.get_active() is None
-        mytask(1)
-        ctx = TaskExecutorContext.get_active()
-        assert ctx.results == [(mytask, (1,), {})]

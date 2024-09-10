@@ -13,15 +13,15 @@ from laboneq_applications.workflow import (
     Workflow,
     WorkflowResult,
     exceptions,
-    for_,
-    if_,
-    return_,
     task,
     workflow,
 )
+from laboneq_applications.workflow.blocks.for_block import for_
+from laboneq_applications.workflow.blocks.if_block import if_
+from laboneq_applications.workflow.blocks.return_block import return_
 from laboneq_applications.workflow.options import WorkflowOptions
 from laboneq_applications.workflow.options_base import BaseOptions
-from laboneq_applications.workflow.task import TaskResult
+from laboneq_applications.workflow.result import TaskResult
 from laboneq_applications.workflow.taskview import TaskView
 
 if TYPE_CHECKING:

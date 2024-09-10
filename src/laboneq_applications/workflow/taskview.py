@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING, overload
 
 if TYPE_CHECKING:
     from laboneq_applications.workflow import WorkflowResult
-    from laboneq_applications.workflow.task import TaskResult
+    from laboneq_applications.workflow.result import TaskResult
 
 
 class TaskView(Sequence):

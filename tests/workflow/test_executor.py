@@ -1,6 +1,6 @@
 import pytest
 
-from laboneq_applications.workflow.engine.block import Block
+from laboneq_applications.workflow.blocks.block import Block
 from laboneq_applications.workflow.exceptions import WorkflowError
 from laboneq_applications.workflow.executor import ExecutorState
 from laboneq_applications.workflow.reference import Reference

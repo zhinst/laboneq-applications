@@ -1,24 +1,20 @@
-"""A workflow graph."""
+"""Block for workflows."""
 
 from __future__ import annotations
 
 from inspect import signature
-from typing import TYPE_CHECKING, Callable, cast
+from typing import TYPE_CHECKING, Callable
 
 from laboneq_applications.core import now
-from laboneq_applications.workflow.engine.block import Block, TaskBlock
-from laboneq_applications.workflow.executor import ExecutionStatus
-from laboneq_applications.workflow.options import (
-    WorkflowOptions,
-)
-from laboneq_applications.workflow.options_parser import (
-    get_and_validate_param_type,
-)
+from laboneq_applications.workflow.blocks.block import Block
+from laboneq_applications.workflow.blocks.task_block import TaskBlock
+from laboneq_applications.workflow.executor import ExecutionStatus, ExecutorState
+from laboneq_applications.workflow.options import WorkflowOptions
+from laboneq_applications.workflow.options_parser import get_and_validate_param_type
 from laboneq_applications.workflow.reference import Reference, notset
 from laboneq_applications.workflow.result import WorkflowResult
 
 if TYPE_CHECKING:
-    from laboneq_applications.workflow.executor import ExecutorState
     from laboneq_applications.workflow.options_base import BaseOptions
 
 
@@ -90,8 +86,13 @@ class WorkflowBlock(Block):
         """Reference to the object."""
         return self._ref
 
-    def set_params(self, executor: ExecutorState, **kwargs) -> None:
-        """Set the initial parameters of the block."""
+    def set_params(self, executor: ExecutorState, **kwargs: object) -> None:
+        """Set the initial parameters of the block.
+
+        Arguments:
+            executor: Active executor.
+            **kwargs: Input parameters of the block.
+        """
         inputs = kwargs
         input_opts = kwargs.get("options")  # Options from input arguments
         # Options might be in a dict
@@ -155,7 +156,9 @@ class WorkflowBlock(Block):
             raise
 
     @classmethod
-    def from_callable(cls, name: str, func: Callable, **kwargs) -> WorkflowBlock:
+    def from_callable(
+        cls, name: str, func: Callable, **kwargs: object
+    ) -> WorkflowBlock:
         """Create the block from a callable.
 
         By default the signature of the function is used to define
@@ -186,69 +189,3 @@ class WorkflowBlock(Block):
         with obj:
             func(**obj.parameters)
         return obj
-
-
-class WorkflowGraph:
-    """Workflow graph.
-
-    A graph contains blocks which defines the flow of the workflow.
-
-    Arguments:
-        root: Root block of the Workflow.
-        name: The name of the workflow.
-    """
-
-    def __init__(self, root: WorkflowBlock) -> None:
-        self._root = root
-
-    @property
-    def name(self) -> str:
-        """Name of the graph."""
-        return self._root.name
-
-    def create_options(self) -> WorkflowOptions:
-        """Create options for the graph."""
-        return self._root.create_options()
-
-    @property
-    def options_type(self) -> type[WorkflowOptions]:
-        """Type of graph options."""
-        return self._root.options_type
-
-    @property
-    def tasks(self) -> list[TaskBlock]:
-        """A flat list of individual tasks within the graph."""
-        return cast(list[TaskBlock], self._root.find(by=TaskBlock, recursive=True))
-
-    @classmethod
-    def from_callable(cls, func: Callable, name: str | None = None) -> WorkflowGraph:
-        """Create the graph from a callable."""
-        return cls(WorkflowBlock.from_callable(name or func.__name__, func))
-
-    def validate_input(self, **kwargs: object) -> None:
-        """Validate input parameters of the graph.
-
-        Raises:
-            TypeError: `options`-parameter is of wrong type.
-        """
-        if "options" in kwargs:
-            opt_param = kwargs["options"]
-            if opt_param is not None and not isinstance(
-                opt_param,
-                (self._root.options_type, dict),
-            ):
-                msg = (
-                    "Workflow input options must be of "
-                    f"type '{self._root.options_type.__name__}', 'dict' or 'None'"
-                )
-                raise TypeError(msg)
-
-    def execute(self, executor: ExecutorState, **kwargs: object) -> None:
-        """Execute the graph.
-
-        Arguments:
-            executor: Block executor.
-            **kwargs: Input parameters of the workflow.
-        """
-        self._root.set_params(executor, **kwargs)
-        self._root.execute(executor)

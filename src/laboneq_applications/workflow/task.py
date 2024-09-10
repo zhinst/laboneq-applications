@@ -1,104 +1,20 @@
-"""Tasks used within workflows."""
+"""Task used within workflows."""
 
 from __future__ import annotations
 
 import inspect
 import textwrap
 from functools import partial, update_wrapper
-from typing import TYPE_CHECKING, Callable, Generic, TypeVar, cast, overload
+from typing import Callable, Generic, TypeVar, cast, overload
 
 from typing_extensions import ParamSpec
 
-from laboneq_applications.workflow import _context
+from laboneq_applications.workflow import _utils
+from laboneq_applications.workflow.blocks import BlockBuilderContext, TaskBlock
 from laboneq_applications.workflow.options_base import BaseOptions
 from laboneq_applications.workflow.options_parser import (
     get_and_validate_param_type,
 )
-
-if TYPE_CHECKING:
-    from datetime import datetime
-
-
-class TaskResult:
-    """Task result.
-
-    The instance holds execution information of an task.
-    """
-
-    def __init__(
-        self,
-        task: task_,
-        output: object,
-        input: dict | None = None,  # noqa: A002
-    ) -> None:
-        self._task = task
-        self._output = output
-        self._input = input or {}
-        self._start_time: datetime | None = None
-        self._end_time: datetime | None = None
-
-    @property
-    def name(self) -> str:
-        """Task name."""
-        return self._task.name
-
-    @property
-    def func(self) -> Callable:
-        """Underlying function."""
-        return self._task.func
-
-    @property
-    def src(self) -> str:
-        """Source code of the task."""
-        return self._task.src
-
-    @property
-    def output(self) -> object:
-        """Output of the task."""
-        return self._output
-
-    @property
-    def input(self) -> dict:
-        """Input parameters of the task."""
-        return self._input
-
-    @property
-    def start_time(self) -> datetime | None:
-        """Time when the task has started."""
-        return self._start_time
-
-    @property
-    def end_time(self) -> datetime | None:
-        """Time when the task has ended regularly or failed."""
-        return self._end_time
-
-    def __eq__(self, value: object) -> bool:
-        if not isinstance(value, TaskResult):
-            return NotImplemented
-        return (
-            self._task == value._task
-            and self.output == value.output
-            and self.input == value.input
-        )
-
-    def __repr__(self) -> str:
-        attrs = ", ".join(
-            [
-                f"name={self.name}",
-                f"output={self.output}",
-                f"input={self.input}",
-                f"func={self.func}",
-            ],
-        )
-        return f"TaskResult({attrs})"
-
-    def __str__(self) -> str:
-        return f"TaskResult({self.name})"
-
-    def _repr_pretty_(self, p, cycle):  # noqa: ANN001, ANN202, ARG002
-        # For Notebooks
-        p.text(str(self))
-
 
 T = ParamSpec("T")
 B = TypeVar("B")
@@ -140,10 +56,14 @@ class task_(Generic[T, B]):  # noqa: N801
         return self._name
 
     def __call__(self, *args: T.args, **kwargs: T.kwargs) -> B:  # noqa: D102
-        ctx = _context.TaskExecutorContext.get_active()
-        if ctx is None:
-            return self._func(*args, **kwargs)
-        return cast(B, ctx.execute_task(self, *args, **kwargs))
+        ctx = BlockBuilderContext.get_active()
+        if ctx:
+            block = TaskBlock(
+                task=self, **_utils.create_argument_map(self.func, *args, **kwargs)
+            )
+            ctx.register(block)
+            return cast(B, block.ref)
+        return self._func(*args, **kwargs)
 
     def __repr__(self):
         return f"task(func={self.func}, name={self.name})"

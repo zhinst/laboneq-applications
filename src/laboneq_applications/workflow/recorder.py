@@ -9,8 +9,7 @@ from laboneq_applications.workflow import executor
 
 if TYPE_CHECKING:
     from laboneq_applications.typing import SimpleDict
-    from laboneq_applications.workflow.result import WorkflowResult
-    from laboneq_applications.workflow.task import TaskResult
+    from laboneq_applications.workflow.result import TaskResult, WorkflowResult
 
 
 class Artifact:

@@ -21,7 +21,7 @@ if TYPE_CHECKING:
     from laboneq_applications.typing import SimpleDict
     from laboneq_applications.workflow import Workflow, WorkflowResult
     from laboneq_applications.workflow.recorder import Artifact
-    from laboneq_applications.workflow.task import TaskResult
+    from laboneq_applications.workflow.result import TaskResult
 
 
 def _sanitize_filename(filename: str) -> str:

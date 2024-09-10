@@ -1,8 +1,8 @@
 import pytest
 from IPython.lib.pretty import pretty
 
-from laboneq_applications.workflow.result import WorkflowResult
-from laboneq_applications.workflow.task import TaskResult, task
+from laboneq_applications.workflow.result import TaskResult, WorkflowResult
+from laboneq_applications.workflow.task import task
 from laboneq_applications.workflow.taskview import TaskView
 
 

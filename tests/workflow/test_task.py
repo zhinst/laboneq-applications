@@ -3,10 +3,8 @@ from __future__ import annotations
 import inspect
 import textwrap
 
-from IPython.lib.pretty import pretty
-
 from laboneq_applications.workflow.options_base import BaseOptions
-from laboneq_applications.workflow.task import TaskResult, task
+from laboneq_applications.workflow.task import task
 
 
 class TestTaskDecorator:
@@ -118,66 +116,3 @@ class TestTaskOptions:
         def task_a(options: ProperOptions | None = None): ...
 
         assert task_a._options == ProperOptions
-
-
-class TestTaskResult:
-    @task
-    def task_a():
-        return 1
-
-    @task
-    def task_b():
-        TestTaskResult.task_a()
-        return 2
-
-    def test_name(self):
-        t = TaskResult(self.task_a, 2)
-        assert t.name == "task_a"
-
-    def test_func(self):
-        t = TaskResult(self.task_a, 2)
-        assert t.func == self.task_a.func
-
-    def test_eq(self):
-        e1 = TaskResult(self.task_a, 2)
-        e2 = TaskResult(self.task_a, 2)
-        assert e1 == e2
-
-        e1 = TaskResult(self.task_a, 2)
-        e2 = TaskResult(self.task_b, 2)
-        assert e1 != e2
-
-        e1 = TaskResult(self.task_a, 2)
-        assert e1 != 2
-        assert e1 != "bar"
-
-        assert TaskResult(self.task_a, 1) != TaskResult(self.task_a, 2)
-        assert TaskResult(self.task_a, 1, {"param": 1}) != TaskResult(
-            self.task_a, 1, {"param": 2}
-        )
-
-    def test_repr(self):
-        t = TaskResult(self.task_a, 2)
-        assert (
-            repr(t) == f"TaskResult(name=task_a, output=2, input={{}}, func={t.func})"
-        )
-
-    def test_str(self):
-        t = TaskResult(self.task_a, 2)
-        assert str(t) == "TaskResult(task_a)"
-
-    def test_ipython_pretty(self):
-        t = TaskResult(self.task_a, 2)
-        assert pretty(t) == "TaskResult(task_a)"
-
-    def test_src(self):
-        @task
-        def task_():
-            return 1
-
-        t = TaskResult(task_, 2)
-        assert t.src == textwrap.dedent("""\
-            @task
-            def task_():
-                return 1
-        """)

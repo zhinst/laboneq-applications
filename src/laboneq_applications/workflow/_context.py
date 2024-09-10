@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import abc
 import threading
 from collections import defaultdict
 from contextlib import contextmanager
@@ -8,8 +7,6 @@ from typing import TYPE_CHECKING, ClassVar, Generic, TypeVar
 
 if TYPE_CHECKING:
     from collections.abc import Generator
-
-    from laboneq_applications.workflow.task import task_
 
 
 class _ContextStorage(threading.local):
@@ -55,28 +52,3 @@ class LocalContext(Generic[T]):
             return _contexts.scopes[cls._scope][-1]
         except IndexError:
             return None
-
-
-class TaskExecutor(abc.ABC):
-    """A base class for task executor."""
-
-    @abc.abstractmethod
-    def execute_task(  # noqa: ANN202
-        self,
-        task: task_,
-        *args: object,
-        **kwargs: object,
-    ):
-        """Run a task.
-
-        Arguments:
-            task: The task instance.
-            *args: `task` arguments.
-            **kwargs: `task` keyword arguments.
-        """
-
-
-class TaskExecutorContext(LocalContext[TaskExecutor]):
-    """Context for executing tasks."""
-
-    _scope = "task_executor"
