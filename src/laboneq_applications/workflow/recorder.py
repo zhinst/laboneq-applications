@@ -104,10 +104,31 @@ class ExecutionRecorder(Protocol):
 
 
 class ExecutionRecorderManager(ExecutionRecorder):
-    """A class that manages multiple execution recorders."""
+    """A class that manages multiple execution recorders.
+
+    When an error is recorded via specific methods, a single error is broadcasted only
+    once for each recorder. This means that if an error is recorded multiple times,
+    only the first time is forwarded to the recorders.
+    """
 
     def __init__(self) -> None:
         self._recorders: list[ExecutionRecorder] = []
+
+    def _maybe_error_recorded(self, error: Exception) -> bool:
+        """Check whether the error was already recorded.
+
+        Returns:
+            True: Error was recorded
+            False: Error was not previously recorded, but is now labeled as such.
+        """
+        if not getattr(
+            error,
+            "_is_recorded",
+            False,
+        ):
+            error._is_recorded = True
+            return False
+        return True
 
     def add_recorder(self, recorder: ExecutionRecorder) -> None:
         """Add a recorder to the execution.
@@ -133,8 +154,9 @@ class ExecutionRecorderManager(ExecutionRecorder):
         error: Exception,
     ) -> None:
         """Called when the workflow raises an exception."""
-        for recorder in self._recorders:
-            recorder.on_error(workflow_result, error)
+        if not self._maybe_error_recorded(error):
+            for recorder in self._recorders:
+                recorder.on_error(workflow_result, error)
 
     def on_task_start(
         self,
@@ -155,8 +177,9 @@ class ExecutionRecorderManager(ExecutionRecorder):
         error: Exception,
     ) -> None:
         """Called when a task raises an exception."""
-        for recorder in self._recorders:
-            recorder.on_task_error(task, error)
+        if not self._maybe_error_recorded(error):
+            for recorder in self._recorders:
+                recorder.on_task_error(task, error)
 
     def comment(
         self,

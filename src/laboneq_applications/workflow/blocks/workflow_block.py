@@ -145,14 +145,8 @@ class WorkflowBlock(Block):
         except Exception as error:
             executor.set_block_status(self, ExecutionStatus.FINISHED)
             result._end_time = now()
-            if not getattr(
-                error,
-                "_is_recorded",
-                False,
-            ):  # TODO: better mechanism
-                executor.recorder.on_error(result, error)
+            executor.recorder.on_error(result, error)
             executor.recorder.on_end(result)
-            error._is_recorded = True
             raise
 
     @classmethod

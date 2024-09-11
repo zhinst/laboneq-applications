@@ -74,7 +74,6 @@ class TaskBlock(Block):
         except Exception as error:
             task._end_time = now()
             executor.recorder.on_task_error(task, error)
-            error._is_recorded = True  # TODO: Nicer mechanism
             raise
         finally:
             executor.add_task_result(task)

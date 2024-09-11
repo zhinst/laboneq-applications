@@ -5,6 +5,7 @@ from __future__ import annotations
 import pytest
 
 from laboneq_applications.workflow import comment, save_artifact, workflow
+from laboneq_applications.workflow.recorder import ExecutionRecorderManager
 
 
 class TestComment:
@@ -33,3 +34,34 @@ class TestArtifactSaving:
         assert str(err.value) == (
             "Workflow artifact saving is currently not supported outside of tasks."
         )
+
+
+class MockRecorder:
+    n_error_calls = 0
+
+    def on_error(self, *args, **kwargs):  # noqa: ARG002
+        self.n_error_calls += 1
+
+    def on_task_error(self, *args, **kwargs):  # noqa: ARG002
+        self.n_error_calls += 1
+
+
+class TestExecutionRecorderManager:
+    @pytest.mark.parametrize(
+        ("func"),
+        ["on_error", "on_task_error"],
+    )
+    def test_error_notification(self, func):
+        rec = MockRecorder()
+        recorder = ExecutionRecorderManager()
+        recorder.add_recorder(rec)
+        exc = KeyError()
+        assert rec.n_error_calls == 0
+        getattr(recorder, func)(None, error=exc)
+        assert rec.n_error_calls == 1
+        getattr(recorder, func)(None, error=exc)
+        assert rec.n_error_calls == 1
+
+        exc = IndexError()
+        getattr(recorder, func)(None, error=exc)
+        assert rec.n_error_calls == 2
