@@ -29,6 +29,10 @@ __all__ = [
     # formatter:
     "handles",
     "validation",
+    # core quantum
+    "QuantumOperations",
+    "quantum_operation",
+    "create_pulse",
 ]
 
 from laboneq.dsl.experiment.builtins import (
@@ -53,3 +57,8 @@ from laboneq.simple import pulse_library
 
 from laboneq_applications.core import handles, validation
 from laboneq_applications.core.build_experiment import qubit_experiment
+from laboneq_applications.core.quantum_operations import (
+    QuantumOperations,
+    create_pulse,
+    quantum_operation,
+)

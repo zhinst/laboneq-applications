@@ -9,11 +9,6 @@ from laboneq.dsl.calibration import Oscillator
 from laboneq.dsl.enums import ModulationType
 
 from laboneq_applications import dsl
-from laboneq_applications.core.quantum_operations import (
-    QuantumOperations,
-    create_pulse,
-    quantum_operation,
-)
 
 from .qubit_types import TunableTransmonQubit
 
@@ -26,7 +21,7 @@ if TYPE_CHECKING:
 # TODO: Add rotate_xy gate that performs a rotation about an axis in the xy-plane.
 
 
-class TunableTransmonOperations(QuantumOperations):
+class TunableTransmonOperations(dsl.QuantumOperations):
     """Operations for TunableTransmonQubits."""
 
     QUBIT_TYPES = TunableTransmonQubit
@@ -35,7 +30,7 @@ class TunableTransmonOperations(QuantumOperations):
     _PI = np.pi
     _PI_BY_2 = np.pi / 2
 
-    @quantum_operation
+    @dsl.quantum_operation
     def barrier(self, q: TunableTransmonQubit) -> None:
         """Add a barrier on all the qubit signals.
 
@@ -46,12 +41,12 @@ class TunableTransmonOperations(QuantumOperations):
         Note:
             A barrier returns an empty section that
             reserves all the qubit signals. The
-            signals are reserved via `@quantum_operation` so
+            signals are reserved via `@dsl.quantum_operation` so
             the implementation of this operations is just
             `pass`.
         """
 
-    @quantum_operation
+    @dsl.quantum_operation
     def delay(self, q: TunableTransmonQubit, time: float) -> None:
         """Add a delay on the qubit drive signal.
 
@@ -65,7 +60,7 @@ class TunableTransmonOperations(QuantumOperations):
         # section automatically reserves all lines.
         dsl.delay(q.signals["drive"], time=time)
 
-    @quantum_operation
+    @dsl.quantum_operation
     def set_frequency(
         self,
         q: TunableTransmonQubit,
@@ -153,7 +148,7 @@ class TunableTransmonOperations(QuantumOperations):
             # it does not.
             oscillator.modulation_type = ModulationType.HARDWARE
 
-    @quantum_operation
+    @dsl.quantum_operation
     def set_readout_amplitude(
         self,
         q: TunableTransmonQubit,
@@ -203,7 +198,7 @@ class TunableTransmonOperations(QuantumOperations):
         calibration._set_readout_amplitude = True
         signal_calibration.amplitude = amplitude
 
-    @quantum_operation
+    @dsl.quantum_operation
     def measure(
         self,
         q: TunableTransmonQubit,
@@ -249,7 +244,9 @@ class TunableTransmonOperations(QuantumOperations):
                 qubit's `readout_integration_kernels` are used.
         """
         ro_params = q.readout_parameters()
-        ro_pulse = create_pulse(ro_params["pulse"], readout_pulse, name="readout_pulse")
+        ro_pulse = dsl.create_pulse(
+            ro_params["pulse"], readout_pulse, name="readout_pulse"
+        )
 
         kernels = q.get_integration_kernels(kernel_pulses)
 
@@ -265,7 +262,7 @@ class TunableTransmonOperations(QuantumOperations):
             reset_delay=None,
         )
 
-    @quantum_operation
+    @dsl.quantum_operation
     def acquire(
         self,
         q: TunableTransmonQubit,
@@ -308,7 +305,7 @@ class TunableTransmonOperations(QuantumOperations):
             length=ro_params["integration_length"],
         )
 
-    @quantum_operation
+    @dsl.quantum_operation
     def prepare_state(
         self,
         q: TunableTransmonQubit,
@@ -352,7 +349,7 @@ class TunableTransmonOperations(QuantumOperations):
         else:
             raise ValueError(f"Only states g, e and f can be prepared, not {state!r}")
 
-    @quantum_operation
+    @dsl.quantum_operation
     def passive_reset(
         self,
         q: TunableTransmonQubit,
@@ -371,7 +368,7 @@ class TunableTransmonOperations(QuantumOperations):
             delay = q.parameters.reset_delay_length
         self.delay.omit_section(q, time=delay)
 
-    @quantum_operation
+    @dsl.quantum_operation
     def rx(
         self,
         q: TunableTransmonQubit,
@@ -427,7 +424,7 @@ class TunableTransmonOperations(QuantumOperations):
         if length is None:
             length = params["length"]
 
-        rx_pulse = create_pulse(params["pulse"], pulse, name="rx_pulse")
+        rx_pulse = dsl.create_pulse(params["pulse"], pulse, name="rx_pulse")
 
         dsl.play(
             q.signals[drive_line],
@@ -437,7 +434,7 @@ class TunableTransmonOperations(QuantumOperations):
             pulse=rx_pulse,
         )
 
-    @quantum_operation
+    @dsl.quantum_operation
     def x90(
         self,
         q: TunableTransmonQubit,
@@ -492,7 +489,7 @@ class TunableTransmonOperations(QuantumOperations):
             pulse=pulse,
         )
 
-    @quantum_operation
+    @dsl.quantum_operation
     def x180(
         self,
         q: TunableTransmonQubit,
@@ -547,7 +544,7 @@ class TunableTransmonOperations(QuantumOperations):
             pulse=pulse,
         )
 
-    @quantum_operation
+    @dsl.quantum_operation
     def ry(
         self,
         q: TunableTransmonQubit,
@@ -603,7 +600,7 @@ class TunableTransmonOperations(QuantumOperations):
         if length is None:
             length = params["length"]
 
-        ry_pulse = create_pulse(params["pulse"], pulse, name="ry_pulse")
+        ry_pulse = dsl.create_pulse(params["pulse"], pulse, name="ry_pulse")
 
         dsl.play(
             q.signals[drive_line],
@@ -613,7 +610,7 @@ class TunableTransmonOperations(QuantumOperations):
             pulse=ry_pulse,
         )
 
-    @quantum_operation
+    @dsl.quantum_operation
     def y90(
         self,
         q: TunableTransmonQubit,
@@ -668,7 +665,7 @@ class TunableTransmonOperations(QuantumOperations):
             pulse=pulse,
         )
 
-    @quantum_operation
+    @dsl.quantum_operation
     def y180(
         self,
         q: TunableTransmonQubit,
@@ -723,7 +720,7 @@ class TunableTransmonOperations(QuantumOperations):
             pulse=pulse,
         )
 
-    @quantum_operation
+    @dsl.quantum_operation
     def rz(
         self,
         q: TunableTransmonQubit,
@@ -749,7 +746,7 @@ class TunableTransmonOperations(QuantumOperations):
             increment_oscillator_phase=angle,
         )
 
-    @quantum_operation
+    @dsl.quantum_operation
     def z90(self, q: TunableTransmonQubit, transition: str | None = None) -> None:
         """Rotate the qubit by 90 degrees about the Z-axis.
 
@@ -764,7 +761,7 @@ class TunableTransmonOperations(QuantumOperations):
         """
         self.rz.omit_section(q, self._PI_BY_2, transition=transition)
 
-    @quantum_operation
+    @dsl.quantum_operation
     def z180(self, q: TunableTransmonQubit, transition: str | None = None) -> None:
         """Rotate the qubit by 180 degrees about the Z-axis.
 
@@ -779,7 +776,7 @@ class TunableTransmonOperations(QuantumOperations):
         """
         self.rz.omit_section(q, self._PI, transition=transition)
 
-    @quantum_operation
+    @dsl.quantum_operation
     def spectroscopy_drive(
         self,
         q: TunableTransmonQubit,
@@ -801,7 +798,7 @@ class TunableTransmonOperations(QuantumOperations):
         drive_line, _ = q.transition_parameters("ge")
         if amplitude is None:
             amplitude = q.parameters.spectroscopy_amplitude
-        spectroscopy_drive = create_pulse(
+        spectroscopy_drive = dsl.create_pulse(
             {
                 "function": "const",
                 "can_compress": True,
@@ -816,7 +813,7 @@ class TunableTransmonOperations(QuantumOperations):
             pulse=spectroscopy_drive,
         )
 
-    @quantum_operation
+    @dsl.quantum_operation
     def ramsey(
         self,
         q: TunableTransmonQubit,
