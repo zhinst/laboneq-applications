@@ -34,6 +34,14 @@ class TestReference:
         expr = obj == other
         assert unwrap(expr, one) is result
 
+    def test_is_comparison(self):
+        ref = Reference(None)
+        x = ref is True
+        assert x is False
+
+        x = ref is False
+        assert x is False
+
     def test_getattr(self):
         class SomeObject:
             def __init__(self, x) -> None:
@@ -95,3 +103,10 @@ class TestReference:
             match="Iterating a workflow Reference is not supported.",
         ):
             iter(ref)
+
+    def test_repr(self):
+        ref = Reference(None)
+        assert repr(ref) == f"Reference(ref=None, default={notset})"
+
+        ref = Reference(None, default=123)
+        assert repr(ref) == "Reference(ref=None, default=123)"

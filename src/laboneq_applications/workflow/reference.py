@@ -54,11 +54,19 @@ class Reference:
     When a workflow graph is run, the references are used to determine the input values
     to the next task from the outputs returned by the earlier tasks.
 
-    The following operations are supported:
+    The following operations are supported
 
-        * __getitem__()
-        * __getattr__()
-        * __eq__()
+    * __getitem__()
+    * __getattr__()
+    * __eq__()
+
+    Notes on specific Python operations
+    ---
+
+    *Equality comparison*
+
+    For equality comparison, especially with booleans, use `==` instead of `is`.
+        Equality with `is` will always return `False`.
 
     Arguments:
         ref: An object this reference points to.
@@ -108,3 +116,6 @@ class Reference:
 
     def __iter__(self):
         raise NotImplementedError("Iterating a workflow Reference is not supported.")
+
+    def __repr__(self):
+        return f"Reference(ref={self._ref}, default={self._default})"
