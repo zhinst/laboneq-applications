@@ -23,7 +23,7 @@ class BaseExperimentOptions(TaskOptions):
     Attributes:
         count:
             The number of repetitions.
-            Default: A common choice in practice, 4096.
+            Default: A common choice in practice, 1024.
         averaging_mode:
             Averaging mode to use for the experiment.
             Default: `AveragingMode.CYCLIC`.
@@ -41,7 +41,7 @@ class BaseExperimentOptions(TaskOptions):
             Default: False.
     """
 
-    count: NonNegativeInt = 4096
+    count: NonNegativeInt = 1024
     acquisition_type: str | AcquisitionType = AcquisitionType.INTEGRATION
     averaging_mode: str | AveragingMode = AveragingMode.CYCLIC
     repetition_mode: str | RepetitionMode = RepetitionMode.FASTEST

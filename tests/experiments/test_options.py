@@ -9,7 +9,7 @@ from laboneq_applications.experiments.options import (
 class TestBaseExperimentOptions:
     def test_base_options(self):
         opt = BaseExperimentOptions()
-        assert opt.count == 4096
+        assert opt.count == 1024
         assert opt.acquisition_type == AcquisitionType.INTEGRATION
         assert opt.averaging_mode == AveragingMode.CYCLIC
         assert opt.repetition_mode == RepetitionMode.FASTEST
