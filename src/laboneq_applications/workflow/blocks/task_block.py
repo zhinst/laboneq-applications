@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from laboneq_applications.core import now
+from laboneq_applications.core.utils import now, pygmentize
 from laboneq_applications.workflow import _utils
 from laboneq_applications.workflow.blocks.block import Block
 from laboneq_applications.workflow.executor import ExecutionStatus, ExecutorState
@@ -43,6 +43,7 @@ class TaskBlock(Block):
         return self.task._options
 
     @property
+    @pygmentize
     def src(self) -> str:
         """Source code of the task."""
         return self.task.src

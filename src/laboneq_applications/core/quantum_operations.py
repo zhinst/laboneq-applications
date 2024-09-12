@@ -11,6 +11,7 @@ from laboneq.dsl.experiment import builtins
 
 from laboneq_applications import dsl
 from laboneq_applications.core.build_experiment import _qubits_from_args
+from laboneq_applications.core.utils import pygmentize
 
 if TYPE_CHECKING:
     from laboneq.dsl.experiment.pulse import Pulse
@@ -410,6 +411,7 @@ class Operation:
         return self._op
 
     @property
+    @pygmentize
     def src(self) -> str:
         """Return the source code of the underlying operation.
 

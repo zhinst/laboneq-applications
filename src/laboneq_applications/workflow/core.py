@@ -9,6 +9,7 @@ from typing import TYPE_CHECKING, Callable, Generic, cast, overload
 
 from typing_extensions import ParamSpec
 
+from laboneq_applications.core.utils import pygmentize
 from laboneq_applications.logbook import (
     LogbookStore,
     LoggingStore,
@@ -231,6 +232,7 @@ class WorkflowBuilder(Generic[Parameters]):
                 raise TypeError(msg)
 
     @property
+    @pygmentize
     def src(self) -> str:
         """Source code of the workflow."""
         src = inspect.getsource(self._func)

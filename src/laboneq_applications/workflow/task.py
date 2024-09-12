@@ -9,6 +9,7 @@ from typing import Callable, Generic, TypeVar, cast, overload
 
 from typing_extensions import ParamSpec
 
+from laboneq_applications.core.utils import pygmentize
 from laboneq_applications.workflow import _utils
 from laboneq_applications.workflow.blocks import BlockBuilderContext, TaskBlock
 from laboneq_applications.workflow.options_base import BaseOptions
@@ -40,6 +41,7 @@ class task_(Generic[T, B]):  # noqa: N801
         self._options = get_and_validate_param_type(self._func, "options", BaseOptions)
 
     @property
+    @pygmentize
     def src(self) -> str:
         """Source code of the task."""
         src = inspect.getsource(self._func)

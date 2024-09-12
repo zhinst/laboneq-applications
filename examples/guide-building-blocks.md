@@ -12,12 +12,6 @@ kernelspec:
   name: python3
 ---
 
-To convert this `md` notebook into a standard Jupyter notebook (`ipynb`), use the following command in the command line (in the folder of this notebook):
-
-`jupytext --to ipynb guide-building-blocks.md`
-
-+++
-
 # An Introduction to the Building Blocks of LabOne Q Applications
 
 +++
@@ -219,22 +213,22 @@ qop.rx?
 ```
 
 ```{code-cell} ipython3
-print(qop.rx.src)
+qop.rx.src
 ```
 
 One can write:
 
 * `qop.rx?` to view the documentation as usual, or
-* `print(qop.rx.src)` to easily see how a quantum operation is implemented.
+* `qop.rx.src` to easily see how a quantum operation is implemented.
 
 Take a moment to read the documentation of a few of the other operations and their source, for example:
 
 ```{code-cell} ipython3
-print(qop.x180.src)
+qop.x180.src
 ```
 
 ```{code-cell} ipython3
-print(qop.x90.src)
+qop.x90.src
 ```
 
 Calling a quantum operation by itself produces a LabOne Q section:
@@ -457,7 +451,7 @@ from laboneq_applications.workflow import task
 ```
 
 ```{code-cell} ipython3
-print(create_experiment.src)
+create_experiment.src
 ```
 
 Let's create, compile and run the rabi experiment with some simple input parameters.
@@ -498,7 +492,7 @@ create_experiment?
 
 ```{code-cell} ipython3
 # source code
-print(create_experiment.src)
+create_experiment.src
 ```
 
 ### Writing your own tasks
@@ -625,7 +619,7 @@ from laboneq_applications.qpu_types.tunable_transmon import TunableTransmonOpera
 Inspect the source code of the `amplitude_rabi` `Workflow` to see what tasks it has.
 
 ```{code-cell} ipython3
-print(amplitude_rabi.experiment_workflow.src)
+amplitude_rabi.experiment_workflow.src
 ```
 
 ### Run the experiment
@@ -665,7 +659,7 @@ result = rabi_tb.run()
 Inspect the source code of `create_experiment` to see how the experiment pulse sequence was created.
 
 ```{code-cell} ipython3
-print(result.tasks["create_experiment"].src)
+result.tasks["create_experiment"].src
 ```
 
 Inspect the LabOne Q Experiment object returned by `create_experiment`

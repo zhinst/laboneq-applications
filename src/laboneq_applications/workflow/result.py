@@ -5,6 +5,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import TYPE_CHECKING, Any, Callable
 
+from laboneq_applications.core.utils import pygmentize
 from laboneq_applications.workflow.taskview import TaskView
 
 if TYPE_CHECKING:
@@ -42,6 +43,7 @@ class TaskResult:
         return self._task.func
 
     @property
+    @pygmentize
     def src(self) -> str:
         """Source code of the task."""
         return self._task.src
