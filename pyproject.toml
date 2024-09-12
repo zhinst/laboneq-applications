@@ -33,6 +33,7 @@ classifiers = [
 ]
 dependencies = [
     "typing_extensions",
+    "uncertainties==3.2.2",
     "laboneq",
     "numpy~=1.26.3",  # TODO: Validate for Numpy 2.0
     "scipy",
