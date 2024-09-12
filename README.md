@@ -25,12 +25,17 @@ To this end, `laboneq-applications` contains several elements:
 ### Pre-built experiments
 
 - Amplitude Rabi
+- Ramsey
+- Hahn echo
+- IQ Blob
+- Resonator Spectroscopy
+- T1
 
 ### Quantum operations
 
 A package that defines quantum operations (such as pulses or gates) on a specific qubit.
 
-## How to install and use?
+## How to install and use
 
 The LabOne Q Applications Library is used together and depends on Zurich Instruments' LabOne Q software framework.
 
@@ -40,6 +45,7 @@ The LabOne Q Applications Library is used together and depends on Zurich Instrum
 See: [internal installation](docs/internal/install.md)
 
 ### For the developer
+
 You can either clone or fork the `laboneq-applications` directory and use it as the working directory for your quantum experiments.
 
 <!-- NOTE: Remove when public -->

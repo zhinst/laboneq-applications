@@ -58,7 +58,7 @@ def validate_and_convert_qubits_sweeps(
         A tuple containing the validated qubits and sweep points.
 
     Raises:
-        ValueError if the conditions are not met.
+        ValueError: If the conditions are not met.
 
     """
     if not _is_sequence_of_quantum_elements(qubits):
@@ -95,7 +95,7 @@ def validate_result(result: RunExperimentResults) -> None:
         result: the acquired results
 
     Raises:
-        TypeError if result is not an instance of RunExperimentResults.
+        TypeError: If result is not an instance of RunExperimentResults.
     """
     if not isinstance(result, RunExperimentResults):
         raise TypeError(

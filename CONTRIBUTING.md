@@ -18,12 +18,11 @@ We welcome contributions. This document includes the basics to get you started i
 
 To ensure proper code quality and style, the project runs certain tests before a pull request can be merged into main
 
-The follow tests are executed:
+The following tests are executed:
 
 - Tests
 - Linting
-<!--- TODO: Coverage -->
-<!--- TODO: Typing -->
+- Examples are run in emulated mode
 
 Installing the development requirements:
 

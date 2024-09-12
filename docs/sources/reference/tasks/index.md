@@ -14,3 +14,4 @@ The `run_experiment()` task is used to run an experiment on a quantum processor.
 
 * [compile_experiment](compile_experiment.md)
 * [run_experiment](run_experiment.md)
+* [parameter_updating](parameter_updating.md)

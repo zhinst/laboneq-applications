@@ -1,0 +1,1 @@
+::: laboneq_applications.experiments.resonator_spectroscopy_amplitude

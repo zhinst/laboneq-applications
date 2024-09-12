@@ -41,7 +41,7 @@ class EchoExperimentOptions(TuneupExperimentOptions):
 
     Additional attributes:
         refocus_pulse:
-            String to define the quantum operation in-betweeen the x90 pulses.
+            String to define the quantum operation in-between the x90 pulses.
             Default: "y180".
     """
 
