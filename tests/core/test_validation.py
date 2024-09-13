@@ -18,7 +18,7 @@ class TestValidateAndConvertQubitSweeps:
         [q0] = single_tunable_transmon_platform.qpu.qubits
         qubits, sweeps = validate_and_convert_qubits_sweeps(q0, [1, 2, 3])
         assert qubits == [q0]
-        assert sweeps == [[1, 2, 3]]
+        np.testing.assert_almost_equal(sweeps, [np.array([1, 2, 3])])
 
     def test_single_qubit_with_numpy_array(self, single_tunable_transmon_platform):
         [q0] = single_tunable_transmon_platform.qpu.qubits
@@ -34,7 +34,9 @@ class TestValidateAndConvertQubitSweeps:
             [[1, 2, 3], [4, 5, 6]],
         )
         assert qubits == [q0, q1]
-        assert sweeps == [[1, 2, 3], [4, 5, 6]]
+        np.testing.assert_almost_equal(
+            sweeps, [np.array([1, 2, 3]), np.array([4, 5, 6])]
+        )
 
     def test_sequence_of_qubits_with_numpy_arrays(self, two_tunable_transmon_platform):
         [q0, q1] = two_tunable_transmon_platform.qpu.qubits

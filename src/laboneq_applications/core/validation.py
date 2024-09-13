@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 
+import numpy as np
 from laboneq.dsl.quantum.quantum_element import QuantumElement
 from numpy import ndarray
 
@@ -42,10 +43,12 @@ def validate_and_convert_qubits_sweeps(
 
     Check for the following conditions:
         - qubits must be a QuantumElement or a sequence of QuantumElement.
-        - If a single qubit is passed, the sweep points must be a list of numbers.
+        - If a single qubit is passed, the sweep points must be a list or array of
+            numbers.
         - Length of qubits and sweep points must be the same.
         - All elements of sweep points must be lists of numbers or arrays.
     If single qubit is passed, convert it to a list.
+    If any sweeps are passed as list of numbers, they are converted to arrays.
     If the conditions are met, return the qubits and sweep points.
 
     Args:
@@ -77,14 +80,15 @@ def validate_and_convert_qubits_sweeps(
                 " of numbers.",
             )
         qubits = [qubits]
-        sweep_points = [sweep_points]
+        sweep_points = [np.array(sweep_points)]
     else:
         if len(qubits) != len(sweep_points):
             raise ValueError("Length of qubits and sweep points must be the same.")
-        if not all(_is_sequence_of_numbers_or_nparray(amps) for amps in sweep_points):
+        if not all(_is_sequence_of_numbers_or_nparray(swpts) for swpts in sweep_points):
             raise ValueError(
                 "All elements of sweep points must be lists of numbers.",
             )
+        sweep_points = [np.array(swp) for swp in sweep_points]
     return qubits, sweep_points
 
 
