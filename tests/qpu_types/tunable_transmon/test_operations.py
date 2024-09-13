@@ -377,11 +377,12 @@ class TestTunableTransmonOperations:
 
         @dsl.qubit_experiment
         def exp_set_amplitude(q, amplitudes):
-            with dsl.acquire_loop_rt(count=10):
-                with dsl.sweep(
-                    parameter=SweepParameter(values=amplitudes),
-                ) as amplitude_sweep:
-                    qops.set_readout_amplitude(q, amplitude_sweep)
+            with dsl.sweep(
+                parameter=SweepParameter(values=amplitudes),
+            ) as amplitude_sweep:
+                qops.set_readout_amplitude(q, amplitude_sweep)
+                with dsl.acquire_loop_rt(count=10):
+                    qops.x90(q0)
 
         exp = exp_set_amplitude(q0, amplitudes)
 
