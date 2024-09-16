@@ -164,13 +164,13 @@ def test_update_qubits(two_tunable_transmon_platform):
 
     np.testing.assert_almost_equal(qpu.qubits[0].parameters.ge_drive_amplitude_pi, 0.8)
     np.testing.assert_almost_equal(
-        qpu.qubits[0].parameters.resonance_frequency_ge, 1.6e9
+        qpu.qubits[0].parameters.resonance_frequency_ge, 6.5e9
     )
     np.testing.assert_almost_equal(
         qpu.qubits[1].parameters.ge_drive_amplitude_pi2, 0.41
     )
     np.testing.assert_almost_equal(
-        qpu.qubits[1].parameters.resonance_frequency_ef, 1.71e9
+        qpu.qubits[1].parameters.resonance_frequency_ef, 6.31e9
     )
 
     qubit_parameters = {

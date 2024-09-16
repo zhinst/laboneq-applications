@@ -20,7 +20,7 @@ class TestDemoPlatform:
         assert list(qp.setup.logical_signal_groups) == ["q0"]
 
         assert q0.uid == "q0"
-        assert q0.parameters.drive_lo_frequency == 1.50e9
+        assert q0.parameters.drive_lo_frequency == 6.40e9
 
     def test_two_transmon_qpu(self):
         qp = demo_platform(2)
@@ -36,10 +36,10 @@ class TestDemoPlatform:
         assert list(qp.setup.logical_signal_groups) == ["q0", "q1"]
 
         assert q0.uid == "q0"
-        assert q0.parameters.drive_lo_frequency == 1.50e9
+        assert q0.parameters.drive_lo_frequency == 6.40e9
 
         assert q1.uid == "q1"
-        assert q1.parameters.drive_lo_frequency == 1.50e9
+        assert q1.parameters.drive_lo_frequency == 6.40e9
 
     def test_too_few_qubits(self):
         with pytest.raises(ValueError) as err:

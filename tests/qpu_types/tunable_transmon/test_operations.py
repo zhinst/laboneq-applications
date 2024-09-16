@@ -111,8 +111,8 @@ class TestTunableTransmonOperations:
     @pytest.mark.parametrize(
         ("rf", "freq", "oscillator_freq"),
         [
-            pytest.param(True, 1.6e9, 0.1e9, id="rf-positive"),
-            pytest.param(True, 1.4e9, -0.1e9, id="rf-negative"),
+            pytest.param(True, 6.5e9, 0.1e9, id="rf-positive"),
+            pytest.param(True, 6.3e9, -0.1e9, id="rf-negative"),
             pytest.param(False, 0.1e9, 0.1e9, id="oscillator-positive"),
             pytest.param(False, -0.1e9, -0.1e9, id="oscillator-negative"),
         ],
@@ -167,7 +167,7 @@ class TestTunableTransmonOperations:
         def exp_set_freq(q):
             # set_frequency requires an experiment context to access the calibration
             with dsl.acquire_loop_rt(count=10):
-                qops.set_frequency(q, 1.8e9, transition="ef")
+                qops.set_frequency(q, 6.7e9, transition="ef")
                 qops.x90(q, transition="ef")
 
         exp = exp_set_freq(q0)
@@ -181,7 +181,7 @@ class TestTunableTransmonOperations:
     @pytest.mark.parametrize(
         ("rf", "freq", "oscillator_freq"),
         [
-            pytest.param(True, 2.1e9, 0.1e9, id="rf"),
+            pytest.param(True, 7.1e9, 0.1e9, id="rf"),
             pytest.param(False, 1.5e9, 1.5e9, id="oscillator"),
         ],
     )
@@ -215,13 +215,13 @@ class TestTunableTransmonOperations:
         [
             pytest.param(
                 True,
-                [1.5e9, 1.6e9, 1.7e9],
+                [6.4e9, 6.5e9, 6.6e9],
                 [0.0e9, 0.1e9, 0.2e9],
                 id="rf-positive",
             ),
             pytest.param(
                 True,
-                [1.6e9, 1.4e9, 1.2e9],
+                [6.5e9, 6.3e9, 6.1e9],
                 [0.1e9, -0.1e9, -0.3e9],
                 id="rf-negative",
             ),
@@ -275,13 +275,13 @@ class TestTunableTransmonOperations:
         [
             pytest.param(
                 True,
-                [2.0e9, 2.1e9, 2.2e9],
+                [7.0e9, 7.1e9, 7.2e9],
                 [0.0e9, 0.1e9, 0.2e9],
                 id="rf-positive",
             ),
             pytest.param(
                 True,
-                [2.1e9, 1.9e9, 1.7e9],
+                [7.1e9, 6.9e9, 6.7e9],
                 [0.1e9, -0.1e9, -0.3e9],
                 id="rf-negative",
             ),

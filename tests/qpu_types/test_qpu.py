@@ -94,14 +94,14 @@ class TestQPU:
         assert str(err.value) == "Qubit q10 was not found in the QPU."
 
         # Test raises error qubit parameter not found
-        assert qpu.qubits[0].parameters.resonance_frequency_ge == 1.6e9
-        assert qpu.qubits[1].parameters.resonance_frequency_ge == 1.61e9
+        assert qpu.qubits[0].parameters.resonance_frequency_ge == 6.5e9
+        assert qpu.qubits[1].parameters.resonance_frequency_ge == 6.51e9
         qubit_parameters = {
             "q0": {
-                "resonance_frequency_ge": 6.3e9,
+                "resonance_frequency_ge": 6.0e9,
             },
             "q1": {
-                "resonance_frequency_ge": 6.5e9,
+                "resonance_frequency_ge": 6.1e9,
                 "non-existing": 1,
             },
         }
@@ -110,5 +110,5 @@ class TestQPU:
         assert str(err.value) == (
             "Update parameters do not match the qubit parameters: ['non-existing']."
         )
-        assert qpu.qubits[0].parameters.resonance_frequency_ge == 1.6e9
-        assert qpu.qubits[1].parameters.resonance_frequency_ge == 1.61e9
+        assert qpu.qubits[0].parameters.resonance_frequency_ge == 6.5e9
+        assert qpu.qubits[1].parameters.resonance_frequency_ge == 6.51e9

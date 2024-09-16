@@ -52,8 +52,8 @@ def create_res_spectroscopy_amp_verifier(
 @pytest.mark.parametrize(
     "frequencies",
     [
-        [1.7e9, 2e9, 2.3e9],
-        [1e9, 2e9, 3e9],
+        [6.8e9, 7.1e9, 7.4e9],
+        [6e9, 7e9, 8e9],
     ],
 )
 @pytest.mark.parametrize(

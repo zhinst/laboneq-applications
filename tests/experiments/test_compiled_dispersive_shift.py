@@ -47,8 +47,8 @@ def create_dispers_shift_verifier(
 @pytest.mark.parametrize(
     "frequencies",
     [
-        np.linspace(1.8e9, 2.2e9, 1),
-        np.linspace(1.5e9, 1.7e9, 3),
+        np.linspace(6.8e9, 7.2e9, 1),
+        np.linspace(6.5e9, 6.7e9, 3),
     ],
 )
 @pytest.mark.parametrize(

@@ -43,9 +43,9 @@ def create_qubitspec_verifier(
 @pytest.mark.parametrize(
     "frequencies",
     [
-        np.linspace(1.5e9, 1.7e9, 1),
-        np.linspace(1.5e9, 1.7e9, 6),
-        np.linspace(1.5e9, 1.7e9, 9),
+        np.linspace(6.5e9, 6.7e9, 1),
+        np.linspace(6.5e9, 6.7e9, 6),
+        np.linspace(6.5e9, 6.7e9, 9),
     ],
 )
 @pytest.mark.parametrize(
@@ -166,8 +166,8 @@ class TestQubitSpectroscopySingleQubit:
 @pytest.mark.parametrize(
     "frequencies",
     [
-        [np.linspace(1.5e9, 1.7e9, 1), np.linspace(1.5e9, 1.7e9, 1)],
-        [np.linspace(1.5e9, 1.7e9, 4), np.linspace(1.5e9, 1.7e9, 4)],
+        [np.linspace(6.5e9, 6.7e9, 1), np.linspace(6.5e9, 6.7e9, 1)],
+        [np.linspace(6.5e9, 6.7e9, 4), np.linspace(6.5e9, 6.7e9, 4)],
     ],
 )
 @pytest.mark.parametrize(

@@ -191,11 +191,11 @@ def tunable_transmon_qubits(
             setup.logical_signal_groups[f"q{i}"],
             parameters=TunableTransmonQubitParameters(
                 # A pair of neighbor qubits share the same LO frequency
-                drive_lo_frequency=q_param(i // 2, 1.5, 1e9, dq=0.1),
-                resonance_frequency_ge=q_param(i, 1.6, 1e9),
-                resonance_frequency_ef=q_param(i, 1.7, 1e9),
-                readout_lo_frequency=2e9,
-                readout_resonator_frequency=q_param(i, 2.1, 1e9),
+                drive_lo_frequency=q_param(i // 2, 6.4, 1e9, dq=0.1),
+                resonance_frequency_ge=q_param(i, 6.5, 1e9),
+                resonance_frequency_ef=q_param(i, 6.3, 1e9),
+                readout_lo_frequency=7e9,
+                readout_resonator_frequency=q_param(i, 7.1, 1e9),
                 ge_drive_amplitude_pi=q_param(i, 0.8),
                 ge_drive_amplitude_pi2=q_param(i, 0.4),
                 ge_drive_length=51e-9,
