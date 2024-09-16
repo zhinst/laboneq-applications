@@ -58,7 +58,7 @@ class Workflow(Generic[Parameters]):
     ) -> None:
         self._graph = graph
         self._input = input or {}
-        self._graph.validate_input(**self._input)
+        self._validate_input(**self._input)
         self._recovery = (
             None  # WorkflowRecovery (unused if left as None, set by WorkflowBuilder)
         )
@@ -118,25 +118,25 @@ class Workflow(Generic[Parameters]):
         self._state = None
 
     def _execute(self, state: ExecutorState) -> WorkflowResult:
-        with ExecutorStateContext.scoped(state):
-            try:
-                self._graph.execute(state, **self._input)
-                result = state.get_variable(self._graph._root)
-            except Exception:
-                if self._recovery is not None:
-                    result = state.get_variable(self._graph._root)
-                    self._recovery.results = result
-                raise
-        if state.get_block_status(self._graph._root) == ExecutionStatus.IN_PROGRESS:
+        self._graph.root.set_params(state, **self._input)
+        try:
+            with ExecutorStateContext.scoped(state):
+                self._graph.root.execute(state)
+        except Exception:
+            if self._recovery is not None:
+                result = state.get_variable(self._graph.root)
+                self._recovery.results = result
+            raise
+        if state.get_block_status(self._graph.root) == ExecutionStatus.IN_PROGRESS:
             self._state = state
-        return result
+        return state.get_variable(self._graph.root)
 
     def _validate_run_params(self, until: str | None) -> None:
         """Validate workflow run parameters."""
         if until:
             tasks = {x.name for x in self._graph.tasks}
             wfs = {
-                x.name for x in self._graph._root.find(by=WorkflowBlock, recursive=True)
+                x.name for x in self._graph.root.find(by=WorkflowBlock, recursive=True)
             }
             if until not in tasks and until not in wfs:
                 msg = f"Task or workflow '{until}' " "does not exist in the workflow."
@@ -204,6 +204,24 @@ class Workflow(Generic[Parameters]):
         state.add_recorder(logbook)
         state.settings.run_until = until
         return self._execute(state)
+
+    def _validate_input(self, **kwargs: object) -> None:
+        """Validate input parameters of the graph.
+
+        Raises:
+            TypeError: `options`-parameter is of wrong type.
+        """
+        if "options" in kwargs:
+            opt_param = kwargs["options"]
+            if opt_param is not None and not isinstance(
+                opt_param,
+                (self._graph.root.options_type, dict),
+            ):
+                msg = (
+                    "Workflow input options must be of "
+                    f"type '{self._graph.root.options_type.__name__}', 'dict' or 'None'"
+                )
+                raise TypeError(msg)
 
 
 class WorkflowBuilder(Generic[Parameters]):
