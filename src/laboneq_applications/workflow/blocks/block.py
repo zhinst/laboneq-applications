@@ -24,11 +24,11 @@ class Block(abc.ABC):
             in `Block.body`.
 
     Arguments:
-        **parameters: Input parameters of the block.
+        parameters: Expected input parameters of the block.
     """
 
-    def __init__(self, **parameters: object) -> None:
-        self._parameters = parameters
+    def __init__(self, parameters: dict | None = None) -> None:
+        self._parameters = parameters or {}
         self._body: list[Block] = []
 
     @property

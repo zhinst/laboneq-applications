@@ -11,7 +11,7 @@ if TYPE_CHECKING:
 
 class CustomBlock(Block):
     def __init__(self, **kwargs) -> None:
-        super().__init__(**kwargs)
+        super().__init__(kwargs)
 
     def execute(self, executor: ExecutorState): ...
 

@@ -23,11 +23,11 @@ class TaskBlock(Block):
 
     Arguments:
         task: A task this block contains.
-        **parameters: Input parameters of the task.
+        parameters: Input parameters of the task.
     """
 
-    def __init__(self, task: task_, **parameters: object):
-        super().__init__(**parameters)
+    def __init__(self, task: task_, parameters: dict | None = None):
+        super().__init__(parameters=parameters)
         self.task = task
         # TODO: Should this be by object ID? Still bound to the object
         self._ref = Reference(self)
