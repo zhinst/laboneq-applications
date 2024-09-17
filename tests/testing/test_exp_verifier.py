@@ -172,3 +172,33 @@ class TestExperimentVerifier:
                 end,
                 parameterized_with,
             )
+
+    def test_assert_pulse_pair(self, rabi_exp_verifier):
+        signal = "/logical_signal_groups/q0/drive"
+        rabi_exp_verifier.assert_pulse_pair(
+            signal,
+            [0, 1],
+            start=3.056e-6,
+            end=3.056e-6,
+        )
+
+        signal_drive = "/logical_signal_groups/q0/drive"
+        signal_measure = "/logical_signal_groups/q0/measure"
+        rabi_exp_verifier.assert_pulse_pair(
+            (signal_drive, signal_measure),
+            (0, 0),
+            start=56e-9,
+        )
+
+        rabi_exp_verifier.assert_pulse_pair(
+            (signal_drive, signal_measure),
+            (0, 0),
+            distance=5e-9,
+        )
+
+        with pytest.raises(ValueError, match="Indices must be a tuple of two integers"):
+            rabi_exp_verifier.assert_pulse_pair(
+                (signal_measure, signal_drive),
+                (1, 2, 3),
+                start=56e-9,
+            )
