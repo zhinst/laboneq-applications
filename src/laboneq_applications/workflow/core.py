@@ -26,6 +26,7 @@ from laboneq_applications.workflow.graph import WorkflowGraph
 from laboneq_applications.workflow.options import (
     WorkflowOptions,
 )
+from laboneq_applications.workflow.options_builder import OptionBuilder
 from laboneq_applications.workflow.options_parser import (
     get_and_validate_param_type,
 )
@@ -284,6 +285,8 @@ class WorkflowBuilder(Generic[Parameters]):
         **kwargs: Parameters.kwargs,
     ) -> Workflow[Parameters]:
         active_ctx = BlockBuilderContext.get_active()
+        if isinstance(kwargs.get("options"), OptionBuilder):
+            kwargs["options"] = kwargs["options"].base
         if active_ctx:
             blk = WorkflowBlock.from_callable(
                 self._name,
@@ -299,7 +302,7 @@ class WorkflowBuilder(Generic[Parameters]):
         wf._recovery = self._recovery
         return wf
 
-    def options(self) -> WorkflowOptions:
+    def options(self) -> OptionBuilder:
         """Create default options for the workflow.
 
         The option attribute `tasks` is populated with all the sub-task
@@ -309,7 +312,7 @@ class WorkflowBuilder(Generic[Parameters]):
         for key in inspect.signature(self._func).parameters:
             params[key] = None
         wf = self(**params)
-        return wf._graph.create_options()
+        return OptionBuilder(wf._graph.create_options())
 
 
 @overload
