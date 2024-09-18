@@ -16,7 +16,11 @@ from laboneq_applications.logbook import (
     active_logbook_store,
 )
 from laboneq_applications.workflow import _utils, exceptions
-from laboneq_applications.workflow.blocks import BlockBuilderContext, WorkflowBlock
+from laboneq_applications.workflow.blocks import (
+    BlockBuilderContext,
+    TaskBlock,
+    WorkflowBlock,
+)
 from laboneq_applications.workflow.executor import (
     ExecutionStatus,
     ExecutorState,
@@ -30,6 +34,7 @@ from laboneq_applications.workflow.options_builder import OptionBuilder
 from laboneq_applications.workflow.options_parser import (
     get_and_validate_param_type,
 )
+from laboneq_applications.workflow.visitors import SpecificBlockTypeCollector
 
 if TYPE_CHECKING:
     from laboneq_applications.workflow.result import WorkflowResult
@@ -139,11 +144,10 @@ class Workflow(Generic[Parameters]):
     def _validate_run_params(self, until: str | None) -> None:
         """Validate workflow run parameters."""
         if until:
-            tasks = {x.name for x in self._graph.tasks}
-            wfs = {
-                x.name for x in self._graph.root.find(by=WorkflowBlock, recursive=True)
-            }
-            if until not in tasks and until not in wfs:
+            collector = SpecificBlockTypeCollector(self._graph._root)
+            blocks = collector.collect([WorkflowBlock, TaskBlock])
+            allowed = {x.name for x in blocks[1:]}  # Ignore root workflow block
+            if until not in allowed:
                 msg = f"Task or workflow '{until}' " "does not exist in the workflow."
                 raise ValueError(msg)
 

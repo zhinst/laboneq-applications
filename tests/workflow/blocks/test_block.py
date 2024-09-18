@@ -3,7 +3,6 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from laboneq_applications.workflow.blocks.block import Block
-from laboneq_applications.workflow.blocks.task_block import TaskBlock
 
 if TYPE_CHECKING:
     from laboneq_applications.workflow.executor import ExecutorState
@@ -41,15 +40,3 @@ class TestBlock:
             with b:
                 ...
         assert a.body == [b]
-
-    def test_find(self):
-        a = CustomBlock()
-        b = CustomBlock()
-        c = CustomBlock()
-        a.extend(b)
-        b.extend(c)
-
-        assert a.find(CustomBlock) == [b]
-        assert a.find(CustomBlock, recursive=True) == [b, c]
-        assert a.find(TaskBlock) == []
-        assert b.find(CustomBlock) == [c]
