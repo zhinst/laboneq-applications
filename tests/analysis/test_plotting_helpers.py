@@ -1,3 +1,5 @@
+import matplotlib as mpl
+import matplotlib.pyplot as plt
 import numpy as np
 import pytest
 
@@ -125,4 +127,17 @@ class TestRawPlotting:
         figures = plt_hlp.plot_raw_complex_data_1d(q0, *result, "xlabel", 1, options)
 
         assert len(figures) == 1
-        assert "q0" in figures
+
+    def test_run_close_figures(self, single_tunable_transmon_platform, result):
+        [q0] = single_tunable_transmon_platform.qpu.qubits
+        options = TuneupAnalysisOptions()
+        options.save_figures = False
+
+        options.close_figures = True
+        figures = plt_hlp.plot_raw_complex_data_1d(q0, *result, "xlabel", 1, options)
+        assert isinstance(figures["q0"], mpl.figure.Figure)
+
+        options.close_figures = False
+        figures = plt_hlp.plot_raw_complex_data_1d(q0, *result, "xlabel", 1, options)
+        assert isinstance(figures["q0"], mpl.figure.Figure)
+        plt.close(figures["q0"])

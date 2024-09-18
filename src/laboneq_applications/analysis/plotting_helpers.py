@@ -101,8 +101,13 @@ def plot_raw_complex_data_1d(
                         transform=ax.transData,
                     )
                     ax.set_xlim(xlims)
+
         if opts.save_figures:
             save_artifact(f"Raw_data_{q.uid}", fig)
+
+        if opts.close_figures:
+            plt.close(fig)
+
         figures[q.uid] = fig
 
     return figures
