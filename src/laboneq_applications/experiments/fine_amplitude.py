@@ -1,9 +1,11 @@
-"""This module defines the error amplification experiment.
+"""This module defines the fine amplitude of x180 through error amplification experiment.
 
 In this experiment, we sweep the number of a x180 pulse on qubit
 in order to determine the fine amplitude of x180 pulse
 
 The error-amplification experiment has the following pulse sequence:
+
+                                           |number of pulses|
     qb0 --- [ prepare transition ] --- [ x180 ] [ x180 ] [ x180 ]--- [ measure ]
     qb1 --- [ prepare transition ] --- [ x180 ] [ x180 ] [ x180 ]--- [ measure ]
 
@@ -36,17 +38,15 @@ if TYPE_CHECKING:
 
 options = TuneUpWorkflowOptions
 
-
 @workflow
 def experiment_workflow(
     session: Session,
     qpu: QPU,
     qubits: Qubits,
     iterations: QubitSweepPoints,
-    multiplex: str = "yes",
     options: TuneUpWorkflowOptions | None = None,
 ) -> None:
-    """The Amplitude Rabi Workflow.
+    """The Fine Amplitude Workflow  .
 
     The workflow consists of the following steps:
 
@@ -62,12 +62,10 @@ def experiment_workflow(
         qubits:
             The qubits to run the experiments on. May be either a single
             qubit or a list of qubits.
-        iterationss:
-            The amplitudes to sweep over for each qubit. If `qubits` is a
-            single qubit, `amplitudes` must be a list of numbers or an array. Otherwise
+        iterations:
+            The number of iterations sweeping over for each qubit. If `qubits` is a
+            single qubit, `iterations` must be a list of numbers or an array. Otherwise
             it must be a list of lists of numbers or arrays.
-        multiplex:
-            Toggle for multiplexed and sequential readout. "yes" for multiplexing,
         options:
             The options for building the workflow.
             In addition to options from [WorkflowOptions], the following
@@ -82,7 +80,6 @@ def experiment_workflow(
         ```python
         options = TuneUpExperimentWorkflowOptions()
         options.create_experiment.count = 10
-        options.create_experiment.transition = "ge"
         qpu = QPU(
             qubits=[TunableTransmonQubit("q0"), TunableTransmonQubit("q1")],
             qop=TunableTransmonOperations(),
@@ -92,9 +89,9 @@ def experiment_workflow(
             session=session,
             qpu=qpu,
             qubits=temp_qubits,
-            amplitudes=[
-                np.linspace(0, 1, 11),
-                np.linspace(0, 0.75, 11),
+            iterations=[
+                np.arange(0, 21, 1),
+                np.arange(0, 21, 1),
             ],
             options=options,
         ).run()
@@ -103,12 +100,10 @@ def experiment_workflow(
     exp = create_experiment(
         qpu,
         qubits,
-        amplitudes=iterations,
-        multiplex= multiplex
+        iterations=iterations,
     )
     compiled_exp = compile_experiment(session, exp)
     _result = run_experiment(session, compiled_exp)
-
 
 
 
@@ -117,12 +112,11 @@ def experiment_workflow(
 def create_experiment(
     qpu: QPU,
     qubits: Qubits,
-    amplitudes: QubitSweepPoints,
-    multiplex: str = "yes",
+    iterations: QubitSweepPoints,
     options: TuneupExperimentOptions | None = None,
 
 ) -> Experiment:
-    """Creates an Amplitude Rabi experiment Workflow.
+    """Creates an Fine Amplitude experiment Workflow.
 
     Arguments:
         qpu:
@@ -130,12 +124,10 @@ def create_experiment(
         qubits:
             The qubits to run the experiments on. May be either a single
             qubit or a list of qubits.
-        amplitudes:
-            The amplitudes to sweep over for each qubit. If `qubits` is a
-            single qubit, `amplitudes` must be a list of numbers or an array. Otherwise
+        iterations:
+            The number of iterations sweeping over for each qubit. If `qubits` is a
+            single qubit, `iterations` must be a list of numbers or an array. Otherwise
             it must be a list of lists of numbers or arrays.
-        multiplex:
-            Toggle for multiplexed and sequential readout. "yes" for multiplexing,
         options:
             The options for building the experiment.
             See [TuneupExperimentOptions] and [BaseExperimentOptions] for
@@ -175,9 +167,9 @@ def create_experiment(
         create_experiment(
             qpu=qpu,
             qubits=temp_qubits,
-            amplitudes=[
-                np.linspace(0, 1, 11),
-                np.linspace(0, 0.75, 11),
+            iterations=[
+                np.arange(0, 21, 1),
+                np.arange(0, 21, 1),
             ],
             options=options,
         )
@@ -185,8 +177,9 @@ def create_experiment(
     """
     # Define the custom options for the experiment
     opts = TuneupExperimentOptions() if options is None else options
-    opts.count = 2**10
-
+    qubits, iterations = dsl.validation.validate_and_convert_qubits_sweeps(
+        qubits, iterations
+    )
     with dsl.acquire_loop_rt(
         count=opts.count,
         averaging_mode=opts.averaging_mode,
@@ -195,14 +188,10 @@ def create_experiment(
         repetition_time=opts.repetition_time,
         reset_oscillator_phase=opts.reset_oscillator_phase,
     ):
-        for q in qubits:
-            _sweep = SweepParameter(f"iter{q.uid}", amplitudes)
-            if multiplex == "yes":
-                with dsl.section():
-                    dsl.reserve(qubits[0].signals["measure"])
-                    dsl.reserve(qubits[1].signals["measure"])
+        for q, q_iterations in zip(qubits, iterations):
+            _sweep = SweepParameter(f"iter_{q.uid}", q_iterations)
             with dsl.sweep(
-                name=f"amps_{q.uid}",
+                name=f"iteration_{q.uid}",
                 parameter=_sweep,
             ):
                 qpu.qop.prepare_state(q, opts.transition[0])
@@ -210,9 +199,18 @@ def create_experiment(
                     for i in _sweep.values:
                         with dsl.case(state = i):
                             for _ in range(i):
-                                qpu.qop.x180(q)
-
+                                qpu.qop.x180(q,transition=opts.transition)
                 qpu.qop.measure(q, handles.result_handle(q.uid))
                 qpu.qop.passive_reset(q)
-
+            if opts.use_cal_traces:
+                with dsl.section(
+                    name=f"cal_{q.uid}",
+                ):
+                    for state in opts.cal_states:
+                        qpu.qop.prepare_state(q, state)
+                        qpu.qop.measure(
+                            q,
+                            dsl.handles.calibration_trace_handle(q.uid, state),
+                        )
+                        qpu.qop.passive_reset(q)
 
