@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING
 from laboneq_applications.workflow._context import LocalContext
 
 if TYPE_CHECKING:
-    from collections.abc import Iterable
+    from collections.abc import Generator, Iterable
 
     from laboneq_applications.workflow.executor import ExecutorState
 
@@ -56,31 +56,9 @@ class Block(abc.ABC):
         else:
             self._body.extend(blocks)
 
-    def find(
-        self,
-        by: type[Block],
-        *,
-        recursive: bool = False,
-    ) -> list[Block]:
-        """Search blocks within this block.
-
-        Arguments:
-            by: Block type to be searched.
-            recursive: Searches recursively and returns a flat list of all
-                the results.
-
-        Returns:
-            List of blocks that matches the search criteria.
-            Empty list if no matches are found.
-        """
-        if not recursive:
-            return [t for t in self.body if isinstance(t, by)]
-        objs = []
-        for x in self.body:
-            if isinstance(x, by):
-                objs.append(x)
-            objs.extend(x.find(by=by, recursive=True))
-        return objs
+    def iter_child_blocks(self) -> Generator[Block]:
+        """Iterate over the children of this block."""
+        yield from self.body
 
     def __enter__(self):
         BlockBuilderContext.enter(WorkflowBlockBuilder())
