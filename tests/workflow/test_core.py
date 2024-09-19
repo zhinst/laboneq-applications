@@ -1491,7 +1491,7 @@ class TestWorkflowGeneratedOptions:
         assert opts == OptionBuilder(
             WorkflowOptions(
                 task_options={
-                    "a_task": TaskOptionsTest(),
+                    "a_task": TaskOptions(),
                     "b_task": BTaskOptions(),
                 }
             )
@@ -1508,7 +1508,7 @@ class TestWorkflowGeneratedOptions:
         assert opts == OptionBuilder(
             WorkflowOptions(
                 task_options={
-                    "a_task": TaskOptionsTest(),
+                    "a_task": TaskOptions(),
                     "b_task": BTaskOptions(),
                 }
             )
@@ -1534,11 +1534,11 @@ class TestWorkflowGeneratedOptions:
                 task_options={
                     "inner": InnerWorkflowOptions(
                         task_options={
-                            "a_task": TaskOptionsTest(),
+                            "a_task": TaskOptions(),
                             "b_task": BTaskOptions(),
                         }
                     ),
-                    "a_task": TaskOptionsTest(),
+                    "a_task": TaskOptions(),
                 }
             )
         )
@@ -1591,7 +1591,7 @@ class TestWorkFlowWithOptions:
         res = wf.run()
         assert res.tasks[0].input == {
             "options": InnerOptions(
-                task_options={"task1": TestOption1(t1=1, shared=321)}
+                task_options={"task1": TestOption1(t1=123, shared=321)}
             )
         }
         assert res.tasks[1].input == {"options": TestOption2(t2=2, shared=321)}
