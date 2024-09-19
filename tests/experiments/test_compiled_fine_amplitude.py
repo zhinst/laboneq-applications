@@ -8,8 +8,8 @@ import pytest
 from laboneq_applications.experiments import (
     fine_amplitude,
 )
-
 from laboneq_applications.testing import CompiledExperimentVerifier
+
 
 def on_system_grid(time, system_grid=8):
     # time_ns is time in ns, system_grid is minimum stepsize in ns
@@ -21,260 +21,164 @@ def on_system_grid(time, system_grid=8):
     return round(time_ns * 1e-9, 12)
 
 
-def create_fine_amplitude_verifier(
-    tunable_transmon_platform,
-    iterations,
-    count,
-    transition, 
-    use_cal_traces,  
-    cal_states,
-):
-    """Create a CompiledExperimentVerifier for the Fine Amplitude experiment."""
-    qubits = tunable_transmon_platform.qpu.qubits
-    if len(qubits) == 1:
-        qubits = qubits[0]
-    session = tunable_transmon_platform.session(do_emulation=True)
-    options = fine_amplitude.options()
-    options.create_experiment.count = count
-    options.create_experiment.transition = transition
-    options.create_experiment.use_cal_traces = use_cal_traces
-    options.create_experiment.cal_states = cal_states
-    options.do_analysis = False  # TODO: fix tests to work with do_analysis=True
-
-    res = fine_amplitude.experiment_workflow(
-        session=session,
-        qubits=qubits,
-        qpu=tunable_transmon_platform.qpu,
-        iterations=iterations,
-        options=options,
-    ).run()
-
-    return CompiledExperimentVerifier(res.tasks["compile_experiment"].output)
-
-
-### Single-Qubit Tests ###
+@pytest.mark.parametrize("iterations", [np.arange(1, 3, 1)])
+@pytest.mark.parametrize("num_qubits", [1, 2])
 @pytest.mark.parametrize(
-    "iterations",
-    [
-        np.arange(0, 2, 1),
-        # np.arange(0, 4, 2),
-        # np.arange(1, 4, 1),
-    ],
-)
-@pytest.mark.parametrize(
-    "count",
-    [2, 5],
-)
-@pytest.mark.parametrize(  
     "transition, cal_states",
-    [("ge","ge"), ("ef","ef")],
+    [("ge", "ge"), ("ef", "ef")],
 )
-@pytest.mark.parametrize( 
-    "use_cal_traces",
-    [True, False],
-)
+class TestFineAmplitudeQubit:
+    """Test for fine-amplitude on a single/two qubit
 
-class TestFineAmplitudeSingleQubit:
-    """Test for fine-amplitude on a single qubit"""
-    def test_pulse_count_drive(
-        self,
-        single_tunable_transmon_platform,
-        iterations,
-        count,
-        transition, 
-        use_cal_traces, 
-        cal_states,
-    ):
-        """Test the number of drive pulses.
+    `two_tunable_transmon_platform` is a pytest fixture that is automatically
+    imported into the test function.
+    """
 
-        `single_tunable_transmon` is a pytest fixture that is automatically
-        imported into the test function.
-        
-        """
-        verifier = create_fine_amplitude_verifier(
-            single_tunable_transmon_platform,
-            iterations,
-            count,
-            transition,
-            use_cal_traces, 
-            cal_states,
+    @pytest.fixture(autouse=True)
+    def _setup(self, two_tunable_transmon_platform):
+        self.platform = two_tunable_transmon_platform
+        self.qpu = self.platform.qpu
+        self.qubits = self.platform.qpu.qubits
+
+    @pytest.fixture(autouse=True)
+    def _set_options(self, transition, cal_states):
+        self.options = fine_amplitude.options()
+        self.options.create_experiment.count = 5  # No need to be parameterized here
+        self.options.create_experiment.transition = transition
+        self.options.create_experiment.cal_states = cal_states
+
+        self.transition = transition
+        self.cal_states = cal_states
+        self.count = self.options.create_experiment.count
+        self.use_cal_traces = self.options.create_experiment.use_cal_traces
+
+    @pytest.fixture(autouse=True)
+    def create_fine_amplitude_verifier(self, iterations, num_qubits):
+        res = fine_amplitude.experiment_workflow(
+            session=self.platform.session(do_emulation=True),
+            qubits=[self.qubits[i] for i in range(num_qubits)],
+            qpu=self.qpu,
+            iterations=[iterations for i in range(num_qubits)],
+            options=self.options,
+        ).run()
+        self.num_qubits = num_qubits
+        self.verifier = CompiledExperimentVerifier(
+            res.tasks["compile_experiment"].output
         )
 
-    
-        # only x180 is applied on the experiment, it will be varied when we do fine_amp on x90
-        # this should be discussed whether putting x90 in the same module or not
+    def test_pulse_count_drive(self, iterations):
+        """Test the number of drive pulses depending on each iteration"""
 
-        if transition == "ge":
-            expected_drive_count_ge = count * np.sum(iterations)
-            expected_drive_count_ef = 0
-        elif transition == "ef":
-            expected_drive_count_ge = count * len(iterations)
-            expected_drive_count_ef = count * np.sum(iterations)
+        if self.transition == "ge":
+            expected_ge = self.count * np.sum(iterations)
+            expected_ef = 0
+        elif self.transition == "ef":
+            expected_ge = self.count * len(iterations)
+            expected_ef = self.count * np.sum(iterations)
 
-        if cal_states == "ge":
-            expected_drive_count_ge += count * int(use_cal_traces)
-        elif cal_states in "ef":
-            expected_drive_count_ge += count * 2 * int(use_cal_traces)
-            expected_drive_count_ef += count * int(use_cal_traces)
+        if self.cal_states == "ge":
+            expected_ge += self.count * int(self.use_cal_traces)
+        elif self.cal_states in "ef":
+            expected_ge += self.count * 2 * int(self.use_cal_traces)
+            expected_ef += self.count * int(self.use_cal_traces)
 
-        verifier.assert_number_of_pulses(
-            "/logical_signal_groups/q0/drive",
-            expected_drive_count_ge,
-        )
-        verifier.assert_number_of_pulses(
-            "/logical_signal_groups/q0/drive_ef",
-            expected_drive_count_ef,
-        )
+        for i in range(self.num_qubits):
+            self.verifier.assert_number_of_pulses(
+                f"/logical_signal_groups/q{i}/drive",
+                expected_ge,
+            )
+            self.verifier.assert_number_of_pulses(
+                f"/logical_signal_groups/q{i}/drive_ef",
+                expected_ef,
+            )
 
-    def test_pulse_count_measure_acquire(
-        self,
-        single_tunable_transmon_platform,
-        iterations,
-        count,
-        transition, 
-        use_cal_traces, 
-        cal_states
-    ):
-        """Test the number of measure and acquire pulses."""
+    def test_pulse_count_measure_acquire(self, iterations):
+        """Test the number of drive pulses depending on each iteration"""
 
-        verifier = create_fine_amplitude_verifier(
-            single_tunable_transmon_platform,
-            iterations,
-            count,
-            transition, 
-            use_cal_traces, 
-            cal_states
-        )
+        expected_measure = self.count * (len(iterations))
+        if self.cal_states in ("ge", "ef"):
+            expected_measure += self.count * 2 * int(self.use_cal_traces)
+        for i in range(self.num_qubits):
+            self.verifier.assert_number_of_pulses(
+                f"/logical_signal_groups/q{i}/measure",
+                expected_measure,
+            )
+            self.verifier.assert_number_of_pulses(
+                f"/logical_signal_groups/q{i}/acquire",
+                expected_measure,
+            )
 
-        expected_measure_count = count * (len(iterations))
-        if cal_states in ("ge", "ef"):
-            expected_measure_count += count * 2 * int(use_cal_traces)
+    def test_pulse_drive(self, iterations):
+        """Test the timing of drive pulses depending on each iteration"""
+        length_ge = 51e-9
+        length_ef = 52e-9
+        length_measure_reset = 2e-6 + 1e-6
 
-        verifier.assert_number_of_pulses(
-            "/logical_signal_groups/q0/measure",
-            expected_measure_count,
-        )
-        verifier.assert_number_of_pulses(
-            "/logical_signal_groups/q0/acquire",
-            expected_measure_count,
-        )
-
-    def test_pulse_drive(
-        self,
-        single_tunable_transmon_platform,
-        iterations,
-        count,
-        transition,  
-        use_cal_traces, 
-        cal_states,
-    ):
-        """Test the properties of drive pulses."""
-        verifier = create_fine_amplitude_verifier(
-            single_tunable_transmon_platform,
-            iterations,
-            count,
-            transition, 
-            use_cal_traces,  
-            cal_states,
-        )
-        # qubits = single_tunable_transmon_platform.qpu.qubits
-        # ge_drive_length = qubits[0].parameters.ge_drive_length
-        ge_drive_length = 51e-9
-
-        if iterations[0] !=0:
+        def total_length_drive(iteration, transition="ge"):
             if transition == "ge":
-                verifier.assert_pulse(
-                    signal="/logical_signal_groups/q0/drive",
-                    index=0,  
-                    start=0e-6,  
-                    end=ge_drive_length,#ge_drive_length*iterations[0],
-                    parameterized_with=[  # empty for fine_amp: pulses are constant
-                    ], 
-                )
+                length = length_ge
             elif transition == "ef":
-                verifier.assert_pulse(
-                    signal="/logical_signal_groups/q0/drive_ef",
-                    index=0,
-                    start=on_system_grid(ge_drive_length),
-                    end=on_system_grid(ge_drive_length)+ge_drive_length,
-                    parameterized_with=[
-                    ], 
+                length = length_ef
+            if iteration > 1:
+                return length * (iteration - 1) + on_system_grid(length)
+            return length * iteration
+
+        def total_length_measure(index):
+            return length_measure_reset * (index)
+
+        time_start = 0
+        for index, iteration in enumerate(iterations):
+            if self.transition == "ge":
+                time_end = total_length_measure(index) + total_length_drive(
+                    iteration, "ge"
                 )
+                self.verifier.assert_pulse(
+                    signal="/logical_signal_groups/q0/drive",
+                    index=index,
+                    start=time_start,
+                    end=time_end,
+                )
+                time_start = on_system_grid(time_end) + length_measure_reset
 
-    def test_pulse_measure(
-        self,
-        single_tunable_transmon_platform,
-        iterations,
-        count,
-        transition,
-        use_cal_traces,
-        cal_states
-    ):
-        """Test the properties of measure pulses.
+            elif self.transition == "ef":
+                time_end = +total_length_measure(index) + total_length_drive(
+                    iteration, "ef"
+                )
+                self.verifier.assert_pulse(
+                    signal="/logical_signal_groups/q0/drive_ef",
+                    index=index,
+                    start=time_start + on_system_grid(length_ge) * iteration,
+                    end=time_end + on_system_grid(length_ge) * iteration,
+                )
+                time_start = on_system_grid(time_end) + length_measure_reset
 
-        Here, we assert the start, end, and the parameterization of the pulses.
-
-        """
-  
-        verifier = create_fine_amplitude_verifier(
-            single_tunable_transmon_platform,
-            iterations,
-            count,
-            transition, 
-            use_cal_traces, 
-            cal_states,
-        )
-        # qubits = single_tunable_transmon_platform.qpu.qubits
-        # ge_drive_length = qubits[0].parameters.ge_drive_length
-        # readout_length = qubits[0].parameters.readout_length
-        # readout_integration_length = qubits[0].parameters.readout_integration_length
-        # readout_integration_delay  = qubits[0].parameters.readout_integration_delay
-        ge_drive_length = 51e-9
+    def test_pulse_measure(self, iterations):
+        """Test the timing of measure pulses depending on each iteration"""
+        length_ge = 51e-9
         readout_length = 2e-6
 
-
         if iterations[0] != 0:
-            measure_start =  on_system_grid(ge_drive_length)
+            measure_start = on_system_grid(length_ge)
             measure_end = measure_start + readout_length
             integration_start = measure_start
             integration_end = measure_end
 
-            if transition == "ef":
-                measure_start += on_system_grid(ge_drive_length)
-                measure_end   += on_system_grid(ge_drive_length)
-                integration_start += on_system_grid(ge_drive_length)
-                integration_end   += on_system_grid(ge_drive_length)
-            
-            verifier.assert_pulse(
-                signal="/logical_signal_groups/q0/measure",
-                index=0,  
-                start=measure_start, 
-                end=measure_end,
-            )
-            verifier.assert_pulse(
-                signal="/logical_signal_groups/q0/acquire",
-                index=0, 
-                start=integration_start, 
-                end=integration_end,  
-            )
+            if self.transition == "ef":
+                measure_start += on_system_grid(length_ge)
+                measure_end += on_system_grid(length_ge)
+                integration_start += on_system_grid(length_ge)
+                integration_end += on_system_grid(length_ge)
 
-
-# @pytest.mark.parametrize(  # For new experiments: replace with relevant name and values
-#     "iterations",
-#     [
-#         [[0,1,2,3], [0,2,4,6]],
-#         [[0.1, 0.2, 0.3, 0.4], [0.2, 0.3, 0.4, 0.5]],
-#     ],
-# )
-# @pytest.mark.parametrize(
-#     "count",
-#     [2, 4],
-# )
-# @pytest.mark.parametrize(  # For new experiments: keep or remove as needed
-#     "transition",
-#     ["ge", "ef"],
-# )
-# @pytest.mark.parametrize(  # For new experiments: keep or remove as needed
-#     "use_cal_traces",
-#     [True, False],
-# )
+            for i in range(self.num_qubits):
+                self.verifier.assert_pulse(
+                    signal=f"/logical_signal_groups/q{i}/measure",
+                    index=0,
+                    start=measure_start,
+                    end=measure_end,
+                )
+                self.verifier.assert_pulse(
+                    signal=f"/logical_signal_groups/q{i}/acquire",
+                    index=0,
+                    start=integration_start,
+                    end=integration_end,
+                )

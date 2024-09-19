@@ -199,6 +199,7 @@ def create_experiment(
                     for i in _sweep.values:
                         with dsl.case(state = i):
                             for _ in range(i):
+                                qpu.qop.barrier(q)
                                 qpu.qop.x180(q,transition=opts.transition)
                 qpu.qop.measure(q, handles.result_handle(q.uid))
                 qpu.qop.passive_reset(q)
