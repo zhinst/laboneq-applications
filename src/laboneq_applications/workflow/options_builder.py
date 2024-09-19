@@ -89,12 +89,14 @@ class OptionInfoList(UserList):
         super().__init__(elements or [])
 
     def __getitem__(self, item: typing.Any) -> OptionInfo | OptionInfoList:  # noqa: ANN401
+        if isinstance(item, slice):
+            return type(self)(self.data[item])
         return self.data[item]
 
     def __call__(self, value: typing.Any) -> None:  # noqa: ANN401
         """Set the value for all options in the list."""
-        for node in self:
-            node(value)
+        for element in self:
+            element(value)
 
     def __str__(self):
         return f"[{', '.join(str(item) for item in self)}]"

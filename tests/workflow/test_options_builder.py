@@ -4,6 +4,7 @@ from laboneq_applications.workflow.options import TaskOptions, WorkflowOptions
 from laboneq_applications.workflow.options_builder import (
     OptionBuilder,
     OptionInfo,
+    OptionInfoList,
     _get_all_fields,
 )
 
@@ -100,6 +101,14 @@ class TestOptionBuilder:
             ),
         }
 
+    def test_set_options_with_slice(self, option_builder):
+        option_builder.shared[1:3](1234)
+        assert option_builder.base.task_options == {
+            "task1": TOpt1(shared=1234),
+            "task2": TOpt2(shared=1234),
+            "nested_wf": NestedOptions(task_options={"task1": TOpt1()}),
+        }
+
     def test_set_top_not_shared(self, option_builder):
         # Set a top level field that is not shared
 
@@ -184,6 +193,51 @@ class TestOptionInfo:
         info2 = OptionInfo("task1", "shared", TOpt1())
         info2(1234)
         assert info1 != info2
+
+
+class TestOptionInfoList:
+    def test_create(self):
+        opts_list = OptionInfoList()
+        assert opts_list == []
+
+        opts_list = OptionInfoList([OptionInfo("task1", "shared", TOpt1())])
+        assert opts_list == [OptionInfo("task1", "shared", TOpt1())]
+
+    def test_str(self):
+        opts_list = OptionInfoList(
+            [
+                OptionInfo("task1", "shared", TOpt1()),
+                OptionInfo("task2", "shared", TOpt1()),
+            ]
+        )
+        assert str(opts_list) == "[(task1,1), (task2,1)]"
+
+    def test_call(self):
+        opts_list = OptionInfoList(
+            [
+                OptionInfo("task1", "shared", TOpt1()),
+                OptionInfo("task2", "shared", TOpt1()),
+            ]
+        )
+        opts_list(1234)
+        assert opts_list[0].opt.shared == 1234
+        assert opts_list[1].opt.shared == 1234
+
+    def test_get(self):
+        opts_list = OptionInfoList(
+            [
+                OptionInfo("task1", "shared", TOpt1()),
+                OptionInfo("task2", "shared", TOpt1()),
+                OptionInfo("task3", "shared", TOpt1()),
+            ]
+        )
+        opts_list[0] = OptionInfo("task1", "shared", TOpt2())
+        opts_list[0:2] = OptionInfoList(
+            [
+                OptionInfo("task1", "shared", TOpt2()),
+                OptionInfo("task2", "shared", TOpt2()),
+            ]
+        )
 
 
 def test_get_all_fields():
