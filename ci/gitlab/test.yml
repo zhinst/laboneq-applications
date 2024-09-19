@@ -47,3 +47,10 @@ test:notebooks:python-3.9:
     - pip install -e .
     - jupytext --to ipynb $(find "examples" -type f -name "*.md" ! -name "*README*")
     - pytest --nbmake examples --nbmake-kernel=python --nbmake-timeout=240 --durations=0
+
+test:docs_notebooks:python-3.9:
+  extends: "test:python-3.9"
+  script:
+    - pip install -r requirements-dev.txt
+    - pip install -e .
+    - pytest --nbmake docs/sources --nbmake-kernel=python --nbmake-timeout=240 --durations=0

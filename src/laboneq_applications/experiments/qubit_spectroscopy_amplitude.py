@@ -18,9 +18,7 @@ from typing import TYPE_CHECKING
 
 from laboneq.simple import Experiment, SweepParameter
 
-from laboneq_applications.core import handles
-from laboneq_applications.core.build_experiment import qubit_experiment
-from laboneq_applications.core.quantum_operations import dsl
+from laboneq_applications import dsl
 from laboneq_applications.core.validation import validate_and_convert_qubits_sweeps
 from laboneq_applications.experiments.options import (
     TuneupExperimentOptions,
@@ -116,7 +114,7 @@ def experiment_workflow(
 
 
 @task
-@qubit_experiment
+@dsl.qubit_experiment
 def create_experiment(
     qpu: QPU,
     qubits: Qubits,
@@ -212,5 +210,5 @@ def create_experiment(
                 ) as frequency:
                     qpu.qop.set_frequency(q, frequency)
                     qpu.qop.spectroscopy_drive(q, amplitude=amplitude)
-                    qpu.qop.measure(q, handles.result_handle(q.uid))
+                    qpu.qop.measure(q, dsl.handles.result_handle(q.uid))
                     qpu.qop.passive_reset(q)

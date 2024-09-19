@@ -18,16 +18,12 @@ from typing import TYPE_CHECKING
 from laboneq.dsl.enums import AcquisitionType
 from laboneq.simple import Experiment, SweepParameter
 
-from laboneq_applications import dsl
+from laboneq_applications import dsl, workflow
 from laboneq_applications.experiments.options import (
     SpectroscopyExperimentOptions,
     SpectroscopyWorkflowOptions,
 )
 from laboneq_applications.tasks import compile_experiment, run_experiment
-from laboneq_applications.workflow import (
-    task,
-    workflow,
-)
 
 if TYPE_CHECKING:
     from laboneq.dsl.quantum.quantum_element import QuantumElement
@@ -39,7 +35,7 @@ if TYPE_CHECKING:
 options = SpectroscopyWorkflowOptions
 
 
-@workflow
+@workflow.workflow
 def experiment_workflow(
     session: Session,
     qpu: QPU,
@@ -103,7 +99,7 @@ def experiment_workflow(
     _result = run_experiment(session, compiled_exp)
 
 
-@task
+@workflow.task
 @dsl.qubit_experiment
 def create_experiment(
     qpu: QPU,
