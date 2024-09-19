@@ -1,5 +1,5 @@
-"""Tests for the compiled fine_amplitude experiment using the testing utilities
-provided by the LabOne Q Applications Library. in an abstract way
+"""Tests for the compiled fine_amplitude experiment 
+using the testing utilities provided by the LabOne Q Applications Library.
 """
 
 import numpy as np
@@ -67,7 +67,7 @@ class TestFineAmplitudeQubit:
         )
 
     def test_pulse_count_drive(self, iterations):
-        """Test the number of drive pulses depending on each iteration"""
+        """Test the total number of drive pulses with given iterations"""
 
         if self.transition == "ge":
             expected_ge = self.count * np.sum(iterations)
@@ -93,7 +93,7 @@ class TestFineAmplitudeQubit:
             )
 
     def test_pulse_count_measure_acquire(self, iterations):
-        """Test the number of drive pulses depending on each iteration"""
+        """Test the total number of meausre and acquire pulses with given iterations"""
 
         expected_measure = self.count * (len(iterations))
         if self.cal_states in ("ge", "ef"):
@@ -109,7 +109,7 @@ class TestFineAmplitudeQubit:
             )
 
     def test_pulse_drive(self, iterations):
-        """Test the timing of drive pulses depending on each iteration"""
+        """Test the timing of drive pulses at each iteration"""
         length_ge = 51e-9
         length_ef = 52e-9
         length_measure_reset = 2e-6 + 1e-6
@@ -153,7 +153,7 @@ class TestFineAmplitudeQubit:
                 time_start = on_system_grid(time_end) + length_measure_reset
 
     def test_pulse_measure(self, iterations):
-        """Test the timing of measure pulses depending on each iteration"""
+        """Test the timing of measure pulses at each iteration"""
         length_ge = 51e-9
         readout_length = 2e-6
 

@@ -1,9 +1,9 @@
-"""This module defines the fine amplitude of x180 through error amplification experiment.
+"""This module defines the fine amplitude of x180 through error amplification.
 
 In this experiment, we sweep the number of a x180 pulse on qubit
 in order to determine the fine amplitude of x180 pulse
 
-The error-amplification experiment has the following pulse sequence:
+The fine_amplitude experiment has the following pulse sequence:
 
                                            |number of pulses|
     qb0 --- [ prepare transition ] --- [ x180 ] [ x180 ] [ x180 ]--- [ measure ]
