@@ -9,14 +9,23 @@ from typing import Callable
 import pygments
 import pygments.formatters
 import pygments.lexers
+from dateutil.tz import tzlocal
 
 
-def now(timestamp: datetime | None = None) -> datetime:
+def utc_now(timestamp: datetime | None = None) -> datetime:
     """Returns the given timestamp or the current time.
 
     Uses UTC timezone.
     """
     return (timestamp or datetime.now(timezone.utc)).astimezone(timezone.utc)
+
+
+def local_now(timestamp: datetime | None = None) -> datetime:
+    """Returns the given timestamp or the current time.
+
+    Uses local timezone.
+    """
+    return (timestamp or datetime.now(tzlocal())).astimezone(tzlocal())
 
 
 class PygmentedStr(str):

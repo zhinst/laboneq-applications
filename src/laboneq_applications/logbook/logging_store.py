@@ -11,7 +11,7 @@ from rich.console import Console
 from rich.panel import Panel
 from rich.text import Text
 
-from laboneq_applications.core import now
+from laboneq_applications.core import utc_now
 from laboneq_applications.logbook import Logbook, LogbookStore, format_time
 
 if TYPE_CHECKING:
@@ -90,7 +90,7 @@ class LoggingLogbook(Logbook):
             self._logger.info,
             "Workflow %r: execution started at %s",
             workflow_result.name,
-            format_time(now(workflow_result.start_time)),
+            format_time(utc_now(workflow_result.start_time)),
         )
 
     def on_end(self, workflow_result: WorkflowResult) -> None:
@@ -99,7 +99,7 @@ class LoggingLogbook(Logbook):
             self._logger.info,
             "Workflow %r: execution ended at %s",
             workflow_result.name,
-            format_time(now(workflow_result.end_time)),
+            format_time(utc_now(workflow_result.end_time)),
         )
 
     def on_error(self, workflow_result: WorkflowResult, error: Exception) -> None:
@@ -108,7 +108,7 @@ class LoggingLogbook(Logbook):
             self._logger.error,
             "Workflow %r: execution failed at %s with: %r",
             workflow_result.name,
-            format_time(now(workflow_result.end_time)),
+            format_time(utc_now(workflow_result.end_time)),
             error,
         )
 
@@ -118,7 +118,7 @@ class LoggingLogbook(Logbook):
             self._logger.info,
             "Task %r: started at %s",
             task.name,
-            format_time(now(task.start_time)),
+            format_time(utc_now(task.start_time)),
         )
 
     def on_task_end(self, task: TaskResult) -> None:
@@ -127,7 +127,7 @@ class LoggingLogbook(Logbook):
             self._logger.info,
             "Task %r: ended at %s",
             task.name,
-            format_time(now(task.end_time)),
+            format_time(utc_now(task.end_time)),
         )
 
     def on_task_error(
@@ -140,16 +140,22 @@ class LoggingLogbook(Logbook):
             self._logger.error,
             "Task %r: failed at %s with: %r",
             task.name,
-            format_time(now(task.end_time)),
+            format_time(utc_now(task.end_time)),
             error,
         )
 
-    def comment(self, message: str) -> None:
+    def comment(self, message: str, level: int = logging.INFO) -> None:
         """Called to leave a comment."""
         self._log_in_rich_bold(
-            self._logger.info,
+            lambda msg, *args: self._logger.log(level, msg, *args),
             "Comment: %s",
             message,
+        )
+
+    def log(self, level: int, message: str, *args: object) -> None:
+        """Called to leave a log message."""
+        self._log_in_rich_bold(
+            lambda msg, *args: self._logger.log(level, msg, *args), message, *args
         )
 
     def save(self, artifact: Artifact) -> None:
@@ -159,5 +165,5 @@ class LoggingLogbook(Logbook):
             "Artifact: %r of type %r logged at %s",
             artifact.name,
             type(artifact.obj).__name__,
-            format_time(now(artifact.timestamp)),
+            format_time(utc_now(artifact.timestamp)),
         )

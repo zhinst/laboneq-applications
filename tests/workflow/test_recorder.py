@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from laboneq_applications.workflow import comment, save_artifact, workflow
+from laboneq_applications.workflow import comment, log, save_artifact, workflow
 from laboneq_applications.workflow.recorder import ExecutionRecorderManager
 
 
@@ -19,6 +19,18 @@ class TestComment:
 
         assert str(err.value) == (
             "Workflow comments are currently not supported outside of tasks."
+        )
+
+    def test_log_directly_in_workflow(self):
+        @workflow
+        def workflow_with_log():
+            log(10, "Hello!")
+
+        with pytest.raises(RuntimeError) as err:
+            workflow_with_log()
+
+        assert str(err.value) == (
+            "Workflow log messages are currently not supported outside of tasks."
         )
 
 

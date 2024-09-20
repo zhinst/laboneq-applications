@@ -157,10 +157,11 @@ def serialize_matplotlib_figure(
     The remaining options are passed as the `pil_kwargs` argument to `.savefig`.
     """
     options = opener.options()
-    ext = options.pop("format", "png")
+    ext: str = options.pop("format", "png")
+    bbox = options.pop("bbox_inches", "tight")
 
     with opener.open(ext, binary=True) as f:
-        obj.savefig(f, format=ext, pil_kwargs=options)
+        obj.savefig(f, format=ext, bbox_inches=bbox, pil_kwargs=options)
 
 
 @serialize.register

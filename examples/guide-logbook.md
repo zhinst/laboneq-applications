@@ -231,7 +231,7 @@ amplitude_rabi_files = sorted(
 amplitude_rabi_files
 ```
 
-At the moment there is only a single file saved. This is the log of what took place. The log is stored in a format called "JSONL" which means each line of the log is a simple Python dictionary stored as JSON.
+Let us look at the file `log.jsonl`. This is the log of what took place. The log is stored in a format called "JSONL" which means each line of the log is a simple Python dictionary stored as JSON. Larger objects and certain types of data are stored as separate files in a subfolder called `obj` or, for some important data, in the same folder.
 
 Let's open the file and list the logs:
 
@@ -288,6 +288,8 @@ Comment: Activating multi-state discrimination! <sirens blare>
 ...
 Comment: Analysis successful! <cheers>
 ```
+
+In addition to `comment(...)`, the logbook supports a function `log(level: int, message: str, *args: object)` which logs a message at the specified logging level similar to Python's `logging` module. This additional function is useful for logging messages that are not regular user comments, but allow tasks to give feedback about issues which are still important to record.
 
 +++
 
@@ -464,5 +466,12 @@ logs = [
 ]
 logs
 ```
+
+The supported options for saving artifacts depend on the type of artifact. For our matplotlib figure example, the options are forwarded to `matplotlib.pyplot.savefig` and are documented in the [Matplotlib documentation](https://matplotlib.org/stable/api/_as_gen/matplotlib.pyplot.savefig.html), with the following changes to the default values:
+
+* `format` is set to "png" by default
+* `bbox_inches` is set to "tight" by default
+
+In the same way, the options for a `PIL.Image.Image` are forwarded to `PIL.Image.Image.save` and are documented in the [Pillow documentation](https://pillow.readthedocs.io/en/stable/reference/Image.html#PIL.Image.Image.save) with the format defaulting to "PNG". For a `numpy.ndarray` the options are forwarded to `numpy.save` and are documented in the [Numpy documentation](https://numpy.org/doc/stable/reference/generated/numpy.save.html) with `allow_pickle` set to `False` by default.
 
 We're done!
