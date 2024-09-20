@@ -12,7 +12,11 @@ def _notebook_has_outputs(path: Path) -> bool:
     with open(path, encoding="utf-8") as f:
         notebook = json.load(f)
     for cell in notebook["cells"]:
-        if cell["cell_type"] == "code" and cell.get("execution_count") is not None:
+        if (
+            cell["cell_type"] == "code"
+            and cell.get("execution_count") is not None
+            and cell.get("outputs") != []
+        ):
             return True
     return False
 

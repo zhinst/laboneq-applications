@@ -7,9 +7,8 @@ import inspect
 import textwrap
 from typing import TYPE_CHECKING, Callable, ClassVar
 
-from laboneq.dsl.experiment import builtins
+from laboneq.dsl.experiment import builtins, pulse_library
 
-from laboneq_applications import dsl
 from laboneq_applications.core.build_experiment import _qubits_from_args
 from laboneq_applications.core.utils import pygmentize
 
@@ -129,7 +128,7 @@ def create_pulse(
     function = parameters.pop("function")
 
     try:
-        pulse_function = dsl.pulse_library.pulse_factory(function)
+        pulse_function = pulse_library.pulse_factory(function)
     except KeyError as err:
         raise ValueError(f"Unsupported pulse function {function!r}.") from err
 
@@ -139,7 +138,7 @@ def create_pulse(
     pulse_cache = _PulseCache.experiment_or_global_cache()
     pulse = pulse_cache.get(name, function, parameters)
     if pulse is None:
-        pulse = pulse_function(uid=dsl.uid(name), **parameters)
+        pulse = pulse_function(uid=builtins.uid(name), **parameters)
         pulse_cache.store(pulse, name, function, parameters)
 
     return pulse
@@ -382,7 +381,7 @@ class Operation:
         section_name = "_".join([self._op_name] + [q.uid for q in qubits])
 
         if not omit_section:
-            maybe_section = dsl.section(
+            maybe_section = builtins.section(
                 name=section_name,
             )
         else:
@@ -399,7 +398,7 @@ class Operation:
         """Reserve all the signals of a list of qubits."""
         for q in qubits:
             for signal in q.signals.values():
-                dsl.reserve(signal)
+                builtins.reserve(signal)
 
     @property
     def op(self) -> Callable:

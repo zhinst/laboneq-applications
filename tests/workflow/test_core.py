@@ -21,6 +21,7 @@ from laboneq_applications.workflow.blocks.if_block import if_
 from laboneq_applications.workflow.blocks.return_block import return_
 from laboneq_applications.workflow.options import WorkflowOptions
 from laboneq_applications.workflow.options_base import BaseOptions
+from laboneq_applications.workflow.options_builder import OptionBuilder
 from laboneq_applications.workflow.result import TaskResult
 from laboneq_applications.workflow.taskview import TaskView
 
@@ -1487,11 +1488,13 @@ class TestWorkflowGeneratedOptions:
             c_task()
 
         opts = wf_options_provided.options()
-        assert opts == WorkflowOptions(
-            task_options={
-                "a_task": TaskOptionsTest(),
-                "b_task": BTaskOptions(),
-            }
+        assert opts == OptionBuilder(
+            WorkflowOptions(
+                task_options={
+                    "a_task": TaskOptions(),
+                    "b_task": BTaskOptions(),
+                }
+            )
         )
 
         @workflow
@@ -1502,11 +1505,13 @@ class TestWorkflowGeneratedOptions:
             c_task()
 
         opts = wf_options_not_provided.options()
-        assert opts == WorkflowOptions(
-            task_options={
-                "a_task": TaskOptionsTest(),
-                "b_task": BTaskOptions(),
-            }
+        assert opts == OptionBuilder(
+            WorkflowOptions(
+                task_options={
+                    "a_task": TaskOptions(),
+                    "b_task": BTaskOptions(),
+                }
+            )
         )
 
     def test_nested_workflows(self, tasks):
@@ -1524,11 +1529,69 @@ class TestWorkflowGeneratedOptions:
 
         opts = outer.options()
 
-        assert opts == WorkflowOptions(
-            task_options={
-                "inner": InnerWorkflowOptions(
-                    task_options={"a_task": TaskOptionsTest(), "b_task": BTaskOptions()}
-                ),
-                "a_task": TaskOptionsTest(),
-            }
+        assert opts == OptionBuilder(
+            WorkflowOptions(
+                task_options={
+                    "inner": InnerWorkflowOptions(
+                        task_options={
+                            "a_task": TaskOptions(),
+                            "b_task": BTaskOptions(),
+                        }
+                    ),
+                    "a_task": TaskOptions(),
+                }
+            )
         )
+
+
+class TestOption1(TaskOptions):
+    t1: int = 1
+    shared: int = 1
+
+
+class TestOption2(TaskOptions):
+    t2: int = 2
+    shared: int = 2
+
+
+class InnerOptions(WorkflowOptions):
+    inner: int = 3
+
+
+class OuterWorkflowOptions(WorkflowOptions):
+    outer: int = 4
+    shared: int = 4
+
+
+@task
+def task1(options: TestOption1 | None = None): ...
+
+
+@task
+def task2(options: TestOption2 | None = None): ...
+
+
+@workflow
+def inner_workflow(options: InnerOptions | None = None):
+    task1()
+
+
+@workflow
+def outer_workflow(options: OuterWorkflowOptions | None = None):
+    inner_workflow()
+    task2()
+
+
+class TestWorkFlowWithOptions:
+    def test_run_with_right_options(self):
+        opt = outer_workflow.options()
+        opt.t1(123)
+        opt.shared(321)
+        wf = outer_workflow(options=opt)
+        res = wf.run()
+        assert res.tasks[0].input == {
+            "options": InnerOptions(
+                task_options={"task1": TestOption1(t1=123, shared=321)}
+            )
+        }
+        assert res.tasks[1].input == {"options": TestOption2(t2=2, shared=321)}

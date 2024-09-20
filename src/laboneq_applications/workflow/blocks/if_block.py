@@ -23,7 +23,7 @@ class IFExpression(Block):
     """
 
     def __init__(self, condition: Any) -> None:  # noqa: ANN401
-        super().__init__(condition=condition)
+        super().__init__(parameters={"condition": condition})
 
     def execute(self, executor: ExecutorState) -> None:
         """Execute the block."""

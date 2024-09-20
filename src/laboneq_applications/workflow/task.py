@@ -61,7 +61,8 @@ class task_(Generic[T, B]):  # noqa: N801
         ctx = BlockBuilderContext.get_active()
         if ctx:
             block = TaskBlock(
-                task=self, **_utils.create_argument_map(self.func, *args, **kwargs)
+                task=self,
+                parameters=_utils.create_argument_map(self.func, *args, **kwargs),
             )
             ctx.register(block)
             return cast(B, block.ref)

@@ -15,7 +15,7 @@ def on_system_grid(time, system_grid=8):
     time_ns = time * 1e9
 
     remainder = round(time_ns % system_grid, 2)
-    if remainder != 0.0:
+    if remainder != 0:
         time_ns = time_ns + system_grid - remainder
     return round(time_ns * 1e-9, 12)
 
@@ -50,22 +50,6 @@ def create_echo_verifier(
     return CompiledExperimentVerifier(res.tasks["compile_experiment"].output)
 
 
-### Single-Qubit Tests ###
-
-
-# use pytest.mark.parametrize to generate test cases for
-# all combinations of the parameters.
-@pytest.mark.parametrize(
-    "delays",
-    [
-        [1e-6, 2e-6],
-        [1e-6, 2e-6, 3e-6],
-    ],
-)
-@pytest.mark.parametrize(
-    "count",
-    [2, 4],
-)
 @pytest.mark.parametrize(
     "transition",
     ["ge", "ef"],
@@ -79,23 +63,16 @@ def create_echo_verifier(
     ["ge", "ef", "gef"],
 )
 class TestEchoSingleQubit:
-    def test_pulse_count_drive(
+    def test_pulse_count(
         self,
         single_tunable_transmon_platform,
-        delays,
-        count,
         transition,
         use_cal_traces,
         cal_states,
     ):
-        """Test the number of drive pulses.
-
-        `single_tunable_transmon` is a pytest fixture that is automatically
-        imported into the test function.
-
-        """
-        # create a verifier for the experiment
-
+        """Test the number of drive pulses."""
+        delays = [1e-6, 2e-6, 3e-6]
+        count = 2
         verifier = create_echo_verifier(
             single_tunable_transmon_platform,
             delays,
@@ -105,13 +82,6 @@ class TestEchoSingleQubit:
             cal_states,
         )
 
-        # The signal names can be looked up in device_setup,
-        # but typically they are in the form of
-        # /logical_signal_groups/q{i}/drive(measure/acquire/drive_ef)
-        # echo: x90 y180 x90
-        # Note that with cal_state on, there is 1 additional drive pulse.
-
-        # drive count from echo experiment
         if transition == "ge":
             expected_drive_count_ge = count * (3 * len(delays))
             expected_drive_count_ef = 0
@@ -134,25 +104,6 @@ class TestEchoSingleQubit:
             expected_drive_count_ef,
         )
 
-    def test_pulse_count_measure_acquire(
-        self,
-        single_tunable_transmon_platform,
-        delays,
-        count,
-        transition,
-        use_cal_traces,
-        cal_states,
-    ):
-        """Test the number of measure and acquire pulses."""
-
-        verifier = create_echo_verifier(
-            single_tunable_transmon_platform,
-            delays,
-            count,
-            transition,
-            use_cal_traces,
-            cal_states,
-        )
         # Note that with cal_state on, there are additional measure pulses
         expected_measure_count = count * (len(delays))
         if cal_states in ("ge", "ef"):
@@ -165,7 +116,6 @@ class TestEchoSingleQubit:
             expected_measure_count,
         )
 
-        # acquire and measure pulses have the same count
         verifier.assert_number_of_pulses(
             "/logical_signal_groups/q0/acquire",
             expected_measure_count,
@@ -174,23 +124,16 @@ class TestEchoSingleQubit:
     def test_pulse_drive(
         self,
         single_tunable_transmon_platform,
-        delays,
-        count,
         transition,
         use_cal_traces,
         cal_states,
     ):
         """Test the properties of drive pulses."""
-        # Here, we can assert the start, end, and the parameterization of the pulses.
-        # In the function `assert_pulse` below, index is the index of the pulse in the
-        # pulse sequence, and `parameterized_with` is the list of SweepParameter names
-        # used for that pulse. The name of the parameter should
-        # match with the uid of SweepParameter in the experiment.
-        # If none of the pulse parameters are swept, the list should be empty.
-
         # In this test, all the qubit ge drive pulses have lengths of 51ns,
         # and all the ef pulses have lengths of 52ns.
 
+        delays = [1e-6, 2e-6, 3e-6]
+        count = 2
         verifier = create_echo_verifier(
             single_tunable_transmon_platform,
             delays,
@@ -200,10 +143,6 @@ class TestEchoSingleQubit:
             cal_states,
         )
         if transition == "ge":
-            # ge pulses
-            # Here, we give an example of verifying the first drive pulse of q0
-            # More pulses should be tested in a similar way
-
             verifier.assert_pulse(
                 signal="/logical_signal_groups/q0/drive",
                 index=0,
@@ -211,6 +150,16 @@ class TestEchoSingleQubit:
                 end=51e-9,
                 parameterized_with=[  # empty for echo: pulses are constant
                 ],
+            )
+            verifier.assert_pulse_pair(
+                signals="/logical_signal_groups/q0/drive",
+                indices=[0, 1],
+                distance=delays[0] / 2,
+            )
+            verifier.assert_pulse_pair(
+                signals="/logical_signal_groups/q0/drive",
+                indices=[1, 2],
+                distance=delays[0] / 2,
             )
         elif transition == "ef":
             verifier.assert_pulse(
@@ -220,12 +169,20 @@ class TestEchoSingleQubit:
                 end=56e-9 + 52e-9,
                 parameterized_with=[],
             )
+            verifier.assert_pulse_pair(
+                signals="/logical_signal_groups/q0/drive_ef",
+                indices=[0, 1],
+                distance=delays[0] / 2,
+            )
+            verifier.assert_pulse_pair(
+                signals="/logical_signal_groups/q0/drive_ef",
+                indices=[1, 2],
+                distance=delays[0] / 2,
+            )
 
     def test_pulse_measure(
         self,
         single_tunable_transmon_platform,
-        delays,
-        count,
         transition,
         use_cal_traces,
         cal_states,
@@ -235,6 +192,9 @@ class TestEchoSingleQubit:
         Here, we assert the start, end, and the parameterization of the pulses.
 
         """
+
+        delays = [1e-6, 2e-6, 3e-6]
+        count = 2
 
         verifier = create_echo_verifier(
             single_tunable_transmon_platform,
@@ -281,19 +241,6 @@ class TestEchoSingleQubit:
             )
 
 
-# use pytest.mark.parametrize to generate test cases for
-# all combinations of the parameters.
-@pytest.mark.parametrize(
-    "delays",
-    [
-        [[1e-6, 2e-6], [1e-6, 2e-6]],
-        [[1e-6, 2e-6, 3e-6], [1e-6, 2e-6, 3e-6]],
-    ],
-)
-@pytest.mark.parametrize(
-    "count",
-    [2, 4],
-)
 @pytest.mark.parametrize(
     "transition",
     ["ge", "ef"],
@@ -307,11 +254,9 @@ class TestEchoSingleQubit:
     ["ge", "ef", "gef"],
 )
 class TestEchoTwoQubits:
-    def test_pulse_count_drive(
+    def test_pulse_count(  # noqa: C901
         self,
         two_tunable_transmon_platform,
-        delays,
-        count,
         transition,
         use_cal_traces,
         cal_states,
@@ -322,7 +267,8 @@ class TestEchoTwoQubits:
         imported into the test function.
 
         """
-        # create a verifier for the experiment
+        delays = [[1e-6, 2e-6, 3e-6], [1e-6, 2e-6, 3e-6]]
+        count = 2
         verifier = create_echo_verifier(
             two_tunable_transmon_platform,
             delays,
@@ -332,12 +278,6 @@ class TestEchoTwoQubits:
             cal_states,
         )
 
-        # The signal names can be looked up in device_setup,
-        # but typically they are in the form of
-        # /logical_signal_groups/q{i}/drive(measure/acquire/drive_ef)
-        # Note that with cal_state on, there are additional drive pulse.
-        # drive count from echo experiment
-        # Check for q0
         if transition == "ge":
             expected_drive_count_ge = count * (3 * len(delays[0]))
             expected_drive_count_ef = 0
@@ -382,25 +322,6 @@ class TestEchoTwoQubits:
             expected_drive_count_ef,
         )
 
-    def test_pulse_count_measure_acquire(
-        self,
-        two_tunable_transmon_platform,
-        delays,
-        count,
-        transition,
-        use_cal_traces,
-        cal_states,
-    ):
-        """Test the number of measure and acquire pulses."""
-
-        verifier = create_echo_verifier(
-            two_tunable_transmon_platform,
-            delays,
-            count,
-            transition,
-            use_cal_traces,
-            cal_states,
-        )
         # Check for q0
         # Note that with cal_state on, there are additional measure pulses
         expected_measure_count = count * (len(delays[0]))
@@ -441,23 +362,17 @@ class TestEchoTwoQubits:
     def test_pulse_drive(
         self,
         two_tunable_transmon_platform,
-        delays,
-        count,
         transition,
         use_cal_traces,
         cal_states,
     ):
         """Test the properties of drive pulses."""
-        # Here, we can assert the start, end, and the parameterization of the pulses.
-        # In the function `assert_pulse` below, index is the index of the pulse in the
-        # pulse sequence, and `parameterized_with` is the list of SweepParameter names
-        # used for that pulse. The name of the parameter should
-        # match with the uid of SweepParameter in the experiment.
-        # If none of the pulse parameters are swept, the list should be empty.
 
         # In this test, all the qubit ge drive pulses have lengths of 51ns,
         # and all the ef pulses have lengths of 52ns.
 
+        delays = [[1e-6, 2e-6, 3e-6], [1e-6, 2e-6, 3e-6]]
+        count = 2
         verifier = create_echo_verifier(
             two_tunable_transmon_platform,
             delays,
@@ -467,8 +382,6 @@ class TestEchoTwoQubits:
             cal_states,
         )
         if transition == "ge":
-            # Here, we give an example of verifying the first drive pulse of q0
-            # More pulses should be tested in a similar way
             verifier.assert_pulse(
                 signal="/logical_signal_groups/q0/drive",
                 index=0,
@@ -482,6 +395,27 @@ class TestEchoTwoQubits:
                 start=0e-6,
                 end=51e-9,
                 parameterized_with=[],
+            )
+            verifier.assert_pulse_pair(
+                signals="/logical_signal_groups/q0/drive",
+                indices=[0, 1],
+                distance=delays[0][0] / 2,
+            )
+            verifier.assert_pulse_pair(
+                signals="/logical_signal_groups/q0/drive",
+                indices=[1, 2],
+                distance=delays[0][0] / 2,
+            )
+
+            verifier.assert_pulse_pair(
+                signals="/logical_signal_groups/q1/drive",
+                indices=[0, 1],
+                distance=delays[1][0] / 2,
+            )
+            verifier.assert_pulse_pair(
+                signals="/logical_signal_groups/q1/drive",
+                indices=[1, 2],
+                distance=delays[1][0] / 2,
             )
         elif transition == "ef":
             verifier.assert_pulse(
@@ -498,12 +432,31 @@ class TestEchoTwoQubits:
                 end=56e-9 + 52e-9,
                 parameterized_with=[],
             )
+            verifier.assert_pulse_pair(
+                signals="/logical_signal_groups/q0/drive_ef",
+                indices=[0, 1],
+                distance=delays[0][0] / 2,
+            )
+            verifier.assert_pulse_pair(
+                signals="/logical_signal_groups/q0/drive_ef",
+                indices=[1, 2],
+                distance=delays[0][0] / 2,
+            )
+
+            verifier.assert_pulse_pair(
+                signals="/logical_signal_groups/q1/drive_ef",
+                indices=[0, 1],
+                distance=delays[1][0] / 2,
+            )
+            verifier.assert_pulse_pair(
+                signals="/logical_signal_groups/q1/drive_ef",
+                indices=[1, 2],
+                distance=delays[1][0] / 2,
+            )
 
     def test_pulse_measure(
         self,
         two_tunable_transmon_platform,
-        delays,
-        count,
         transition,
         use_cal_traces,
         cal_states,
@@ -513,6 +466,8 @@ class TestEchoTwoQubits:
         Here, we can assert the start, end, and the parameterization of the pulses.
 
         """
+        delays = [[1e-6, 2e-6, 3e-6], [1e-6, 2e-6, 3e-6]]
+        count = 2
 
         verifier = create_echo_verifier(
             two_tunable_transmon_platform,

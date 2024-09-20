@@ -14,3 +14,4 @@ of the page.
 * [Amplitude Rabi](sources/amplitude_rabi.ipynb)
 * [Ramsey inteferometry](sources/ramsey.ipynb)
 * [T1](sources/T1.ipynb)
+* [Raw Time Traces for Optimal Readout Weights](sources/time_traces.ipynb)

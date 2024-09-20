@@ -35,3 +35,11 @@ class WorkflowOptions(BaseOptions):
         # Exclude fields from serialization by default
         exclude: typing.ClassVar[set[str]] = {"logbook"}
         arbitrary_types_allowed = True
+
+    def to_dict(self) -> dict:
+        """Generate a dictionary representation of the options."""
+        data = super().to_dict()
+        data["task_options"] = {
+            key: value.to_dict() for key, value in self.task_options.items()
+        }
+        return data

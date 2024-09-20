@@ -425,8 +425,13 @@ def plot_population(
             handlelength=1.5,
             frameon=False,
         )
+
         if opts.save_figures:
             save_artifact(f"Rabi_{q.uid}", fig)
+
+        if opts.close_figures:
+            plt.close(fig)
+
         figures[q.uid] = fig
 
     return figures

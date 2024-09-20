@@ -1,3 +1,5 @@
+import matplotlib as mpl
+import matplotlib.pyplot as plt
 import numpy as np
 import pytest
 from numpy.testing import assert_almost_equal, assert_array_almost_equal
@@ -133,10 +135,7 @@ class TestRabiAnalysisSingleQubit:
         assert len(result.tasks) == 5
 
         for task in result.tasks:
-            if task.name not in [
-                "validate_and_convert_qubits_sweeps",
-                "extract_qubit_parameters",
-            ]:
+            if task.name in ["calculate_qubit_population", "fit_data"]:
                 assert "q0" in task.output
         assert "new_parameter_values" in result.tasks["extract_qubit_parameters"].output
 
@@ -214,10 +213,7 @@ class TestRabiAnalysisSingleQubit:
         assert len(result.tasks) == 5
 
         for task in result.tasks:
-            if task.name not in [
-                "validate_and_convert_qubits_sweeps",
-                "extract_qubit_parameters",
-            ]:
+            if task.name in ["calculate_qubit_population", "fit_data"]:
                 assert "q0" in task.output
         assert "new_parameter_values" in result.tasks["extract_qubit_parameters"].output
 
@@ -542,10 +538,7 @@ class TestRabiAnalysisTwoQubit:
         assert len(result.tasks) == 5
 
         for task in result.tasks:
-            if task.name not in [
-                "validate_and_convert_qubits_sweeps",
-                "extract_qubit_parameters",
-            ]:
+            if task.name in ["calculate_qubit_population", "fit_data"]:
                 assert "q0" in task.output
                 assert "q1" in task.output
         assert "new_parameter_values" in result.tasks["extract_qubit_parameters"].output
@@ -675,10 +668,7 @@ class TestRabiAnalysisTwoQubit:
         assert len(result.tasks) == 5
 
         for task in result.tasks:
-            if task.name not in [
-                "validate_and_convert_qubits_sweeps",
-                "extract_qubit_parameters",
-            ]:
+            if task.name in ["calculate_qubit_population", "fit_data"]:
                 assert "q0" in task.output
         assert "new_parameter_values" in result.tasks["extract_qubit_parameters"].output
 
@@ -833,3 +823,47 @@ class TestRabiAnalysisTwoQubit:
         assert "plot_population" not in task_names
         assert "fit_data" in task_names
         assert "extract_qubit_parameters" in task_names
+
+    def test_create_and_run_close_figures(
+        self, two_tunable_transmon_platform, results_two_qubit
+    ):
+        qubits = two_tunable_transmon_platform.qpu.qubits
+        options = amplitude_rabi.options()
+
+        for opt in options:
+            if hasattr(opt[1], "close_figures"):
+                opt[1].close_figures = True
+
+        result = amplitude_rabi.analysis_workflow(
+            result=results_two_qubit[0],
+            qubits=qubits,
+            amplitudes=results_two_qubit[1],
+            options=options,
+        ).run()
+
+        assert isinstance(
+            result.tasks["plot_population"].output["q0"], mpl.figure.Figure
+        )
+        assert isinstance(
+            result.tasks["plot_population"].output["q1"], mpl.figure.Figure
+        )
+
+        for opt in options:
+            if hasattr(opt[1], "close_figures"):
+                opt[1].close_figures = False
+
+        result = amplitude_rabi.analysis_workflow(
+            result=results_two_qubit[0],
+            qubits=qubits,
+            amplitudes=results_two_qubit[1],
+            options=options,
+        ).run()
+
+        assert isinstance(
+            result.tasks["plot_population"].output["q0"], mpl.figure.Figure
+        )
+        assert isinstance(
+            result.tasks["plot_population"].output["q1"], mpl.figure.Figure
+        )
+        plt.close(result.tasks["plot_population"].output["q0"])
+        plt.close(result.tasks["plot_population"].output["q1"])

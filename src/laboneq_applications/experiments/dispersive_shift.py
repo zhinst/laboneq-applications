@@ -24,9 +24,7 @@ from typing import TYPE_CHECKING
 from laboneq.dsl.enums import AcquisitionType
 from laboneq.simple import Experiment, SweepParameter
 
-from laboneq_applications.core import handles
-from laboneq_applications.core.build_experiment import qubit_experiment
-from laboneq_applications.core.quantum_operations import dsl
+from laboneq_applications import dsl
 from laboneq_applications.experiments.options import (
     SpectroscopyExperimentOptions,
     SpectroscopyWorkflowOptions,
@@ -121,7 +119,7 @@ def experiment_workflow(
 
 
 @task
-@qubit_experiment
+@dsl.qubit_experiment
 def create_experiment(
     qpu: QPU,
     qubit: QuantumElement,
@@ -210,6 +208,6 @@ def create_experiment(
                 qpu.qop.prepare_state(qubit, state)
                 qpu.qop.measure(
                     qubit,
-                    handles.result_handle(qubit.uid, state),
+                    dsl.handles.result_handle(qubit.uid, state),
                 )
                 qpu.qop.passive_reset(qubit)

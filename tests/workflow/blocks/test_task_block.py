@@ -66,7 +66,8 @@ class TestTaskBlock:
         def addition(x, y):
             return x + y
 
-        block = TaskBlock(addition, x=Reference("x"), y=Reference("y"))
+        params = {"x": Reference("x"), "y": Reference("y")}
+        block = TaskBlock(addition, parameters=params)
         state = ExecutorState()
         result = WorkflowResult("test")
         with state.set_active_workflow_settings(result):

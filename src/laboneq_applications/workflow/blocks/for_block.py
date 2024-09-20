@@ -27,7 +27,7 @@ class ForExpression(Block):
     """
 
     def __init__(self, values: Iterable | Reference) -> None:
-        super().__init__(values=values)
+        super().__init__(parameters={"values": values})
         self._ref = Reference(self)
 
     @property

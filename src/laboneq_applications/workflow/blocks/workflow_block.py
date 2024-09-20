@@ -35,7 +35,7 @@ class WorkflowBlock(Block):
                 params[param] = default
             else:
                 params[param] = Reference((self, param), default=default)
-        super().__init__(**params)
+        super().__init__(parameters=params)
         self._ref = Reference(self)
 
     @property

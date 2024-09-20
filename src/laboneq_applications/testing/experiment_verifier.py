@@ -104,6 +104,7 @@ class CompiledExperimentVerifier:
         index: int,
         start: float | None = None,
         end: float | None = None,
+        length: float | None = None,
         parameterized_with: list[str] | None = None,
         tolerance: float = _TIMING_TOLERANCE,
     ) -> None:
@@ -120,6 +121,9 @@ class CompiledExperimentVerifier:
             end:
                 The expected end time of the pulse.
                 If None, the end time is not checked.
+            length:
+                The expected length of the pulse.
+                If None, the length is not checked.
             parameterized_with:
                 The parameter names that parameterize the pulse.
                 If None, the parameterized_with is not checked.
@@ -142,6 +146,13 @@ class CompiledExperimentVerifier:
                 atol=tolerance,
                 err_msg="End time mismatch",
             )
+        if length is not None:
+            np.testing.assert_allclose(
+                length,
+                pulse.end - pulse.start,
+                atol=tolerance,
+                err_msg="Pulse length mismatch",
+            )
         if (
             parameterized_with is not None
             and pulse.parameterized_with != parameterized_with
@@ -150,6 +161,57 @@ class CompiledExperimentVerifier:
                 f"Parameterized with mismatch, expected {pulse.parameterized_with} "
                 f"got {parameterized_with}",
             )
+
+    def assert_pulse_pair(
+        self,
+        signals: tuple[str, str] | str,
+        indices: tuple[int, int],
+        start: float | None = None,
+        end: float | None = None,
+        distance: float | None = None,
+        tolerance: float = _TIMING_TOLERANCE,
+    ) -> None:
+        """Assert the properties of a pair of pulses played.
+
+        Arguments:
+            signals:
+                The tuple of signals for which the pulse pair is required.
+                If a single signal is provided, the same signal is used for both pulses.
+            indices:
+                The tuple of 0-based indices of pulses.
+            start:
+                The expected start time of the pulse pair.
+                If None, the start time is not checked.
+            end:
+                The expected end time of the pulse pair.
+                If None, the end time is not checked.
+            distance:
+                The difference of the start time of the second pulse
+                and the end time of the first pulse.
+                If None, the difference is not checked.
+            tolerance:
+                The tolerance for the comparison.
+                If not provided, the default tolerance of 1e-12 is used.
+        """
+        if len(indices) != 2:  # noqa: PLR2004
+            raise ValueError("Indices must be a tuple of two integers")
+        if isinstance(signals, str):
+            signals = (signals, signals)
+        signal_0, signal_1 = signals
+        pulse_0 = self.pulse_extractor.get_pulse(signal_0, indices[0])
+        pulse_1 = self.pulse_extractor.get_pulse(signal_1, indices[1])
+
+        if start is not None:
+            actual_start = pulse_1.start - pulse_0.start
+            np.testing.assert_allclose(start, actual_start, atol=tolerance)
+
+        if end is not None:
+            actual_end = pulse_1.end - pulse_0.end
+            np.testing.assert_allclose(end, actual_end, atol=tolerance)
+
+        if distance is not None:
+            actual_distance = pulse_1.start - pulse_0.end
+            np.testing.assert_allclose(distance, actual_distance, atol=tolerance)
 
 
 class _PulseExtractorPSV:

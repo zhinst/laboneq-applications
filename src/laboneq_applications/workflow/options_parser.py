@@ -148,9 +148,7 @@ def get_and_validate_param_type(
                 f"Please use either {compatible_types[0].__name__} | None = None, "
                 f"Optional[{compatible_types[0].__name__}] = None or "
                 f"Union[{compatible_types[0].__name__},None] = None "
-                "to enable this feature. Use any other type if you don't want to use "
-                "this feature but still want pass options manually to the workflow "
-                "and its tasks.",
+                "to enable this feature.",
             )
         return compatible_types[0]
     return None

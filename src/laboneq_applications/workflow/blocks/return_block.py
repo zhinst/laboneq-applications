@@ -19,7 +19,7 @@ class ReturnStatement(Block):
     """
 
     def __init__(self, value: Any) -> None:  # noqa: ANN401
-        super().__init__(value=value)
+        super().__init__(parameters={"value": value})
 
     def execute(self, executor: ExecutorState) -> None:
         """Execute the block."""
