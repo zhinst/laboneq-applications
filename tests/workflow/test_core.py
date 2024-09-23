@@ -326,6 +326,36 @@ class TestWorkflow:
         assert result.name == "test"
         assert result.tasks[0].name == "test2"
 
+    def test_state_reset(self):
+        @workflow
+        def work():
+            addition(1, 1)
+            task(addition, name="test")(1, 2)
+
+        wf = work()
+        assert wf._state is None
+        wf.run()
+        assert wf._state is None
+
+        wf_until = work()
+        wf_until.run(until="addition")
+        assert wf_until._state is not None
+        wf_until.run()
+        assert wf_until._state is None
+
+        @task
+        def error():
+            raise RuntimeError
+
+        @workflow
+        def work_error():
+            error()
+
+        wf_err = work_error()
+        with pytest.raises(RuntimeError):
+            wf_err.run()
+        assert wf_err._state is None
+
 
 class TestMultipleTasks:
     def test_each_call_produces_task(self):

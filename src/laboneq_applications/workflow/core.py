@@ -127,10 +127,14 @@ class Workflow(Generic[Parameters]):
             if self._recovery is not None:
                 result = state.get_variable(self._graph.root)
                 self._recovery.results = result
+                self._reset()
             raise
+        result = state.get_variable(self._graph.root)
         if state.get_block_status(self._graph.root) == ExecutionStatus.IN_PROGRESS:
             self._state = state
-        return state.get_variable(self._graph.root)
+        else:
+            self._reset()
+        return result
 
     def _validate_run_params(self, until: str | None) -> None:
         """Validate workflow run parameters."""
