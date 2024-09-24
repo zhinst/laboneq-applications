@@ -28,6 +28,19 @@ def get_ref(reference: Reference) -> object:
     return reference._ref
 
 
+def are_equal(one: Reference, other: Reference) -> bool:
+    """Check if two references are equal."""
+    if not isinstance(one, Reference) or not isinstance(other, Reference):
+        return NotImplemented
+    return (
+        one._ref == other._ref
+        and one._head == other._head
+        and one._ops == other._ops
+        and one._default == other._default
+        and one._overwrites == other._overwrites
+    )
+
+
 class Reference:
     """A reference class.
 
@@ -87,6 +100,7 @@ class Reference:
         self._head: Reference = self
         # Operations that was done on the reference
         self._ops: list[tuple[Callable, Any]] = []
+        # A list of other references this reference overwrites
         self._overwrites: list[Reference] = []
 
     def _create_child_reference(
@@ -133,8 +147,23 @@ def add_overwrite(one: Reference, other: Reference | object) -> None:
         one._overwrites.append(obj)
 
 
-def resolve_to_value(ref: Reference, states: dict, *, only_ref=False) -> Any:  # noqa: ANN001, ANN401
-    """Resolve reference."""
+def resolve_to_value(ref: Reference, states: dict, *, only_ref: bool = False) -> Any:  # noqa: ANN401
+    """Resolve reference.
+
+    The resolve order is following:
+
+        * Look value from `states`
+        * Iterate over overwritten values and return the first one that
+            exists in `states` or is constant
+
+    Arguments:
+        ref: Root reference
+        states: A mapping of reference to actual values
+        only_ref: Check only the root reference
+
+    Raises:
+        WorkflowError: Value cannot be resolved.
+    """
     if not ref._overwrites or only_ref:
         ref_unwrapped = get_ref(ref)
         try:
@@ -143,9 +172,7 @@ def resolve_to_value(ref: Reference, states: dict, *, only_ref=False) -> Any:  #
             default = get_default(ref)
             if default != notset:
                 return default
-            # Reference was never executed.
-            # TODO: Validate at graph definition time for
-            #       branching statements.
+            # Reference was never executed (e.g. undefined variable).
             raise WorkflowError(
                 f"Result for '{ref_unwrapped}' is not resolved.",
             ) from error
