@@ -17,10 +17,11 @@ from laboneq.simple import AveragingMode, Experiment
 
 from laboneq_applications import dsl
 from laboneq_applications.experiments.options import (
-    BaseExperimentOptions,
+    TuneupExperimentOptions,
+    TuneUpWorkflowOptions,
 )
 from laboneq_applications.tasks import compile_experiment, run_experiment
-from laboneq_applications.workflow import WorkflowOptions, task, workflow
+from laboneq_applications.workflow import task, workflow
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
@@ -31,7 +32,7 @@ if TYPE_CHECKING:
     from laboneq_applications.typing import Qubits
 
 
-class IQBlobExperimentOptions(BaseExperimentOptions):
+class IQBlobExperimentOptions(TuneupExperimentOptions):
     """Base options for the iq_blobs experiment.
 
     Additional attributes:
@@ -46,27 +47,13 @@ class IQBlobExperimentOptions(BaseExperimentOptions):
     use_cal_traces: bool = False
 
 
-class IQBlobsWorkflowOptions(WorkflowOptions):
-    """Option for iq_blobs workflow.
-
-    Attributes:
-        create_experiment (IQBlobExperimentOptions):
-            The options for creating the experiment.
-    """
-
-    create_experiment: IQBlobExperimentOptions = IQBlobExperimentOptions()
-
-
-options = IQBlobsWorkflowOptions
-
-
 @workflow
 def experiment_workflow(
     session: Session,
     qpu: QPU,
     qubits: Qubits,
     states: Sequence[str],
-    options: IQBlobsWorkflowOptions | None = None,
+    options: TuneUpWorkflowOptions | None = None,
 ) -> None:
     """The IQblob Workflow.
 

@@ -33,9 +33,6 @@ if TYPE_CHECKING:
     from laboneq_applications.typing import Qubits, QubitSweepPoints
 
 
-options = TuneUpWorkflowOptions
-
-
 @workflow
 def experiment_workflow(
     session: Session,

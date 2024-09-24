@@ -47,13 +47,14 @@ def create_rabi_verifier(
     if len(qubits) == 1:
         qubits = qubits[0]
     session = tunable_transmon_platform.session(do_emulation=True)
-    options = amplitude_rabi.options()
-    options.create_experiment.count = count
+    options = amplitude_rabi.experiment_workflow.options()
+    options.count(count)
     # For new experiments: use the lines below or remove if not needed, and add
     # new ones for any additional input parameters you might have added
-    options.create_experiment.transition = transition
-    options.create_experiment.use_cal_traces = use_cal_traces
-    options.do_analysis = False  # TODO: fix tests to work with do_analysis=True
+    options.transition(transition)
+    options.use_cal_traces(use_cal_traces)
+    # TODO: fix tests to work with do_analysis=True
+    options.do_analysis(False)
     # Run the experiment workflow
     # For new experiments: use the correct experiment name
     res = amplitude_rabi.experiment_workflow(

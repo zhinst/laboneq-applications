@@ -25,9 +25,10 @@ from laboneq.simple import Experiment, SweepParameter
 from laboneq_applications import dsl
 from laboneq_applications.experiments.options import (
     TuneupExperimentOptions,
+    TuneUpWorkflowOptions,
 )
 from laboneq_applications.tasks import compile_experiment, run_experiment
-from laboneq_applications.workflow import WorkflowOptions, task, workflow
+from laboneq_applications.workflow import task, workflow
 
 if TYPE_CHECKING:
     from laboneq.dsl.session import Session
@@ -48,27 +49,13 @@ class EchoExperimentOptions(TuneupExperimentOptions):
     refocus_qop: str = "y180"
 
 
-class EchoWorkflowOptions(WorkflowOptions):
-    """Option for spectroscopy workflow.
-
-    Attributes:
-        create_experiment (EchoExperimentOptions):
-            The options for creating the experiment.
-    """
-
-    create_experiment: EchoExperimentOptions = EchoExperimentOptions()
-
-
-options = EchoWorkflowOptions
-
-
 @workflow
 def experiment_workflow(
     session: Session,
     qpu: QPU,
     qubits: Qubits,
     delays: QubitSweepPoints,
-    options: EchoWorkflowOptions | None = None,
+    options: TuneUpWorkflowOptions | None = None,
 ) -> None:
     """The Hahn echo Workflow.
 
