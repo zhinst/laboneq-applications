@@ -37,6 +37,9 @@ class IFExpression(Block):
                 block.execute(executor)
             executor.set_block_status(self, ExecutionStatus.FINISHED)
 
+    def __str__(self):
+        return "if_()"
+
 
 @variable_tracker.track
 @contextmanager

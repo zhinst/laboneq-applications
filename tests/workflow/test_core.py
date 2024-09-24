@@ -1049,10 +1049,7 @@ class TestTaskDependencyOutsideOfBlock:
             with if_(x == 1):
                 addition(a, 1)
 
-        error_msg = (
-            "Result for 'TaskBlock(task=task(name=addition), "
-            "parameters={'x': 1, 'y': 1})' is not resolved."
-        )
+        error_msg = "Result for 'task(name=addition)' is not resolved."
         with pytest.raises(
             exceptions.WorkflowError,
             match=re.escape(error_msg),

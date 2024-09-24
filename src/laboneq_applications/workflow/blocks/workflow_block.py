@@ -189,3 +189,6 @@ class WorkflowBlock(Block):
             with obj:
                 func(**obj.parameters)
         return obj
+
+    def __str__(self):
+        return f"workflow(name={self.name})"

@@ -20,6 +20,10 @@ def addition(x, y):
 
 
 class TestForExpression:
+    def test_str(self):
+        block = ForExpression([])
+        assert str(block) == "for_()"
+
     def test_execute(self):
         expr = ForExpression([0, 1])
         block = TaskBlock(addition, parameters={"x": expr.ref, "y": 1})

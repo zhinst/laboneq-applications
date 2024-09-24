@@ -87,3 +87,6 @@ class TaskBlock(Block):
 
     def __repr__(self):
         return f"TaskBlock(task={self.task}, parameters={self.parameters})"
+
+    def __str__(self):
+        return f"task(name={self.name})"

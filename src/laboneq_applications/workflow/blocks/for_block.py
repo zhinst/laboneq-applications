@@ -62,6 +62,9 @@ class ForExpression(Block):
             executor.settings.run_until = run_until
         executor.set_block_status(self, ExecutionStatus.FINISHED)
 
+    def __str__(self):
+        return "for_()"
+
 
 T = TypeVar("T")
 

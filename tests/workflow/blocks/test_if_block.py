@@ -15,6 +15,10 @@ def a_function():
 
 
 class TestIFExpression:
+    def test_str(self):
+        block = IFExpression(False)
+        assert str(block) == "if_()"
+
     @pytest.mark.parametrize(
         ("condition", "states"),
         [

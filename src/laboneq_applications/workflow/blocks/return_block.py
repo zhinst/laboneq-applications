@@ -30,6 +30,9 @@ class ReturnStatement(Block):
         executor.set_block_status(self, ExecutionStatus.FINISHED)
         executor.interrupt()
 
+    def __str__(self):
+        return "return_()"
+
 
 @variable_tracker.track
 def return_(value: Any | None = None) -> None:  # noqa: ANN401

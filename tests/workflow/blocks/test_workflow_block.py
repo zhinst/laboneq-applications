@@ -33,6 +33,10 @@ class TestWorkflowBlock:
         block = WorkflowBlock(name="test")
         assert block.options_type == WorkflowOptions
 
+    def test_str(self):
+        block = WorkflowBlock(name="test")
+        assert str(block) == "workflow(name=test)"
+
     def test_from_callable_defaults(self):
         def work(x, y=5): ...
 
