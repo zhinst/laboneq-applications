@@ -48,16 +48,17 @@ class Workflow(Generic[Parameters]):
     """Workflow for task execution.
 
     Arguments:
-        graph: A workflow graph.
+        root: A root workflow block.
         input: Input parameters of the workflow.
     """
 
     def __init__(
         self,
-        graph: WorkflowGraph,
+        root: WorkflowBlock,
         input: dict | None = None,  # noqa: A002
     ) -> None:
-        self._graph = graph
+        self._root = root
+        self._graph = WorkflowGraph(self._root)
         self._input = input or {}
         self._validate_input(**self._input)
         self._recovery: WorkflowRecovery | None = (
@@ -81,14 +82,22 @@ class Workflow(Generic[Parameters]):
         """
         params = input or {}
         return cls(
-            WorkflowGraph.from_callable(func, name),
-            _utils.create_argument_map(func, **params),
+            WorkflowBlock.from_callable(
+                name or func.__name__,
+                func,
+            ),
+            params,
         )
 
     @property
     def name(self) -> str:
         """Workflow name."""
-        return self._graph.name
+        return self._root.name
+
+    @property
+    def graph(self) -> WorkflowGraph:
+        """Workflow graph object."""
+        return self._graph
 
     @property
     def input(self) -> dict:
@@ -99,9 +108,10 @@ class Workflow(Generic[Parameters]):
         """Return the workflow options passed."""
         options = self._input.get("options", None)
         if options is None:
-            options = self._graph.options_type()
+            # TODO: Replace with create_options() when new options are in
+            options = self._root.options_type()
         elif isinstance(options, dict):
-            options = self._graph.options_type.from_dict(options)
+            options = self._root.options_type.from_dict(options)
         return cast(WorkflowOptions, options)
 
     def _logstore(self, options_logstore: LogbookStore | None) -> LogbookStore:
@@ -118,21 +128,18 @@ class Workflow(Generic[Parameters]):
         self._state = None
 
     def _execute(self, state: executor.ExecutorState) -> WorkflowResult:
-        self._graph.root.set_params(state, **self._input)
+        self._root.set_params(state, **self._input)
         try:
             with executor.ExecutorStateContext.scoped(state):
-                self._graph.root.execute(state)
+                self._root.execute(state)
         except Exception:
             if self._recovery is not None:
-                result = state.get_variable(self._graph.root)
+                result = state.get_variable(self._root)
                 self._recovery.results = result
                 self._reset()
             raise
-        result = state.get_variable(self._graph.root)
-        if (
-            state.get_block_status(self._graph.root)
-            == executor.ExecutionStatus.IN_PROGRESS
-        ):
+        result = state.get_variable(self._root)
+        if state.get_block_status(self._root) == executor.ExecutionStatus.IN_PROGRESS:
             self._state = state
         else:
             self._reset()
@@ -141,7 +148,7 @@ class Workflow(Generic[Parameters]):
     def _validate_run_params(self, until: str | None) -> None:
         """Validate workflow run parameters."""
         if until:
-            collector = SpecificBlockTypeCollector(self._graph._root)
+            collector = SpecificBlockTypeCollector(self._root)
             blocks = collector.collect([WorkflowBlock, TaskBlock])
             allowed = {x.name for x in blocks[1:]}  # Ignore root workflow block
             if until not in allowed:
@@ -222,11 +229,11 @@ class Workflow(Generic[Parameters]):
             opt_param = kwargs["options"]
             if opt_param is not None and not isinstance(
                 opt_param,
-                (self._graph.root.options_type, dict),
+                (self._root.options_type, dict),
             ):
                 msg = (
                     "Workflow input options must be of "
-                    f"type '{self._graph.root.options_type.__name__}', 'dict' or 'None'"
+                    f"type '{self._root.options_type.__name__}', 'dict' or 'None'"
                 )
                 raise TypeError(msg)
 

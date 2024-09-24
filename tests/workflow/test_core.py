@@ -1743,3 +1743,37 @@ class TestWorkFlowWithOptions:
         inner_opt._task_options = {"task1": TestOption1(t1=123, shared=321)}
         assert res.tasks[0].input == {"options": inner_opt}
         assert res.tasks[1].input == {"options": TestOption2(t2=2, shared=321)}
+
+
+class TestDisplayGraph:
+    def test_display_graph(self):
+        @task
+        def a_task(): ...
+
+        @workflow
+        def inner():
+            a_task()
+            with for_([]):
+                a_task()
+            a_task()
+
+        @workflow
+        def outer():
+            a_task()
+            inner()
+            a_task()
+
+        wf = outer()
+        assert (
+            str(wf.graph.tree)
+            == """\
+workflow(name=outer)
+├─ task(name=a_task)
+├─ workflow(name=inner)
+│  ├─ task(name=a_task)
+│  ├─ for_()
+│  │  └─ task(name=a_task)
+│  └─ task(name=a_task)
+└─ task(name=a_task)\
+"""
+        )

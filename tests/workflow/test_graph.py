@@ -1,30 +1,42 @@
 from __future__ import annotations
 
-from laboneq_applications.workflow import WorkflowOptions
-from laboneq_applications.workflow.blocks.workflow_block import WorkflowBlock
+from IPython.lib.pretty import pretty
+
+from laboneq_applications import workflow
+from laboneq_applications.workflow import blocks
 from laboneq_applications.workflow.graph import WorkflowGraph
 
 
 class TestWorkflowGraph:
-    def test_name(self):
-        wf_block = WorkflowBlock(name="test")
-        graph = WorkflowGraph(wf_block)
-        assert graph.name == "test"
+    def test_display_tree(self):
+        # root
+        root = blocks.WorkflowBlock(name="root")
+        root.extend(blocks.TaskBlock(workflow.task(lambda: None, name="top")))
 
-    def test_root(self):
-        wf_block = WorkflowBlock(name="test")
-        graph = WorkflowGraph(wf_block)
-        assert graph.root == wf_block
+        if_ = blocks.IFExpression(None)
+        root.extend(if_)
+        branch = blocks.WorkflowBlock(name="branch")
+        if_.extend(branch)
 
-    def test_options_type(self):
-        wf_block = WorkflowBlock(name="test")
-        graph = WorkflowGraph(wf_block)
-        assert graph.options_type == WorkflowOptions
+        branch.extend(blocks.TaskBlock(workflow.task(lambda: None, name="in_branch")))
+        for_ = blocks.ForExpression([])
+        branch.extend(for_)
+        for_.extend(blocks.TaskBlock(workflow.task(lambda: None, name="in_loop")))
 
-    def test_from_callable(self):
-        def wf_block(): ...
+        root.extend(blocks.TaskBlock(workflow.task(lambda: None, name="bottom")))
+        root.extend(blocks.ReturnStatement(None))
 
-        graph = WorkflowGraph.from_callable(wf_block)
-        assert graph.root.name == "wf_block"
-        graph = WorkflowGraph.from_callable(wf_block, name="test")
-        assert graph.root.name == "test"
+        graph = WorkflowGraph(root)
+        expected = """\
+workflow(name=root)
+├─ task(name=top)
+├─ if_()
+│  └─ workflow(name=branch)
+│     ├─ task(name=in_branch)
+│     └─ for_()
+│        └─ task(name=in_loop)
+├─ task(name=bottom)
+└─ return_()\
+"""
+        assert str(graph.tree) == expected
+        assert pretty(graph.tree) == expected
