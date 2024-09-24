@@ -292,10 +292,9 @@ class TestRabiAnalysisSingleQubit:
         assert len(result.tasks) == 5
 
         assert result.tasks["fit_data"].output == {}
-        assert result.tasks["extract_qubit_parameters"].output == {
-            "old_parameter_values": {"q0": {}},
-            "new_parameter_values": {"q0": {}},
-        }
+        qb_params = result.tasks["extract_qubit_parameters"]
+        assert len(qb_params.output["old_parameter_values"]["q0"]) > 0
+        assert len(qb_params.output["new_parameter_values"]["q0"]) == 0
 
     def test_create_and_run_no_plotting(
         self, single_tunable_transmon_platform, results_single_qubit
@@ -797,10 +796,11 @@ class TestRabiAnalysisTwoQubit:
         assert len(result.tasks) == 5
 
         assert result.tasks["fit_data"].output == {}
-        assert result.tasks["extract_qubit_parameters"].output == {
-            "old_parameter_values": {"q0": {}, "q1": {}},
-            "new_parameter_values": {"q0": {}, "q1": {}},
-        }
+        qb_params = result.tasks["extract_qubit_parameters"]
+        assert len(qb_params.output["old_parameter_values"]["q0"]) > 0
+        assert len(qb_params.output["new_parameter_values"]["q0"]) == 0
+        assert len(qb_params.output["old_parameter_values"]["q1"]) > 0
+        assert len(qb_params.output["new_parameter_values"]["q1"]) == 0
 
     def test_create_and_run_no_plotting(
         self, two_tunable_transmon_platform, results_two_qubit

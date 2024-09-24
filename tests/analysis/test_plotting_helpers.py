@@ -4,7 +4,6 @@ import numpy as np
 import pytest
 
 from laboneq_applications.analysis import plotting_helpers as plt_hlp
-from laboneq_applications.experiments.options import TuneupAnalysisOptions
 from laboneq_applications.tasks.run_experiment import (
     AcquiredResult,
     RunExperimentResults,
@@ -122,7 +121,7 @@ class TestRawPlotting:
         # plot_raw_complex_data_1d contains is a task that contains a call to
         # save_artifact if options.save_figures == True, and save_artifacts
         # can only be run inside a workflow
-        options = TuneupAnalysisOptions()
+        options = plt_hlp.PlotRawDataOptions()
         options.save_figures = False
         figures = plt_hlp.plot_raw_complex_data_1d(q0, *result, "xlabel", 1, options)
 
@@ -130,7 +129,7 @@ class TestRawPlotting:
 
     def test_run_close_figures(self, single_tunable_transmon_platform, result):
         [q0] = single_tunable_transmon_platform.qpu.qubits
-        options = TuneupAnalysisOptions()
+        options = plt_hlp.PlotRawDataOptions()
         options.save_figures = False
 
         options.close_figures = True

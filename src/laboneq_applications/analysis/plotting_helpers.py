@@ -11,7 +11,7 @@ from laboneq_applications.workflow import (
     save_artifact,
     task,
 )
-from laboneq_applications.workflow.options_base import BaseOptions
+from laboneq_applications.workflow.options import TaskOptions
 
 if TYPE_CHECKING:
     from laboneq.simple import Results
@@ -21,6 +21,31 @@ if TYPE_CHECKING:
     from laboneq_applications.typing import Qubits, QubitSweepPoints
 
 
+class PlotRawDataOptions(TaskOptions):
+    """Options for the plot_raw_complex_data_1d taks.
+
+    Attributes:
+        use_cal_traces:
+            Whether to include calibration traces in the experiment.
+            Default: `True`.
+        cal_states:
+            The states to prepare in the calibration traces. Can be any
+            string or tuple made from combining the characters 'g', 'e', 'f'.
+            Default: same as transition
+        save_figures:
+            Whether to save the figures.
+            Default: `True`.
+        close_figures:
+            Whether to close the figures.
+            Default: `True`.
+    """
+
+    use_cal_traces: bool = True
+    cal_states: str | tuple = "ge"
+    save_figures: bool = True
+    close_figures: bool = True
+
+
 @task
 def plot_raw_complex_data_1d(
     qubits: Qubits,
@@ -28,7 +53,7 @@ def plot_raw_complex_data_1d(
     sweep_points: QubitSweepPoints,
     xlabel: str,
     xscaling: float = 1.0,
-    options: BaseOptions | None = None,
+    options: PlotRawDataOptions | None = None,
 ) -> dict[str, dict[str, ArrayLike]]:
     """Creates plots of raw complex data acquired in integration mode.
 
@@ -45,16 +70,13 @@ def plot_raw_complex_data_1d(
         xlabel: x-axis label
         xscaling: value by which to scale the sweep_points
         options:
-            The options for processing the raw data.
-            See [TuneupAnalysisOptions], [TuneupExperimentOptions] and
-            [BaseExperimentOptions] for accepted options.
-            Overwrites the options from [TuneupAnalysisOptions],
-            [TuneupExperimentOptions] and [BaseExperimentOptions].
+            The options for processing the raw data as an instance of
+            [PlotRawDataOptions].
 
     Returns:
         dict with qubit UIDs as keys and the figures for each qubit as keys.
     """
-    opts = BaseOptions() if options is None else options
+    opts = PlotRawDataOptions() if options is None else options
     qubits, sweep_points = validate_and_convert_qubits_sweeps(qubits, sweep_points)
     figures = {}
     for q, swpts in zip(qubits, sweep_points):
@@ -63,7 +85,7 @@ def plot_raw_complex_data_1d(
         fig, axs = plt.subplots(
             nrows=2, figsize=[0.75 * figsize[0], 1.5 * figsize[1]], sharex=True
         )
-        axs[0].set_title(f"Raw_data_{q.uid}")  # add timestamp here
+        axs[0].set_title(f"Raw Data {q.uid}")  # add timestamp here
         axs[1].set_xlabel(xlabel)
 
         # plot real
@@ -76,7 +98,7 @@ def plot_raw_complex_data_1d(
         fig.subplots_adjust(hspace=0.1)
 
         # plot lines at calibration traces
-        if getattr(opts, "use_cal_traces", False):
+        if opts.use_cal_traces:
             for i, ax in enumerate(axs):
                 for cs in opts.cal_states:
                     cal_trace = (

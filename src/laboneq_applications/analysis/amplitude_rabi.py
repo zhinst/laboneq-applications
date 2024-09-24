@@ -76,17 +76,11 @@ def analysis_workflow(
             arrays.
         options:
             The options for building the workflow, passed as an instance of
-                TuneUpAnalysisWorkflowOptions.
+                [TuneUpAnalysisWorkflowOptions].
             In addition to options from [WorkflowOptions], the following
-            custom options are supported:
-                - process_raw_data: The options for creating the experiment as an
-                    instance of TuneupAnalysisOptions.
-                - fit_data: The options for performing a fit, passed as an
-                    instance of TuneupAnalysisOptions.
-                - extract_qubit_parameters: The options for extracting qubit parameters
-                    from the fit, passed as an instance of TuneupAnalysisOptions.
-                - plot_data: The options for plotting, passed as an instance of
-                    TuneupAnalysisOptions.
+            custom options are supported: do_fitting, do_plotting, and the options of
+            the [TuneupAnalysisOptions] class. See the docstring of
+            [TuneUpAnalysisWorkflowOptions] for more details.
 
     Returns:
         WorkflowBuilder:
@@ -138,8 +132,6 @@ def fit_data(
             The options for processing the raw data.
             See [TuneupAnalysisOptions], [TuneupExperimentOptions] and
             [BaseExperimentOptions] for accepted options.
-            Overwrites the options from [TuneupAnalysisOptions],
-            [TuneupExperimentOptions] and [BaseExperimentOptions].
 
     Returns:
         dict with qubit UIDs as keys and the fit results for each qubit as keys.
@@ -183,15 +175,13 @@ def extract_qubit_parameters(
         qubits:
             The qubits on which to run the analysis. May be either a single qubit or
             a list of qubits. The UIDs of these qubits must exist in the
-            processed_data_dict and fit_results.
+            processed_data_dict.
         processed_data_dict: the processed data dictionary returned by process_raw_data
         fit_results: the fit-results dictionary returned by fit_data
         options:
             The options for extracting the qubit parameters.
             See [TuneupAnalysisOptions], [TuneupExperimentOptions] and
             [BaseExperimentOptions] for accepted options.
-            Overwrites the options from [TuneupAnalysisOptions],
-            [TuneupExperimentOptions] and [BaseExperimentOptions].
 
     Returns:
         dict with extracted qubit parameters and the previous values for those qubit
@@ -210,9 +200,10 @@ def extract_qubit_parameters(
             }
         }
         ```
-    Raises:
-        ValueError:
-            If fit_results are empty (have length 0).
+        If the do_fitting option is False, the new_parameter_values are not extracted
+        and the function only returns the old_parameter_values.
+        If a qubit uid is not found in fit_results, the new_parameter_values entry for
+        that qubit is left empty.
     """
     opts = TuneupAnalysisOptions() if options is None else options
     qubits = validate_and_convert_qubits_sweeps(qubits)
@@ -220,13 +211,8 @@ def extract_qubit_parameters(
         "old_parameter_values": {q.uid: {} for q in qubits},
         "new_parameter_values": {q.uid: {} for q in qubits},
     }
-    if not opts.do_fitting:
-        return qubit_parameters
 
     for q in qubits:
-        if q.uid not in fit_results:
-            continue
-
         # Store the old pi and pi-half pulse amplitude values
         old_pi_amp = (
             q.parameters.ef_drive_amplitude_pi
@@ -243,39 +229,40 @@ def extract_qubit_parameters(
             f"{opts.transition}_drive_amplitude_pi2": old_pi2_amp,
         }
 
-        # Extract and store the new pi and pi-half pulse amplitude values
-        fit_res = fit_results[q.uid]
-        swpts_fit = processed_data_dict[q.uid]["sweep_points"]
-        freq_fit = unc.ufloat(
-            fit_res.params["frequency"].value,
-            fit_res.params["frequency"].stderr,
-        )
-        phase_fit = unc.ufloat(
-            fit_res.params["phase"].value,
-            fit_res.params["phase"].stderr,
-        )
-        (
-            pi_amps_top,
-            pi_amps_bottom,
-            pi2_amps_rise,
-            pi2_amps_fall,
-        ) = get_pi_pi2_xvalues_on_cos(swpts_fit, freq_fit, phase_fit)
+        if opts.do_fitting and q.uid in fit_results:
+            # Extract and store the new pi and pi-half pulse amplitude values
+            fit_res = fit_results[q.uid]
+            swpts_fit = processed_data_dict[q.uid]["sweep_points"]
+            freq_fit = unc.ufloat(
+                fit_res.params["frequency"].value,
+                fit_res.params["frequency"].stderr,
+            )
+            phase_fit = unc.ufloat(
+                fit_res.params["phase"].value,
+                fit_res.params["phase"].stderr,
+            )
+            (
+                pi_amps_top,
+                pi_amps_bottom,
+                pi2_amps_rise,
+                pi2_amps_fall,
+            ) = get_pi_pi2_xvalues_on_cos(swpts_fit, freq_fit, phase_fit)
 
-        # if pca is done, it can happen that the pi-pulse amplitude
-        # is in pi_amps_bottom and the pi/2-pulse amplitude in pi2_amps_fall
-        pi_amps = np.sort(np.concatenate([pi_amps_top, pi_amps_bottom]))
-        pi2_amps = np.sort(np.concatenate([pi2_amps_rise, pi2_amps_fall]))
-        try:
-            pi2_amp = pi2_amps[0]
-            pi_amp = pi_amps[pi_amps > pi2_amp][0]
-        except IndexError:
-            comment(f"Could not extract pi- and pi/2-pulse amplitudes for {q.uid}.")
-            continue
+            # if pca is done, it can happen that the pi-pulse amplitude
+            # is in pi_amps_bottom and the pi/2-pulse amplitude in pi2_amps_fall
+            pi_amps = np.sort(np.concatenate([pi_amps_top, pi_amps_bottom]))
+            pi2_amps = np.sort(np.concatenate([pi2_amps_rise, pi2_amps_fall]))
+            try:
+                pi2_amp = pi2_amps[0]
+                pi_amp = pi_amps[pi_amps > pi2_amp][0]
+            except IndexError:
+                comment(f"Could not extract pi- and pi/2-pulse amplitudes for {q.uid}.")
+                continue
 
-        qubit_parameters["new_parameter_values"][q.uid] = {
-            f"{opts.transition}_drive_amplitude_pi": pi_amp,
-            f"{opts.transition}_drive_amplitude_pi2": pi2_amp,
-        }
+            qubit_parameters["new_parameter_values"][q.uid] = {
+                f"{opts.transition}_drive_amplitude_pi": pi_amp,
+                f"{opts.transition}_drive_amplitude_pi2": pi2_amp,
+            }
 
     return qubit_parameters
 
@@ -297,8 +284,8 @@ def plot_population(
     Arguments:
         qubits:
             The qubits on which to run the analysis. May be either a single qubit or
-            a list of qubits. The UIDs of these qubits must exist in the
-            processed_data_dict, fit_results and qubit_parameters.
+            a list of qubits. The UIDs of these qubits must exist in
+            processed_data_dict and qubit_parameters.
         processed_data_dict: the processed data dictionary returned by process_raw_data
         fit_results: the fit-results dictionary returned by fit_data
         qubit_parameters: the qubit-parameters dictionary returned by
@@ -307,17 +294,17 @@ def plot_population(
             The options for processing the raw data.
             See [TuneupAnalysisOptions], [TuneupExperimentOptions] and
             [BaseExperimentOptions] for accepted options.
-            Overwrites the options from [TuneupAnalysisOptions],
-            [TuneupExperimentOptions] and [BaseExperimentOptions].
 
     Returns:
         dict with qubit UIDs as keys and the figures for each qubit as values.
+
+        If a qubit uid is not found in fit_results, the fit and the textbox with the
+        extracted qubit parameters are not plotted.
     """
     opts = TuneupAnalysisOptions() if options is None else options
     qubits = validate_and_convert_qubits_sweeps(qubits)
     figures = {}
     for q in qubits:
-        base_name = f"Amplitude_Rabi_{q.uid}"
         sweep_points = processed_data_dict[q.uid]["sweep_points"]
         data = processed_data_dict[q.uid][
             "population" if opts.do_rotation else "data_raw"
@@ -325,7 +312,7 @@ def plot_population(
         num_cal_traces = processed_data_dict[q.uid]["num_cal_traces"]
 
         fig, ax = plt.subplots()
-        ax.set_title(base_name)  # add timestamp here
+        ax.set_title(f"Amplitude Rabi {q.uid}")  # add timestamp here
         ax.set_xlabel("Amplitude Scaling")
         ax.set_ylabel(
             "Principal Component (a.u)"
@@ -346,9 +333,7 @@ def plot_population(
             )
             ax.set_xlim(xlims)
 
-        if opts.do_fitting:
-            if q.uid not in fit_results:
-                continue
+        if opts.do_fitting and q.uid in fit_results:
             fit_res_qb = fit_results[q.uid]
 
             # plot fit
@@ -361,64 +346,63 @@ def plot_population(
                 label="fit",
             )
 
-            if len(qubit_parameters["new_parameter_values"][q.uid]) == 0:
-                continue
-            new_pi_amp = qubit_parameters["new_parameter_values"][q.uid][
-                f"{options.transition}_drive_amplitude_pi"
-            ]
-            new_pi2_amp = qubit_parameters["new_parameter_values"][q.uid][
-                f"{options.transition}_drive_amplitude_pi2"
-            ]
-            # point at pi-pulse amplitude
-            ax.plot(
-                new_pi_amp.nominal_value,
-                fit_res_qb.model.func(
+            if len(qubit_parameters["new_parameter_values"][q.uid]) > 0:
+                new_pi_amp = qubit_parameters["new_parameter_values"][q.uid][
+                    f"{opts.transition}_drive_amplitude_pi"
+                ]
+                new_pi2_amp = qubit_parameters["new_parameter_values"][q.uid][
+                    f"{opts.transition}_drive_amplitude_pi2"
+                ]
+                # point at pi-pulse amplitude
+                ax.plot(
                     new_pi_amp.nominal_value,
-                    **fit_res_qb.best_values,
-                ),
-                "sk",
-                zorder=3,
-                markersize=plt.rcParams["lines.markersize"] + 1,
-            )
-            # point at pi/2-pulse amplitude
-            ax.plot(
-                new_pi2_amp.nominal_value,
-                fit_res_qb.model.func(
+                    fit_res_qb.model.func(
+                        new_pi_amp.nominal_value,
+                        **fit_res_qb.best_values,
+                    ),
+                    "sk",
+                    zorder=3,
+                    markersize=plt.rcParams["lines.markersize"] + 1,
+                )
+                # point at pi/2-pulse amplitude
+                ax.plot(
                     new_pi2_amp.nominal_value,
-                    **fit_res_qb.best_values,
-                ),
-                "sk",
-                zorder=3,
-                markersize=plt.rcParams["lines.markersize"] + 1,
-            )
-            # textbox
-            old_pi_amp = qubit_parameters["old_parameter_values"][q.uid][
-                f"{options.transition}_drive_amplitude_pi"
-            ]
-            old_pi2_amp = qubit_parameters["old_parameter_values"][q.uid][
-                f"{options.transition}_drive_amplitude_pi2"
-            ]
-            textstr = (
-                "$A_{\\pi}$: "
-                f"{new_pi_amp.nominal_value:.4f} $\\pm$ "
-                f"{new_pi_amp.std_dev:.4f}"
-            )
-            textstr += "\nOld $A_{\\pi}$: " + f"{old_pi_amp:.4f}"
-            ax.text(0, -0.15, textstr, ha="left", va="top", transform=ax.transAxes)
-            textstr = (
-                "$A_{\\pi/2}$: "
-                f"{new_pi2_amp.nominal_value:.4f} $\\pm$ "
-                f"{new_pi2_amp.std_dev:.4f}"
-            )
-            textstr += "\nOld $A_{\\pi/2}$: " + f"{old_pi2_amp:.4f}"
-            ax.text(
-                0.69,
-                -0.15,
-                textstr,
-                ha="left",
-                va="top",
-                transform=ax.transAxes,
-            )
+                    fit_res_qb.model.func(
+                        new_pi2_amp.nominal_value,
+                        **fit_res_qb.best_values,
+                    ),
+                    "sk",
+                    zorder=3,
+                    markersize=plt.rcParams["lines.markersize"] + 1,
+                )
+                # textbox
+                old_pi_amp = qubit_parameters["old_parameter_values"][q.uid][
+                    f"{opts.transition}_drive_amplitude_pi"
+                ]
+                old_pi2_amp = qubit_parameters["old_parameter_values"][q.uid][
+                    f"{opts.transition}_drive_amplitude_pi2"
+                ]
+                textstr = (
+                    "$A_{\\pi}$: "
+                    f"{new_pi_amp.nominal_value:.4f} $\\pm$ "
+                    f"{new_pi_amp.std_dev:.4f}"
+                )
+                textstr += "\nOld $A_{\\pi}$: " + f"{old_pi_amp:.4f}"
+                ax.text(0, -0.15, textstr, ha="left", va="top", transform=ax.transAxes)
+                textstr = (
+                    "$A_{\\pi/2}$: "
+                    f"{new_pi2_amp.nominal_value:.4f} $\\pm$ "
+                    f"{new_pi2_amp.std_dev:.4f}"
+                )
+                textstr += "\nOld $A_{\\pi/2}$: " + f"{old_pi2_amp:.4f}"
+                ax.text(
+                    0.69,
+                    -0.15,
+                    textstr,
+                    ha="left",
+                    va="top",
+                    transform=ax.transAxes,
+                )
         ax.legend(
             loc="center left",
             bbox_to_anchor=(1, 0.5),

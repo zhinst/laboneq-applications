@@ -11,6 +11,7 @@ from pydantic import (
     model_validator,
 )
 
+from laboneq_applications.analysis.plotting_helpers import PlotRawDataOptions
 from laboneq_applications.workflow.options import TaskOptions, WorkflowOptions
 
 NonNegativeInt = Annotated[int, Field(ge=0)]
@@ -202,7 +203,7 @@ class TuneUpAnalysisWorkflowOptions(WorkflowOptions):
     calculate_qubit_population: TuneupAnalysisOptions = TuneupAnalysisOptions()
     fit_data: TuneupAnalysisOptions = TuneupAnalysisOptions()
     extract_qubit_parameters: TuneupAnalysisOptions = TuneupAnalysisOptions()
-    plot_raw_complex_data_1d: TuneupAnalysisOptions = TuneupAnalysisOptions()
+    plot_raw_complex_data_1d: PlotRawDataOptions = PlotRawDataOptions()
     plot_population: TuneupAnalysisOptions = TuneupAnalysisOptions()
 
 
