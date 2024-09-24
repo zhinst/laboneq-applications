@@ -89,11 +89,12 @@ def cosine_oscillatory_fit(
     Returns:
         The lmfit result
     """
-    freqs_guess, phase_guess = find_oscillation_frequency_and_phase(
-        x,
-        data,
-    )
     if not param_hints:
+        freqs_guess, phase_guess = find_oscillation_frequency_and_phase(
+            x,
+            data,
+        )
+
         param_hints = {
             "frequency": {"value": 2 * np.pi * freqs_guess, "min": 0},
             "phase": {"value": phase_guess},
