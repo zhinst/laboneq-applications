@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import datetime
 import json
+import logging
 
 import numpy as np
 import PIL
@@ -13,13 +15,14 @@ from laboneq_applications.logbook.folder_store import FolderStore
 from laboneq_applications.workflow import (
     WorkflowOptions,
     comment,
+    log,
     save_artifact,
     task,
     workflow,
 )
 
 
-@workflow
+@workflow(name="my empty workflow")
 def empty_workflow(a, b, options: WorkflowOptions | None = None):
     pass
 
@@ -60,6 +63,16 @@ def comment_workflow(a, options: WorkflowOptions | None = None):
 
 
 @task
+def log_task(a: object):
+    log(logging.ERROR, "a %s, b %s, c %d", a, (1, 2), 5.7)
+
+
+@workflow
+def log_workflow(a, options: WorkflowOptions | None = None):
+    log_task(a)
+
+
+@task
 def save_task(name, obj, metadata, opts):
     save_artifact(name, obj, metadata=metadata, options=opts)
 
@@ -74,7 +87,7 @@ class FolderStoreFixture:
         self._store_path = store_path
         self.logstore = FolderStore(self._store_path)
 
-    def store_contents(self):
+    def store_contents(self) -> list[str]:
         store_path = self._store_path
         return sorted(str(p.relative_to(store_path)) for p in store_path.iterdir())
 
@@ -109,13 +122,14 @@ class TestFolderStore:
         wf = empty_workflow(3, 5, options={"logstore": logstore})
         wf.run()
 
-        workflow_folder_name = "20240728T175500-empty-workflow"
+        workflow_folder_name = folder.store_contents()[0]
+        assert workflow_folder_name.startswith("20240728T")
+        assert workflow_folder_name.endswith("my empty workflow")
 
-        assert folder.store_contents() == [workflow_folder_name]
         assert folder.contents(workflow_folder_name) == ["log.jsonl"]
         assert folder.log(workflow_folder_name) == [
-            {"event": "start"} | TIMEDICTENTRY,
-            {"event": "end"} | TIMEDICTENTRY,
+            {"event": "start", "workflow": "my empty workflow"} | TIMEDICTENTRY,
+            {"event": "end", "workflow": "my empty workflow"} | TIMEDICTENTRY,
         ]
 
     def test_on_error(self, logstore, folder):
@@ -125,30 +139,33 @@ class TestFolderStore:
             wf.run()
         assert str(err.value) == "'int' object has no attribute 'c'"
 
-        workflow_folder_name = "20240728T175500-bad-ref-workflow"
+        workflow_folder_name = folder.store_contents()[0]
+        assert workflow_folder_name.startswith("20240728T")
+        assert workflow_folder_name.endswith("-bad-ref-workflow")
 
-        assert folder.store_contents() == [workflow_folder_name]
         assert folder.contents(workflow_folder_name) == ["log.jsonl"]
         assert folder.log(workflow_folder_name) == [
-            {"event": "start"} | TIMEDICTENTRY,
+            {"event": "start", "workflow": "bad_ref_workflow"} | TIMEDICTENTRY,
             {
                 "event": "error",
+                "workflow": "bad_ref_workflow",
                 "error": "AttributeError(\"'int' object has no attribute 'c'\")",
             }
             | TIMEDICTENTRY,
-            {"event": "end"} | TIMEDICTENTRY,
+            {"event": "end", "workflow": "bad_ref_workflow"} | TIMEDICTENTRY,
         ]
 
     def test_on_task_start_and_end(self, logstore, folder):
         wf = simple_workflow(3, 5, options={"logstore": logstore})
         wf.run()
 
-        workflow_folder_name = "20240728T175500-simple-workflow"
+        workflow_folder_name = folder.store_contents()[0]
+        assert workflow_folder_name.startswith("20240728T")
+        assert workflow_folder_name.endswith("-simple-workflow")
 
-        assert folder.store_contents() == [workflow_folder_name]
         assert folder.contents(workflow_folder_name) == ["log.jsonl"]
         assert folder.log(workflow_folder_name) == [
-            {"event": "start"} | TIMEDICTENTRY,
+            {"event": "start", "workflow": "simple_workflow"} | TIMEDICTENTRY,
             {
                 "event": "task_start",
                 "task": "add_task",
@@ -159,7 +176,7 @@ class TestFolderStore:
                 "task": "add_task",
             }
             | TIMEDICTENTRY,
-            {"event": "end"} | TIMEDICTENTRY,
+            {"event": "end", "workflow": "simple_workflow"} | TIMEDICTENTRY,
         ]
 
     def test_on_task_error(self, logstore, folder):
@@ -167,13 +184,14 @@ class TestFolderStore:
         with pytest.raises(ValueError) as err:
             wf.run()
 
-        workflow_folder_name = "20240728T175500-error-workflow"
-
         assert str(err.value) == "This is not a happy task."
-        assert folder.store_contents() == [workflow_folder_name]
+        workflow_folder_name = folder.store_contents()[0]
+        assert workflow_folder_name.startswith("20240728T")
+        assert workflow_folder_name.endswith("-error-workflow")
+
         assert folder.contents(workflow_folder_name) == ["log.jsonl"]
         assert folder.log(workflow_folder_name) == [
-            {"event": "start"} | TIMEDICTENTRY,
+            {"event": "start", "workflow": "error_workflow"} | TIMEDICTENTRY,
             {
                 "event": "task_start",
                 "task": "error_task",
@@ -190,19 +208,20 @@ class TestFolderStore:
                 "task": "error_task",
             }
             | TIMEDICTENTRY,
-            {"event": "end"} | TIMEDICTENTRY,
+            {"event": "end", "workflow": "error_workflow"} | TIMEDICTENTRY,
         ]
 
     def test_comment(self, logstore, folder):
         wf = comment_workflow("A comment!", options={"logstore": logstore})
         wf.run()
 
-        workflow_folder_name = "20240728T175500-comment-workflow"
+        workflow_folder_name = folder.store_contents()[0]
+        assert workflow_folder_name.startswith("20240728T")
+        assert workflow_folder_name.endswith("-comment-workflow")
 
-        assert folder.store_contents() == [workflow_folder_name]
         assert folder.contents(workflow_folder_name) == ["log.jsonl"]
         assert folder.log(workflow_folder_name) == [
-            {"event": "start"} | TIMEDICTENTRY,
+            {"event": "start", "workflow": "comment_workflow"} | TIMEDICTENTRY,
             {
                 "event": "task_start",
                 "task": "comment_task",
@@ -218,7 +237,39 @@ class TestFolderStore:
                 "task": "comment_task",
             }
             | TIMEDICTENTRY,
-            {"event": "end"} | TIMEDICTENTRY,
+            {"event": "end", "workflow": "comment_workflow"} | TIMEDICTENTRY,
+        ]
+
+    def test_log(self, logstore, folder):
+        thing = datetime.datetime.now()  # noqa: DTZ005
+        thing_str = str(thing)
+        wf = log_workflow(thing, options={"logstore": logstore})
+        wf.run()
+
+        workflow_folder_name = folder.store_contents()[0]
+        assert workflow_folder_name.startswith("20240728T")
+        assert workflow_folder_name.endswith("-log-workflow")
+
+        assert folder.contents(workflow_folder_name) == ["log.jsonl"]
+        assert folder.log(workflow_folder_name) == [
+            {"event": "start", "workflow": "log_workflow"} | TIMEDICTENTRY,
+            {
+                "event": "task_start",
+                "task": "log_task",
+            }
+            | TIMEDICTENTRY,
+            {
+                "event": "log",
+                "message": f"a {thing_str}, b (1, 2), c 5",
+                "level": logging.ERROR,
+            }
+            | TIMEDICTENTRY,
+            {
+                "event": "task_end",
+                "task": "log_task",
+            }
+            | TIMEDICTENTRY,
+            {"event": "end", "workflow": "log_workflow"} | TIMEDICTENTRY,
         ]
 
     def test_save(self, logstore, folder):
@@ -233,12 +284,13 @@ class TestFolderStore:
         )
         wf.run()
 
-        workflow_folder_name = "20240728T175500-save-workflow"
+        workflow_folder_name = folder.store_contents()[0]
+        assert workflow_folder_name.startswith("20240728T")
+        assert workflow_folder_name.endswith("-save-workflow")
 
-        assert folder.store_contents() == [workflow_folder_name]
         assert folder.contents(workflow_folder_name) == ["an-obj.npy", "log.jsonl"]
         assert folder.log(workflow_folder_name) == [
-            {"event": "start"} | TIMEDICTENTRY,
+            {"event": "start", "workflow": "save_workflow"} | TIMEDICTENTRY,
             {"event": "task_start", "task": "save_task"} | TIMEDICTENTRY,
             {
                 "event": "artifact",
@@ -254,7 +306,7 @@ class TestFolderStore:
             }
             | TIMEDICTENTRY,
             {"event": "task_end", "task": "save_task"} | TIMEDICTENTRY,
-            {"event": "end"} | TIMEDICTENTRY,
+            {"event": "end", "workflow": "save_workflow"} | TIMEDICTENTRY,
         ]
 
     def test_save_with_popped_options(self, logstore, folder):
@@ -269,12 +321,13 @@ class TestFolderStore:
         )
         wf.run()
 
-        workflow_folder_name = "20240728T175500-save-workflow"
+        workflow_folder_name = folder.store_contents()[0]
+        assert workflow_folder_name.startswith("20240728T")
+        assert workflow_folder_name.endswith("-save-workflow")
 
-        assert folder.store_contents() == [workflow_folder_name]
         assert folder.contents(workflow_folder_name) == ["image.jpg", "log.jsonl"]
         assert folder.log(workflow_folder_name) == [
-            {"event": "start"} | TIMEDICTENTRY,
+            {"event": "start", "workflow": "save_workflow"} | TIMEDICTENTRY,
             {"event": "task_start", "task": "save_task"} | TIMEDICTENTRY,
             {
                 "event": "artifact",
@@ -292,5 +345,5 @@ class TestFolderStore:
             }
             | TIMEDICTENTRY,
             {"event": "task_end", "task": "save_task"} | TIMEDICTENTRY,
-            {"event": "end"} | TIMEDICTENTRY,
+            {"event": "end", "workflow": "save_workflow"} | TIMEDICTENTRY,
         ]

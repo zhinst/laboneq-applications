@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Protocol
 
-from laboneq_applications.core import now
+from laboneq_applications.core import utc_now
 from laboneq_applications.workflow import executor
 
 if TYPE_CHECKING:
@@ -43,7 +43,7 @@ class Artifact:
         self.obj = obj
         self.metadata = metadata or {}
         self.options = options or {}
-        self.timestamp = now()
+        self.timestamp = utc_now()
 
 
 class ExecutionRecorder(Protocol):
@@ -90,6 +90,14 @@ class ExecutionRecorder(Protocol):
         message: str,
     ) -> None:
         """Called to leave a comment."""
+
+    def log(
+        self,
+        level: int,
+        message: str,
+        *args: object,
+    ) -> None:
+        """Called to leave a log message."""
 
     def save(
         self,
@@ -189,6 +197,16 @@ class ExecutionRecorderManager(ExecutionRecorder):
         for recorder in self._recorders:
             recorder.comment(message)
 
+    def log(
+        self,
+        level: int,
+        message: str,
+        *args: object,
+    ) -> None:
+        """Called to leave a log message."""
+        for recorder in self._recorders:
+            recorder.log(level, message, *args)
+
     def save(
         self,
         artifact: Artifact,
@@ -216,6 +234,27 @@ def comment(message: str) -> None:
     else:
         raise RuntimeError(
             "Workflow comments are currently not supported outside of tasks.",
+        )
+
+
+def log(level: int, message: str, *args: object) -> None:
+    """Add a log message to the current workflow logbook.
+
+    Arguments:
+        message:
+            The log message to record.
+        level:
+            The logging level of the message (optional). See the `logging`
+            module for the list of default levels.
+        args:
+            Additional arguments to format the message.
+    """
+    ctx = executor.ExecutorStateContext.get_active()
+    if ctx is not None:
+        ctx.recorder.log(level, message, *args)
+    else:
+        raise RuntimeError(
+            "Workflow log messages are currently not supported outside of tasks.",
         )
 
 

@@ -160,6 +160,8 @@ class TestSerializeMatplotlibFigure:
     def test_serialize(self, store):
         fig = self._figure()
 
+        store.options["bbox_inches"] = None
+
         serialize(fig, store.opener)
 
         assert store.files() == ["foo.png"]
@@ -176,6 +178,7 @@ class TestSerializeMatplotlibFigure:
         fig = self._figure()
         store.options["format"] = "webp"
         store.options["lossless"] = True
+        store.options["bbox_inches"] = None
 
         serialize(fig, store.opener)
 

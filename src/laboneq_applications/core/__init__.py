@@ -1,7 +1,8 @@
 """LabOne Q Applications library core functionality."""
 
-from .utils import now
+from .utils import local_now, utc_now
 
 __all__ = [
-    "now",
+    "local_now",
+    "utc_now",
 ]

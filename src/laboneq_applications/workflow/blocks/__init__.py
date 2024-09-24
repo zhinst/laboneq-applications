@@ -1,6 +1,7 @@
 """Workflow block definitions."""
 
 from laboneq_applications.workflow.blocks.block import Block, BlockBuilderContext
+from laboneq_applications.workflow.blocks.block_visitor import BlockVisitor
 from laboneq_applications.workflow.blocks.for_block import ForExpression, for_
 from laboneq_applications.workflow.blocks.if_block import IFExpression, if_
 from laboneq_applications.workflow.blocks.return_block import ReturnStatement, return_
@@ -18,4 +19,5 @@ __all__ = [
     "return_",
     "TaskBlock",
     "WorkflowBlock",
+    "BlockVisitor",
 ]

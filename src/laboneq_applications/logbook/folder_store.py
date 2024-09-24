@@ -6,11 +6,9 @@ import json
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from laboneq_applications.core import now
+from laboneq_applications.core import local_now, utc_now
 from laboneq_applications.logbook import Logbook, LogbookStore
-from laboneq_applications.logbook.serializer import (
-    SerializeOpener,
-)
+from laboneq_applications.logbook.serializer import SerializeOpener
 from laboneq_applications.logbook.serializer import (
     serialize as default_serialize,
 )
@@ -63,10 +61,7 @@ class FolderStore(LogbookStore):
         Returns:
             A unique name for the folder.
         """
-        # TODO: Decide whether UTC is the correct timezone.
-        #       Likely local time is correct.
-        #       What about daylight savings?
-        ts = now().strftime("%Y%m%dT%H%M%S")
+        ts = local_now().strftime("%Y%m%dT%H%M%S")
         workflow_name = _sanitize_filename(workflow_name)
         count = 0
         while True:
@@ -216,13 +211,21 @@ class FolderLogbook(Logbook):
     def on_start(self, workflow_result: WorkflowResult) -> None:
         """Called when the workflow execution starts."""
         self._append_log(
-            {"event": "start", "time": str(now(workflow_result.start_time))},
+            {
+                "event": "start",
+                "workflow": workflow_result.name,
+                "time": str(utc_now(workflow_result.start_time)),
+            },
         )
 
     def on_end(self, workflow_result: WorkflowResult) -> None:
         """Called when the workflow execution ends."""
         self._append_log(
-            {"event": "end", "time": str(now(workflow_result.end_time))},
+            {
+                "event": "end",
+                "workflow": workflow_result.name,
+                "time": str(utc_now(workflow_result.end_time)),
+            },
         )
 
     def on_error(
@@ -234,8 +237,9 @@ class FolderLogbook(Logbook):
         self._append_log(
             {
                 "event": "error",
+                "workflow": workflow_result.name,
                 "error": repr(error),
-                "time": str(now(workflow_result.end_time)),
+                "time": str(utc_now(workflow_result.end_time)),
             },
         )
 
@@ -248,7 +252,7 @@ class FolderLogbook(Logbook):
             {
                 "event": "task_start",
                 "task": task.name,
-                "time": str(now(task.start_time)),
+                "time": str(utc_now(task.start_time)),
             },
         )
 
@@ -258,7 +262,11 @@ class FolderLogbook(Logbook):
     ) -> None:
         """Called when a task ends execution."""
         self._append_log(
-            {"event": "task_end", "task": task.name, "time": str(now(task.end_time))},
+            {
+                "event": "task_end",
+                "task": task.name,
+                "time": str(utc_now(task.end_time)),
+            },
         )
 
     def on_task_error(
@@ -272,14 +280,29 @@ class FolderLogbook(Logbook):
                 "event": "task_error",
                 "task": task.name,
                 "error": repr(error),
-                "time": str(now(task.end_time)),
+                "time": str(utc_now(task.end_time)),
             },
         )
 
     def comment(self, message: str) -> None:
         """Called to leave a comment."""
         self._append_log(
-            {"event": "comment", "message": message, "time": str(now())},
+            {
+                "event": "comment",
+                "message": message,
+                "time": str(utc_now()),
+            },
+        )
+
+    def log(self, level: int, message: str, *args: object) -> None:
+        """Called to leave a log message."""
+        self._append_log(
+            {
+                "event": "log",
+                "message": message % args,
+                "time": str(utc_now()),
+                "level": level,
+            },
         )
 
     def _save(self, artifact: Artifact) -> ArtifactFiles:
@@ -297,7 +320,7 @@ class FolderLogbook(Logbook):
         self._append_log(
             {
                 "event": "artifact",
-                "time": str(now(artifact.timestamp)),
+                "time": str(utc_now(artifact.timestamp)),
                 "artifact_name": artifact.name,
                 "artifact_type": type(artifact.obj).__name__,
                 "artifact_metadata": artifact.metadata,

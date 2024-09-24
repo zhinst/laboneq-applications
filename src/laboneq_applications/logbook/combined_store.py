@@ -76,6 +76,11 @@ class CombinedLogbook(Logbook):
         for logbook in self._logbooks:
             logbook.comment(message)
 
+    def log(self, level: int, message: str, *args: object) -> None:
+        """Called to leave a log message."""
+        for logbook in self._logbooks:
+            logbook.log(level, message, *args)
+
     def save(self, artifact: Artifact) -> None:
         """Called to save an artifact."""
         for logbook in self._logbooks:

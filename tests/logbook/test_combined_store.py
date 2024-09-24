@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import datetime
 import logging
 
 import pytest
@@ -12,6 +13,7 @@ from laboneq_applications.logbook.logging_store import LoggingStore
 from laboneq_applications.workflow import (
     WorkflowOptions,
     comment,
+    log,
     save_artifact,
     task,
     workflow,
@@ -56,6 +58,16 @@ def comment_task(a):
 @workflow
 def comment_workflow(a, options: WorkflowOptions | None = None):
     comment_task(a)
+
+
+@task
+def log_task(a: object):
+    log(logging.ERROR, "a %s, b %s, c %d", a, (1, 2), 5.7)
+
+
+@workflow
+def log_workflow(a, options: WorkflowOptions | None = None):
+    log_task(a)
 
 
 @task
@@ -154,6 +166,21 @@ class TestCombinedStore:
                 "Comment: A comment!",
                 f"Task 'comment_task': ended at {TIMESTR}",
                 f"Workflow 'comment_workflow': execution ended at {TIMESTR}",
+            ]
+
+    def test_log(self, caplog, logstore):
+        thing = datetime.datetime.now()  # noqa: DTZ005
+        thing_str = str(thing)
+        wf = log_workflow(thing, options={"logstore": logstore})
+        wf.run()
+
+        for logger_name in ["logger_a", "logger_b"]:
+            assert self._messages(logger_name, caplog) == [
+                f"Workflow 'log_workflow': execution started at {TIMESTR}",
+                f"Task 'log_task': started at {TIMESTR}",
+                f"a {thing_str}, b (1, 2), c 5",
+                f"Task 'log_task': ended at {TIMESTR}",
+                f"Workflow 'log_workflow': execution ended at {TIMESTR}",
             ]
 
     def test_save(self, caplog, logstore):

@@ -24,7 +24,7 @@ from laboneq_applications.workflow.core import (
     workflow,
 )
 from laboneq_applications.workflow.options import TaskOptions, WorkflowOptions
-from laboneq_applications.workflow.recorder import comment, save_artifact
+from laboneq_applications.workflow.recorder import comment, log, save_artifact
 from laboneq_applications.workflow.result import WorkflowResult
 from laboneq_applications.workflow.task import task
 
@@ -36,6 +36,7 @@ __all__ = [
     "WorkflowOptions",
     "return_",
     "comment",
+    "log",
     "save_artifact",
     "TaskOptions",
     "if_",

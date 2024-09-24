@@ -4,7 +4,8 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from laboneq_applications.core.utils import now, pygmentize
+from laboneq_applications.core import utc_now
+from laboneq_applications.core.utils import pygmentize
 from laboneq_applications.workflow import _utils
 from laboneq_applications.workflow.blocks.block import Block
 from laboneq_applications.workflow.executor import ExecutionStatus, ExecutorState
@@ -66,14 +67,14 @@ class TaskBlock(Block):
             input=_utils.create_argument_map(self.task.func, **params),
         )
 
-        task._start_time = now()
+        task._start_time = utc_now()
         executor.recorder.on_task_start(task)
         try:
             executor.set_block_status(self, ExecutionStatus.IN_PROGRESS)
             task._output = self.task.func(**params)
-            task._end_time = now()
+            task._end_time = utc_now()
         except Exception as error:
-            task._end_time = now()
+            task._end_time = utc_now()
             executor.recorder.on_task_error(task, error)
             raise
         finally:

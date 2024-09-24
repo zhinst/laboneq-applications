@@ -5,7 +5,7 @@ from __future__ import annotations
 from inspect import signature
 from typing import TYPE_CHECKING, Callable
 
-from laboneq_applications.core import now
+from laboneq_applications.core import utc_now
 from laboneq_applications.workflow.blocks.block import Block
 from laboneq_applications.workflow.blocks.task_block import TaskBlock
 from laboneq_applications.workflow.executor import ExecutionStatus, ExecutorState
@@ -120,7 +120,7 @@ class WorkflowBlock(Block):
             # Therefore they need to be overwritten for result
             inputs["options"] = input_opts
             result = WorkflowResult(self.name, input=inputs)
-            result._start_time = now()
+            result._start_time = utc_now()
             executor.recorder.on_start(result)
             executor.set_variable(self, result)
         elif executor.get_block_status(self) == ExecutionStatus.IN_PROGRESS:
@@ -138,13 +138,13 @@ class WorkflowBlock(Block):
                             continue
                         block.execute(executor)
                     executor.set_block_status(self, ExecutionStatus.FINISHED)
-                    result._end_time = now()
+                    result._end_time = utc_now()
                     executor.recorder.on_end(result)
             if executor.settings.run_until == self.name and executor.has_active_context:
                 executor.interrupt()
         except Exception as error:
             executor.set_block_status(self, ExecutionStatus.FINISHED)
-            result._end_time = now()
+            result._end_time = utc_now()
             executor.recorder.on_error(result, error)
             executor.recorder.on_end(result)
             raise
