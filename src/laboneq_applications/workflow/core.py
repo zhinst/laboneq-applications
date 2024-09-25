@@ -15,16 +15,11 @@ from laboneq_applications.logbook import (
     LoggingStore,
     active_logbook_store,
 )
-from laboneq_applications.workflow import _utils, exceptions
+from laboneq_applications.workflow import _utils, exceptions, executor
 from laboneq_applications.workflow.blocks import (
     BlockBuilderContext,
     TaskBlock,
     WorkflowBlock,
-)
-from laboneq_applications.workflow.executor import (
-    ExecutionStatus,
-    ExecutorState,
-    ExecutorStateContext,
 )
 from laboneq_applications.workflow.graph import WorkflowGraph
 from laboneq_applications.workflow.options import (
@@ -46,7 +41,7 @@ class WorkflowRecovery:
     """A layer of indirection for storing workflow recovery results."""
 
     def __init__(self):
-        self.results = None
+        self.results: WorkflowResult | None = None
 
 
 class Workflow(Generic[Parameters]):
@@ -65,10 +60,10 @@ class Workflow(Generic[Parameters]):
         self._graph = graph
         self._input = input or {}
         self._validate_input(**self._input)
-        self._recovery = (
+        self._recovery: WorkflowRecovery | None = (
             None  # WorkflowRecovery (unused if left as None, set by WorkflowBuilder)
         )
-        self._state: ExecutorState | None = None
+        self._state: executor.ExecutorState | None = None
 
     @classmethod
     def from_callable(
@@ -104,7 +99,6 @@ class Workflow(Generic[Parameters]):
         """Return the workflow options passed."""
         options = self._input.get("options", None)
         if options is None:
-            # TODO: Replace with create_options() when new options are in
             options = self._graph.options_type()
         elif isinstance(options, dict):
             options = self._graph.options_type.from_dict(options)
@@ -123,10 +117,10 @@ class Workflow(Generic[Parameters]):
         """Reset workflow execution state."""
         self._state = None
 
-    def _execute(self, state: ExecutorState) -> WorkflowResult:
+    def _execute(self, state: executor.ExecutorState) -> WorkflowResult:
         self._graph.root.set_params(state, **self._input)
         try:
-            with ExecutorStateContext.scoped(state):
+            with executor.ExecutorStateContext.scoped(state):
                 self._graph.root.execute(state)
         except Exception:
             if self._recovery is not None:
@@ -135,7 +129,10 @@ class Workflow(Generic[Parameters]):
                 self._reset()
             raise
         result = state.get_variable(self._graph.root)
-        if state.get_block_status(self._graph.root) == ExecutionStatus.IN_PROGRESS:
+        if (
+            state.get_block_status(self._graph.root)
+            == executor.ExecutionStatus.IN_PROGRESS
+        ):
             self._state = state
         else:
             self._reset()
@@ -209,9 +206,10 @@ class Workflow(Generic[Parameters]):
         options = self._options()
         logstore = self._logstore(options.logstore)
         logbook = logstore.create_logbook(self)
-        state = ExecutorState()
+        state = executor.ExecutorState(
+            settings=executor.ExecutorSettings(run_until=until)
+        )
         state.add_recorder(logbook)
-        state.settings.run_until = until
         return self._execute(state)
 
     def _validate_input(self, **kwargs: object) -> None:
@@ -281,7 +279,7 @@ class WorkflowBuilder(Generic[Parameters]):
             WorkflowError:
                 Raised if no previous run failed.
         """
-        if self._recovery.results is None:
+        if not self._recovery or self._recovery.results is None:
             raise exceptions.WorkflowError("Workflow has no result to recover.")
         result = self._recovery.results
         self._recovery.results = None
@@ -294,14 +292,14 @@ class WorkflowBuilder(Generic[Parameters]):
     ) -> Workflow[Parameters]:
         active_ctx = BlockBuilderContext.get_active()
         if isinstance(kwargs.get("options"), OptionBuilder):
-            kwargs["options"] = kwargs["options"].base
+            kwargs["options"] = cast(OptionBuilder, kwargs["options"]).base
         if active_ctx:
             blk = WorkflowBlock.from_callable(
                 self._name,
                 self._func,
                 **_utils.create_argument_map(self._func, *args, **kwargs),
             )
-            return blk.ref
+            return cast(Workflow[Parameters], blk.ref)
         wf = Workflow.from_callable(
             self._func,
             name=self._name,
@@ -316,11 +314,11 @@ class WorkflowBuilder(Generic[Parameters]):
         The option attribute `tasks` is populated with all the sub-task
         and sub-workflow options within this workflow.
         """
-        params = {}
-        for key in inspect.signature(self._func).parameters:
-            params[key] = None
-        wf = self(**params)
-        return OptionBuilder(wf._graph.create_options())
+        blk = WorkflowBlock.from_callable(
+            self._name,
+            self._func,
+        )
+        return OptionBuilder(blk.create_options())
 
 
 @overload
