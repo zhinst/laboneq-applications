@@ -291,19 +291,20 @@ class WorkflowBuilder(Generic[Parameters]):
         **kwargs: Parameters.kwargs,
     ) -> Workflow[Parameters]:
         active_ctx = BlockBuilderContext.get_active()
-        if isinstance(kwargs.get("options"), OptionBuilder):
-            kwargs["options"] = cast(OptionBuilder, kwargs["options"]).base
+        params = _utils.create_argument_map(self._func, *args, **kwargs)
+        if isinstance(params.get("options"), OptionBuilder):
+            params["options"] = cast(OptionBuilder, params["options"]).base
         if active_ctx:
             blk = WorkflowBlock.from_callable(
                 self._name,
                 self._func,
-                **_utils.create_argument_map(self._func, *args, **kwargs),
+                **params,
             )
             return cast(Workflow[Parameters], blk.ref)
         wf = Workflow.from_callable(
             self._func,
             name=self._name,
-            input=_utils.create_argument_map(self._func, *args, **kwargs),
+            input=params,
         )
         wf._recovery = self._recovery
         return wf

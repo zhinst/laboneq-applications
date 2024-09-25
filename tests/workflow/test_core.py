@@ -1613,11 +1613,15 @@ def outer_workflow(options: OuterWorkflowOptions | None = None):
 
 
 class TestWorkFlowWithOptions:
-    def test_run_with_right_options(self):
+    @pytest.mark.parametrize(
+        "call_func", [lambda wf, opts: wf(opts), lambda wf, opts: wf(options=opts)]
+    )
+    def test_run_with_right_options(self, call_func):
+        # Test builder as args and kwargs
         opt = outer_workflow.options()
         opt.t1(123)
         opt.shared(321)
-        wf = outer_workflow(options=opt)
+        wf = call_func(outer_workflow, opt)
         res = wf.run()
         assert res.tasks[0].input == {
             "options": InnerOptions(
