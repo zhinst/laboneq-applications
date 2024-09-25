@@ -21,7 +21,7 @@ from laboneq.simple import Experiment, SweepParameter
 from laboneq_applications import dsl, workflow
 from laboneq_applications.experiments.options import (
     SpectroscopyExperimentOptions,
-    SpectroscopyWorkflowOptions,
+    TuneUpWorkflowOptions,
 )
 from laboneq_applications.tasks import compile_experiment, run_experiment
 
@@ -32,8 +32,6 @@ if TYPE_CHECKING:
 
     from laboneq_applications.qpu_types import QPU
 
-options = SpectroscopyWorkflowOptions
-
 
 @workflow.workflow
 def experiment_workflow(
@@ -41,7 +39,7 @@ def experiment_workflow(
     qpu: QPU,
     qubit: QuantumElement,
     frequencies: ArrayLike,
-    options: SpectroscopyWorkflowOptions | None = None,
+    options: TuneUpWorkflowOptions | None = None,
 ) -> None:
     """The Resonator Spectroscopy Workflow.
 

@@ -1,16 +1,11 @@
-"""This module defines the Hahn echo experiment.
+"""This module defines the time-rabi experiment.
 
-In the Hahn echo experiment, we perform a Ramsey experiment and place one extra y180
-pulse between the two x90 pulses. Due to the additional y180 pulse, the quasi-static
-contributions to dephasing can be “refocused” and by that the experiment is less
-sensitive to quasi-static noise.
-The pulses are generally chosen to be resonant with the qubit transition for a
-Hahn echo, since any frequency detuning would be nominally refocused anyway.
+In this experiment, we sweep the length of a drive pulse on a given qubit transition
+in order to determine the pulse length that induces a rotation of pi.
 
-The Hahn echo experiment has the following pulse sequence:
+The time-rabi experiment has the following pulse sequence:
 
-    qb --- [ prep transition ] --- [ x90_transition ] --- [ delay/2 ] ---
-    [ y180_transition ] --- [ delay/2 ] --- [ x90_transition ] --- [ measure ]
+    qb --- [ prep transition ] --- [ x180_transition ] --- [ measure ]
 
 If multiple qubits are passed to the `run` workflow, the above pulses are applied
 in parallel on all the qubits.
@@ -23,12 +18,13 @@ from typing import TYPE_CHECKING
 from laboneq.simple import Experiment, SweepParameter
 
 from laboneq_applications import dsl
+from laboneq_applications.contrib.analysis.time_rabi import analysis_workflow
 from laboneq_applications.experiments.options import (
     TuneupExperimentOptions,
     TuneUpWorkflowOptions,
 )
-from laboneq_applications.tasks import compile_experiment, run_experiment
-from laboneq_applications.workflow import task, workflow
+from laboneq_applications.tasks import compile_experiment, run_experiment, update_qubits
+from laboneq_applications.workflow import if_, task, workflow
 
 if TYPE_CHECKING:
     from laboneq.dsl.session import Session
@@ -37,16 +33,7 @@ if TYPE_CHECKING:
     from laboneq_applications.typing import Qubits, QubitSweepPoints
 
 
-class EchoExperimentOptions(TuneupExperimentOptions):
-    """Base options for the resonator spectroscopy experiment.
-
-    Additional attributes:
-        refocus_pulse:
-            String to define the quantum operation in-between the x90 pulses.
-            Default: "y180".
-    """
-
-    refocus_qop: str = "y180"
+options = TuneUpWorkflowOptions
 
 
 @workflow
@@ -54,16 +41,18 @@ def experiment_workflow(
     session: Session,
     qpu: QPU,
     qubits: Qubits,
-    delays: QubitSweepPoints,
+    lengths: QubitSweepPoints,
     options: TuneUpWorkflowOptions | None = None,
 ) -> None:
-    """The Hahn echo Workflow.
+    """The Time Rabi Workflow.
 
     The workflow consists of the following steps:
 
     - [create_experiment]()
     - [compile_experiment]()
     - [run_experiment]()
+    - [analysis_workflow]()
+    - [update_qubits]()
 
     Arguments:
         session:
@@ -73,9 +62,10 @@ def experiment_workflow(
         qubits:
             The qubits to run the experiments on. May be either a single
             qubit or a list of qubits.
-        delays:
-            The delays to sweep over for each qubit. Note that `delays` must be
-            identical for qubits that use the same measure port.
+        lengths:
+            The drive-pulse lengths to sweep over for each qubit. If `qubits` is a
+            single qubit, `lengths` must be a list of numbers or an array. Otherwise
+            it must be a list of lists of numbers or arrays.
         options:
             The options for building the workflow.
             In addition to options from [WorkflowOptions], the following
@@ -83,36 +73,43 @@ def experiment_workflow(
                 - create_experiment: The options for creating the experiment.
 
     Returns:
-        result:
-            The result of the workflow.
+        WorkflowBuilder:
+            The builder of the experiment workflow.
 
     Example:
         ```python
-        options = EchoWorkflowOptions()
+        options = TuneUpExperimentWorkflowOptions()
         options.create_experiment.count = 10
         options.create_experiment.transition = "ge"
         qpu = QPU(
-            setup=DeviceSetup("my_device"),
             qubits=[TunableTransmonQubit("q0"), TunableTransmonQubit("q1")],
             qop=TunableTransmonOperations(),
         )
         temp_qubits = qpu.copy_qubits()
-        result = run(
+        result = experiment_workflow(
             session=session,
             qpu=qpu,
             qubits=temp_qubits,
-            delays=[[1e-6, 5e-6, 10e-6]], [1e-6, 5e-6, 10e-6]],
+            lengths=[
+                np.linspace(100e-9, 500e-9, 11),
+                np.linspace(100e-9, 500e-9, 11),
+            ],
             options=options,
-        )
+        ).run()
         ```
     """
     exp = create_experiment(
         qpu,
         qubits,
-        delays=delays,
+        lengths=lengths,
     )
     compiled_exp = compile_experiment(session, exp)
     _result = run_experiment(session, compiled_exp)
+    with if_(options.do_analysis):
+        analysis_results = analysis_workflow(_result, qubits, lengths)
+        qubit_parameters = analysis_results.tasks["extract_qubit_parameters"].output
+        with if_(options.update):
+            update_qubits(qpu, qubit_parameters["new_parameter_values"])
 
 
 @task
@@ -120,10 +117,10 @@ def experiment_workflow(
 def create_experiment(
     qpu: QPU,
     qubits: Qubits,
-    delays: QubitSweepPoints,
-    options: EchoExperimentOptions | None = None,
+    lengths: QubitSweepPoints,
+    options: TuneupExperimentOptions | None = None,
 ) -> Experiment:
-    """Creates a Hahn echo Experiment.
+    """Creates a length-Rabi experiment Workflow.
 
     Arguments:
         qpu:
@@ -131,12 +128,13 @@ def create_experiment(
         qubits:
             The qubits to run the experiments on. May be either a single
             qubit or a list of qubits.
-        delays:
-            The delays to sweep over for each qubit. Note that `delays` must be
-            identical for qubits that use the same measure port.
+        lengths:
+            The drive-pulse lengths to sweep over for each qubit. If `qubits` is a
+            single qubit, `lengths` must be a list of numbers or an array. Otherwise
+            it must be a list of lists of numbers or arrays.
         options:
             The options for building the experiment.
-            See [EchoExperimentOptions] and [BaseExperimentOptions] for
+            See [TuneupExperimentOptions] and [BaseExperimentOptions] for
             accepted options.
             Overwrites the options from [TuneupExperimentOptions] and
             [BaseExperimentOptions].
@@ -147,7 +145,13 @@ def create_experiment(
 
     Raises:
         ValueError:
-            If delays is not a list of numbers or array when a single qubit is passed.
+            If the qubits and qubit_lengths are not of the same length.
+
+        ValueError:
+            If qubit_lengths is not a list of numbers when a single qubit is passed.
+
+        ValueError:
+            If qubit_lengths is not a list of lists of numbers.
 
     Example:
         ```python
@@ -159,9 +163,7 @@ def create_experiment(
             "cal_traces": True,
         }
         options = TuneupExperimentOptions(**options)
-        setup = DeviceSetup()
         qpu = QPU(
-            setup=DeviceSetup("my_device"),
             qubits=[TunableTransmonQubit("q0"), TunableTransmonQubit("q1")],
             qop=TunableTransmonOperations(),
         )
@@ -169,16 +171,17 @@ def create_experiment(
         create_experiment(
             qpu=qpu,
             qubits=temp_qubits,
-            delays=[[1e-6, 5e-6, 10e-6], [1e-6, 5e-6, 10e-6]]
+            lengths=[
+                np.linspace(100e-9, 500e-9, 11),
+                np.linspace(100e-9, 500e-9, 11),
+            ],
             options=options,
         )
         ```
     """
     # Define the custom options for the experiment
-    opts = EchoExperimentOptions() if options is None else options
-
-    qubits, delays = dsl.validation.validate_and_convert_qubits_sweeps(qubits, delays)
-
+    opts = TuneupExperimentOptions() if options is None else options
+    qubits, lengths = dsl.validation.validate_and_convert_qubits_sweeps(qubits, lengths)
     with dsl.acquire_loop_rt(
         count=opts.count,
         averaging_mode=opts.averaging_mode,
@@ -187,15 +190,13 @@ def create_experiment(
         repetition_time=opts.repetition_time,
         reset_oscillator_phase=opts.reset_oscillator_phase,
     ):
-        for q, q_delays in zip(qubits, delays):
+        for q, q_lengths in zip(qubits, lengths):
             with dsl.sweep(
-                name=f"delays_{q.uid}",
-                parameter=SweepParameter(f"delay_{q.uid}", q_delays),
-            ) as delay:
+                name=f"amps_{q.uid}",
+                parameter=SweepParameter(f"length_{q.uid}", q_lengths),
+            ) as length:
                 qpu.qop.prepare_state(q, opts.transition[0])
-                qpu.qop.ramsey(
-                    q, delay, 0, echo_pulse=opts.refocus_qop, transition=opts.transition
-                )
+                qpu.qop.x180(q, length=length, transition=opts.transition)
                 qpu.qop.measure(q, dsl.handles.result_handle(q.uid))
                 qpu.qop.passive_reset(q)
             if opts.use_cal_traces:

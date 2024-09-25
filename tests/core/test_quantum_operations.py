@@ -141,6 +141,15 @@ class TestPulseCache:
         cache.store(pulse, "name", "const", {"amplitude": 1.0})
         assert cache.get("name", "const", {"amplitude": 1.0}) is pulse
 
+    def test_get_and_store_with_sweep_parameters(self):
+        cache = _PulseCache()
+        pulse = object()  # dummy pulse
+        sweep = SweepParameter(uid="amplitudes", values=[1.0, 2.0, 3.0])
+
+        assert cache.get("name", "const", {"amplitude": sweep}) is None
+        cache.store(pulse, "name", "const", {"amplitude": sweep})
+        assert cache.get("name", "const", {"amplitude": sweep}) is pulse
+
 
 class TestCreatePulse:
     def test_no_overrides(self):

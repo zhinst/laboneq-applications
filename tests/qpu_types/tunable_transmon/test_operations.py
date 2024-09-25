@@ -965,6 +965,40 @@ class TestTunableTransmonOperations:
             sweep=sweep,
         )
 
+    @pytest.mark.parametrize(
+        ("beta"),
+        [
+            pytest.param(1.0, id="constant"),
+            pytest.param(
+                SweepParameter(uid="sweep", values=[1.0, 2.0, 3.0]),
+                id="sweep_parameter",
+            ),
+        ],
+    )
+    def test_rx_pulse_parameter_beta(
+        self,
+        beta,
+        qops,
+        single_tunable_transmon_platform,
+    ):
+        [q0] = single_tunable_transmon_platform.qpu.qubits
+        section = qops.rx(q0, np.pi / 2, pulse={"beta": beta})
+
+        assert section == tsl.section(uid="__rx_q0_0").children(
+            self.reserve_ops(q0),
+            tsl.play_pulse_op(
+                signal="/logical_signal_groups/q0/drive",
+                pulse=tsl.pulse(pulse_parameters={"beta": beta, "sigma": 0.21}),
+            ),
+        )
+
+        sweep = beta if isinstance(beta, SweepParameter) else None
+        self.check_op_builds_and_compiles(
+            section,
+            single_tunable_transmon_platform,
+            sweep=sweep,
+        )
+
     def test_x90(self, qops, single_tunable_transmon_platform):
         [q0] = single_tunable_transmon_platform.qpu.qubits
         section = qops.x90(q0)
@@ -1263,6 +1297,41 @@ class TestTunableTransmonOperations:
         )
 
         sweep = length if isinstance(length, SweepParameter) else None
+        self.check_op_builds_and_compiles(
+            section,
+            single_tunable_transmon_platform,
+            sweep=sweep,
+        )
+
+    @pytest.mark.parametrize(
+        ("beta"),
+        [
+            pytest.param(1.0, id="constant"),
+            pytest.param(
+                SweepParameter(uid="sweep", values=[1.0, 2.0, 3.0]),
+                id="sweep_parameter",
+            ),
+        ],
+    )
+    def test_ry_pulse_parameter_beta(
+        self,
+        beta,
+        qops,
+        single_tunable_transmon_platform,
+    ):
+        [q0] = single_tunable_transmon_platform.qpu.qubits
+        section = qops.ry(q0, np.pi / 2, pulse={"beta": beta})
+
+        assert section == tsl.section(uid="__ry_q0_0").children(
+            self.reserve_ops(q0),
+            tsl.play_pulse_op(
+                signal="/logical_signal_groups/q0/drive",
+                pulse=tsl.pulse(pulse_parameters={"beta": beta, "sigma": 0.21}),
+                phase=np.pi / 2,
+            ),
+        )
+
+        sweep = beta if isinstance(beta, SweepParameter) else None
         self.check_op_builds_and_compiles(
             section,
             single_tunable_transmon_platform,

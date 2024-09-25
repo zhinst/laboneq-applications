@@ -20,8 +20,8 @@ def create_iq_blobs_verifier(
     if len(qubits) == 1:
         qubits = qubits[0]
     session = tunable_transmon_platform.session(do_emulation=True)
-    options = iq_blobs.options()
-    options.create_experiment.count = count
+    options = iq_blobs.experiment_workflow.options()
+    options.count(count)
     res = iq_blobs.experiment_workflow(
         session=session,
         qubits=qubits,

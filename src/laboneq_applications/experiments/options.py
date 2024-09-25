@@ -11,7 +11,6 @@ from pydantic import (
     model_validator,
 )
 
-from laboneq_applications.analysis.plotting_helpers import PlotRawDataOptions
 from laboneq_applications.workflow.options import TaskOptions, WorkflowOptions
 
 NonNegativeInt = Annotated[int, Field(ge=0)]
@@ -159,18 +158,6 @@ class TuneupAnalysisOptions(TuneupExperimentOptions):
     close_figures: bool = True
 
 
-class SpectroscopyWorkflowOptions(WorkflowOptions):
-    """Option class for spectroscopy workflow.
-
-    Attributes:
-        create_experiment (SpectroscopyExperimentOptions):
-            The options for creating the experiment.
-            Default: SpectroscopyExperimentOptions().
-    """
-
-    create_experiment: SpectroscopyExperimentOptions = SpectroscopyExperimentOptions()
-
-
 class TuneUpAnalysisWorkflowOptions(WorkflowOptions):
     """Option class for tune-up analysis workflows.
 
@@ -181,18 +168,6 @@ class TuneUpAnalysisWorkflowOptions(WorkflowOptions):
         do_plotting:
             Whether to make plots.
             Default: 'True'.
-        calculate_qubit_population (TuneupAnalysisOptions):
-            The options for processing the raw data.
-            Default: TuneupAnalysisOptions().
-        fit_data (TuneupAnalysisOptions):
-            The options for performing a fit.
-            Default: TuneupAnalysisOptions().
-        extract_qubit_parameters (TuneupAnalysisOptions):
-            The options for extracting qubit parameters from the fit.
-            Default: TuneupAnalysisOptions().
-        plot_population (TuneupAnalysisOptions):
-            The options for plotting.
-            Default: TuneupAnalysisOptions().
     """
 
     do_fitting: bool = True
@@ -200,20 +175,11 @@ class TuneUpAnalysisWorkflowOptions(WorkflowOptions):
     do_raw_data_plotting: bool = True
     do_qubit_population_plotting: bool = True
 
-    calculate_qubit_population: TuneupAnalysisOptions = TuneupAnalysisOptions()
-    fit_data: TuneupAnalysisOptions = TuneupAnalysisOptions()
-    extract_qubit_parameters: TuneupAnalysisOptions = TuneupAnalysisOptions()
-    plot_raw_complex_data_1d: PlotRawDataOptions = PlotRawDataOptions()
-    plot_population: TuneupAnalysisOptions = TuneupAnalysisOptions()
-
 
 class TuneUpWorkflowOptions(WorkflowOptions):
     """Option class for tune-up experiment workflows.
 
     Attributes:
-        create_experiment (TuneupExperimentOptions):
-            The options for creating the experiment.
-            Default: TuneupExperimentOptions().
         do_analysis (bool):
             Whether to run the analysis workflow.
             Default: True
@@ -222,7 +188,5 @@ class TuneUpWorkflowOptions(WorkflowOptions):
             Default: False
     """
 
-    create_experiment: TuneupExperimentOptions = TuneupExperimentOptions()
-    analysis_workflow: TuneUpAnalysisWorkflowOptions = TuneUpAnalysisWorkflowOptions()
     do_analysis: bool = True
     update: bool = False

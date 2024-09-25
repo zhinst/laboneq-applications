@@ -97,9 +97,9 @@ Let's run the amplitude Rabi experiment and take a look:
 
 ```{code-cell} ipython3
 amplitudes = np.linspace(0.0, 0.9, 10)
-options = amplitude_rabi.options()
-options.create_experiment.count = 10
-options.create_experiment.averaging_mode = "cyclic"
+options = amplitude_rabi.experiment_workflow.options()
+options.count(10)
+options.averaging_mode("cyclic")
 rabi_tb = amplitude_rabi.experiment_workflow(
     session,
     qpu,

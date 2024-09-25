@@ -120,10 +120,8 @@ class TestRabiAnalysisSingleQubit:
         self, single_tunable_transmon_platform, results_single_qubit
     ):
         [q0] = single_tunable_transmon_platform.qpu.qubits
-        options = amplitude_rabi.options()
-        for opt in options:
-            if hasattr(opt[1], "do_pca"):
-                opt[1].do_pca = False
+        options = amplitude_rabi.analysis_workflow.options()
+        options.do_pca(value=False)
 
         result = amplitude_rabi.analysis_workflow(
             result=results_single_qubit[0],
@@ -198,10 +196,8 @@ class TestRabiAnalysisSingleQubit:
         self, single_tunable_transmon_platform, results_single_qubit
     ):
         [q0] = single_tunable_transmon_platform.qpu.qubits
-        options = amplitude_rabi.options()
-        for opt in options:
-            if hasattr(opt[1], "do_pca"):
-                opt[1].do_pca = True
+        options = amplitude_rabi.analysis_workflow.options()
+        options.do_pca(True)
 
         result = amplitude_rabi.analysis_workflow(
             result=results_single_qubit[0],
@@ -276,11 +272,8 @@ class TestRabiAnalysisSingleQubit:
         self, single_tunable_transmon_platform, results_single_qubit
     ):
         [q0] = single_tunable_transmon_platform.qpu.qubits
-        options = amplitude_rabi.options()
-        options.do_fitting = False
-        for opt in options:
-            if hasattr(opt[1], "do_fitting"):
-                opt[1].do_fitting = False
+        options = amplitude_rabi.analysis_workflow.options()
+        options.do_fitting(value=False)
 
         result = amplitude_rabi.analysis_workflow(
             result=results_single_qubit[0],
@@ -300,8 +293,8 @@ class TestRabiAnalysisSingleQubit:
         self, single_tunable_transmon_platform, results_single_qubit
     ):
         [q0] = single_tunable_transmon_platform.qpu.qubits
-        options = amplitude_rabi.options()
-        options.do_plotting = False
+        options = amplitude_rabi.analysis_workflow.options()
+        options.do_plotting(value=False)
 
         result = amplitude_rabi.analysis_workflow(
             result=results_single_qubit[0],
@@ -522,10 +515,8 @@ class TestRabiAnalysisTwoQubit:
         self, two_tunable_transmon_platform, results_two_qubit
     ):
         qubits = two_tunable_transmon_platform.qpu.qubits
-        options = amplitude_rabi.options()
-        for opt in options:
-            if hasattr(opt[1], "do_pca"):
-                opt[1].do_pca = False
+        options = amplitude_rabi.analysis_workflow.options()
+        options.do_pca(value=False)
 
         result = amplitude_rabi.analysis_workflow(
             result=results_two_qubit[0],
@@ -652,10 +643,8 @@ class TestRabiAnalysisTwoQubit:
 
     def test_create_and_run_pca(self, two_tunable_transmon_platform, results_two_qubit):
         qubits = two_tunable_transmon_platform.qpu.qubits
-        options = amplitude_rabi.options()
-        for opt in options:
-            if hasattr(opt[1], "do_pca"):
-                opt[1].do_pca = True
+        options = amplitude_rabi.analysis_workflow.options()
+        options.do_pca(value=True)
 
         result = amplitude_rabi.analysis_workflow(
             result=results_two_qubit[0],
@@ -780,11 +769,8 @@ class TestRabiAnalysisTwoQubit:
         self, two_tunable_transmon_platform, results_two_qubit
     ):
         qubits = two_tunable_transmon_platform.qpu.qubits
-        options = amplitude_rabi.options()
-        options.do_fitting = False
-        for opt in options:
-            if hasattr(opt[1], "do_fitting"):
-                opt[1].do_fitting = False
+        options = amplitude_rabi.analysis_workflow.options()
+        options.do_fitting(value=False)
 
         result = amplitude_rabi.analysis_workflow(
             result=results_two_qubit[0],
@@ -806,8 +792,8 @@ class TestRabiAnalysisTwoQubit:
         self, two_tunable_transmon_platform, results_two_qubit
     ):
         qubits = two_tunable_transmon_platform.qpu.qubits
-        options = amplitude_rabi.options()
-        options.do_plotting = False
+        options = amplitude_rabi.analysis_workflow.options()
+        options.do_plotting(value=False)
 
         result = amplitude_rabi.analysis_workflow(
             result=results_two_qubit[0],
@@ -828,11 +814,8 @@ class TestRabiAnalysisTwoQubit:
         self, two_tunable_transmon_platform, results_two_qubit
     ):
         qubits = two_tunable_transmon_platform.qpu.qubits
-        options = amplitude_rabi.options()
-
-        for opt in options:
-            if hasattr(opt[1], "close_figures"):
-                opt[1].close_figures = True
+        options = amplitude_rabi.analysis_workflow.options()
+        options.close_figures(value=True)
 
         result = amplitude_rabi.analysis_workflow(
             result=results_two_qubit[0],
@@ -848,9 +831,7 @@ class TestRabiAnalysisTwoQubit:
             result.tasks["plot_population"].output["q1"], mpl.figure.Figure
         )
 
-        for opt in options:
-            if hasattr(opt[1], "close_figures"):
-                opt[1].close_figures = False
+        options.close_figures(value=False)
 
         result = amplitude_rabi.analysis_workflow(
             result=results_two_qubit[0],

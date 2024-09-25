@@ -8,6 +8,7 @@ import textwrap
 from typing import TYPE_CHECKING, Callable, ClassVar
 
 from laboneq.dsl.experiment import builtins, pulse_library
+from laboneq.dsl.parameter import Parameter
 
 from laboneq_applications.core.build_experiment import _qubits_from_args
 from laboneq_applications.core.utils import pygmentize
@@ -76,14 +77,23 @@ class _PulseCache:
     def reset_global_cache(cls) -> None:
         cls.GLOBAL_CACHE.clear()
 
+    def _parameter_value_key(self, value: object) -> object:
+        if isinstance(value, Parameter):
+            return tuple(value.values)
+        return value
+
+    def _key(self, name: str, function: str, parameters: dict) -> tuple:
+        parameters = {k: self._parameter_value_key(v) for k, v in parameters.items()}
+        return (name, function, tuple(sorted(parameters.items())))
+
     def get(self, name: str, function: str, parameters: dict) -> Pulse | None:
         """Return the cache pulse or `None`."""
-        key = (function, name, tuple(sorted(parameters.items())))
+        key = self._key(name, function, parameters)
         return self.cache.get(key, None)
 
     def store(self, pulse: Pulse, name: str, function: str, parameters: dict) -> None:
         """Store the given pulse in the cache."""
-        key = (function, name, tuple(sorted(parameters.items())))
+        key = self._key(name, function, parameters)
         self.cache[key] = pulse
 
 

@@ -33,12 +33,11 @@ def create_echo_verifier(
     if len(qubits) == 1:
         qubits = qubits[0]
     session = tunable_transmon_platform.session(do_emulation=True)
-    options = echo.options()
-    options.create_experiment.count = count
-
-    options.create_experiment.transition = transition
-    options.create_experiment.use_cal_traces = use_cal_traces
-    options.create_experiment.cal_states = cal_states
+    options = echo.experiment_workflow.options()
+    options.count(count)
+    options.transition(transition)
+    options.use_cal_traces(use_cal_traces)
+    options.cal_states(cal_states)
 
     res = echo.experiment_workflow(
         session=session,

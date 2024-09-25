@@ -197,9 +197,9 @@ class TestWorkflow:
     def test_create_and_run(self, single_tunable_transmon_platform):
         [q0] = single_tunable_transmon_platform.qpu.qubits
         amplitudes = np.linspace(0, 1, 21)
-        options = amplitude_rabi.options()
-        options.create_experiment.count = 10
-        options.create_experiment.transition = "ge"
+        options = amplitude_rabi.experiment_workflow.options()
+        options.count(10)
+        options.transition("ge")
 
         result = amplitude_rabi.experiment_workflow(
             session=single_tunable_transmon_platform.session(do_emulation=True),
@@ -231,10 +231,10 @@ class TestWorkflow:
     def test_create_and_run_no_analysis(self, single_tunable_transmon_platform):
         [q0] = single_tunable_transmon_platform.qpu.qubits
         amplitudes = np.linspace(0, 1, 21)
-        options = amplitude_rabi.options()
-        options.create_experiment.count = 10
-        options.create_experiment.transition = "ge"
-        options.do_analysis = False
+        options = amplitude_rabi.experiment_workflow.options()
+        options.count(10)
+        options.transition("ge")
+        options.do_analysis(False)
 
         result = amplitude_rabi.experiment_workflow(
             session=single_tunable_transmon_platform.session(do_emulation=True),
@@ -249,10 +249,10 @@ class TestWorkflow:
     def test_create_and_run_update(self, single_tunable_transmon_platform):
         [q0] = single_tunable_transmon_platform.qpu.qubits
         amplitudes = np.linspace(0, 1, 21)
-        options = amplitude_rabi.options()
-        options.create_experiment.count = 10
-        options.create_experiment.transition = "ge"
-        options.update = True
+        options = amplitude_rabi.experiment_workflow.options()
+        options.count(10)
+        options.transition("ge")
+        options.do_analysis(True)
 
         result = amplitude_rabi.experiment_workflow(
             session=single_tunable_transmon_platform.session(do_emulation=True),
@@ -262,14 +262,14 @@ class TestWorkflow:
             options=options,
         ).run()
 
-        assert len(result.tasks) == 5
+        assert len(result.tasks) == 4
 
     def test_create_and_run_two_qubits(self, two_tunable_transmon_platform):
         [q0, q1] = two_tunable_transmon_platform.qpu.qubits
         amplitudes = [np.linspace(0, 1, 21), np.linspace(0, 0.5, 21)]
-        options = amplitude_rabi.options()
-        options.create_experiment.count = 10
-        options.create_experiment.transition = "ge"
+        options = amplitude_rabi.experiment_workflow.options()
+        options.count(10)
+        options.transition("ge")
 
         result = amplitude_rabi.experiment_workflow(
             session=two_tunable_transmon_platform.session(do_emulation=True),

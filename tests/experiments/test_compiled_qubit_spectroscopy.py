@@ -21,8 +21,8 @@ def create_qubitspec_verifier(
     if len(qubits) == 1:
         qubits = qubits[0]
     session = tunable_transmon_platform.session(do_emulation=True)
-    options = qubit_spectroscopy.options()
-    options.create_experiment.count = count
+    options = qubit_spectroscopy.experiment_workflow.options()
+    options.count(count)
 
     # Run the experiment workflow
     res = qubit_spectroscopy.experiment_workflow(

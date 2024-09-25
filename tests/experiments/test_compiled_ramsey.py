@@ -16,10 +16,10 @@ def create_ramsey_verifier(
     if len(qubits) == 1:
         qubits = qubits[0]
     session = tunable_transmon_platform.session(do_emulation=True)
-    options = ramsey.options()
-    options.create_experiment.count = count
-    options.create_experiment.transition = transition
-    options.create_experiment.use_cal_traces = use_cal_traces
+    options = ramsey.experiment_workflow.options()
+    options.count(count)
+    options.transition(transition)
+    options.use_cal_traces(use_cal_traces)
     res = ramsey.experiment_workflow(
         session=session,
         qubits=qubits,
@@ -28,10 +28,6 @@ def create_ramsey_verifier(
         detunings=detunings,
         options=options,
     ).run()
-    output = res.tasks["compile_experiment"].output
-    from laboneq.simple import show_pulse_sheet
-
-    show_pulse_sheet("test", output)
     return CompiledExperimentVerifier(res.tasks["compile_experiment"].output)
 
 

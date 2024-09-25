@@ -23,10 +23,10 @@ def create_res_spectroscopy_amp_verifier(
     # for this specific experiment, I force just one qubit by default
     qubit = qubits[0]
     session = tunable_transmon_platform.session(do_emulation=True)
-    options = resonator_spectroscopy_amplitude.options()
-    options.create_experiment.count = count
-    options.create_experiment.use_cw = use_cw
-    options.create_experiment.spectroscopy_reset_delay = spectroscopy_reset_delay
+    options = resonator_spectroscopy_amplitude.experiment_workflow.options()
+    options.count(count)
+    options.use_cw(use_cw)
+    options.spectroscopy_reset_delay(spectroscopy_reset_delay)
     res = resonator_spectroscopy_amplitude.experiment_workflow(
         session=session,
         qubit=qubit,

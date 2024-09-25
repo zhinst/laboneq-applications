@@ -91,6 +91,8 @@ lint.ignore = [
   "PLR0911",
   # Missing return type annotation for special method
   "ANN204",
+  # Boolean positional parameters in call
+  "FBT003",
   # Line contains TODO, consider resolving the issue
   "FIX",
   # TODO comments

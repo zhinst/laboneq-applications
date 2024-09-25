@@ -21,11 +21,11 @@ def create_dispers_shift_verifier(
     """Create a CompiledExperimentVerifier for the amplitude rabi experiment."""
     qubits = tunable_transmon_platform.qpu.qubits
     session = tunable_transmon_platform.session(do_emulation=True)
-    options = dispersive_shift.options()
-    options.create_experiment.count = count
+    options = dispersive_shift.experiment_workflow.options()
+    options.count(count)
     # It is okay to keep it as default integration mode.
     # However, readout length will be limited in such SW modulation case.
-    options.create_experiment.acquisition_type = AcquisitionType.SPECTROSCOPY
+    options.acquisition_type(AcquisitionType.SPECTROSCOPY)
 
     # Run the experiment workflow
     res = dispersive_shift.experiment_workflow(
