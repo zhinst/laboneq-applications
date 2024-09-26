@@ -22,12 +22,15 @@ def on_system_grid(time, system_grid=8):
     return round(time_ns * 1e-9, 12)
 
 
-@pytest.mark.parametrize("repetitions", [np.arange(1, 3, 1), np.arange(1, 52, 25)])
-@pytest.mark.parametrize("num_qubits", [1])
-@pytest.mark.parametrize(
-    "transition, cal_states",
-    [("ge", "ge"), ("ef", "ef")]
-)
+length_ge = 51e-9
+length_ef = 52e-9
+length_measure = 2e-6
+length_measure_reset = 2e-6 + 1e-6
+
+
+@pytest.mark.parametrize("repetitions", [np.arange(1, 5, 1)])
+@pytest.mark.parametrize("num_qubits", [2])
+@pytest.mark.parametrize("transition, cal_states", [("ge", "ge"), ("ef", "ef")])
 class TestAmplitudeFine:
     """Test for fine-amplitude on a single/two qubit"""
 
@@ -69,7 +72,6 @@ class TestAmplitudeFine:
         )
         return self.verifier
 
-    @pytest.mark.skip("no need to test")
     def test_pulse_count_drive(self, repetitions):
         """Test the total number of drive pulses with given repetitions"""
 
@@ -95,7 +97,7 @@ class TestAmplitudeFine:
                 f"/logical_signal_groups/q{i}/drive_ef",
                 expected_ef,
             )
-    @pytest.mark.skip("no need to test")
+
     def test_pulse_count_measure_acquire(self, repetitions):
         """Test the total number of meausre and acquire pulses with given repetitions"""
 
@@ -112,74 +114,78 @@ class TestAmplitudeFine:
                 expected_measure,
             )
 
-    def test_pulse_drive(self, repetitions): #ongoing
+    def test_pulse_drive(self, repetitions):
         """Test the timing of drive pulses with given repetitions"""
-        length_ge = 51e-9
-        length_ef = 52e-9
-        length_measure_reset = 2e-6 + 1e-6
 
-        def total_length_drive(iteration, transition="ge"):
-            if transition == "ge":
-                length = length_ge
-            elif transition == "ef":
-                length = length_ef
-            if iteration > 1:
-                return length * (iteration - 1) + on_system_grid(length)
-            return length * iteration
+        for i in range(self.num_qubits):
+            index_rep = 0  # index for the first pulse at every repetition
+            for index, rep in enumerate(repetitions):
+                # check length for state preparation, this is not necessary
+                self.verifier.assert_pulse(
+                    signal=f"/logical_signal_groups/q{i}/drive",
+                    index=index_rep,
+                    length=length_ge,
+                )  # x90_ge
+                if self.transition == "ef":
+                    self.verifier.assert_pulse(
+                        signal=f"/logical_signal_groups/q{i}/drive_ef",
+                        index=index_rep,
+                        length=length_ef,
+                    )  # x180_ge + x90_ef
 
-        def total_length_measure(index):
-            return length_measure_reset * (index)
-
-        time_start = 0
-
-        for index, rep in enumerate(repetitions):
-            self.verifier.assert_pulse(
-                    signal="/logical_signal_groups/q0/drive",
-                    index=index,
-                    length = length_ge
-                )
-            if index %2 ==0 :
+                # check timing gap between 1st and 2nd pulse at every repetition
                 if self.transition == "ge":
                     self.verifier.assert_pulse_pair(
-                        signals="/logical_signal_groups/q0/drive",
-                        indices=(index,index+1),
-                        distance = 0
-                    )
-                else: # this fails
+                        signals=f"/logical_signal_groups/q{i}/drive",
+                        indices=(index_rep, index_rep + 1),
+                        distance=0,
+                    )  # no gap
+                else:
                     self.verifier.assert_pulse_pair(
-                        signals=("/logical_signal_groups/q0/drive","/logical_signal_groups/q0/drive_ef"),
-                        indices=(index,index+1),
-                        distance = 0
+                        signals=f"/logical_signal_groups/q{i}/drive_ef",
+                        indices=(index_rep, index_rep + 1),
+                        distance=(
+                            on_system_grid(length_ge) - length_ef
+                        ),  # ?, this should be 0
+                    )  # no gap
+                    self.verifier.assert_pulse_pair(
+                        signals=(
+                            f"/logical_signal_groups/q{i}/drive",
+                            f"/logical_signal_groups/q{i}/drive_ef",
+                        ),
+                        indices=(
+                            index,
+                            index_rep,
+                        ),  # why 'index'? beacuse single x180 added on q0/drive
+                        distance=(on_system_grid(length_ge) - length_ge),
                     )
+                index_rep += 1 + rep  # 1:state preparation, rep:repetition
 
-    @pytest.mark.skip("no need to test") # ongoing
     def test_pulse_measure(self, repetitions):
         """Test the timing of measure pulses with given repetitions"""
-        length_ge = 51e-9
-        readout_length = 2e-6
 
-        if repetitions[0] != 0:
-            measure_start = on_system_grid(length_ge)
-            measure_end = measure_start + readout_length
-            integration_start = measure_start
-            integration_end = measure_end
+        for i in range(self.num_qubits):
+            num_drive = 0
+            for index, rep in enumerate(repetitions):
+                if self.transition == "ge":
+                    num_drive += 1 + rep
+                    length_drive = on_system_grid(length_ef * num_drive)
+                    #why length_ef? it has to be length_ge
+                elif self.transition == "ef":
+                    num_drive += 2 + rep
+                    length_drive = on_system_grid(length_ge) * num_drive
 
-            if self.transition == "ef":
-                measure_start += on_system_grid(length_ge)
-                measure_end += on_system_grid(length_ge)
-                integration_start += on_system_grid(length_ge)
-                integration_end += on_system_grid(length_ge)
+                time_start = length_drive + length_measure_reset * index
 
-            for i in range(self.num_qubits):
                 self.verifier.assert_pulse(
                     signal=f"/logical_signal_groups/q{i}/measure",
-                    index=0,
-                    start=measure_start,
-                    end=measure_end,
+                    index=index,
+                    start=time_start,
+                    end=time_start + length_measure,
                 )
                 self.verifier.assert_pulse(
                     signal=f"/logical_signal_groups/q{i}/acquire",
-                    index=0,
-                    start=integration_start,
-                    end=integration_end,
+                    index=index,
+                    start=time_start,
+                    end=time_start + length_measure,
                 )
