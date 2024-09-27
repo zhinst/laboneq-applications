@@ -112,6 +112,39 @@ def cosine_oscillatory_fit(
     )
 
 
+def exponential_decay_fit(
+    x: ArrayLike,
+    data: ArrayLike,
+    param_hints: dict[str, dict[str, float | bool | str]] | None = None,
+) -> lmfit.model.ModelResult:
+    """Performs a fit of an exponential-decay model to data.
+
+    Arguments:
+        data: the data to be fitted
+        x: the independent variable
+        param_hints: dictionary of guesses for the fit parameters. See the lmfit
+            docstring for details on the form of the parameter hints dictionary:
+            https://lmfit.github.io/lmfit-py/model.html#lmfit.model.Model.set_param_hint
+
+    Returns:
+        The lmfit result
+    """
+    if param_hints is None:
+        param_hints = {}
+    param_hints_to_use = {
+        "decay_rate": {"value": 2 / (3 * np.max(x))},
+        "amplitude": {"value": data[0]},
+        "offset": {"value": 0},
+    }
+    param_hints_to_use.update(param_hints)
+    return fit_data_lmfit(
+        fit_mods.exponential_decay,
+        x,
+        data,
+        param_hints=param_hints_to_use,
+    )
+
+
 def get_pi_pi2_xvalues_on_cos(
     x: ArrayLike,
     frequency: float | ArrayLike,
