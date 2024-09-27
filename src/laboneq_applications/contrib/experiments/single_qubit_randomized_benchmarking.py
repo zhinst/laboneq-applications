@@ -25,6 +25,9 @@ from qiskit import qasm3, transpile
 from qiskit_experiments.library import randomized_benchmarking
 
 from laboneq_applications import dsl
+from laboneq_applications.contrib.analysis.single_qubit_randomized_benchmarking import (
+    analysis_workflow,
+)
 from laboneq_applications.core import handles
 from laboneq_applications.core.build_experiment import qubit_experiment
 from laboneq_applications.core.validation import validate_and_convert_qubits_sweeps
@@ -34,6 +37,7 @@ from laboneq_applications.experiments.options import (
 )
 from laboneq_applications.tasks import compile_experiment, run_experiment
 from laboneq_applications.workflow import (
+    if_,
     task,
     workflow,
 )
@@ -131,6 +135,8 @@ def experiment_workflow(
     )
     compiled_exp = compile_experiment(session, exp)
     _result = run_experiment(session, compiled_exp)
+    with if_(options.do_analysis):
+        analysis_workflow(_result, qubits, length_cliffords, variations)
 
 
 @task
