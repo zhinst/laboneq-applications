@@ -22,10 +22,10 @@ def on_system_grid(time, system_grid=8):
     return round(time_ns * 1e-9, 12)
 
 
-length_ge = 51e-9
-length_ef = 52e-9
-length_measure = 2e-6
-length_measure_reset = 2e-6 + 1e-6
+_LENGTH_GE = 51e-9
+_LENGTH_EF = 52e-9
+_LENGTH_MEASURE = 2e-6
+_LENGTH_MEASURE_RESET = 2e-6 + 1e-6
 
 
 @pytest.mark.parametrize("repetitions", [np.arange(1, 5, 1)])
@@ -117,23 +117,27 @@ class TestAmplitudeFine:
     def test_pulse_drive(self, repetitions):
         """Test the timing of drive pulses with given repetitions"""
 
+        # check length for state preparation
         for i in range(self.num_qubits):
             index_rep = 0  # index for the first pulse at every repetition
             for index, rep in enumerate(repetitions):
-                # check length for state preparation, this is not necessary
                 self.verifier.assert_pulse(
                     signal=f"/logical_signal_groups/q{i}/drive",
                     index=index_rep,
-                    length=length_ge,
+                    length=_LENGTH_GE,
                 )  # x90_ge
                 if self.transition == "ef":
                     self.verifier.assert_pulse(
                         signal=f"/logical_signal_groups/q{i}/drive_ef",
                         index=index_rep,
-                        length=length_ef,
+                        length=_LENGTH_EF,
                     )  # x180_ge + x90_ef
 
-                # check timing gap between 1st and 2nd pulse at every repetition
+        # check timing gap between 1st and 2nd pulse at every repetition
+        for i in range(self.num_qubits):
+            index_rep = 0  # index for the first pulse at every repetition
+            for index, rep in enumerate(repetitions):
+                
                 if self.transition == "ge":
                     self.verifier.assert_pulse_pair(
                         signals=f"/logical_signal_groups/q{i}/drive",
@@ -145,7 +149,7 @@ class TestAmplitudeFine:
                         signals=f"/logical_signal_groups/q{i}/drive_ef",
                         indices=(index_rep, index_rep + 1),
                         distance=(
-                            on_system_grid(length_ge) - length_ef
+                            on_system_grid(_LENGTH_GE) - _LENGTH_EF
                         ),  # ?, this should be 0
                     )  # no gap
                     self.verifier.assert_pulse_pair(
@@ -157,7 +161,7 @@ class TestAmplitudeFine:
                             index,
                             index_rep,
                         ),  # why 'index'? beacuse single x180 added on q0/drive
-                        distance=(on_system_grid(length_ge) - length_ge),
+                        distance=(on_system_grid(_LENGTH_GE) - _LENGTH_GE),
                     )
                 index_rep += 1 + rep  # 1:state preparation, rep:repetition
 
@@ -169,23 +173,23 @@ class TestAmplitudeFine:
             for index, rep in enumerate(repetitions):
                 if self.transition == "ge":
                     num_drive += 1 + rep
-                    length_drive = on_system_grid(length_ef * num_drive)
+                    length_drive = on_system_grid(_LENGTH_EF * num_drive)
                     #why length_ef? it has to be length_ge
                 elif self.transition == "ef":
                     num_drive += 2 + rep
-                    length_drive = on_system_grid(length_ge) * num_drive
+                    length_drive = on_system_grid(_LENGTH_GE) * num_drive
 
-                time_start = length_drive + length_measure_reset * index
+                time_start = length_drive + _LENGTH_MEASURE_RESET * index
 
                 self.verifier.assert_pulse(
                     signal=f"/logical_signal_groups/q{i}/measure",
                     index=index,
                     start=time_start,
-                    end=time_start + length_measure,
+                    end=time_start + _LENGTH_MEASURE,
                 )
                 self.verifier.assert_pulse(
                     signal=f"/logical_signal_groups/q{i}/acquire",
                     index=index,
                     start=time_start,
-                    end=time_start + length_measure,
+                    end=time_start + _LENGTH_MEASURE,
                 )
