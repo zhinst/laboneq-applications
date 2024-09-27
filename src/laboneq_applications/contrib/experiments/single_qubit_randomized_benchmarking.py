@@ -45,9 +45,6 @@ if TYPE_CHECKING:
     from laboneq_applications.typing import Qubits
 
 
-options = TuneUpWorkflowOptions
-
-
 @workflow
 def experiment_workflow(
     session: Session,
@@ -98,23 +95,22 @@ def experiment_workflow(
 
     Example:
         ```python
-        options = TuneUpWorkflowOptions()
-        options.create_experiment.count = 10
-        options.create_experiment.transition = "ge"
+        options = experiment_workflow.options()
+        options.count(10)
+        options.transition("ge")
         qpu = QPU(
-            setup=DeviceSetup("my_device"),
             qubits=[TunableTransmonQubit("q0"), TunableTransmonQubit("q1")],
             qop=TunableTransmonOperations(),
         )
         temp_qubits = qpu.copy_qubits()
-        result = run(
+        result = experiment_workflow(
             session=session,
             qpu=qpu,
             qubits=temp_qubits,
             length_cliffords=[1,5,10,20,50],
             variations=5,
             options=options,
-        )
+        ).run()
         ```
     """
     if gate_map.isEmpty:
@@ -229,17 +225,10 @@ def create_experiment(
 
     Example:
         ```python
-        options = {
-            "count": 10,
-            "transition": "ge",
-            "averaging_mode": "cyclic",
-            "acquisition_type": "integration_trigger",
-            "cal_traces": True,
-        }
-        options = TuneupExperimentOptions(**options)
+        options = TuneupExperimentOptions()
+        options.count = 10
         setup = DeviceSetup()
         qpu = QPU(
-            setup=DeviceSetup("my_device"),
             qubits=[TunableTransmonQubit("q0"), TunableTransmonQubit("q1")],
             qop=TunableTransmonOperations(),
         )

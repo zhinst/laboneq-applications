@@ -1,11 +1,12 @@
-"""This module defines the time-rabi experiment.
+"""This module defines the time rabi chevron experiment.
 
-In this experiment, we sweep the length of a drive pulse on a given qubit transition
-in order to determine the pulse length that induces a rotation of pi.
+In this experiment, we sweep the frequency and the amplitude
+of the drive pulse.
 
-The time-rabi experiment has the following pulse sequence:
+The time_rabi_chevron experiment has the following pulse sequence:
 
-    qb --- [ prep transition ] --- [ x180_transition ] --- [ measure ]
+    qb --- [ prep transition ] --- [ qop (swept frequency, swept length)]
+       --- [ measure ]
 
 If multiple qubits are passed to the `run` workflow, the above pulses are applied
 in parallel on all the qubits.
@@ -18,12 +19,15 @@ from typing import TYPE_CHECKING
 from laboneq.simple import Experiment, SweepParameter
 
 from laboneq_applications import dsl
-from laboneq_applications.contrib.analysis.time_rabi import analysis_workflow
+from laboneq_applications.contrib.analysis.time_rabi_chevron import (
+    analysis_workflow,
+)
+from laboneq_applications.core.validation import validate_and_convert_qubits_sweeps
 from laboneq_applications.experiments.options import (
     TuneupExperimentOptions,
     TuneUpWorkflowOptions,
 )
-from laboneq_applications.tasks import compile_experiment, run_experiment, update_qubits
+from laboneq_applications.tasks import compile_experiment, run_experiment
 from laboneq_applications.workflow import if_, task, workflow
 
 if TYPE_CHECKING:
@@ -38,18 +42,18 @@ def experiment_workflow(
     session: Session,
     qpu: QPU,
     qubits: Qubits,
+    frequencies: QubitSweepPoints,
     lengths: QubitSweepPoints,
     options: TuneUpWorkflowOptions | None = None,
 ) -> None:
-    """The Time Rabi Workflow.
+    """The Qubit Spectroscopy Workflow.
 
     The workflow consists of the following steps:
 
     - [create_experiment]()
     - [compile_experiment]()
     - [run_experiment]()
-    - [analysis_workflow]()
-    - [update_qubits]()
+    - [analysis_workflow]() (optional)
 
     Arguments:
         session:
@@ -59,10 +63,14 @@ def experiment_workflow(
         qubits:
             The qubits to run the experiments on. May be either a single
             qubit or a list of qubits.
+        frequencies:
+            The qubit frequencies to sweep over for the qubit drive pulse. If `qubits`
+            is a single qubit, `frequencies` must be a list of numbers or an array.
+            Otherwise, it must be a list of lists of numbers or arrays.
         lengths:
-            The drive-pulse lengths to sweep over for each qubit. If `qubits` is a
-            single qubit, `lengths` must be a list of numbers or an array. Otherwise
-            it must be a list of lists of numbers or arrays.
+            The lenghts to sweep over for each qubit drive pulse. `lenghts` must
+            be a list of numbers or an array. Otherwise it must be a list of lists of
+            numbers or arrays.
         options:
             The options for building the workflow.
             In addition to options from [WorkflowOptions], the following
@@ -70,14 +78,13 @@ def experiment_workflow(
                 - create_experiment: The options for creating the experiment.
 
     Returns:
-        WorkflowBuilder:
-            The builder of the experiment workflow.
+        result:
+            The result of the workflow.
 
     Example:
         ```python
         options = experiment_workflow.options()
         options.count(10)
-        options.create_experiment.transition = "ge"
         qpu = QPU(
             qubits=[TunableTransmonQubit("q0"), TunableTransmonQubit("q1")],
             qop=TunableTransmonOperations(),
@@ -87,10 +94,11 @@ def experiment_workflow(
             session=session,
             qpu=qpu,
             qubits=temp_qubits,
-            lengths=[
-                np.linspace(100e-9, 500e-9, 11),
-                np.linspace(100e-9, 500e-9, 11),
+            frequencies = [
+                np.linspace(5.8e9, 6.2e9, 101),
+                np.linspace(0.8e9, 1.2e9, 101)
             ],
+            lengths=[[0.1e-6, 0.5e-6, 1e-6], [0.1e-6, 0.5e-6, 1e-6]],
             options=options,
         ).run()
         ```
@@ -98,15 +106,13 @@ def experiment_workflow(
     exp = create_experiment(
         qpu,
         qubits,
+        frequencies=frequencies,
         lengths=lengths,
     )
     compiled_exp = compile_experiment(session, exp)
-    _result = run_experiment(session, compiled_exp)
+    result = run_experiment(session, compiled_exp)
     with if_(options.do_analysis):
-        analysis_results = analysis_workflow(_result, qubits, lengths)
-        qubit_parameters = analysis_results.tasks["extract_qubit_parameters"].output
-        with if_(options.update):
-            update_qubits(qpu, qubit_parameters["new_parameter_values"])
+        analysis_workflow(result, qubits, frequencies, lengths)
 
 
 @task
@@ -114,10 +120,11 @@ def experiment_workflow(
 def create_experiment(
     qpu: QPU,
     qubits: Qubits,
+    frequencies: QubitSweepPoints,
     lengths: QubitSweepPoints,
     options: TuneupExperimentOptions | None = None,
 ) -> Experiment:
-    """Creates a length-Rabi experiment Workflow.
+    """Creates a Qubit Spectroscopy Experiment.
 
     Arguments:
         qpu:
@@ -125,10 +132,13 @@ def create_experiment(
         qubits:
             The qubits to run the experiments on. May be either a single
             qubit or a list of qubits.
+        frequencies:
+            The qubit frequencies to sweep over for the qubit drive pulse. If `qubits`
+            is a single qubit, `frequencies` must be a list of numbers or an array.
+            Otherwise, it must be a list of lists of numbers or arrays.
         lengths:
-            The drive-pulse lengths to sweep over for each qubit. If `qubits` is a
-            single qubit, `lengths` must be a list of numbers or an array. Otherwise
-            it must be a list of lists of numbers or arrays.
+            The lengths to sweep over for each qubit. It must be a list of numbers
+            or arrays or a list of lists of numbers or arrays.
         options:
             The options for building the experiment.
             See [TuneupExperimentOptions] and [BaseExperimentOptions] for
@@ -142,20 +152,20 @@ def create_experiment(
 
     Raises:
         ValueError:
-            If the qubits and qubit_lengths are not of the same length.
+            If the qubits, amplitudes, and frequencies are not of the same length.
 
         ValueError:
-            If qubit_lengths is not a list of numbers when a single qubit is passed.
+            If amplitudes and frequencies are not a list of numbers when a single
+            qubit is passed.
 
         ValueError:
-            If qubit_lengths is not a list of lists of numbers.
+            If frequencies is not a list of lists of numbers.
+            If amplitudes is not None or a list of lists of numbers.
 
     Example:
         ```python
         options = TuneupExperimentOptions()
         options.count = 10
-        options.transition = "ge"
-        options.cal_traces = True
         qpu = QPU(
             qubits=[TunableTransmonQubit("q0"), TunableTransmonQubit("q1")],
             qop=TunableTransmonOperations(),
@@ -164,17 +174,21 @@ def create_experiment(
         create_experiment(
             qpu=qpu,
             qubits=temp_qubits,
-            lengths=[
-                np.linspace(100e-9, 500e-9, 11),
-                np.linspace(100e-9, 500e-9, 11),
+            frequencies = [
+                np.linspace(5.8e9, 6.2e9, 101),
+                np.linspace(0.8e9, 1.2e9, 101)
             ],
+            lengths=[[0.1e-6, 0.5e-6, 1e-6], [0.1e-6, 0.5e-6, 1e-6]],
             options=options,
         )
         ```
     """
     # Define the custom options for the experiment
     opts = TuneupExperimentOptions() if options is None else options
-    qubits, lengths = dsl.validation.validate_and_convert_qubits_sweeps(qubits, lengths)
+
+    _, frequencies = validate_and_convert_qubits_sweeps(qubits, frequencies)
+    qubits, lengths = validate_and_convert_qubits_sweeps(qubits, lengths)
+
     with dsl.acquire_loop_rt(
         count=opts.count,
         averaging_mode=opts.averaging_mode,
@@ -183,23 +197,28 @@ def create_experiment(
         repetition_time=opts.repetition_time,
         reset_oscillator_phase=opts.reset_oscillator_phase,
     ):
-        for q, q_lengths in zip(qubits, lengths):
+        for q, q_frequencies, q_lengths in zip(qubits, frequencies, lengths):
             with dsl.sweep(
                 name=f"amps_{q.uid}",
-                parameter=SweepParameter(f"length_{q.uid}", q_lengths),
+                parameter=SweepParameter(f"lenght_{q.uid}", q_lengths),
             ) as length:
-                qpu.qop.prepare_state(q, opts.transition[0])
-                qpu.qop.x180(q, length=length, transition=opts.transition)
-                qpu.qop.measure(q, dsl.handles.result_handle(q.uid))
-                qpu.qop.passive_reset(q)
-            if opts.use_cal_traces:
-                with dsl.section(
-                    name=f"cal_{q.uid}",
-                ):
-                    for state in opts.cal_states:
-                        qpu.qop.prepare_state(q, state)
-                        qpu.qop.measure(
-                            q,
-                            dsl.handles.calibration_trace_handle(q.uid, state),
-                        )
-                        qpu.qop.passive_reset(q)
+                with dsl.sweep(
+                    name=f"freqs_{q.uid}",
+                    parameter=SweepParameter(f"frequency_{q.uid}", q_frequencies),
+                ) as frequency:
+                    qpu.qop.set_frequency(q, frequency, transition=opts.transition)
+                    qpu.qop.x180(q, length=length)
+                    qpu.qop.measure(q, dsl.handles.result_handle(q.uid))
+                    qpu.qop.passive_reset(q)
+
+                    if opts.use_cal_traces:
+                        with dsl.section(
+                            name=f"cal_{q.uid}",
+                        ):
+                            for state in opts.cal_states:
+                                qpu.qop.prepare_state(q, state)
+                                qpu.qop.measure(
+                                    q,
+                                    dsl.handles.calibration_trace_handle(q.uid, state),
+                                )
+                                qpu.qop.passive_reset(q)

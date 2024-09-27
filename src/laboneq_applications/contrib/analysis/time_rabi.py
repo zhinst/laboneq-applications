@@ -45,8 +45,6 @@ if TYPE_CHECKING:
     from laboneq_applications.tasks.run_experiment import RunExperimentResults
     from laboneq_applications.typing import Qubits, QubitSweepPoints
 
-options = TuneUpAnalysisWorkflowOptions
-
 
 @workflow
 def analysis_workflow(
@@ -96,7 +94,7 @@ def analysis_workflow(
 
     Example:
         ```python
-        options = TuneUpAnalysisWorkflowOptions()
+        options = analysis_workflow.options()
         result = analysis_workflow(
             results=results
             qubits=[q0, q1],
