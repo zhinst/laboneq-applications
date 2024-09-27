@@ -23,14 +23,20 @@ import numpy as np
 from laboneq.simple import Experiment, SectionAlignment, SweepParameter
 
 from laboneq_applications import dsl
+from laboneq_applications.analysis.ramsey import (
+    analysis_workflow,
+    validate_and_convert_detunings,
+)
 from laboneq_applications.experiments.options import (
     TuneupExperimentOptions,
     TuneUpWorkflowOptions,
 )
-from laboneq_applications.tasks import compile_experiment, run_experiment
-from laboneq_applications.workflow import task, workflow
+from laboneq_applications.tasks import compile_experiment, run_experiment, update_qubits
+from laboneq_applications.workflow import if_, task, workflow
 
 if TYPE_CHECKING:
+    from collections.abc import Sequence
+
     from laboneq.dsl.session import Session
 
     from laboneq_applications.qpu_types import QPU
@@ -43,7 +49,7 @@ def experiment_workflow(
     qpu: QPU,
     qubits: Qubits,
     delays: QubitSweepPoints,
-    detunings: dict[str, float] | None = None,
+    detunings: float | Sequence[float] | None = None,
     options: TuneUpWorkflowOptions | None = None,
 ) -> None:
     """The Ramsey Workflow.
@@ -53,6 +59,8 @@ def experiment_workflow(
     - [create_experiment]()
     - [compile_experiment]()
     - [run_experiment]()
+    - [analysis_workflow]()
+    - [update_qubits]()
 
     Arguments:
         session:
@@ -65,10 +73,10 @@ def experiment_workflow(
         delays:
             The delays (in seconds) of the second x90 pulse to sweep over for each
             qubit. If `qubits` is a single qubit, `delays` must be a list of numbers
-            or an array. Otherwise it must be a list of lists of numbers or arrays.
+            or an array. Otherwise, it must be a list of lists of numbers or arrays.
         detunings:
-            The detunings in Hz to generate oscillating qubit occupations. `detunings`
-            is a dictionary of float values for different qubits.
+            The detuning in Hz to generate oscillating qubit occupations. `detunings`
+            is a list of float values for each qubits following the order in `qubits`.
         options:
             The options for building the workflow.
             In addition to options from [WorkflowOptions], the following
@@ -81,9 +89,9 @@ def experiment_workflow(
 
     Example:
         ```python
-        options = TuneUpWorkflowOptions()
-        options.create_experiment.count = 10
-        options.create_experiment.transition = "ge"
+        options = experiment_workflow.options()
+        options.create_experiment.count(10)
+        options.create_experiment.transition("ge")
         qpu = QPU(
             setup=DeviceSetup("my_device"),
             qubits=[TunableTransmonQubit("q0"), TunableTransmonQubit("q1")],
@@ -108,6 +116,11 @@ def experiment_workflow(
     )
     compiled_exp = compile_experiment(session, exp)
     _result = run_experiment(session, compiled_exp)
+    with if_(options.do_analysis):
+        analysis_results = analysis_workflow(_result, qubits, delays, detunings)
+        qubit_parameters = analysis_results.tasks["extract_qubit_parameters"].output
+        with if_(options.update):
+            update_qubits(qpu, qubit_parameters["new_parameter_values"])
 
 
 @task
@@ -116,7 +129,7 @@ def create_experiment(
     qpu: QPU,
     qubits: Qubits,
     delays: QubitSweepPoints,
-    detunings: dict[str, float] | None = None,
+    detunings: float | Sequence[float] | None = None,
     options: TuneupExperimentOptions | None = None,
 ) -> Experiment:
     """Creates a Ramsey Experiment.
@@ -130,10 +143,13 @@ def create_experiment(
         delays:
             The delays (in seconds) of the second x90 pulse to sweep over for each
             qubit. If `qubits` is a single qubit, `delays` must be a list of numbers
-            or an array. Otherwise it must be a list of lists of numbers or arrays.
+            or an array. Otherwise, it must be a list of lists of numbers or arrays.
         detunings:
-            The detuning in Hz to generate oscillating qubit occupations. `detunings`
-            is a dictionary of float values for different qubits.
+            The detuning in Hz introduced in order to generate oscillations of the qubit
+            state vector around the Bloch sphere. This detuning and the frequency of the
+            fitted oscillations is used to calculate the true qubit resonance frequency.
+            `detunings` is a list of float values for each qubit following the order
+            in `qubits`.
         options:
             The options for building the experiment.
             See [TuneupExperimentOptions] and [BaseExperimentOptions] for
@@ -158,17 +174,8 @@ def create_experiment(
 
     Example:
         ```python
-        options = {
-            "count": 10,
-            "transition": "ge",
-            "averaging_mode": "cyclic",
-            "acquisition_type": "integration_trigger",
-            "cal_traces": True,
-        }
-        options = TuneupExperimentOptions(**options)
-        setup = DeviceSetup()
+        options = TuneupExperimentOptions()
         qpu = QPU(
-            setup=DeviceSetup("my_device"),
             qubits=[TunableTransmonQubit("q0"), TunableTransmonQubit("q1")],
             qop=TunableTransmonOperations(),
         )
@@ -176,8 +183,11 @@ def create_experiment(
         create_experiment(
             qpu=qpu,
             qubits=temp_qubits,
-            delays=[[0.1, 0.5, 1], [0.1, 0.5, 1]],
-            detunings = {'q0':1e6,'q1':1.346e6},
+            delays=[
+                np.linspace(0, 20e-6, 51),
+                np.linspace(0, 30e-6, 52),
+            ],
+            detunings = [1e6, 1.346e6],
             options=options,
         )
         ```
@@ -185,9 +195,7 @@ def create_experiment(
     # Define the custom options for the experiment
     opts = TuneupExperimentOptions() if options is None else options
     qubits, delays = dsl.validation.validate_and_convert_qubits_sweeps(qubits, delays)
-
-    if detunings is None:
-        detunings = {qb.uid: 0 for qb in qubits}
+    detunings = validate_and_convert_detunings(qubits, detunings)
 
     with dsl.acquire_loop_rt(
         count=opts.count,
@@ -199,7 +207,8 @@ def create_experiment(
     ):
         swp_delays = []
         swp_phases = []
-        for q, q_delays in zip(qubits, delays):
+        for i, q in enumerate(qubits):
+            q_delays = delays[i]
             swp_delays += [
                 SweepParameter(
                     uid=f"wait_time_{q.uid}",
@@ -209,11 +218,13 @@ def create_experiment(
             swp_phases += [
                 SweepParameter(
                     uid=f"x90_phases_{q.uid}",
-                    values=[
-                        ((wait_time - q_delays[0]) * detunings[q.uid] * 2 * np.pi)
-                        % (2 * np.pi)
-                        for wait_time in q_delays
-                    ],
+                    values=np.array(
+                        [
+                            ((wait_time - q_delays[0]) * detunings[i] * 2 * np.pi)
+                            % (2 * np.pi)
+                            for wait_time in q_delays
+                        ]
+                    ),
                 ),
             ]
 
