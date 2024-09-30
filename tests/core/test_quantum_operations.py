@@ -150,6 +150,55 @@ class TestPulseCache:
         cache.store(pulse, "name", "const", {"amplitude": sweep})
         assert cache.get("name", "const", {"amplitude": sweep}) is pulse
 
+    @pytest.mark.parametrize(
+        "samples",
+        [
+            pytest.param([1.0, 2.0, 3.0], id="list-real"),
+            pytest.param((1.0, 2.0, 3.0), id="tuple-real"),
+            pytest.param(np.array([1.0, 2.0, 3.0]), id="ndarray-real"),
+            pytest.param(np.array([1.0 + 1.0j, 2.0, 3.0]), id="ndarray-complex"),
+        ],
+    )
+    def test_get_and_store_with_sampled_pulse(self, samples):
+        cache = _PulseCache()
+        pulse = object()
+
+        assert cache.get("name", "sampled_pulse", {"samples": samples}) is None
+        cache.store(pulse, "name", "sampled_pulse", {"samples": samples})
+        assert cache.get("name", "sampled_pulse", {"samples": samples}) is pulse
+
+    @pytest.mark.parametrize(
+        "invalid_samples",
+        [
+            pytest.param([1.0, "a"], id="list-int-str"),
+        ],
+    )
+    def test_key_invalid_list_parameter_error(self, invalid_samples):
+        cache = _PulseCache()
+        with pytest.raises(ValueError) as err:
+            cache.get("name", "sampled_pulse", {"samples": invalid_samples})
+        assert str(err.value) == (
+            "Pulse parameter 'samples' is a list of values that are not all"
+            " numbers. It cannot be cached by create_pulse(...)."
+        )
+
+    @pytest.mark.parametrize(
+        "invalid_samples",
+        [
+            pytest.param(np.array([1.0, "a"]), id="ndarray-int-str"),
+            pytest.param(np.array([[1.0], [2.0]]), id="ndarray-int-str"),
+        ],
+    )
+    def test_key_invalid_ndarray_parameter_error(self, invalid_samples):
+        cache = _PulseCache()
+        with pytest.raises(ValueError) as err:
+            cache.get("name", "sampled_pulse", {"samples": invalid_samples})
+        assert str(err.value) == (
+            "Pulse parameter 'samples' is a numpy array whose values are not all"
+            " numbers or whose dimension is not one. It cannot be cached by"
+            " create_pulse(...)."
+        )
+
 
 class TestCreatePulse:
     def test_no_overrides(self):

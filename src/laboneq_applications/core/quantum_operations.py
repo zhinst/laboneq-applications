@@ -5,8 +5,10 @@ from __future__ import annotations
 import contextlib
 import inspect
 import textwrap
+from numbers import Number
 from typing import TYPE_CHECKING, Callable, ClassVar
 
+import numpy as np
 from laboneq.dsl.experiment import builtins, pulse_library
 from laboneq.dsl.parameter import Parameter
 
@@ -77,13 +79,28 @@ class _PulseCache:
     def reset_global_cache(cls) -> None:
         cls.GLOBAL_CACHE.clear()
 
-    def _parameter_value_key(self, value: object) -> object:
+    def _parameter_value_key(self, key: str, value: object) -> object:
         if isinstance(value, Parameter):
             return tuple(value.values)
+        if isinstance(value, list):
+            if all(isinstance(x, Number) for x in value):
+                return tuple(value)
+            raise ValueError(
+                f"Pulse parameter {key!r} is a list of values that are not all numbers."
+                " It cannot be cached by create_pulse(...)."
+            )
+        if isinstance(value, np.ndarray):
+            if np.issubdtype(value.dtype, np.number) and len(value.shape) == 1:
+                return tuple(value)
+            raise ValueError(
+                f"Pulse parameter {key!r} is a numpy array whose values are not all"
+                " numbers or whose dimension is not one. It cannot be cached by"
+                " create_pulse(...)."
+            )
         return value
 
     def _key(self, name: str, function: str, parameters: dict) -> tuple:
-        parameters = {k: self._parameter_value_key(v) for k, v in parameters.items()}
+        parameters = {k: self._parameter_value_key(k, v) for k, v in parameters.items()}
         return (name, function, tuple(sorted(parameters.items())))
 
     def get(self, name: str, function: str, parameters: dict) -> Pulse | None:
@@ -107,7 +124,9 @@ def create_pulse(
     The parameters are dictionary that contains:
 
       - a key `"function"` that specifies which function from the LabOne Q
-        `pulse_library` to use to construct the pulse.
+        `pulse_library` to use to construct the pulse. The function may
+        either be the name of a registered pulse functional or
+        `"sampled_pulse"` which uses `pulse_library.sampled_pulse`.
       - any other parameters required by the given pulse function.
 
     Arguments:
@@ -137,10 +156,15 @@ def create_pulse(
 
     function = parameters.pop("function")
 
-    try:
-        pulse_function = pulse_library.pulse_factory(function)
-    except KeyError as err:
-        raise ValueError(f"Unsupported pulse function {function!r}.") from err
+    if function == "sampled_pulse":
+        # special case the sampled_pulse function that is not registered as a
+        # pulse functional:
+        pulse_function = pulse_library.sampled_pulse
+    else:
+        try:
+            pulse_function = pulse_library.pulse_factory(function)
+        except KeyError as err:
+            raise ValueError(f"Unsupported pulse function {function!r}.") from err
 
     if name is None:
         name = "unnamed"
