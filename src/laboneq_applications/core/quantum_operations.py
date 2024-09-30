@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import contextlib
+import functools
 import inspect
 import textwrap
 from numbers import Number
@@ -11,6 +12,7 @@ from typing import TYPE_CHECKING, Callable, ClassVar
 import numpy as np
 from laboneq.dsl.experiment import builtins, pulse_library
 from laboneq.dsl.parameter import Parameter
+from laboneq.simple import ExecutionType
 
 from laboneq_applications.core.build_experiment import _qubits_from_args
 from laboneq_applications.core.utils import pygmentize
@@ -29,26 +31,47 @@ if TYPE_CHECKING:
 #   - document that operations accept multiple qubits
 
 
-def quantum_operation(f: Callable) -> Callable:
+def quantum_operation(f: Callable | None = None, *, neartime: bool = False) -> Callable:
     """Decorator that marks an method as a quantum operation.
 
     Methods marked as quantum operations are moved into the `BASE_OPS` dictionary
     of the `QuantumOperations` class they are defined in at the end of class
     creation.
 
-    Quantum operations do not take an initial `self` parameter.
+    Functions marked as quantum operations take the `QuantumOperations` instance
+    they are registered on as their initial `self` parameter.
 
     Arguments:
-       f:
-           The method to decorate. `f` should take as positional arguments the
-           qubits to operate on. It may take additional arguments that
-           specify other parameters of the operation.
+        f:
+            The method to decorate. `f` should take as positional arguments the
+            qubits to operate on. It may take additional arguments that
+            specify other parameters of the operation.
+        neartime:
+            If true, the operation is marked as a near-time operation. Its
+            section is set to near-time and no qubit signals are reserved.
 
     Returns:
-        The decorated method.
+        If `f` is given, returns the decorated method.
+        Otherwise returns a partial evaluation of `quantum_operation` with
+        the other arguments set.
     """
-    f._quantum_op = True
+    if f is None:
+        return functools.partial(quantum_operation, neartime=neartime)
+    f._quantum_op = _QuantumOperationMarker(neartime=neartime)
     return f
+
+
+class _QuantumOperationMarker:
+    """A marker indicating that a function is a quantum operation.
+
+    Arguments:
+        neartime:
+            If true, the operation is marked as a near-time operation. Its
+            section is set to near-time and no qubit signals are reserved.
+    """
+
+    def __init__(self, *, neartime: bool = False):
+        self.neartime = neartime
 
 
 class _PulseCache:
@@ -322,6 +345,7 @@ class Operation:
     ):
         self._op = op
         self._op_name = op_name
+        self._op_marker = getattr(op, "_quantum_op", _QuantumOperationMarker())
         self._quantum_ops = quantum_ops
         self.__doc__ = self._op.__doc__
 
@@ -370,12 +394,32 @@ class Operation:
         """
         self._call(args, kw, omit_section=True)
 
+    def omit_reserves(self, *args: object, **kw: object) -> Section:
+        """Calls the operation but *without* reserving the qubit signals.
+
+        This should be used with care. Reserving the signals ensures that operations on
+        the same qubit do not overlap. When the reserves are omitted, the caller must
+        take care themselves that any overlaps of operations on the same qubit are
+        avoided or intended.
+
+        Arguments:
+            *args:
+                Positional arguments to the operation.
+            **kw:
+                Keyword parameters for the operation.
+
+        Returns:
+            A LabOne Q section containing the operation.
+        """
+        return self._call(args, kw, omit_reserves=True)
+
     def _call(
         self,
         args: tuple,
         kw: dict,
         *,
         omit_section: bool = False,
+        omit_reserves: bool = False,
     ) -> Section | None:
         """Calls the operation with the supplied parameters and additional options.
 
@@ -387,6 +431,9 @@ class Operation:
             omit_section:
                 If omit_section is true, the operation is added to the existing
                 section context and no new section is created.
+            omit_reserves:
+                If omit_reserves is true, the qubit signal lines are not
+                reserved.
 
         Returns:
             If omit_section is false, a LabOne Q section containing the operation.
@@ -413,16 +460,21 @@ class Operation:
             )
 
         section_name = "_".join([self._op_name] + [q.uid for q in qubits])
+        execution_type = ExecutionType.NEAR_TIME if self._op_marker.neartime else None
+        reserve_signals = not (
+            omit_reserves or omit_section or self._op_marker.neartime
+        )
 
         if not omit_section:
             maybe_section = builtins.section(
                 name=section_name,
+                execution_type=execution_type,
             )
         else:
             maybe_section = contextlib.nullcontext()
 
         with maybe_section as op_section:
-            if not omit_section:
+            if reserve_signals:
                 self._reserve_signals(qubits)
             self._op(self._quantum_ops, *args, **kw)
 

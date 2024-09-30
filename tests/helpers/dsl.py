@@ -9,6 +9,7 @@ import numpy as np
 import pytest
 from laboneq.dsl.experiment import (
     Acquire,
+    Call,
     Delay,
     Experiment,
     Operation,
@@ -265,6 +266,7 @@ def op_like(type_, **kw):
 
 
 acquire_op = partial(op_like, type_=Acquire)
+call_op = partial(op_like, type_=Call)
 delay_op = partial(op_like, type_=Delay)
 play_pulse_op = partial(op_like, type_=PlayPulse)
 reserve_op = partial(op_like, type_=Reserve)
