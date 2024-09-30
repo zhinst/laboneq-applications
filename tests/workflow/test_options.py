@@ -30,8 +30,8 @@ class TestWorkflowOptions:
 
     def test_task_options(self):
         a = A()
-        a.task_options = {"task1": TaskOptions()}
-        assert a.task_options["task1"] == TaskOptions()
+        a._task_options = {"task1": TaskOptions()}
+        assert a._task_options["task1"] == TaskOptions()
 
     def test_to_dict(self):
         class B(TaskOptions):
@@ -41,9 +41,12 @@ class TestWorkflowOptions:
             charlie: int = 3
 
         a = A()
-        a.task_options = {"b": B(), "c": C()}
+        a._task_options = {"b": B(), "c": C()}
         saved_a = a.to_dict()
         assert saved_a == {
             "alice": 1,
-            "task_options": {"b": {"bob": 2}, "c": {"charlie": 3, "task_options": {}}},
+            "_task_options": {
+                "b": {"bob": 2},
+                "c": {"charlie": 3, "_task_options": {}},
+            },
         }

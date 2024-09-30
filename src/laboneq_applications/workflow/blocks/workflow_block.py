@@ -80,7 +80,9 @@ class WorkflowBlock(Block):
             maybe_opts = get_options(x, tasks)
             if maybe_opts:
                 tasks[x.name] = maybe_opts
-        return self.options_type(task_options=tasks)
+        ret_opt = self.options_type()
+        ret_opt._task_options = tasks
+        return ret_opt
 
     @property
     def ref(self) -> Reference:

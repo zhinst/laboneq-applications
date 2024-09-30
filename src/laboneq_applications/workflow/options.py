@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import typing
 
-from pydantic import Field
+from pydantic import Field, PrivateAttr
 
 from laboneq_applications.logbook import LogbookStore  # noqa: TCH001
 from laboneq_applications.workflow.options_base import BaseOptions
@@ -27,7 +27,7 @@ class WorkflowOptions(BaseOptions):
     """
 
     logstore: LogbookStore | None = Field(default=None, repr=False, exclude=True)
-    task_options: dict[str, BaseOptions] = Field(default_factory=dict)
+    _task_options: dict[str, BaseOptions] = PrivateAttr(default_factory=dict)
 
     class Config:
         """Pydantic configuration."""
@@ -39,7 +39,7 @@ class WorkflowOptions(BaseOptions):
     def to_dict(self) -> dict:
         """Generate a dictionary representation of the options."""
         data = super().to_dict()
-        data["task_options"] = {
-            key: value.to_dict() for key, value in self.task_options.items()
+        data["_task_options"] = {
+            key: value.to_dict() for key, value in self._task_options.items()
         }
         return data

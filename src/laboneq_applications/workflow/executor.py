@@ -72,8 +72,8 @@ class ExecutorState:
 
     def get_options(self, name: str) -> BaseOptions | None:
         """Get options by block name."""
-        if name in self._options.task_options:
-            return self._options.task_options.get(name)
+        if name in self._options._task_options:
+            return self._options._task_options.get(name)
         # TODO: Remove when WorkflowOptions are not required to have
         # task names defined on upper level
         return getattr(self._options, name, None)

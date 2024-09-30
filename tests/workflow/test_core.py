@@ -1546,14 +1546,13 @@ class TestWorkflowOptions:
             wf_inner()
             b_task()
 
-        opts = WorkflowOptions(
-            task_options={
-                "a_task": FooOpt(foo=10),
-                "wf_inner": WorkflowOptions(
-                    task_options={"a_task": FooOpt(foo=20), "b_task": FooOpt(foo=30)}
-                ),
-            }
-        )
+        wf_inner_opt = WorkflowOptions()
+        wf_inner_opt._task_options = {
+            "a_task": FooOpt(foo=20),
+            "b_task": FooOpt(foo=30),
+        }
+        opts = WorkflowOptions()
+        opts._task_options = {"a_task": FooOpt(foo=10), "wf_inner": wf_inner_opt}
         result = wf(opts).run()
         assert result.tasks["a_task"].input == {"options": FooOpt(foo=10)}
         assert result.tasks["wf_inner"].tasks["a_task"].input == {
@@ -1645,14 +1644,12 @@ class TestWorkflowGeneratedOptions:
             c_task()
 
         opts = wf_options_provided.options()
-        assert opts == OptionBuilder(
-            WorkflowOptions(
-                task_options={
-                    "a_task": TaskOptions(),
-                    "b_task": BTaskOptions(),
-                }
-            )
-        )
+        base_opt = WorkflowOptions()
+        base_opt._task_options = {
+            "a_task": TaskOptions(),
+            "b_task": BTaskOptions(),
+        }
+        assert opts == OptionBuilder(base_opt)
 
         @workflow
         def wf_options_not_provided():
@@ -1662,14 +1659,12 @@ class TestWorkflowGeneratedOptions:
             c_task()
 
         opts = wf_options_not_provided.options()
-        assert opts == OptionBuilder(
-            WorkflowOptions(
-                task_options={
-                    "a_task": TaskOptions(),
-                    "b_task": BTaskOptions(),
-                }
-            )
-        )
+        base_opt = WorkflowOptions()
+        base_opt._task_options = {
+            "a_task": TaskOptions(),
+            "b_task": BTaskOptions(),
+        }
+        assert opts == OptionBuilder(base_opt)
 
     def test_nested_workflows(self, tasks):
         a_task, b_task, _ = tasks
@@ -1685,20 +1680,17 @@ class TestWorkflowGeneratedOptions:
             a_task()
 
         opts = outer.options()
-
-        assert opts == OptionBuilder(
-            WorkflowOptions(
-                task_options={
-                    "inner": InnerWorkflowOptions(
-                        task_options={
-                            "a_task": TaskOptions(),
-                            "b_task": BTaskOptions(),
-                        }
-                    ),
-                    "a_task": TaskOptions(),
-                }
-            )
-        )
+        inner_wf_opt = InnerWorkflowOptions()
+        inner_wf_opt._task_options = {
+            "a_task": TaskOptions(),
+            "b_task": BTaskOptions(),
+        }
+        base_opt = WorkflowOptions()
+        base_opt._task_options = {
+            "inner": inner_wf_opt,
+            "a_task": TaskOptions(),
+        }
+        assert opts == OptionBuilder(base_opt)
 
 
 class TestOption1(TaskOptions):
@@ -1750,9 +1742,7 @@ class TestWorkFlowWithOptions:
         opt.shared(321)
         wf = call_func(outer_workflow, opt)
         res = wf.run()
-        assert res.tasks[0].input == {
-            "options": InnerOptions(
-                task_options={"task1": TestOption1(t1=123, shared=321)}
-            )
-        }
+        inner_opt = InnerOptions()
+        inner_opt._task_options = {"task1": TestOption1(t1=123, shared=321)}
+        assert res.tasks[0].input == {"options": inner_opt}
         assert res.tasks[1].input == {"options": TestOption2(t2=2, shared=321)}
