@@ -82,6 +82,9 @@ target/
 profile_default/
 ipython_config.py
 
+# pyright
+pyrightconfig.json
+
 #pulse sheet viewer
 *.html
 
@@ -173,6 +176,9 @@ examples/*/*.yaml
 # vscode
 .vscode/
 *.code-workspace
+
+# zed
+.zed/
 
 # Do not track anything saved in experiment_store folders
 experiment_store

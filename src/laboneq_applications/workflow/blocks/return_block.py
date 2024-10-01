@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from laboneq_applications.workflow import variable_tracker
 from laboneq_applications.workflow.blocks.block import Block, BlockBuilderContext
 from laboneq_applications.workflow.executor import ExecutionStatus, ExecutorState
 
@@ -30,6 +31,7 @@ class ReturnStatement(Block):
         executor.interrupt()
 
 
+@variable_tracker.track
 def return_(value: Any | None = None) -> None:  # noqa: ANN401
     """Return statement of an workflow.
 
@@ -41,6 +43,6 @@ def return_(value: Any | None = None) -> None:  # noqa: ANN401
     Arguments:
         value: Value to be set for workflow output.
     """
-    active_ctx = BlockBuilderContext.get_active()
-    if active_ctx:
-        active_ctx.register(ReturnStatement(value=value))
+    ctx = BlockBuilderContext.get_active()
+    if ctx:
+        ctx.register(ReturnStatement(value=value))

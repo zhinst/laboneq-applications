@@ -20,13 +20,13 @@ from typing import TYPE_CHECKING
 
 from laboneq.simple import Experiment, SweepParameter
 
-from laboneq_applications import dsl
+from laboneq_applications import dsl, workflow
+from laboneq_applications.analysis.T1 import analysis_workflow
 from laboneq_applications.experiments.options import (
     TuneupExperimentOptions,
     TuneUpWorkflowOptions,
 )
-from laboneq_applications.tasks import compile_experiment, run_experiment
-from laboneq_applications.workflow import task, workflow
+from laboneq_applications.tasks import compile_experiment, run_experiment, update_qubits
 
 if TYPE_CHECKING:
     from laboneq.dsl.session import Session
@@ -35,7 +35,7 @@ if TYPE_CHECKING:
     from laboneq_applications.typing import Qubits, QubitSweepPoints
 
 
-@workflow
+@workflow.workflow
 def experiment_workflow(
     session: Session,
     qpu: QPU,
@@ -99,10 +99,16 @@ def experiment_workflow(
         delays=delays,
     )
     compiled_exp = compile_experiment(session, exp)
-    _result = run_experiment(session, compiled_exp)
+    result = run_experiment(session, compiled_exp)
+    with workflow.if_(options.do_analysis):
+        analysis_results = analysis_workflow(result, qubits, delays)
+        qubit_parameters = analysis_results.tasks["extract_qubit_parameters"].output
+        with workflow.if_(options.update):
+            update_qubits(qpu, qubit_parameters["new_parameter_values"])
+    workflow.return_(result)
 
 
-@task
+@workflow.task
 @dsl.qubit_experiment
 def create_experiment(
     qpu: QPU,

@@ -61,9 +61,6 @@ class SpinLockingWorkflowOptions(WorkflowOptions):
     create_experiment: SpinLockingExperimentOptions = SpinLockingExperimentOptions()
 
 
-options = SpinLockingWorkflowOptions
-
-
 @workflow
 def experiment_workflow(
     session: Session,
@@ -108,22 +105,21 @@ def experiment_workflow(
 
     Example:
         ```python
-        options = EchoWorkflowOptions()
-        options.create_experiment.count = 10
-        options.create_experiment.transition = "ge"
+        options = experiment_workflow.options()
+        options.count(10)
+        options.transition("ge")
         qpu = QPU(
-            setup=DeviceSetup("my_device"),
             qubits=[TunableTransmonQubit("q0"), TunableTransmonQubit("q1")],
             qop=TunableTransmonOperations(),
         )
         temp_qubits = qpu.copy_qubits()
-        result = run(
+        result = experiment_workflow(
             session=session,
             qpu=qpu,
             qubits=temp_qubits,
             lengths=[[1e-6, 5e-6, 10e-6]], [1e-6, 5e-6, 10e-6]],
             options=options,
-        )
+        ).run()
         ```
     """
     exp = create_experiment(

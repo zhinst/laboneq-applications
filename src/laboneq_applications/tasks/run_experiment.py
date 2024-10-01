@@ -9,6 +9,7 @@ from typing_extensions import TypeAlias
 
 from laboneq_applications.common.attribute_wrapper import AttributeWrapper
 from laboneq_applications.common.classformatter import classformatter
+from laboneq_applications.workflow.options import TaskOptions
 from laboneq_applications.workflow.task import task
 
 if TYPE_CHECKING:
@@ -151,23 +152,33 @@ def extract_results(results: Results | None) -> RunExperimentResults:
     )
 
 
+class RunExperimentOptions(TaskOptions):
+    """Options for the run_experiment task.
+
+    Attributes:
+        return_legacy_results:
+            Whether to return an instance of the LabOne Q Results instead of an instance
+            of RunExperimentResults.
+            Default: False.
+    """
+
+    return_legacy_results: bool = False
+
+
 @task
 def run_experiment(
     session: Session,
     compiled_experiment: CompiledExperiment,
     *,
-    return_raw_results: bool = False,
-    options: dict | None = None,  # pylint: disable=W0613
+    options: RunExperimentOptions | None = None,
 ) -> RunExperimentResults | Results:
     """Run the compiled experiment on the quantum processor via the specified session.
 
-    Args:
+    Arguments:
         session: The connected session to use for running the experiment.
         compiled_experiment: The compiled experiment to run.
-        return_raw_results: If true, the raw (possibly None) LabOne Q results are
-            returned.
         options:
-            The options for building the workflow.
+            The options for this task as an instance of [RunExperimentOptions].
 
     Returns:
         The measurement results as ...
@@ -175,7 +186,8 @@ def run_experiment(
                 `return_raw_results` is `True`.
             ... an instance of RunExperimentResults if `return_raw_results` is `False`.
     """
+    opts = RunExperimentOptions() if options is None else options
     laboneq_results = session.run(compiled_experiment)
-    if return_raw_results:
+    if opts.return_legacy_results:
         return laboneq_results
     return extract_results(laboneq_results)

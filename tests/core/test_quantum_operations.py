@@ -7,6 +7,7 @@ import pytest
 from laboneq.core.exceptions import LabOneQException
 from laboneq.dsl.experiment import builtins, pulse_library
 from laboneq.simple import (
+    ExecutionType,
     QuantumElement,
     Section,
     SweepParameter,
@@ -34,6 +35,11 @@ class DummyOperations(QuantumOperations):
         """A dummy quantum operation."""
         pulse = dsl.pulse_library.const()
         dsl.play(q.signals["drive"], pulse, amplitude=amplitude)
+
+    @quantum_operation(neartime=True)
+    def near(self, q, dc_bias):
+        """A dummy neartime quantum operation."""
+        dsl.call("set_dc_bias", q_uid=q.uid, dc_bias=dc_bias)
 
 
 class DummyCoupler(Transmon):
@@ -149,6 +155,55 @@ class TestPulseCache:
         assert cache.get("name", "const", {"amplitude": sweep}) is None
         cache.store(pulse, "name", "const", {"amplitude": sweep})
         assert cache.get("name", "const", {"amplitude": sweep}) is pulse
+
+    @pytest.mark.parametrize(
+        "samples",
+        [
+            pytest.param([1.0, 2.0, 3.0], id="list-real"),
+            pytest.param((1.0, 2.0, 3.0), id="tuple-real"),
+            pytest.param(np.array([1.0, 2.0, 3.0]), id="ndarray-real"),
+            pytest.param(np.array([1.0 + 1.0j, 2.0, 3.0]), id="ndarray-complex"),
+        ],
+    )
+    def test_get_and_store_with_sampled_pulse(self, samples):
+        cache = _PulseCache()
+        pulse = object()
+
+        assert cache.get("name", "sampled_pulse", {"samples": samples}) is None
+        cache.store(pulse, "name", "sampled_pulse", {"samples": samples})
+        assert cache.get("name", "sampled_pulse", {"samples": samples}) is pulse
+
+    @pytest.mark.parametrize(
+        "invalid_samples",
+        [
+            pytest.param([1.0, "a"], id="list-int-str"),
+        ],
+    )
+    def test_key_invalid_list_parameter_error(self, invalid_samples):
+        cache = _PulseCache()
+        with pytest.raises(ValueError) as err:
+            cache.get("name", "sampled_pulse", {"samples": invalid_samples})
+        assert str(err.value) == (
+            "Pulse parameter 'samples' is a list of values that are not all"
+            " numbers. It cannot be cached by create_pulse(...)."
+        )
+
+    @pytest.mark.parametrize(
+        "invalid_samples",
+        [
+            pytest.param(np.array([1.0, "a"]), id="ndarray-int-str"),
+            pytest.param(np.array([[1.0], [2.0]]), id="ndarray-int-str"),
+        ],
+    )
+    def test_key_invalid_ndarray_parameter_error(self, invalid_samples):
+        cache = _PulseCache()
+        with pytest.raises(ValueError) as err:
+            cache.get("name", "sampled_pulse", {"samples": invalid_samples})
+        assert str(err.value) == (
+            "Pulse parameter 'samples' is a numpy array whose values are not all"
+            " numbers or whose dimension is not one. It cannot be cached by"
+            " create_pulse(...)."
+        )
 
 
 class TestCreatePulse:
@@ -324,14 +379,15 @@ class TestQuantumOperations:
             "BASE_OPS",
             "QUBIT_TYPES",
             "keys",
+            "near",
             "register",
             "x",
         ]
 
     def test_keys(self, dummy_ops):
-        assert dummy_ops.keys() == ["x"]
+        assert dummy_ops.keys() == ["near", "x"]
         dummy_ops.register(dummy_ops.x, "a")
-        assert dummy_ops.keys() == ["a", "x"]
+        assert dummy_ops.keys() == ["a", "near", "x"]
 
     def test_register(self, dummy_ops):
         def y(q):
@@ -351,6 +407,16 @@ class TestQuantumOperations:
 
         assert "y" not in dummy_ops
         assert dummy_ops.yo.op is y
+
+    def test_register_with_neartime(self, dummy_ops, dummy_q):
+        @quantum_operation(neartime=True)
+        def nt(self, q):
+            pass
+
+        dummy_ops.register(nt)
+
+        section = dummy_ops.nt(dummy_q)
+        assert section.execution_type == ExecutionType.NEAR_TIME
 
     def test_build(self, dummy_ops, dummy_q):
         amplitudes = np.linspace(0.1, 1, 10)
@@ -418,14 +484,14 @@ class TestOperation:
         section_1 = dummy_ops.x(dummy_q, amplitude=2.0)
         section_2 = dummy_ops.x(dummy_q, amplitude=3.0)
 
-        assert section_1 == tsl.section(uid="__x_q0_0").children(
+        assert section_1 == tsl.section(uid="__x_q0_0", execution_type=None).children(
             tsl.reserve_op(signal="/lsg/q0/drive"),
             tsl.reserve_op(signal="/lsg/q0/measure"),
             tsl.reserve_op(signal="/lsg/q0/acquire"),
             tsl.play_pulse_op(signal="/lsg/q0/drive", amplitude=2.0),
         )
 
-        assert section_2 == tsl.section(uid="__x_q0_1").children(
+        assert section_2 == tsl.section(uid="__x_q0_1", execution_type=None).children(
             tsl.reserve_op(signal="/lsg/q0/drive"),
             tsl.reserve_op(signal="/lsg/q0/measure"),
             tsl.reserve_op(signal="/lsg/q0/acquire"),
@@ -509,7 +575,7 @@ class TestOperation:
 
         section = x_with_amp(dummy_q)
 
-        assert section == tsl.section(uid="__x_q0_0").children(
+        assert section == tsl.section(uid="__x_q0_0", execution_type=None).children(
             tsl.reserve_op(signal="/lsg/q0/drive"),
             tsl.reserve_op(signal="/lsg/q0/measure"),
             tsl.reserve_op(signal="/lsg/q0/acquire"),
@@ -530,6 +596,27 @@ class TestOperation:
         with pytest.raises(LabOneQException) as err:
             dummy_ops.x.omit_section(q, amplitude=1.0)
         assert str(err.value) == "Must be in a section context"
+
+    def test_omit_reserves(self, dummy_ops, dummy_q):
+        q = dummy_q
+
+        section = dummy_ops.x.omit_reserves(q, amplitude=1.0)
+
+        assert section == tsl.section(uid="__x_q0_0", execution_type=None).children(
+            tsl.play_pulse_op(),
+        )
+
+    def test_neartime_operation(self, dummy_ops, dummy_q):
+        q = dummy_q
+
+        section = dummy_ops.near(q, dc_bias=0.3)
+
+        assert section == tsl.section(
+            uid="__near_q0_0",
+            execution_type=ExecutionType.NEAR_TIME,
+        ).children(
+            tsl.call_op(func_name="set_dc_bias", args={"q_uid": "q0", "dc_bias": 0.3}),
+        )
 
     def test_op(self, dummy_ops):
         assert dummy_ops.x.op is DummyOperations.BASE_OPS["x"]

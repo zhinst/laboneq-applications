@@ -20,6 +20,7 @@ def create_ramsey_verifier(
     options.count(count)
     options.transition(transition)
     options.use_cal_traces(use_cal_traces)
+    options.do_analysis(False)
     res = ramsey.experiment_workflow(
         session=session,
         qubits=qubits,

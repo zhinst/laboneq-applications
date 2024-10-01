@@ -84,6 +84,14 @@ class TunableTransmonQubitParameters(TransmonParameters):
             Qubit DC parking voltage.
     """
 
+    # Qubit coherence times
+    ge_T1: float = 0  # noqa: N815
+    ge_T2: float = 0  # noqa: N815
+    ge_T2_star: float = 0  # noqa: N815
+    ef_T1: float = 0  # noqa: N815
+    ef_T2: float = 0  # noqa: N815
+    ef_T2_star: float = 0  # noqa: N815
+
     # g-e drive pulse parameters
 
     ge_drive_amplitude_pi: float = 0.2

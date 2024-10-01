@@ -116,3 +116,228 @@ def test_get_pi_pi2_xvalues_on_cos(fit_data):
     np.testing.assert_array_almost_equal(pixv_bottom, np.array([]))
     np.testing.assert_array_almost_equal(pi2xv_rising, np.array([0.17427531]))
     np.testing.assert_array_almost_equal(pi2xv_falling, np.array([]))
+
+
+@pytest.fixture()
+def fit_data_cos_osc_decay_fit():
+    """Results from Ramsey experiment.
+
+    Below, x corresponds to the time-separation between the two x90 pulses in the Ramsey
+    experiment, and the data is the qubit excited-state population obtained from doing
+    rotation and projection on the calibration states (g, e).
+    """
+    data = np.array(
+        [
+            1.00187013,
+            0.04458822,
+            0.8623011,
+            0.22621098,
+            0.66213183,
+            0.4405486,
+            0.43572966,
+            0.69877382,
+            0.22706632,
+            0.83339665,
+            0.14520749,
+            0.85335577,
+            0.15791936,
+            0.77100608,
+            0.32316128,
+            0.57826294,
+            0.46428195,
+            0.427918,
+            0.64258203,
+            0.28217982,
+            0.76570055,
+            0.23513732,
+            0.76712899,
+            0.27049994,
+            0.68531342,
+            0.37333335,
+            0.55659078,
+            0.50373623,
+            0.40618343,
+            0.61496778,
+            0.32428493,
+            0.6699118,
+            0.29378549,
+            0.68130938,
+            0.31253459,
+            0.61603647,
+            0.40876583,
+            0.52694143,
+            0.51071554,
+            0.44148217,
+            0.5970907,
+        ]
+    )
+    x = np.array(
+        [
+            0.0000e00,
+            6.7500e-07,
+            1.3500e-06,
+            2.0250e-06,
+            2.7000e-06,
+            3.3750e-06,
+            4.0500e-06,
+            4.7250e-06,
+            5.4000e-06,
+            6.0750e-06,
+            6.7500e-06,
+            7.4250e-06,
+            8.1000e-06,
+            8.7750e-06,
+            9.4500e-06,
+            1.0125e-05,
+            1.0800e-05,
+            1.1475e-05,
+            1.2150e-05,
+            1.2825e-05,
+            1.3500e-05,
+            1.4175e-05,
+            1.4850e-05,
+            1.5525e-05,
+            1.6200e-05,
+            1.6875e-05,
+            1.7550e-05,
+            1.8225e-05,
+            1.8900e-05,
+            1.9575e-05,
+            2.0250e-05,
+            2.0925e-05,
+            2.1600e-05,
+            2.2275e-05,
+            2.2950e-05,
+            2.3625e-05,
+            2.4300e-05,
+            2.4975e-05,
+            2.5650e-05,
+            2.6325e-05,
+            2.7000e-05,
+        ]
+    )
+    return x, data
+
+
+def test_cosine_oscillatory_decay_fit(fit_data_cos_osc_decay_fit):
+    param_hints = {
+        "amplitude": {"value": 0.5, "vary": False},
+        "oscillation_offset": {"value": 0, "vary": False},
+    }
+    fit_res = fit_hlp.cosine_oscillatory_decay_fit(
+        *fit_data_cos_osc_decay_fit, param_hints=param_hints
+    )
+    fit_res.model.name = "Model(cosine_oscillatory_decay)"
+    np.testing.assert_allclose(
+        fit_res.best_values["frequency"], 672104.6105811436, rtol=1e-4
+    )
+    np.testing.assert_allclose(
+        fit_res.best_values["decay_time"], 2.315185344525794e-05, rtol=1e-4
+    )
+    np.testing.assert_allclose(
+        fit_res.best_values["phase"], 6.260565448213821, rtol=1e-4
+    )
+    np.testing.assert_allclose(fit_res.best_values["amplitude"], 0.5)
+    np.testing.assert_allclose(fit_res.best_values["oscillation_offset"], 0.0)
+    np.testing.assert_allclose(
+        fit_res.best_values["exponential_offset"], 0.49582477545145665, rtol=1e-4
+    )
+    np.testing.assert_allclose(fit_res.best_values["decay_exponent"], 1)
+
+
+@pytest.fixture()
+def fit_data_exp_decay():
+    """Results from a T1 experiment.
+
+    Below, x corresponds to the time-delay after the x180 pulse in the T1 experiment,
+    and the data is the qubit excited-state population obtained from doing
+    rotation and projection on the calibration states (g, e).
+    """
+    data = np.array(
+        [
+            1.00787209,
+            0.87588896,
+            0.76598219,
+            0.6836751,
+            0.61173751,
+            0.55232468,
+            0.49517968,
+            0.45203702,
+            0.38922181,
+            0.35967265,
+            0.32173561,
+            0.29530025,
+            0.26624666,
+            0.23744594,
+            0.20926094,
+            0.17141808,
+            0.1719566,
+            0.15427311,
+            0.13789753,
+            0.12419218,
+            0.11825001,
+            0.11912618,
+            0.09749957,
+            0.08678555,
+            0.08083805,
+            0.07222622,
+            0.06901647,
+            0.06652873,
+            0.05246193,
+            0.0453221,
+            0.04625179,
+        ]
+    )
+    x = np.array(
+        [
+            0.00000000e00,
+            1.66666667e-06,
+            3.33333333e-06,
+            5.00000000e-06,
+            6.66666667e-06,
+            8.33333333e-06,
+            1.00000000e-05,
+            1.16666667e-05,
+            1.33333333e-05,
+            1.50000000e-05,
+            1.66666667e-05,
+            1.83333333e-05,
+            2.00000000e-05,
+            2.16666667e-05,
+            2.33333333e-05,
+            2.50000000e-05,
+            2.66666667e-05,
+            2.83333333e-05,
+            3.00000000e-05,
+            3.16666667e-05,
+            3.33333333e-05,
+            3.50000000e-05,
+            3.66666667e-05,
+            3.83333333e-05,
+            4.00000000e-05,
+            4.16666667e-05,
+            4.33333333e-05,
+            4.50000000e-05,
+            4.66666667e-05,
+            4.83333333e-05,
+            5.00000000e-05,
+        ]
+    )
+    return x, data
+
+
+def test_exponential_decay_fit(fit_data_exp_decay):
+    param_hints = {
+        "offset": {"value": 0, "vary": False},
+    }
+    fit_res = fit_hlp.exponential_decay_fit(
+        *fit_data_exp_decay, param_hints=param_hints
+    )
+    fit_res.model.name = "Model(exponential_decay)"
+    np.testing.assert_allclose(
+        fit_res.best_values["decay_rate"], 65645.08548221787, rtol=1e-4
+    )
+    np.testing.assert_allclose(
+        fit_res.best_values["amplitude"], 0.971258379771985, rtol=1e-4
+    )
+    np.testing.assert_almost_equal(fit_res.best_values["offset"], 0)

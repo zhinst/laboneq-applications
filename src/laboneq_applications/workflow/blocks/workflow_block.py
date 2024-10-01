@@ -6,6 +6,7 @@ from inspect import signature
 from typing import TYPE_CHECKING, Callable
 
 from laboneq_applications.core import utc_now
+from laboneq_applications.workflow import variable_tracker
 from laboneq_applications.workflow.blocks.block import Block
 from laboneq_applications.workflow.blocks.task_block import TaskBlock
 from laboneq_applications.workflow.executor import ExecutionStatus, ExecutorState
@@ -79,7 +80,9 @@ class WorkflowBlock(Block):
             maybe_opts = get_options(x, tasks)
             if maybe_opts:
                 tasks[x.name] = maybe_opts
-        return self.options_type(task_options=tasks)
+        ret_opt = self.options_type()
+        ret_opt._task_options = tasks
+        return ret_opt
 
     @property
     def ref(self) -> Reference:
@@ -180,6 +183,9 @@ class WorkflowBlock(Block):
                 func, "options", WorkflowOptions
             )
         obj = cls(name, opt_type_hint, params)
-        with obj:
-            func(**obj.parameters)
+        with variable_tracker.WorkflowFunctionVariableTrackerContext.scoped(
+            variable_tracker.WorkflowFunctionVariableTracker()
+        ):
+            with obj:
+                func(**obj.parameters)
         return obj

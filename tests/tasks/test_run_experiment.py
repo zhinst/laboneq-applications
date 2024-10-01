@@ -9,7 +9,11 @@ from laboneq.dsl.experiment import Experiment, ExperimentSignal, pulse_library
 from laboneq.dsl.result.results import Results
 
 from laboneq_applications.common.attribute_wrapper import AttributeWrapper
-from laboneq_applications.tasks import RunExperimentResults, run_experiment
+from laboneq_applications.tasks import (
+    RunExperimentOptions,
+    RunExperimentResults,
+    run_experiment,
+)
 from laboneq_applications.workflow import workflow
 
 
@@ -64,17 +68,19 @@ class TestRunExperiment:
         assert isinstance(results, RunExperimentResults)
         assert "ac0" in results
 
-    def test_run_experiment_standalone_with_raw(
+    def test_run_experiment_standalone_with_legacy(
         self,
         simple_compiled_experiment,
         single_tunable_transmon_platform,
     ):
         """Test that the run_experiment task runs the compiled
         experiment in the session when called directly."""
+        options = RunExperimentOptions()
+        options.return_legacy_results = True
         results = run_experiment(
             session=single_tunable_transmon_platform.session(do_emulation=True),
             compiled_experiment=simple_compiled_experiment,
-            return_raw_results=True,
+            options=options,
         )
         assert isinstance(results, Results)
         assert "ac0" in results.acquired_results

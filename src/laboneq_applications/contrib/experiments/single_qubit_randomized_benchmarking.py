@@ -25,6 +25,9 @@ from qiskit import qasm3, transpile
 from qiskit_experiments.library import randomized_benchmarking
 
 from laboneq_applications import dsl
+from laboneq_applications.contrib.analysis.single_qubit_randomized_benchmarking import (
+    analysis_workflow,
+)
 from laboneq_applications.core import handles
 from laboneq_applications.core.build_experiment import qubit_experiment
 from laboneq_applications.core.validation import validate_and_convert_qubits_sweeps
@@ -34,6 +37,7 @@ from laboneq_applications.experiments.options import (
 )
 from laboneq_applications.tasks import compile_experiment, run_experiment
 from laboneq_applications.workflow import (
+    if_,
     task,
     workflow,
 )
@@ -43,9 +47,6 @@ if TYPE_CHECKING:
 
     from laboneq_applications.qpu_types import QPU
     from laboneq_applications.typing import Qubits
-
-
-options = TuneUpWorkflowOptions
 
 
 @workflow
@@ -98,23 +99,22 @@ def experiment_workflow(
 
     Example:
         ```python
-        options = TuneUpWorkflowOptions()
-        options.create_experiment.count = 10
-        options.create_experiment.transition = "ge"
+        options = experiment_workflow.options()
+        options.count(10)
+        options.transition("ge")
         qpu = QPU(
-            setup=DeviceSetup("my_device"),
             qubits=[TunableTransmonQubit("q0"), TunableTransmonQubit("q1")],
             qop=TunableTransmonOperations(),
         )
         temp_qubits = qpu.copy_qubits()
-        result = run(
+        result = experiment_workflow(
             session=session,
             qpu=qpu,
             qubits=temp_qubits,
             length_cliffords=[1,5,10,20,50],
             variations=5,
             options=options,
-        )
+        ).run()
         ```
     """
     if gate_map.isEmpty:
@@ -135,6 +135,8 @@ def experiment_workflow(
     )
     compiled_exp = compile_experiment(session, exp)
     _result = run_experiment(session, compiled_exp)
+    with if_(options.do_analysis):
+        analysis_workflow(_result, qubits, length_cliffords, variations)
 
 
 @task
@@ -229,17 +231,10 @@ def create_experiment(
 
     Example:
         ```python
-        options = {
-            "count": 10,
-            "transition": "ge",
-            "averaging_mode": "cyclic",
-            "acquisition_type": "integration_trigger",
-            "cal_traces": True,
-        }
-        options = TuneupExperimentOptions(**options)
+        options = TuneupExperimentOptions()
+        options.count = 10
         setup = DeviceSetup()
         qpu = QPU(
-            setup=DeviceSetup("my_device"),
             qubits=[TunableTransmonQubit("q0"), TunableTransmonQubit("q1")],
             qop=TunableTransmonOperations(),
         )

@@ -28,6 +28,9 @@ def create_T1_verifier(  # noqa: N802
     options.transition(transition)
     options.use_cal_traces(use_cal_traces)
     options.cal_states(cal_states)
+    # TODO: fix tests to work with do_analysis=True when the new options feature is in
+    options.do_analysis(False)
+
     res = T1.experiment_workflow(
         session=session,
         qubits=qubits,

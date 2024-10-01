@@ -113,6 +113,39 @@ def cosine_oscillatory_fit(
     )
 
 
+def exponential_decay_fit(
+    x: ArrayLike,
+    data: ArrayLike,
+    param_hints: dict[str, dict[str, float | bool | str]] | None = None,
+) -> lmfit.model.ModelResult:
+    """Performs a fit of an exponential-decay model to data.
+
+    Arguments:
+        data: the data to be fitted
+        x: the independent variable
+        param_hints: dictionary of guesses for the fit parameters. See the lmfit
+            docstring for details on the form of the parameter hints dictionary:
+            https://lmfit.github.io/lmfit-py/model.html#lmfit.model.Model.set_param_hint
+
+    Returns:
+        The lmfit result
+    """
+    if param_hints is None:
+        param_hints = {}
+    param_hints_to_use = {
+        "decay_rate": {"value": 2 / (3 * np.max(x))},
+        "amplitude": {"value": data[0]},
+        "offset": {"value": 0},
+    }
+    param_hints_to_use.update(param_hints)
+    return fit_data_lmfit(
+        fit_mods.exponential_decay,
+        x,
+        data,
+        param_hints=param_hints_to_use,
+    )
+
+
 def get_pi_pi2_xvalues_on_cos(
     x: ArrayLike,
     frequency: float | ArrayLike,
@@ -165,3 +198,87 @@ def get_pi_pi2_xvalues_on_cos(
     pi2xv_falling = pi2_xvals_falling[mask_func(pi2_xvals_falling)]
 
     return pixv_top, pixv_bottom, pi2xv_rising, pi2xv_falling
+
+
+def cosine_oscillatory_decay(
+    x: ArrayLike,
+    frequency: float,
+    phase: float,
+    decay_time: float,
+    amplitude: float = 1.0,
+    oscillation_offset: float = 0.0,
+    exponential_offset: float = 0.0,
+    decay_exponent: float = 1.0,
+) -> ArrayLike:
+    """A function for modelling decaying oscillations such as Ramsey and Echo decay.
+
+    Arguments:
+        x:
+            An array of values to evaluate the function at.
+        frequency:
+            The frequency of the cosine.
+        phase:
+            The phase of the cosine.
+        decay_time:
+            The exponential decay time.
+        amplitude:
+            The amplitude of the cosine.
+        oscillation_offset:
+            The offset of the oscillatory part of the function.
+        exponential_offset:
+            The offset of the exponential-decay part of the function.
+        decay_exponent:
+            Exponential decay exponent power
+
+    Returns:
+        values:
+            The values of the decaying oscillation function at the values `x`.
+    """
+    return (
+        amplitude
+        * np.exp(-((x / decay_time) ** decay_exponent))
+        * (np.cos(2 * np.pi * frequency * x + phase) + oscillation_offset)
+        + exponential_offset
+    )
+
+
+def cosine_oscillatory_decay_fit(
+    x: ArrayLike,
+    data: ArrayLike,
+    param_hints: dict[str, dict[str, float | bool | str]] | None = None,
+) -> lmfit.model.ModelResult:
+    """Performs a fit of an exponentially decaying cosine model to data.
+
+    Arguments:
+        data: the data to be fitted
+        x: the independent variable
+        param_hints: dictionary of guesses for the fit parameters. See the lmfit
+            docstring for details on the form of the parameter hints dictionary:
+            https://lmfit.github.io/lmfit-py/model.html#lmfit.model.Model.set_param_hint
+
+    Returns:
+        The lmfit result
+    """
+    freqs_guess, phase_guess = find_oscillation_frequency_and_phase(
+        x,
+        data,
+    )
+    if param_hints is None:
+        param_hints = {}
+    param_hints_default = {  # good guesses for fitting a qubit state population
+        "frequency": {"value": freqs_guess},
+        "phase": {"value": phase_guess},
+        "decay_time": {"value": 3 * np.max(x) / 2, "min": 0},
+        "amplitude": {"value": 0.5, "vary": True},
+        "oscillation_offset": {"value": 0},
+        "exponential_offset": {"value": np.mean(data)},
+        "decay_exponent": {"value": 1, "vary": False},
+    }
+    param_hints_default.update(param_hints)
+
+    return fit_data_lmfit(
+        cosine_oscillatory_decay,
+        x,
+        data,
+        param_hints=param_hints_default,
+    )

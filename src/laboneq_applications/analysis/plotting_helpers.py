@@ -85,7 +85,7 @@ def plot_raw_complex_data_1d(
         fig, axs = plt.subplots(
             nrows=2, figsize=[0.75 * figsize[0], 1.5 * figsize[1]], sharex=True
         )
-        axs[0].set_title(f"Raw Data {q.uid}")  # add timestamp here
+        axs[0].set_title(f"Raw data {q.uid}")  # add timestamp here
         axs[1].set_xlabel(xlabel)
 
         # plot real

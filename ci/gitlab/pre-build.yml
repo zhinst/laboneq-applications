@@ -8,16 +8,6 @@ lint:python:
     - pip install -r requirements-lint.txt
     - ruff check
 
-lint:notebooks:examples:
-  stage: pre-build
-  image: $DEFAULT_PYTHON_IMAGE
-  tags:
-    - linux
-    - docker
-  script:
-    - pip install -r requirements-lint.txt
-    - nbqa ruff examples
-
 lint:notebooks:docs:
   stage: pre-build
   image: $DEFAULT_PYTHON_IMAGE
@@ -35,5 +25,4 @@ notebooks:check_no_outputs:
     - linux
     - docker
   script:
-    - python3 ci/scripts/notebook_check.py examples
     - python3 ci/scripts/notebook_check.py docs

@@ -15,6 +15,7 @@ from laboneq_applications.workflow.recorder import (
     ExecutionRecorder,
     ExecutionRecorderManager,
 )
+from laboneq_applications.workflow.reference import resolve_to_value
 
 if TYPE_CHECKING:
     from collections.abc import Generator
@@ -71,8 +72,8 @@ class ExecutorState:
 
     def get_options(self, name: str) -> BaseOptions | None:
         """Get options by block name."""
-        if name in self._options.task_options:
-            return self._options.task_options.get(name)
+        if name in self._options._task_options:
+            return self._options._task_options.get(name)
         # TODO: Remove when WorkflowOptions are not required to have
         # task names defined on upper level
         return getattr(self._options, name, None)
@@ -182,20 +183,7 @@ class ExecutorState:
         inp = {}
         for k, v in block.parameters.items():
             if isinstance(v, reference.Reference):
-                ref = reference.get_ref(v)
-                try:
-                    value = self._block_variables[ref]
-                except KeyError as error:
-                    default = reference.get_default(v)
-                    if default != reference.notset:
-                        value = default
-                    else:
-                        # Reference was never executed.
-                        # TODO: Validate at graph definition time for
-                        #       branching statements.
-                        raise WorkflowError(
-                            f"Result for '{ref}' is not resolved.",
-                        ) from error
+                value = resolve_to_value(v, self._block_variables)
                 inp[k] = reference.unwrap(v, value)
             else:
                 inp[k] = v

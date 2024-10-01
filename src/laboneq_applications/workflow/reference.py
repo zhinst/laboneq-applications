@@ -5,6 +5,8 @@ from __future__ import annotations
 import operator
 from typing import Any, Callable
 
+from laboneq_applications.workflow.exceptions import WorkflowError
+
 notset = object()
 
 
@@ -24,6 +26,19 @@ def unwrap(reference: Reference, value: object) -> object:
 def get_ref(reference: Reference) -> object:
     """Return an object the reference points to."""
     return reference._ref
+
+
+def are_equal(one: Reference, other: Reference) -> bool:
+    """Check if two references are equal."""
+    if not isinstance(one, Reference) or not isinstance(other, Reference):
+        return NotImplemented
+    return (
+        one._ref == other._ref
+        and one._head == other._head
+        and one._ops == other._ops
+        and one._default == other._default
+        and one._overwrites == other._overwrites
+    )
 
 
 class Reference:
@@ -85,6 +100,8 @@ class Reference:
         self._head: Reference = self
         # Operations that was done on the reference
         self._ops: list[tuple[Callable, Any]] = []
+        # A list of other references this reference overwrites
+        self._overwrites: list[Reference] = []
 
     def _create_child_reference(
         self,
@@ -119,3 +136,54 @@ class Reference:
 
     def __repr__(self):
         return f"Reference(ref={self._ref}, default={self._default})"
+
+
+def add_overwrite(one: Reference, other: Reference | object) -> None:
+    """Add an overwrite to an reference."""
+    if isinstance(other, Reference):
+        one._overwrites.append(other)
+    else:
+        obj = Reference(None, other)
+        one._overwrites.append(obj)
+
+
+def resolve_to_value(ref: Reference, states: dict, *, only_ref: bool = False) -> Any:  # noqa: ANN401
+    """Resolve reference.
+
+    The resolve order is following:
+
+        * Look value from `states`
+        * Iterate over overwritten values and return the first one that
+            exists in `states` or is constant
+
+    Arguments:
+        ref: Root reference
+        states: A mapping of reference to actual values
+        only_ref: Check only the root reference
+
+    Raises:
+        WorkflowError: Value cannot be resolved.
+    """
+    if not ref._overwrites or only_ref:
+        ref_unwrapped = get_ref(ref)
+        try:
+            return states[ref_unwrapped]
+        except KeyError as error:
+            default = get_default(ref)
+            if default != notset:
+                return default
+            # Reference was never executed (e.g. undefined variable).
+            raise WorkflowError(
+                f"Result for '{ref_unwrapped}' is not resolved.",
+            ) from error
+    else:
+        to_try = [ref, *ref._overwrites]
+        for x in to_try:
+            ref_unwrapped = get_ref(x)
+            # Constant, not from workflow construct
+            if ref_unwrapped is None:
+                return get_default(x)
+            if ref_unwrapped not in states:
+                continue
+            return states[ref_unwrapped]
+        return resolve_to_value(ref, states, only_ref=True)

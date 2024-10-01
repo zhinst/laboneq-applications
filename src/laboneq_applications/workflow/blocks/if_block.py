@@ -5,6 +5,7 @@ from __future__ import annotations
 from contextlib import contextmanager
 from typing import TYPE_CHECKING, Any
 
+from laboneq_applications.workflow import variable_tracker
 from laboneq_applications.workflow.blocks.block import Block
 from laboneq_applications.workflow.executor import ExecutionStatus, ExecutorState
 
@@ -37,6 +38,7 @@ class IFExpression(Block):
             executor.set_block_status(self, ExecutionStatus.FINISHED)
 
 
+@variable_tracker.track
 @contextmanager
 def if_(condition: Any) -> Generator[None, None, None]:  # noqa: ANN401
     """Workflow if statement.
