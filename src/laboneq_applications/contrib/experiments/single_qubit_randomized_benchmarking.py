@@ -49,7 +49,7 @@ if TYPE_CHECKING:
     from laboneq_applications.typing import Qubits
 
 
-@workflow
+@workflow(name="single_qubit_randomized_benchmarking")
 def experiment_workflow(
     session: Session,
     qpu: QPU,

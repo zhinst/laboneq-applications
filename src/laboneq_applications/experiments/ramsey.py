@@ -43,7 +43,7 @@ if TYPE_CHECKING:
     from laboneq_applications.typing import Qubits, QubitSweepPoints
 
 
-@workflow
+@workflow(name="ramsey")
 def experiment_workflow(
     session: Session,
     qpu: QPU,

@@ -61,7 +61,7 @@ class TimeTracesWorkflowOptions(workflow.WorkflowOptions):
 options = TimeTracesWorkflowOptions
 
 
-@workflow.workflow
+@workflow.workflow(name="time_traces")
 def experiment_workflow(
     session: Session,
     qpu: QPU,

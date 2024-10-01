@@ -61,7 +61,7 @@ class SpinLockingWorkflowOptions(WorkflowOptions):
     create_experiment: SpinLockingExperimentOptions = SpinLockingExperimentOptions()
 
 
-@workflow
+@workflow(name="spin_locking")
 def experiment_workflow(
     session: Session,
     qpu: QPU,

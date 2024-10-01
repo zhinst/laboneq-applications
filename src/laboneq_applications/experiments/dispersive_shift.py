@@ -43,7 +43,7 @@ if TYPE_CHECKING:
     from laboneq_applications.typing import QubitSweepPoints
 
 
-@workflow
+@workflow(name="dispersive_shift")
 def experiment_workflow(
     session: Session,
     qpu: QPU,

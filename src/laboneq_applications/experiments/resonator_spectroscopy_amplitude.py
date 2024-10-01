@@ -38,7 +38,7 @@ if TYPE_CHECKING:
     from laboneq_applications.qpu_types import QPU
 
 
-@workflow
+@workflow(name="resonator_spectroscopy_amplitude")
 def experiment_workflow(
     session: Session,
     qpu: QPU,

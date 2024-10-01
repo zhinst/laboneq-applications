@@ -47,7 +47,7 @@ class IQBlobExperimentOptions(TuneupExperimentOptions):
     use_cal_traces: bool = False
 
 
-@workflow
+@workflow(name="iq_blobs")
 def experiment_workflow(
     session: Session,
     qpu: QPU,

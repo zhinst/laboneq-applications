@@ -49,7 +49,7 @@ class EchoExperimentOptions(TuneupExperimentOptions):
     refocus_qop: str = "y180"
 
 
-@workflow
+@workflow(name="echo")
 def experiment_workflow(
     session: Session,
     qpu: QPU,
