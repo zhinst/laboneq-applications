@@ -156,6 +156,21 @@ class TestPulseCache:
         cache.store(pulse, "name", "const", {"amplitude": sweep})
         assert cache.get("name", "const", {"amplitude": sweep}) is pulse
 
+    def test_get_and_store_with_sweep_parameters_with_identical_values(self):
+        cache = _PulseCache()
+        pulse_1 = object()  # dummy pulse 1
+        pulse_2 = object()  # dummy pulse 2
+        sweep_1 = SweepParameter(uid="amplitudes_1", values=[1.0, 2.0, 3.0])
+        sweep_2 = SweepParameter(uid="amplitudes_2", values=[1.0, 2.0, 3.0])
+
+        assert cache.get("name", "const", {"amplitude": sweep_1}) is None
+        cache.store(pulse_1, "name", "const", {"amplitude": sweep_1})
+        assert cache.get("name", "const", {"amplitude": sweep_1}) is pulse_1
+
+        assert cache.get("name", "const", {"amplitude": sweep_2}) is None
+        cache.store(pulse_2, "name", "const", {"amplitude": sweep_2})
+        assert cache.get("name", "const", {"amplitude": sweep_2}) is pulse_2
+
     @pytest.mark.parametrize(
         "samples",
         [

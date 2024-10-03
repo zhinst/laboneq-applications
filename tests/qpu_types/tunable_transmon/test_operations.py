@@ -999,6 +999,58 @@ class TestTunableTransmonOperations:
             sweep=sweep,
         )
 
+    def test_rx_pulse_parameter_beta_multiple_sweeps(
+        self,
+        qops,
+        two_tunable_transmon_platform,
+    ):
+        @dsl.qubit_experiment
+        def beta_exp(qubits, beta_values):
+            with dsl.acquire_loop_rt(count=5):
+                for q in qubits:
+                    with dsl.sweep(
+                        name=f"sweep_{q.uid}",
+                        parameter=SweepParameter(f"betas_{q.uid}", beta_values),
+                    ) as beta:
+                        qops.rx(q, np.pi / 2, pulse={"beta": beta})
+
+        qubits = q0, q1 = two_tunable_transmon_platform.qpu.qubits
+        beta_values = [1.0, 2.0, 3.0]
+
+        exp = beta_exp(qubits, beta_values)
+
+        sweep_0 = SweepParameter(uid="betas_q0", values=beta_values)
+        sweep_1 = SweepParameter(uid="betas_q1", values=beta_values)
+
+        assert exp == tsl.experiment().children(
+            tsl.acquire_loop_rt().children(
+                tsl.sweep(uid="sweep_q0_0").children(
+                    tsl.section(uid="rx_q0_0").children(
+                        self.reserve_ops(q0),
+                        tsl.play_pulse_op(
+                            signal="/logical_signal_groups/q0/drive",
+                            pulse=tsl.pulse(
+                                pulse_parameters={"beta": sweep_0, "sigma": 0.21}
+                            ),
+                        ),
+                    ),
+                ),
+                tsl.sweep(uid="sweep_q1_0").children(
+                    tsl.section(uid="rx_q1_0").children(
+                        self.reserve_ops(q1),
+                        tsl.play_pulse_op(
+                            signal="/logical_signal_groups/q1/drive",
+                            pulse=tsl.pulse(
+                                pulse_parameters={"beta": sweep_1, "sigma": 0.21}
+                            ),
+                        ),
+                    ),
+                ),
+            )
+        )
+
+        self.check_exp_compiles(exp, two_tunable_transmon_platform)
+
     def test_x90(self, qops, single_tunable_transmon_platform):
         [q0] = single_tunable_transmon_platform.qpu.qubits
         section = qops.x90(q0)

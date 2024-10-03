@@ -104,7 +104,7 @@ class _PulseCache:
 
     def _parameter_value_key(self, key: str, value: object) -> object:
         if isinstance(value, Parameter):
-            return tuple(value.values)
+            return (value.uid, tuple(value.values))
         if isinstance(value, list):
             if all(isinstance(x, Number) for x in value):
                 return tuple(value)
