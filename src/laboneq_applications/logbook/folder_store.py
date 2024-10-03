@@ -14,6 +14,7 @@ from laboneq_applications.logbook.serializer import (
 )
 
 if TYPE_CHECKING:
+    import datetime
     from typing import IO, Callable
 
     from laboneq_applications.typing import SimpleDict
@@ -43,25 +44,27 @@ class FolderStore(LogbookStore):
             serialize = default_serialize
         self._serialize = serialize
 
-    def create_logbook(self, workflow: Workflow) -> Logbook:
+    def create_logbook(
+        self, workflow: Workflow, start_time: datetime.datetime
+    ) -> Logbook:
         """Create a new logbook for the given workflow."""
         assert workflow.name is not None  # noqa: S101
-        folder_name = self._unique_workflow_folder_name(workflow.name)
+        folder_name = self._unique_workflow_folder_name(workflow.name, start_time)
         return FolderLogbook(self._folder / folder_name, self._serialize)
 
     def _unique_workflow_folder_name(
-        self,
-        workflow_name: str,
+        self, workflow_name: str, start_time: datetime.datetime
     ) -> str:
         """Generate a unique workflow folder name within the storage folder.
 
         Arguments:
             workflow_name: The name of the workflow.
+            start_time: The start time of the workflow execution.
 
         Returns:
             A unique name for the folder.
         """
-        ts = local_now().strftime("%Y%m%dT%H%M%S")
+        ts = local_now(start_time).strftime("%Y%m%dT%H%M%S")
         workflow_name = _sanitize_filename(workflow_name)
         count = 0
         while True:

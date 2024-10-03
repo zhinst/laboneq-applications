@@ -7,6 +7,8 @@ from typing import TYPE_CHECKING
 from laboneq_applications.logbook import Logbook, LogbookStore
 
 if TYPE_CHECKING:
+    from datetime import datetime
+
     from laboneq_applications.workflow import Workflow, WorkflowResult
     from laboneq_applications.workflow.recorder import Artifact
     from laboneq_applications.workflow.result import TaskResult
@@ -18,9 +20,11 @@ class CombinedStore(LogbookStore):
     def __init__(self, stores: list[LogbookStore]):
         self._stores = stores.copy()
 
-    def create_logbook(self, workflow: Workflow) -> Logbook:
+    def create_logbook(self, workflow: Workflow, start_time: datetime) -> Logbook:
         """Create a new logbook for the given workflow."""
-        logbooks = [store.create_logbook(workflow) for store in self._stores]
+        logbooks = [
+            store.create_logbook(workflow, start_time) for store in self._stores
+        ]
         return CombinedLogbook(logbooks)
 
 

@@ -7,6 +7,7 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import TYPE_CHECKING, Any
 
+from laboneq_applications.core.utils import utc_now
 from laboneq_applications.workflow import reference
 from laboneq_applications.workflow._context import LocalContext
 from laboneq_applications.workflow.exceptions import WorkflowError
@@ -19,6 +20,7 @@ from laboneq_applications.workflow.reference import resolve_to_value
 
 if TYPE_CHECKING:
     from collections.abc import Generator
+    from datetime import datetime
 
     from laboneq_applications.workflow.blocks import Block
     from laboneq_applications.workflow.options_base import BaseOptions
@@ -64,6 +66,7 @@ class ExecutorState:
         self._block_variables = {}
         self._block_status: dict[Block, ExecutionStatus] = {}
         self._context_depth = 0
+        self._start_time: datetime = utc_now()
 
     @property
     def has_active_context(self) -> bool:
@@ -199,8 +202,46 @@ class ExecutorState:
         # TODO: Move to executor blocks once a proper executor is ready.
         return self._block_variables[block]
 
+    def results(self) -> list[WorkflowResult]:
+        """Return the results of the execution."""
+        return self._results
+
+    @property
+    def start_time(self) -> datetime:
+        """Return the start time of the execution."""
+        return self._start_time
+
 
 class ExecutorStateContext(LocalContext[ExecutorState]):
     """Context for workflow execution state."""
 
     _scope = "workflow_executor"
+
+
+class WorkflowExecutionInfoView:
+    """A view to query properties of the workflow execution."""
+
+    def __init__(self, state: ExecutorState) -> None:
+        self._state = state
+
+    @property
+    def workflows(self) -> list[str]:
+        """Return the names of the workflows which are currently executed.
+
+        The list is ordered from the outermost workflow to the
+        innermost (active) workflow.
+        """
+        return [result.name for result in self._state.results()]
+
+    @property
+    def start_time(self) -> datetime | None:
+        """Return the timestamp of the workflow execution start."""
+        return self._state.start_time
+
+
+def execution_info() -> WorkflowExecutionInfoView | None:
+    """Return a view of the workflow information."""
+    active_context = ExecutorStateContext.get_active()
+    if not active_context:
+        return None
+    return WorkflowExecutionInfoView(active_context)

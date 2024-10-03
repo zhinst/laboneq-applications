@@ -14,7 +14,7 @@ class LogbookStore(abc.ABC):
     """Protocol for storing a collection of records of workflow execution."""
 
     @abc.abstractmethod
-    def create_logbook(self, workflow: Workflow) -> Logbook:
+    def create_logbook(self, workflow: Workflow, start_time: datetime) -> Logbook:
         """Create a logbook for recording a single workflow execution."""
 
     def activate(self) -> None:

@@ -205,10 +205,10 @@ class Workflow(Generic[Parameters]):
         self._reset()
         options = self._options()
         logstore = self._logstore(options.logstore)
-        logbook = logstore.create_logbook(self)
         state = executor.ExecutorState(
             settings=executor.ExecutorSettings(run_until=until)
         )
+        logbook = logstore.create_logbook(self, start_time=state.start_time)
         state.add_recorder(logbook)
         return self._execute(state)
 
