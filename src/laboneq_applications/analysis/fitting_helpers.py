@@ -282,3 +282,22 @@ def cosine_oscillatory_decay_fit(
         data,
         param_hints=param_hints_default,
     )
+
+
+@fit_mods._fitting_function
+def linear(
+    x: ArrayLike,
+    gradient: float,
+    intercept: float,
+) -> ArrayLike:
+    """A function for modelling linear.
+
+    Args:
+        x: An array of values to evaluate the function at.
+        gradient: The gradient.
+        intercept: The offset.
+
+    Returns:
+        ArrayLike: The values of the linear function at the times `x`.
+    """
+    return gradient * x + intercept
