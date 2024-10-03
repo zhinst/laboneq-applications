@@ -1,4 +1,4 @@
-"""Tests for the T1 analysis using the testing utilities."""
+"""Tests for the lifetime_measurement analysis using the testing utilities."""
 
 import matplotlib as mpl
 import matplotlib.pyplot as plt
@@ -6,7 +6,7 @@ import numpy as np
 import pytest
 from numpy.testing import assert_almost_equal, assert_array_almost_equal
 
-from laboneq_applications.analysis import T1
+from laboneq_applications.analysis import lifetime_measurement
 from laboneq_applications.tasks.run_experiment import (
     AcquiredResult,
     RunExperimentResults,
@@ -15,11 +15,11 @@ from laboneq_applications.tasks.run_experiment import (
 
 @pytest.fixture()
 def results_single_qubit():
-    """Results from a T1 experiment.
+    """Results from a lifetime_measurement experiment.
 
     In the AcquiredResults below, the axis corresponds to the time-delay after the x180
-    pulse in the T1 experiment, and the data is the raw acquisition result obtained in
-    integrated-average mode.
+    pulse in the lifetime_measurement experiment, and the data is the raw acquisition
+    result obtained in integrated-average mode.
     """
     data = {
         "result": {
@@ -123,10 +123,10 @@ class TestT1AnalysisSingleQubit:
         self, single_tunable_transmon_platform, results_single_qubit
     ):
         [q0] = single_tunable_transmon_platform.qpu.qubits
-        options = T1.analysis_workflow.options()
+        options = lifetime_measurement.analysis_workflow.options()
         options.do_pca(False)
 
-        result = T1.analysis_workflow(
+        result = lifetime_measurement.analysis_workflow(
             result=results_single_qubit[0],
             qubits=q0,
             delays=results_single_qubit[1],
@@ -210,10 +210,10 @@ class TestT1AnalysisSingleQubit:
         self, single_tunable_transmon_platform, results_single_qubit
     ):
         [q0] = single_tunable_transmon_platform.qpu.qubits
-        options = T1.analysis_workflow.options()
+        options = lifetime_measurement.analysis_workflow.options()
         options.do_pca(True)
 
-        result = T1.analysis_workflow(
+        result = lifetime_measurement.analysis_workflow(
             result=results_single_qubit[0],
             qubits=q0,
             delays=results_single_qubit[1],
@@ -302,10 +302,10 @@ class TestT1AnalysisSingleQubit:
         self, single_tunable_transmon_platform, results_single_qubit
     ):
         [q0] = single_tunable_transmon_platform.qpu.qubits
-        options = T1.analysis_workflow.options()
+        options = lifetime_measurement.analysis_workflow.options()
         options.do_fitting(False)
 
-        result = T1.analysis_workflow(
+        result = lifetime_measurement.analysis_workflow(
             result=results_single_qubit[0],
             qubits=q0,
             delays=results_single_qubit[1],
@@ -323,10 +323,10 @@ class TestT1AnalysisSingleQubit:
         self, single_tunable_transmon_platform, results_single_qubit
     ):
         [q0] = single_tunable_transmon_platform.qpu.qubits
-        options = T1.analysis_workflow.options()
+        options = lifetime_measurement.analysis_workflow.options()
         options.do_plotting(False)
 
-        result = T1.analysis_workflow(
+        result = lifetime_measurement.analysis_workflow(
             result=results_single_qubit[0],
             qubits=q0,
             delays=results_single_qubit[1],
@@ -344,11 +344,11 @@ class TestT1AnalysisSingleQubit:
 
 @pytest.fixture()
 def results_two_qubit():
-    """Results from a T1 experiment.
+    """Results from a lifetime_measurement experiment.
 
     In the AcquiredResults below, the axis corresponds to the time-delay after the x180
-    pulse in the T1 experiment, and the data is the raw acquisition result obtained in
-    integrated-average mode.
+    pulse in the lifetime_measurement experiment, and the data is the raw acquisition
+    result obtained in integrated-average mode.
     """
     data = {
         "result": {
@@ -539,10 +539,10 @@ class TestT1AnalysisTwoQubit:
         self, two_tunable_transmon_platform, results_two_qubit
     ):
         qubits = two_tunable_transmon_platform.qpu.qubits
-        options = T1.analysis_workflow.options()
+        options = lifetime_measurement.analysis_workflow.options()
         options.do_pca(False)
 
-        result = T1.analysis_workflow(
+        result = lifetime_measurement.analysis_workflow(
             result=results_two_qubit[0],
             qubits=qubits,
             delays=results_two_qubit[1],
@@ -691,10 +691,10 @@ class TestT1AnalysisTwoQubit:
 
     def test_create_and_run_pca(self, two_tunable_transmon_platform, results_two_qubit):
         qubits = two_tunable_transmon_platform.qpu.qubits
-        options = T1.analysis_workflow.options()
+        options = lifetime_measurement.analysis_workflow.options()
         options.do_pca(True)
 
-        result = T1.analysis_workflow(
+        result = lifetime_measurement.analysis_workflow(
             result=results_two_qubit[0],
             qubits=qubits,
             delays=results_two_qubit[1],
@@ -847,10 +847,10 @@ class TestT1AnalysisTwoQubit:
         self, two_tunable_transmon_platform, results_two_qubit
     ):
         qubits = two_tunable_transmon_platform.qpu.qubits
-        options = T1.analysis_workflow.options()
+        options = lifetime_measurement.analysis_workflow.options()
         options.do_fitting(False)
 
-        result = T1.analysis_workflow(
+        result = lifetime_measurement.analysis_workflow(
             result=results_two_qubit[0],
             qubits=qubits,
             delays=results_two_qubit[1],
@@ -870,10 +870,10 @@ class TestT1AnalysisTwoQubit:
         self, two_tunable_transmon_platform, results_two_qubit
     ):
         qubits = two_tunable_transmon_platform.qpu.qubits
-        options = T1.analysis_workflow.options()
+        options = lifetime_measurement.analysis_workflow.options()
         options.do_plotting(False)
 
-        result = T1.analysis_workflow(
+        result = lifetime_measurement.analysis_workflow(
             result=results_two_qubit[0],
             qubits=qubits,
             delays=results_two_qubit[1],
@@ -892,10 +892,10 @@ class TestT1AnalysisTwoQubit:
         self, two_tunable_transmon_platform, results_two_qubit
     ):
         qubits = two_tunable_transmon_platform.qpu.qubits
-        options = T1.analysis_workflow.options()
+        options = lifetime_measurement.analysis_workflow.options()
         options.close_figures(True)
 
-        result = T1.analysis_workflow(
+        result = lifetime_measurement.analysis_workflow(
             result=results_two_qubit[0],
             qubits=qubits,
             delays=results_two_qubit[1],
@@ -910,7 +910,7 @@ class TestT1AnalysisTwoQubit:
         )
 
         options.close_figures(False)
-        result = T1.analysis_workflow(
+        result = lifetime_measurement.analysis_workflow(
             result=results_two_qubit[0],
             qubits=qubits,
             delays=results_two_qubit[1],

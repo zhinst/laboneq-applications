@@ -29,7 +29,7 @@ To this end, `laboneq-applications` contains several elements:
 - Hahn echo
 - IQ Blob
 - Resonator Spectroscopy
-- T1
+- lifetime_measurement
 
 ### Quantum operations
 

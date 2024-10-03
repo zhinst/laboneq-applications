@@ -247,11 +247,12 @@ def test_cosine_oscillatory_decay_fit(fit_data_cos_osc_decay_fit):
 
 @pytest.fixture()
 def fit_data_exp_decay():
-    """Results from a T1 experiment.
+    """Results from a lifetime_measurement experiment.
 
-    Below, x corresponds to the time-delay after the x180 pulse in the T1 experiment,
-    and the data is the qubit excited-state population obtained from doing
-    rotation and projection on the calibration states (g, e).
+    Below, x corresponds to the time-delay after the x180 pulse in the
+    lifetime_measurement experiment, and the data is the qubit excited-state
+    population obtained from doing rotation and projection on the calibration
+    states (g, e).
     """
     data = np.array(
         [

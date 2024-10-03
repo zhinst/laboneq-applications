@@ -13,5 +13,5 @@ of the page.
 * [Resonator Spectroscopy](sources/resonator_spectroscopy.ipynb)
 * [Amplitude Rabi](sources/amplitude_rabi.ipynb)
 * [Ramsey inteferometry](sources/ramsey.ipynb)
-* [T1](sources/T1.ipynb)
+* [Lifetime_measurement](sources/lifetime_measurement.ipynb)
 * [Raw Time Traces for Optimal Readout Weights](sources/time_traces.ipynb)

@@ -1,27 +1,27 @@
-"""This module defines the T1 experiment.
+"""This module defines the lifetime_measurement experiment.
 
 In this experiment, the qubit is first excited to either its first
 or a higher excited state
 and then allowed to relax back to the ground state over a variable delay period,
 enabling us to measure the qubit's longitudinal
-relaxation time, T1, for the respective state.
+relaxation time, lifetime_measurement, for the respective state.
 
-The T1 experiment has the following pulse sequence:
+The lifetime_measurement experiment has the following pulse sequence:
 
     qb --- [ prep transition ] --- [ x180_transition ] --- [delay] --- [ measure ]
 
 If multiple qubits are passed to the `run` workflow, the above pulses are applied
 in parallel on all the qubits.
-"""  # noqa: N999
+"""
 
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from laboneq.simple import Experiment, SweepParameter
+from laboneq.simple import Experiment, SectionAlignment, SweepParameter
 
 from laboneq_applications import dsl, workflow
-from laboneq_applications.analysis.T1 import analysis_workflow
+from laboneq_applications.analysis.lifetime_measurement import analysis_workflow
 from laboneq_applications.experiments.options import (
     TuneupExperimentOptions,
     TuneUpWorkflowOptions,
@@ -35,7 +35,7 @@ if TYPE_CHECKING:
     from laboneq_applications.typing import Qubits, QubitSweepPoints
 
 
-@workflow.workflow(name="T1")
+@workflow.workflow(name="lifetime_measurement")
 def experiment_workflow(
     session: Session,
     qpu: QPU,
@@ -43,7 +43,7 @@ def experiment_workflow(
     delays: QubitSweepPoints,
     options: TuneUpWorkflowOptions | None = None,
 ) -> None:
-    """The T1 experiment Workflow.
+    """The lifetime_measurement experiment Workflow.
 
     The workflow consists of the following steps:
 
@@ -116,7 +116,7 @@ def create_experiment(
     delays: QubitSweepPoints,
     options: TuneupExperimentOptions | None = None,
 ) -> Experiment:
-    """Creates a T1 Experiment.
+    """Creates a lifetime_measurement Experiment.
 
     Arguments:
         qpu:
@@ -177,6 +177,14 @@ def create_experiment(
     # Define the custom options for the experiment
     opts = TuneupExperimentOptions() if options is None else options
     qubits, delays = dsl.validation.validate_and_convert_qubits_sweeps(qubits, delays)
+    if opts.transition == "ef":
+        on_system_grid = True
+    elif opts.transition == "ge":
+        on_system_grid = False
+    else:
+        raise ValueError(
+            f"Support only ge or ef transitions, not {options.transition!r}"
+        )
     with dsl.acquire_loop_rt(
         count=opts.count,
         averaging_mode=opts.averaging_mode,
@@ -191,10 +199,19 @@ def create_experiment(
                 parameter=SweepParameter(f"delay_{q.uid}", q_delays),
             ) as delay:
                 qpu.qop.prepare_state(q, opts.transition[0])
-                qpu.qop.x180(q, transition=opts.transition)
-                qpu.qop.delay(q, time=delay)
-                qpu.qop.measure(q, dsl.handles.result_handle(q.uid))
+                with dsl.section(
+                    name=f"t1_{q.uid}",
+                    on_system_grid=on_system_grid,
+                    alignment=SectionAlignment.RIGHT,
+                ):
+                    sec_180 = qpu.qop.x180(q, transition=opts.transition)
+                    qpu.qop.delay(q, time=delay)
+                    sec_measure = qpu.qop.measure(q, dsl.handles.result_handle(q.uid))
+                # to remove the gaps between ef_drive and measure pulses
+                # introduced by system grid alignment.
                 qpu.qop.passive_reset(q)
+                sec_180.on_system_grid = False
+                sec_measure.on_system_grid = False
             if opts.use_cal_traces:
                 with dsl.section(
                     name=f"cal_{q.uid}",

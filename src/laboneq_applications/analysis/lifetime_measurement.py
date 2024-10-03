@@ -1,12 +1,13 @@
-"""This module defines the analysis for an T1 experiment.
+"""This module defines the analysis for an lifetime_measurement experiment.
 
 The experiment is defined in laboneq_applications.experiments.
 
 In this analysis, we first interpret the raw data into qubit population using
 principle-component analysis or rotation and projection on the measured calibration
 states. Then we fit an exponential-decay model to the qubit population and extract the
-qubit energy relaxation time T1 from the fit. Finally, we plot the data and the fit.
-"""  # noqa: N999
+qubit energy relaxation time lifetime_measurement from the fit. Finally, we plot the
+data and the fit.
+"""
 
 from __future__ import annotations
 
@@ -45,7 +46,7 @@ def analysis_workflow(
     delays: QubitSweepPoints,
     options: TuneUpAnalysisWorkflowOptions | None = None,
 ) -> None:
-    """The T1 analysis Workflow.
+    """The lifetime_measurement analysis Workflow.
 
     The workflow consists of the following steps:
 
@@ -58,12 +59,12 @@ def analysis_workflow(
     Arguments:
         result:
             The experiment results returned by the run_experiment task of the
-            T1 experiment workflow.
+            lifetime_measurement experiment workflow.
         qubits:
             The qubits on which to run the analysis. May be either a single qubit or
             a list of qubits. The UIDs of these qubits must exist in the result.
         delays:
-            The delays that were swept over in the T1 experiment for
+            The delays that were swept over in the lifetime_measurement experiment for
             each qubit. If `qubits` is a single qubit, `delays` must be an array of
             numbers. Otherwise, it must be a list of arrays of numbers.
         options:
@@ -207,22 +208,22 @@ def extract_qubit_parameters(
     }
 
     for q in qubits:
-        # Store the old T1 value
+        # Store the old lifetime_measurement value
         old_t1 = q.parameters.ef_T1 if "f" in opts.transition else q.parameters.ge_T1
         qubit_parameters["old_parameter_values"][q.uid] = {
             f"{opts.transition}_T1": old_t1,
         }
 
         if opts.do_fitting and q.uid in fit_results:
-            # Extract and store the T1 value
+            # Extract and store the lifetime_measurement value
             fit_res = fit_results[q.uid]
             dec_rt = unc.ufloat(
                 fit_res.params["decay_rate"].value, fit_res.params["decay_rate"].stderr
             )
-            t1 = 1 / dec_rt
+            lifetime_measurement = 1 / dec_rt
 
             qubit_parameters["new_parameter_values"][q.uid] = {
-                f"{opts.transition}_T1": t1,
+                f"{opts.transition}_T1": lifetime_measurement,
             }
 
     return qubit_parameters
@@ -240,7 +241,7 @@ def plot_population(
     | None,
     options: TuneupAnalysisOptions | None = None,
 ) -> dict[str, mpl.figure.Figure]:
-    """Create the T1 plots.
+    """Create the lifetime_measurement plots.
 
     Arguments:
         qubits:
@@ -273,7 +274,7 @@ def plot_population(
         num_cal_traces = processed_data_dict[q.uid]["num_cal_traces"]
 
         fig, ax = plt.subplots()
-        ax.set_title(f"T1 {q.uid}")  # add timestamp here
+        ax.set_title(f"lifetime_measurement {q.uid}")  # add timestamp here
         ax.set_xlabel("Pulse Delay, $\\tau$ ($\\mu$s)")
         ax.set_ylabel(
             "Principal Component (a.u)"

@@ -12,5 +12,5 @@ This is the `laboneq_applications.experiments` reference documentation.
 * [resonator_spectroscopy_amplitude](resonator_spectroscopy_amplitude.md)
 * [echo](echo.md)
 * [iq_blobs](iq_blobs.md)
-* [T1](T1.md)
+* [lifetime_measurement](lifetime_measurement.md)
 * [options](options.md)
