@@ -1,12 +1,13 @@
 from __future__ import annotations
 
-import re
 from typing import Literal
 
 import pytest
 from pydantic import Field, ValidationError
 
 from laboneq_applications.workflow.options_base import BaseOptions
+
+from tests.helpers.format import minify_string, strip_ansi_codes
 
 
 class OptionsUnderTest(BaseOptions):
@@ -70,16 +71,6 @@ class TestOptions:
 
         opt = OptionsWithFieldDefaults()
         assert opt.foo == 10
-
-
-def minify_string(s):
-    return s.replace("\n", "").replace(" ", "").replace("│", "").replace("↳", "")
-
-
-def strip_ansi_codes(s):
-    """Remove all ANSI codes from the given string."""
-    ansi_escape = re.compile(r"\x1b[^m]*m")
-    return ansi_escape.sub("", s)
 
 
 class TestOptionPrinting:

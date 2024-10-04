@@ -43,3 +43,7 @@ class WorkflowOptions(BaseOptions):
             key: value.to_dict() for key, value in self._task_options.items()
         }
         return data
+
+    def __rich_repr__(self):
+        yield from super().__rich_repr__()
+        yield "_task_options", self._task_options

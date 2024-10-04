@@ -8,6 +8,8 @@ from laboneq_applications.workflow.options_builder import (
     _get_all_fields,
 )
 
+from tests.helpers.format import minify_string, strip_ansi_codes
+
 
 class TOpt1(TaskOptions):
     shared: int = 1
@@ -19,7 +21,6 @@ class TOpt2(TaskOptions):
 
 
 class OuterOptions(WorkflowOptions):
-    # What if shared options exist at the top layer too
     shared: int = 1
     outer_not_shared: int = 1
 
@@ -105,6 +106,26 @@ class TestOptionBuilder:
             "outer_not_shared",
             "shared",
         ]
+
+
+class TestOptionPrinting:
+    @pytest.fixture()
+    def option_builder(self):
+        class W(WorkflowOptions):
+            a: int = 1
+
+        class T(TaskOptions):
+            b: str = "b"
+
+        option_builder = W()
+        option_builder._task_options = {"task1": T(), "wf1": W()}
+        return option_builder
+
+    def test_str(self, option_builder):
+        expected_str = (
+            "W(a=1,_task_options={'task1':T(b='b'),'wf1':W(a=1,_task_options={})})"
+        )
+        assert expected_str == (strip_ansi_codes(minify_string(str(option_builder))))
 
 
 class TestOptionBuilderSetOption:

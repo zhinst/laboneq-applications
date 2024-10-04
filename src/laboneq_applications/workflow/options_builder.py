@@ -4,6 +4,10 @@ from __future__ import annotations
 
 import typing
 from collections import UserList
+from io import StringIO
+
+from rich.console import Console
+from rich.pretty import pprint
 
 from laboneq_applications.workflow.options import WorkflowOptions
 
@@ -47,6 +51,15 @@ class OptionBuilder:
         if not isinstance(other, OptionBuilder):
             return NotImplemented
         return self._base == other._base
+
+    def __str__(self):
+        with StringIO() as buffer:
+            console = Console(file=buffer)
+            pprint(self._base, console=console, expand_all=True, indent_guides=True)
+            return buffer.getvalue()
+
+    def _repr_pretty_(self, p, _cycle):  # noqa: ANN001, ANN202
+        p.text(str(self))
 
 
 def _retrieve_option_attributes(
