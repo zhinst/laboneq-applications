@@ -23,6 +23,7 @@ def create_qubitspec_verifier(
     session = tunable_transmon_platform.session(do_emulation=True)
     options = qubit_spectroscopy.experiment_workflow.options()
     options.count(count)
+    options.do_analysis(False)  # TODO: fix tests to work with do_analysis=True
 
     # Run the experiment workflow
     res = qubit_spectroscopy.experiment_workflow(

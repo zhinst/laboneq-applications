@@ -190,3 +190,59 @@ class TuneUpWorkflowOptions(WorkflowOptions):
 
     do_analysis: bool = True
     update: bool = False
+
+
+class QubitSpectroscopyExperimentOptions(BaseExperimentOptions):
+    """Base options for the resonator spectroscopy experiment.
+
+    Additional attributes:
+        spectroscopy_reset_delay:
+            How long to wait after an acquisition in seconds.
+            Default: 1e-6.
+    """
+
+    spectroscopy_reset_delay: float = 1e-6
+
+
+class QubitSpectroscopyAnalysisOptions(QubitSpectroscopyExperimentOptions):
+    """Base options for the analysis of a qubit-spectroscopy experiment.
+
+    Attributes:
+        do_fitting:
+            Whether to perform the fit.
+            Default: `True`.
+        fit_parameters_hints:
+            Parameters hints accepted by lmfit
+            Default: None.
+        save_figures:
+            Whether to save the figures.
+            Default: `True`.
+        close_figures:
+            Whether to close the figures.
+            Default: `True`.
+    """
+
+    do_fitting: bool = True
+    fit_parameters_hints: dict | None = None
+    save_figures: bool = True
+    close_figures: bool = True
+
+
+class QubitSpectroscopyAnalysisWorkflowOptions(WorkflowOptions):
+    """Option class for qubit spectroscopy analysis workflows.
+
+    Attributes:
+        do_plotting:
+            Whether to make plots.
+            Default: 'True'.
+        do_raw_data_plotting:
+            Whether to plot the raw data.
+            Default: True.
+        do_plotting_qubit_spectroscopy:
+            Whether to plot the final qubit spectroscopy plot.
+            Default: True.
+    """
+
+    do_plotting: bool = True
+    do_raw_data_plotting: bool = True
+    do_plotting_qubit_spectroscopy: bool = True

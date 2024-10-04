@@ -17,14 +17,14 @@ from typing import TYPE_CHECKING
 
 from laboneq.simple import Experiment, SweepParameter
 
-from laboneq_applications import dsl
+from laboneq_applications import dsl, workflow
+from laboneq_applications.analysis.qubit_spectroscopy import analysis_workflow
 from laboneq_applications.core.validation import validate_and_convert_qubits_sweeps
 from laboneq_applications.experiments.options import (
-    TuneupExperimentOptions,
+    QubitSpectroscopyExperimentOptions,
     TuneUpWorkflowOptions,
 )
-from laboneq_applications.tasks import compile_experiment, run_experiment
-from laboneq_applications.workflow import task, workflow
+from laboneq_applications.tasks import compile_experiment, run_experiment, update_qubits
 
 if TYPE_CHECKING:
     from laboneq.dsl.session import Session
@@ -33,7 +33,7 @@ if TYPE_CHECKING:
     from laboneq_applications.typing import Qubits, QubitSweepPoints
 
 
-@workflow(name="qubit_spectroscopy")
+@workflow.workflow(name="qubit_spectroscopy")
 def experiment_workflow(
     session: Session,
     qpu: QPU,
@@ -48,6 +48,8 @@ def experiment_workflow(
     - [create_experiment]()
     - [compile_experiment]()
     - [run_experiment]()
+    - [analysis_workflow]()
+    - [update_qubits]()
 
     Arguments:
         session:
@@ -68,26 +70,28 @@ def experiment_workflow(
                 - create_experiment: The options for creating the experiment.
 
     Returns:
-        result:
-            The result of the workflow.
+        WorkflowBuilder:
+            The builder for the experiment workflow.
 
     Example:
         ```python
-        options = TuneUpWorkflowOptions()
-        options.create_experiment.count = 10
+        options = experiment_workflow.options()
+        options.create_experiment.count(10)
         qpu = QPU(
-            setup=DeviceSetup("my_device"),
             qubits=[TunableTransmonQubit("q0"), TunableTransmonQubit("q1")],
             qop=TunableTransmonOperations(),
         )
         temp_qubits = qpu.copy_qubits()
-        result = run(
+        result = experiment_workflow(
             session=session,
             qpu=qpu,
             qubits=temp_qubits,
-            frequencies = np.linspace(5.8e9, 6.2e9, 101)
+            frequencies = [
+                np.linspace(6.0e9, 6.3e9, 101),
+                np.linspace(5.8e9, 6.2e9, 101)
+            ]
             options=options,
-        )
+        ).run()
         ```
     """
     exp = create_experiment(
@@ -96,16 +100,22 @@ def experiment_workflow(
         frequencies=frequencies,
     )
     compiled_exp = compile_experiment(session, exp)
-    _result = run_experiment(session, compiled_exp)
+    result = run_experiment(session, compiled_exp)
+    with workflow.if_(options.do_analysis):
+        analysis_results = analysis_workflow(result, qubits, frequencies)
+        qubit_parameters = analysis_results.tasks["extract_qubit_parameters"].output
+        with workflow.if_(options.update):
+            update_qubits(qpu, qubit_parameters["new_parameter_values"])
+    workflow.return_(result)
 
 
-@task
+@workflow.task
 @dsl.qubit_experiment
 def create_experiment(
     qpu: QPU,
     qubits: Qubits,
     frequencies: QubitSweepPoints,
-    options: TuneupExperimentOptions | None = None,
+    options: QubitSpectroscopyExperimentOptions | None = None,
 ) -> Experiment:
     """Creates a Qubit Spectroscopy Experiment.
 
@@ -121,9 +131,9 @@ def create_experiment(
             Otherwise, it must be a list of lists of numbers or arrays.
         options:
             The options for building the experiment.
-            See [TuneupExperimentOptions] and [BaseExperimentOptions] for
+            See [QubitSpectroscopyExperimentOptions] and [BaseExperimentOptions] for
             accepted options.
-            Overwrites the options from [TuneupExperimentOptions] and
+            Overwrites the options from [QubitSpectroscopyExperimentOptions] and
             [BaseExperimentOptions].
 
     Returns:
@@ -144,13 +154,9 @@ def create_experiment(
 
     Example:
         ```python
-        options = {
-            "count": 10,
-        }
-        options = TuneupExperimentOptions(**options)
-        setup = DeviceSetup()
+        options = QubitSpectroscopyExperimentOptions()
+        options.count = 10
         qpu = QPU(
-            setup=DeviceSetup("my_device"),
             qubits=[TunableTransmonQubit("q0"), TunableTransmonQubit("q1")],
             qop=TunableTransmonOperations(),
         )
@@ -158,13 +164,16 @@ def create_experiment(
         create_experiment(
             qpu=qpu,
             qubits=temp_qubits,
-            frequencies = np.linspace(5.8e9, 6.2e9, 101)
+            frequencies = [
+                np.linspace(6.0e9, 6.3e9, 101),
+                np.linspace(5.8e9, 6.2e9, 101)
+            ]
             options=options,
         )
         ```
     """
     # Define the custom options for the experiment
-    opts = TuneupExperimentOptions() if options is None else options
+    opts = QubitSpectroscopyExperimentOptions() if options is None else options
 
     qubits, frequencies = validate_and_convert_qubits_sweeps(qubits, frequencies)
 
@@ -184,4 +193,4 @@ def create_experiment(
                 qpu.qop.set_frequency(q, frequency)
                 qpu.qop.spectroscopy_drive(q)
                 qpu.qop.measure(q, dsl.handles.result_handle(q.uid))
-                qpu.qop.passive_reset(q)
+                qpu.qop.passive_reset(q, delay=opts.spectroscopy_reset_delay)
