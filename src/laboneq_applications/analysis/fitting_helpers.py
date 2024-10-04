@@ -284,6 +284,81 @@ def cosine_oscillatory_decay_fit(
     )
 
 
+def lorentzian_fit(
+    x: ArrayLike,
+    data: ArrayLike,
+    param_hints: dict[str, dict[str, float | bool | str]] | None = None,
+) -> lmfit.model.ModelResult:
+    """Fit a Lorentzian model to the data as a function of sweep_points.
+
+    This function determines whether the Lorentzian structure has a peak or a
+    dip by performing two fits with two guess values, the min and the max of
+    the data. To determine whether there is a peak or a dip, the distance
+    between the value at the fitted peak/dip is compared to the mean of the
+    data array: the larger distance is the true spectroscopy signal.
+
+    Args:
+        x: numpy array of the independent variable
+        data: numpy array of data to fit
+        param_hints: dict with parameter hints for the fit (see fit_data_lmfit)
+
+    Returns:
+        an instance of lmfit.model.ModelResult
+    """
+    if param_hints is None:
+        width_guess = 50e3
+        # fit with guess values for a peak
+        param_hints = {
+            "amplitude": {"value": np.max(data) * width_guess},
+            "position": {"value": x[np.argmax(data)]},
+            "width": {"value": width_guess},
+            "offset": {"value": 0},
+        }
+        fit_res_peak = fit_data_lmfit(
+            fit_mods.lorentzian,
+            x,
+            data,
+            param_hints=param_hints,
+        )
+        # fit with guess values for a dip
+        param_hints["amplitude"]["value"] *= -1
+        param_hints["position"]["value"] = x[np.argmin(data)]
+        fit_res_dip = fit_data_lmfit(
+            fit_mods.lorentzian,
+            x,
+            data,
+            param_hints=param_hints,
+        )
+        # determine whether there is a peak or a dip: compare
+        # the distance between the value at the fitted peak/dip
+        # to the mean of the data array: the larger distance
+        # is the true spectroscopy signal
+        dpeak = abs(
+            fit_res_peak.model.func(
+                fit_res_peak.best_values["position"],
+                **fit_res_peak.best_values,
+            )
+            - np.mean(data)
+        )
+        ddip = abs(
+            fit_res_dip.model.func(
+                fit_res_dip.best_values["position"],
+                **fit_res_dip.best_values,
+            )
+            - np.mean(data)
+        )
+        fit_res = fit_res_peak if dpeak > ddip else fit_res_dip
+    else:
+        # do what the user asked
+        fit_res = fit_data_lmfit(
+            fit_mods.lorentzian,
+            x,
+            data,
+            param_hints=param_hints,
+        )
+    return fit_res
+
+
 @fit_mods._fitting_function
 def linear(
     x: ArrayLike,

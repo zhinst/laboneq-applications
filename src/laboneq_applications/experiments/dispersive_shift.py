@@ -26,7 +26,7 @@ from laboneq.simple import Experiment, SweepParameter
 
 from laboneq_applications import dsl
 from laboneq_applications.experiments.options import (
-    SpectroscopyExperimentOptions,
+    ResonatorSpectroscopyExperimentOptions,
     TuneUpWorkflowOptions,
 )
 from laboneq_applications.tasks import compile_experiment, run_experiment
@@ -122,7 +122,7 @@ def create_experiment(
     qubit: QuantumElement,
     frequencies: ArrayLike,
     states: Sequence[str],
-    options: SpectroscopyExperimentOptions | None = None,
+    options: ResonatorSpectroscopyExperimentOptions | None = None,
 ) -> Experiment:
     """Creates a Dispersive Shift Experiment.
 
@@ -180,7 +180,7 @@ def create_experiment(
         ```
     """
     # Define the custom options for the experiment
-    opts = SpectroscopyExperimentOptions() if options is None else options
+    opts = ResonatorSpectroscopyExperimentOptions() if options is None else options
     if AcquisitionType(opts.acquisition_type) != AcquisitionType.SPECTROSCOPY:
         raise ValueError(
             "The only allowed acquisition_type for this experiment"

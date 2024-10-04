@@ -104,7 +104,7 @@ class TuneupExperimentOptions(BaseExperimentOptions):
 
 
 # create additional options for spectroscopy
-class SpectroscopyExperimentOptions(BaseExperimentOptions):
+class ResonatorSpectroscopyExperimentOptions(BaseExperimentOptions):
     """Base options for the resonator spectroscopy experiment.
 
     Additional attributes:

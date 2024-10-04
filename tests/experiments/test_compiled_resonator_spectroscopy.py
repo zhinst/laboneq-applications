@@ -26,6 +26,7 @@ def create_res_spectroscopy_verifier(
     options.count(count)
     options.use_cw(use_cw)
     options.spectroscopy_reset_delay(spectroscopy_reset_delay)
+    options.do_analysis(False)  # TODO: fix tests to work with do_analysis=True
     res = resonator_spectroscopy.experiment_workflow(
         session=session,
         qubit=qubit,

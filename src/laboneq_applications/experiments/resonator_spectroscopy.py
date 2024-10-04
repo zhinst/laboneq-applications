@@ -19,11 +19,12 @@ from laboneq.dsl.enums import AcquisitionType
 from laboneq.simple import Experiment, SweepParameter
 
 from laboneq_applications import dsl, workflow
+from laboneq_applications.analysis.resonator_spectroscopy import analysis_workflow
 from laboneq_applications.experiments.options import (
-    SpectroscopyExperimentOptions,
+    ResonatorSpectroscopyExperimentOptions,
     TuneUpWorkflowOptions,
 )
-from laboneq_applications.tasks import compile_experiment, run_experiment
+from laboneq_applications.tasks import compile_experiment, run_experiment, update_qubits
 
 if TYPE_CHECKING:
     from laboneq.dsl.quantum.quantum_element import QuantumElement
@@ -48,6 +49,8 @@ def experiment_workflow(
     - [create_experiment]()
     - [compile_experiment]()
     - [run_experiment]()
+    - [analysis_workflow]()
+    - [update_qubits]()
 
     Arguments:
         session:
@@ -72,20 +75,20 @@ def experiment_workflow(
 
     Example:
         ```python
-        options = SpectroscopyWorkflowOptions()
-        options.create_experiment.count = 10
+        options = experiment_workflow.options()
+        options.create_experiment.count(10)
         qpu = QPU(
             qubits=[TunableTransmonQubit("q0"), TunableTransmonQubit("q1")],
             qop=TunableTransmonOperations(),
         )
         temp_qubits = qpu.copy_qubits()
-        result = run(
+        result = experiment_workflow(
             session=session,
             qpu=qpu,
             qubit=temp_qubits[0],
             frequencies=np.linspace(7.1e9, 7.6e9, 501),
             options=options,
-        )
+        ).run()
         ```
     """
     exp = create_experiment(
@@ -94,7 +97,13 @@ def experiment_workflow(
         frequencies=frequencies,
     )
     compiled_exp = compile_experiment(session, exp)
-    _result = run_experiment(session, compiled_exp)
+    result = run_experiment(session, compiled_exp)
+    with workflow.if_(options.do_analysis):
+        analysis_results = analysis_workflow(result, qubit, frequencies)
+        qubit_parameters = analysis_results.tasks["extract_qubit_parameters"].output
+        with workflow.if_(options.update):
+            update_qubits(qpu, qubit_parameters["new_parameter_values"])
+    workflow.return_(result)
 
 
 @workflow.task
@@ -103,9 +112,9 @@ def create_experiment(
     qpu: QPU,
     qubit: QuantumElement,
     frequencies: ArrayLike,
-    options: SpectroscopyExperimentOptions | None = None,
+    options: ResonatorSpectroscopyExperimentOptions | None = None,
 ) -> Experiment:
-    """Creates an Resonator Spectroscopy Experiment.
+    """Creates a Resonator Spectroscopy Experiment.
 
     Arguments:
         qpu:
@@ -118,10 +127,9 @@ def create_experiment(
             It must be a list of lists of numbers or arrays.
         options:
             The options for building the experiment.
-            See [SpectroscopyExperimentOptions] and [BaseExperimentOptions] for
+            See [ResonatorSpectroscopyExperimentOptions] and [BaseExperimentOptions] for
             accepted options.
-            Overwrites the options from [TuneupExperimentOptions] and
-            [BaseExperimentOptions].
+            Overwrites the options from [BaseExperimentOptions].
 
     Returns:
         experiment:
@@ -153,7 +161,7 @@ def create_experiment(
         ```
     """
     # Define the custom options for the experiment
-    opts = SpectroscopyExperimentOptions() if options is None else options
+    opts = ResonatorSpectroscopyExperimentOptions() if options is None else options
     # guard against wrong options for the acquisition type
     if AcquisitionType(opts.acquisition_type) != AcquisitionType.SPECTROSCOPY:
         raise ValueError(

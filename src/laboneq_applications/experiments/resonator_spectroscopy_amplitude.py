@@ -19,16 +19,12 @@ from typing import TYPE_CHECKING
 from laboneq.dsl.enums import AcquisitionType
 from laboneq.simple import Experiment, SweepParameter
 
-from laboneq_applications import dsl
+from laboneq_applications import dsl, workflow
 from laboneq_applications.experiments.options import (
-    SpectroscopyExperimentOptions,
+    ResonatorSpectroscopyExperimentOptions,
     TuneUpWorkflowOptions,
 )
 from laboneq_applications.tasks import compile_experiment, run_experiment
-from laboneq_applications.workflow import (
-    task,
-    workflow,
-)
 
 if TYPE_CHECKING:
     from laboneq.dsl.quantum.quantum_element import QuantumElement
@@ -38,7 +34,7 @@ if TYPE_CHECKING:
     from laboneq_applications.qpu_types import QPU
 
 
-@workflow(name="resonator_spectroscopy_amplitude")
+@workflow.workflow(name="resonator_spectroscopy_amplitude")
 def experiment_workflow(
     session: Session,
     qpu: QPU,
@@ -105,17 +101,18 @@ def experiment_workflow(
         amplitudes=amplitudes,
     )
     compiled_exp = compile_experiment(session, exp)
-    _result = run_experiment(session, compiled_exp)
+    result = run_experiment(session, compiled_exp)
+    workflow.return_(result)
 
 
-@task
+@workflow.task
 @dsl.qubit_experiment
 def create_experiment(
     qpu: QPU,
     qubit: QuantumElement,
     frequencies: ArrayLike,
     amplitudes: ArrayLike,
-    options: SpectroscopyExperimentOptions | None = None,
+    options: ResonatorSpectroscopyExperimentOptions | None = None,
 ) -> Experiment:
     """A Resonator Spectroscopy where the measure-pulse amplitude is also swept.
 
@@ -172,7 +169,7 @@ def create_experiment(
         ```
     """
     # Define the custom options for the experiment
-    opts = SpectroscopyExperimentOptions() if options is None else options
+    opts = ResonatorSpectroscopyExperimentOptions() if options is None else options
     # guard against wrong options for the acquisition type
     if AcquisitionType(opts.acquisition_type) != AcquisitionType.SPECTROSCOPY:
         raise ValueError(

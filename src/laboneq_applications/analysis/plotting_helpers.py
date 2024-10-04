@@ -40,7 +40,7 @@ class PlotRawDataOptions(TaskOptions):
             Default: `True`.
     """
 
-    use_cal_traces: bool = True
+    use_cal_traces: bool = False
     cal_states: str | tuple = "ge"
     save_figures: bool = True
     close_figures: bool = True
@@ -98,7 +98,7 @@ def plot_raw_complex_data_1d(
         fig.subplots_adjust(hspace=0.1)
 
         # plot lines at calibration traces
-        if opts.use_cal_traces:
+        if opts.use_cal_traces and "cal_trace" in result:
             for i, ax in enumerate(axs):
                 for cs in opts.cal_states:
                     cal_trace = (
