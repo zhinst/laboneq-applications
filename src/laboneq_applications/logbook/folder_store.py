@@ -48,9 +48,13 @@ class FolderStore(LogbookStore):
         self, workflow: Workflow, start_time: datetime.datetime
     ) -> Logbook:
         """Create a new logbook for the given workflow."""
+        local_start_time = local_now(start_time)
+        day = local_start_time.strftime("%Y%m%d")
+        Path(self._folder / day).mkdir(parents=False, exist_ok=True)
         assert workflow.name is not None  # noqa: S101
-        folder_name = self._unique_workflow_folder_name(workflow.name, start_time)
-        return FolderLogbook(self._folder / folder_name, self._serialize)
+        folder_name = self._unique_workflow_folder_name(workflow.name, local_start_time)
+
+        return FolderLogbook(self._folder / day / folder_name, self._serialize)
 
     def _unique_workflow_folder_name(
         self, workflow_name: str, start_time: datetime.datetime
@@ -64,7 +68,9 @@ class FolderStore(LogbookStore):
         Returns:
             A unique name for the folder.
         """
-        ts = local_now(start_time).strftime("%Y%m%dT%H%M%S")
+        local_start_time = local_now(start_time)
+        day = local_start_time.strftime("%Y%m%d")
+        ts = local_start_time.strftime("%Y%m%dT%H%M%S")
         workflow_name = _sanitize_filename(workflow_name)
         count = 0
         while True:
@@ -72,7 +78,7 @@ class FolderStore(LogbookStore):
                 potential_name = f"{ts}-{workflow_name}-{count}"
             else:
                 potential_name = f"{ts}-{workflow_name}"
-            workflow_path = self._folder / potential_name
+            workflow_path = self._folder / day / potential_name
             if not workflow_path.exists():
                 return potential_name
             count += 1
