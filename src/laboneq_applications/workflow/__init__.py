@@ -1,4 +1,4 @@
-"""A sub-package for creating workflows.
+"""A package for creating workflows.
 
 This package provides tools and building blocks to define workflows.
 
@@ -6,8 +6,8 @@ This package provides tools and building blocks to define workflows.
 
 Workflow is a collection of tasks and other constructs.
 To determine and control the execution of an workflow, the tasks
-and other constructs do not behave normally within it and a specific
-domain specific language (DSL) must be used.
+and other constructs do not behave normally within a workflow decorated Python function
+and a specific domain specific language (DSL) must be used.
 
 To achieve this behavior, workflow first runs through the code
 to build a dependency graph of tasks and constructs used in it. The actual code
@@ -23,6 +23,7 @@ from laboneq_applications.workflow.core import (
     Workflow,
     workflow,
 )
+from laboneq_applications.workflow.exceptions import WorkflowError
 from laboneq_applications.workflow.executor import execution_info
 from laboneq_applications.workflow.options import TaskOptions, WorkflowOptions
 from laboneq_applications.workflow.recorder import (
@@ -34,17 +35,24 @@ from laboneq_applications.workflow.result import WorkflowResult
 from laboneq_applications.workflow.task import task
 
 __all__ = [
+    # Decorators
     "task",
+    "workflow",
+    # Core
     "Workflow",
     "WorkflowResult",
-    "workflow",
+    # Options
     "WorkflowOptions",
-    "execution_info",
+    "TaskOptions",
+    # Workflow operations
     "return_",
+    "if_",
+    "for_",
+    # Task operations
     "comment",
     "log",
     "save_artifact",
-    "TaskOptions",
-    "if_",
-    "for_",
+    "execution_info",
+    # Errors
+    "WorkflowError",
 ]
