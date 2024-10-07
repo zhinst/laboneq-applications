@@ -24,13 +24,13 @@ from typing import TYPE_CHECKING
 from laboneq.dsl.enums import AcquisitionType
 from laboneq.simple import Experiment, SweepParameter
 
-from laboneq_applications import dsl
+from laboneq_applications import dsl, workflow
+from laboneq_applications.analysis.dispersive_shift import analysis_workflow
 from laboneq_applications.experiments.options import (
-    ResonatorSpectroscopyExperimentOptions,
+    BaseExperimentOptions,
     TuneUpWorkflowOptions,
 )
-from laboneq_applications.tasks import compile_experiment, run_experiment
-from laboneq_applications.workflow import task, workflow
+from laboneq_applications.tasks import compile_experiment, run_experiment, update_qubits
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
@@ -43,7 +43,22 @@ if TYPE_CHECKING:
     from laboneq_applications.typing import QubitSweepPoints
 
 
-@workflow(name="dispersive_shift")
+class DispersiveShiftExperimentOptions(BaseExperimentOptions):
+    """Options for the dispersive-shift experiment.
+
+    This class is needed only to change the default value of acquisition_type compared
+    to the one in BaseExperimentOptions.
+
+    Attributes:
+        acquisition_type:
+            Acquisition type to use for the experiment.
+            Default: `AcquisitionType.SPECTROSCOPY`.
+    """
+
+    acquisition_type: AcquisitionType = AcquisitionType.SPECTROSCOPY
+
+
+@workflow.workflow(name="dispersive_shift")
 def experiment_workflow(
     session: Session,
     qpu: QPU,
@@ -59,6 +74,8 @@ def experiment_workflow(
     - [create_experiment]()
     - [compile_experiment]()
     - [run_experiment]()
+    - [analysis_workflow]()
+    - [update_qubits]()
 
     Arguments:
         session:
@@ -75,34 +92,31 @@ def experiment_workflow(
             The basis states the qubits should be prepared in. May be either a string,
             e.g. "gef", or a list of letters, e.g. ["g","e","f"].
         options:
-            The options for building the workflow.
-            In addition to options from [WorkflowOptions], the following
-            custom options are supported:
-                - create_experiment: The options for creating the experiment.
+            The options for building the workflow as an instance of
+            [TuneUpWorkflowOptions]. See the docstring of this class for more details.
 
     Returns:
-        result:
-            The result of the workflow.
+        WorkflowBuilder:
+            The builder for the experiment workflow.
 
     Example:
         ```python
-        options = SpectroscopyExperimentOptions()
-        options.create_experiment.count = 10
-        options.create_experiment.acquisition_type = AcquisitionType.SPECTROSCOPY
+        options = experiment_workflow.options()
+        options.count(10)
+        options.acquisition_type(AcquisitionType.SPECTROSCOPY)
         qpu = QPU(
-            setup=DeviceSetup("my_device"),
             qubits=[TunableTransmonQubit("q0"), TunableTransmonQubit("q1")],
             qop=SpectroscopyExperimentOptions(),
         )
         temp_qubits = qpu.copy_qubits()
-        result = run(
+        result = experiment_workflow(
             session=session,
             qpu=qpu,
             qubits=temp_qubits[0],
             frequencies=np.linspace(1.8e9, 2.2e9, 101),
             states="ge"
             options=options,
-        )
+        ).run()
         ```
     """
     exp = create_experiment(
@@ -112,17 +126,23 @@ def experiment_workflow(
         states=states,
     )
     compiled_exp = compile_experiment(session, exp)
-    _result = run_experiment(session, compiled_exp)
+    result = run_experiment(session, compiled_exp)
+    with workflow.if_(options.do_analysis):
+        analysis_results = analysis_workflow(result, qubit, frequencies, states)
+        qubit_parameters = analysis_results.tasks["extract_qubit_parameters"].output
+        with workflow.if_(options.update):
+            update_qubits(qpu, qubit_parameters["new_parameter_values"])
+    workflow.return_(result)
 
 
-@task
+@workflow.task
 @dsl.qubit_experiment
 def create_experiment(
     qpu: QPU,
     qubit: QuantumElement,
     frequencies: ArrayLike,
     states: Sequence[str],
-    options: ResonatorSpectroscopyExperimentOptions | None = None,
+    options: DispersiveShiftExperimentOptions | None = None,
 ) -> Experiment:
     """Creates a Dispersive Shift Experiment.
 
@@ -133,17 +153,14 @@ def create_experiment(
             The qubit to run the experiments on. It can be only a single qubit
             coupled to a resonator.
         frequencies:
-            The resonator frequencies to sweep over for the readout pulse (or CW)
+            The resonator frequencies to sweep over for the readout pulse
             sent to the resonator. Must be a list of numbers or an array.
         states:
             The basis states the qubits should be prepared in. May be either a string,
             e.g. "gef", or a list of letters, e.g. ["g","e","f"].
         options:
-            The options for building the experiment.
-            See [SpectroscopyExperimentOptions] and [BaseExperimentOptions] for
-            accepted options.
-            Overwrites the options from [SpectroscopyExperimentOptions] and
-            [BaseExperimentOptions].
+            The options for building the experiment as an instance of
+            [BaseExperimentOptions]. See docstring of this class for more details.
 
     Returns:
         experiment:
@@ -158,16 +175,12 @@ def create_experiment(
 
     Example:
         ```python
-        options = {
-            "count": 10,
-            "acquisition_type": "spectroscopy",
-        }
-        options = TuneupExperimentOptions(**options)
-        setup = DeviceSetup()
+        options = ResonatorSpectroscopyExperimentOptions()
+        options.count(10)
+        options.acquisition_type(AcquisitionType.SPECTROSCOPY)
         qpu = QPU(
-            setup=DeviceSetup("my_device"),
             qubits=[TunableTransmonQubit("q0"), TunableTransmonQubit("q1")],
-            qop=SpectroscopyExperimentOptions(),
+            qop=TunableTransmonOperations(),
         )
         temp_qubits = qpu.copy_qubits()
         create_experiment(
@@ -180,7 +193,7 @@ def create_experiment(
         ```
     """
     # Define the custom options for the experiment
-    opts = ResonatorSpectroscopyExperimentOptions() if options is None else options
+    opts = DispersiveShiftExperimentOptions() if options is None else options
     if AcquisitionType(opts.acquisition_type) != AcquisitionType.SPECTROSCOPY:
         raise ValueError(
             "The only allowed acquisition_type for this experiment"
@@ -197,7 +210,7 @@ def create_experiment(
         reset_oscillator_phase=opts.reset_oscillator_phase,
     ):
         with dsl.sweep(
-            name=f"freqs_{qubit.uid}",
+            name=f"frequency_sweep_{qubit.uid}",
             parameter=SweepParameter(f"frequency_{qubit.uid}", frequencies),
         ) as frequency:
             qpu.qop.set_frequency(qubit, frequency=frequency, readout=True)
@@ -205,6 +218,6 @@ def create_experiment(
                 qpu.qop.prepare_state(qubit, state)
                 qpu.qop.measure(
                     qubit,
-                    dsl.handles.result_handle(qubit.uid, state),
+                    dsl.handles.result_handle(qubit.uid, suffix=state),
                 )
                 qpu.qop.passive_reset(qubit)

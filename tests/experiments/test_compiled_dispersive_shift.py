@@ -26,6 +26,7 @@ def create_dispers_shift_verifier(
     # It is okay to keep it as default integration mode.
     # However, readout length will be limited in such SW modulation case.
     options.acquisition_type(AcquisitionType.SPECTROSCOPY)
+    options.do_analysis(False)  # TODO: fix tests to work with do_analysis=True
 
     # Run the experiment workflow
     res = dispersive_shift.experiment_workflow(

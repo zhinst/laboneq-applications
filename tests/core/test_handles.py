@@ -15,6 +15,14 @@ def test_result_handle_formatting():
     assert handle == "rabi/resultat/q/0"
 
 
+def test_result_handle_formatting_suffix():
+    """Test formatting the result_handle with a suffix."""
+
+    qubit_name = "q/0"
+    handle = result_handle(qubit_name, prefix="rabi/resultat", suffix="best")
+    assert handle == "rabi/resultat/q/0/best"
+
+
 def test_calibration_trace_handle_formatting():
     """Test formatting the calibration trace handle."""
 

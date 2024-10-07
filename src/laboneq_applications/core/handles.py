@@ -7,7 +7,9 @@ CALIBRATION_TRACE_PREFIX = "cal_trace"
 ACTIVE_RESET_PREFIX = "active_reset"
 
 
-def result_handle(qubit_name: str, prefix: str = RESULT_PREFIX) -> str:
+def result_handle(
+    qubit_name: str, prefix: str = RESULT_PREFIX, suffix: str | None = None
+) -> str:
     """Return the acquisition handle for the main sweep result.
 
     The equivalent of `"result_{qubit_name}".format(qubit_name=qubit_name).`
@@ -15,6 +17,7 @@ def result_handle(qubit_name: str, prefix: str = RESULT_PREFIX) -> str:
     Args:
         qubit_name: The name of the qubit.
         prefix: The prefix to use for the handle.
+        suffix: The suffix to use for the handle.
 
     Returns:
         The acquisition handle for the main sweep result for the given qubit.
@@ -25,7 +28,11 @@ def result_handle(qubit_name: str, prefix: str = RESULT_PREFIX) -> str:
         handle = result_handle(qubit_name)
         ```
     """
-    return f"{prefix}/{qubit_name}"
+    return (
+        f"{prefix}/{qubit_name}"
+        if suffix is None
+        else f"{prefix}/{qubit_name}/{suffix}"
+    )
 
 
 def calibration_trace_handle(
