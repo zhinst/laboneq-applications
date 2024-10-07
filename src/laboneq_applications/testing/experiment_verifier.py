@@ -9,7 +9,7 @@ pulse timing and pulse parameterization.
 ```python
 from laboneq_applications.experiments import amplitude_rabi
 
-result = amplitude_rabi(session, qop, qubits, amplitudes)
+result = amplitude_rabi(session, quantum_operations, qubits, amplitudes)
 compiled_experiment = result.tasks["compile_experiment"].output
 verifier = CompiledExperimentVerifier(compiled_experiment, max_events=5000)
 verifier.assert_number_of_pulses("/logical_signal_groups/q0/drive", 8)

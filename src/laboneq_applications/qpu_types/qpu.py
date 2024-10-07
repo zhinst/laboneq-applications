@@ -93,19 +93,19 @@ class QPU:
     Arguments:
         qubits:
             The qubits to run the experiments on.
-        qop:
+        quantum_operations:
             The quantum operations to use when building the experiment.
     """
 
     def __init__(
         self,
         qubits: Qubits,
-        qop: QuantumOperations,
+        quantum_operations: QuantumOperations,
     ) -> None:
         self.qubits: list[QuantumElement] = (
             [qubits] if isinstance(qubits, QuantumElement) else list(qubits)
         )
-        self.qop = qop
+        self.quantum_operations = quantum_operations
         self._qubit_map = {q.uid: q for q in qubits}
 
     def copy_qubits(self) -> Qubits:

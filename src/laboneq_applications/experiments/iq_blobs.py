@@ -90,7 +90,7 @@ def experiment_workflow(
         qpu = QPU(
             setup=DeviceSetup("my_device"),
             qubits=[TunableTransmonQubit("q0"), TunableTransmonQubit("q1")],
-            qop=TunableTransmonOperations(),
+            quantum_operations=TunableTransmonOperations(),
         )
         temp_qubits = qpu.copy_qubits()
         result = run(
@@ -154,7 +154,7 @@ def create_experiment(
         qpu = QPU(
             setup=DeviceSetup("my_device"),
             qubits=[TunableTransmonQubit("q0"), TunableTransmonQubit("q1")],
-            qop=TunableTransmonOperations(),
+            quantum_operations=TunableTransmonOperations(),
         )
         temp_qubits = qpu.copy_qubits()
         create_experiment(
@@ -169,6 +169,7 @@ def create_experiment(
     opts = IQBlobExperimentOptions() if options is None else options
     qubits = dsl.validation.validate_and_convert_qubits_sweeps(qubits)
 
+    qop = qpu.quantum_operations
     with dsl.acquire_loop_rt(
         count=opts.count,
         averaging_mode=opts.averaging_mode,
@@ -182,9 +183,9 @@ def create_experiment(
                 name=f"iq_{q.uid}",
             ):
                 for state in states:
-                    qpu.qop.prepare_state(q, state)
-                    qpu.qop.measure(
+                    qop.prepare_state(q, state)
+                    qop.measure(
                         q,
                         dsl.handles.calibration_trace_handle(q.uid, state),
                     )
-                    qpu.qop.passive_reset(q)
+                    qop.passive_reset(q)

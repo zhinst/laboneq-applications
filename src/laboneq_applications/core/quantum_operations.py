@@ -300,6 +300,7 @@ class QuantumOperations:
             call it:
 
             ```python
+            qop = qpu.quantum_operations
             def custom_op(qop, q, amplitude):
                 pulse = ...
                 play(

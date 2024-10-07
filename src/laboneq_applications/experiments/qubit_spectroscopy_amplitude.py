@@ -81,7 +81,7 @@ def experiment_workflow(
         options.create_experiment.count(10)
         qpu = QPU(
             qubits=[TunableTransmonQubit("q0"), TunableTransmonQubit("q1")],
-            qop=TunableTransmonOperations(),
+            quantum_operations=TunableTransmonOperations(),
         )
         temp_qubits = qpu.copy_qubits()
         result = experiment_workflow(
@@ -160,7 +160,7 @@ def create_experiment(
         options.count = 10
         qpu = QPU(
             qubits=[TunableTransmonQubit("q0"), TunableTransmonQubit("q1")],
-            qop=TunableTransmonOperations(),
+            quantum_operations=TunableTransmonOperations(),
         )
         temp_qubits = qpu.copy_qubits()
         create_experiment(
@@ -181,6 +181,7 @@ def create_experiment(
     _, frequencies = validate_and_convert_qubits_sweeps(qubits, frequencies)
     qubits, amplitudes = validate_and_convert_qubits_sweeps(qubits, amplitudes)
 
+    qop = qpu.quantum_operations
     with dsl.acquire_loop_rt(
         count=opts.count,
         averaging_mode=opts.averaging_mode,
@@ -198,7 +199,7 @@ def create_experiment(
                     name=f"freqs_{q.uid}",
                     parameter=SweepParameter(f"frequency_{q.uid}", q_frequencies),
                 ) as frequency:
-                    qpu.qop.set_frequency(q, frequency)
-                    qpu.qop.spectroscopy_drive(q, amplitude=amplitude)
-                    qpu.qop.measure(q, dsl.handles.result_handle(q.uid))
-                    qpu.qop.passive_reset(q)
+                    qop.set_frequency(q, frequency)
+                    qop.spectroscopy_drive(q, amplitude=amplitude)
+                    qop.measure(q, dsl.handles.result_handle(q.uid))
+                    qop.passive_reset(q)

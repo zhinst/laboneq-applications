@@ -85,7 +85,7 @@ def experiment_workflow(
             Default is None and provides a random seed.
         gate_map:
             Dictionary to define the native gate set in QASM and the corresponding
-            qop's in LabOne Q.
+            quantum_operations's in LabOne Q.
             Default: {"id":None, "sx":"x90", "x":"x180", "rz":"rz"}.
         options:
             The options for building the workflow.
@@ -104,7 +104,7 @@ def experiment_workflow(
         options.transition("ge")
         qpu = QPU(
             qubits=[TunableTransmonQubit("q0"), TunableTransmonQubit("q1")],
-            qop=TunableTransmonOperations(),
+            quantum_operations=TunableTransmonOperations(),
         )
         temp_qubits = qpu.copy_qubits()
         result = experiment_workflow(
@@ -214,7 +214,7 @@ def create_experiment(
             RB sequences as QASM experiments.
         gate_map:
             Dictionary to define the native gate set in QASM and the corresponding
-            qop's in LabOne Q.
+            quantum_operations's in LabOne Q.
             Default: {"id":None, "sx":"x90", "x":"x180", "rz":"rz"}.
         options:
             The options for building the workflow.
@@ -236,7 +236,7 @@ def create_experiment(
         setup = DeviceSetup()
         qpu = QPU(
             qubits=[TunableTransmonQubit("q0"), TunableTransmonQubit("q1")],
-            qop=TunableTransmonOperations(),
+            quantum_operations=TunableTransmonOperations(),
         )
         temp_qubits = qpu.copy_qubits()
         create_experiment(
@@ -258,6 +258,7 @@ def create_experiment(
         indices = range(len(qasm_rb_sequences))
     qubits, indices = validate_and_convert_qubits_sweeps(qubits, indices)
 
+    qop = qpu.quantum_operations
     with dsl.acquire_loop_rt(
         count=opts.count,
         averaging_mode=opts.averaging_mode,
@@ -278,7 +279,7 @@ def create_experiment(
                 with dsl.section(
                     name=f"prep_{q.uid}",
                 ):
-                    qpu.qop.prepare_state(q, opts.transition[0])
+                    qop.prepare_state(q, opts.transition[0])
 
                 with dsl.section(
                     name=f"cliffords_{q.uid}",
@@ -297,20 +298,20 @@ def create_experiment(
                 with dsl.section(
                     name=f"measure_{q.uid}",
                 ):
-                    qpu.qop.measure(q, handles.result_handle(q.uid))
-                    qpu.qop.passive_reset(q)
+                    qop.measure(q, handles.result_handle(q.uid))
+                    qop.passive_reset(q)
 
             if opts.use_cal_traces:
                 with dsl.section(
                     name=f"cal_{q.uid}",
                 ):
                     for state in opts.cal_states:
-                        qpu.qop.prepare_state(q, state)
-                        qpu.qop.measure(
+                        qop.prepare_state(q, state)
+                        qop.measure(
                             q,
                             handles.calibration_trace_handle(q.uid, state),
                         )
-                        qpu.qop.passive_reset(q)
+                        qop.passive_reset(q)
 
 
 def create_gate_store(
@@ -336,8 +337,8 @@ def create_gate_store(
             gate_store.register_gate_section(
                 qasm_gate,
                 (oq3_qubit,),
-                lambda *args, qubit=l1q_qubit, gate=l1q_gate: qpu.qop[gate](
-                    qubit, *args
-                ),
+                lambda *args, qubit=l1q_qubit, gate=l1q_gate: qpu.quantum_operations[
+                    gate
+                ](qubit, *args),
             )
     return gate_store

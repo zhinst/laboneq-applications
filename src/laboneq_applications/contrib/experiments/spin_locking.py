@@ -110,7 +110,7 @@ def experiment_workflow(
         options.transition("ge")
         qpu = QPU(
             qubits=[TunableTransmonQubit("q0"), TunableTransmonQubit("q1")],
-            qop=TunableTransmonOperations(),
+            quantum_operations=TunableTransmonOperations(),
         )
         temp_qubits = qpu.copy_qubits()
         result = experiment_workflow(
@@ -185,7 +185,7 @@ def create_experiment(
         qpu = QPU(
             setup=DeviceSetup("my_device"),
             qubits=[TunableTransmonQubit("q0"), TunableTransmonQubit("q1")],
-            qop=TunableTransmonOperations(),
+            quantum_operations=TunableTransmonOperations(),
         )
         temp_qubits = qpu.copy_qubits()
         create_experiment(
@@ -201,6 +201,7 @@ def create_experiment(
     qubits, lengths = dsl.validation.validate_and_convert_qubits_sweeps(qubits, lengths)
     angle = rel_amp * np.pi if rel_amp is not None else np.pi
 
+    qop = qpu.quantum_operations
     with dsl.acquire_loop_rt(
         count=opts.count,
         averaging_mode=opts.averaging_mode,
@@ -214,29 +215,29 @@ def create_experiment(
                 name=f"length_{q.uid}",
                 parameter=SweepParameter(f"length_{q.uid}", q_lengths),
             ) as length:
-                qpu.qop.prepare_state(q, opts.transition[0])
-                qpu.qop.x90(q, opts.transition)
-                qpu.qop.ry(
+                qop.prepare_state(q, opts.transition[0])
+                qop.x90(q, opts.transition)
+                qop.ry(
                     q,
                     angle=angle,
                     transition=opts.transition,
                     length=length,
                     pulse=opts.pulse,
                 )
-                qpu.qop.x90(q, opts.transition)
-                qpu.qop.measure(q, dsl.handles.result_handle(q.uid))
-                qpu.qop.passive_reset(q)
+                qop.x90(q, opts.transition)
+                qop.measure(q, dsl.handles.result_handle(q.uid))
+                qop.passive_reset(q)
             if opts.use_cal_traces:
                 with dsl.section(
                     name=f"cal_{q.uid}",
                 ):
                     for state in opts.cal_states:
-                        qpu.qop.prepare_state(q, state)
-                        qpu.qop.measure(
+                        qop.prepare_state(q, state)
+                        qop.measure(
                             q,
                             dsl.handles.calibration_trace_handle(q.uid, state),
                         )
-                        qpu.qop.passive_reset(q)
+                        qop.passive_reset(q)
 
 
 # had to re-define gaussian square pulse because default definition takes too much

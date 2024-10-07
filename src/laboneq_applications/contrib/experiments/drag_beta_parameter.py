@@ -87,7 +87,7 @@ def experiment_workflow(
         options.create_experiment.transition = "ge"
         qpu = QPU(
             qubits=[TunableTransmonQubit("q0"), TunableTransmonQubit("q1")],
-            qop=TunableTransmonOperations(),
+            quantum_operations=TunableTransmonOperations(),
         )
         temp_qubits = qpu.copy_qubits()
         result = experiment_workflow(
@@ -169,7 +169,7 @@ def create_experiment(
         options = TuneupExperimentOptions(**options)
         qpu = QPU(
             qubits=[TunableTransmonQubit("q0"), TunableTransmonQubit("q1")],
-            qop=TunableTransmonOperations(),
+            quantum_operations=TunableTransmonOperations(),
         )
         temp_qubits = qpu.copy_qubits()
         create_experiment(
@@ -188,6 +188,7 @@ def create_experiment(
     qubits, beta_values = dsl.validation.validate_and_convert_qubits_sweeps(
         qubits, beta_values
     )
+    qop = qpu.quantum_operations
     pulse_ids = ["y180", "my180"]
     pulse_phase = [np.pi / 2, -np.pi / 2]
     with dsl.acquire_loop_rt(
@@ -204,21 +205,21 @@ def create_experiment(
                 parameter=SweepParameter(f"beta_{q.uid}", q_betas),
             ) as beta:
                 for pulse_id, phase in zip(pulse_ids, pulse_phase):
-                    qpu.qop.prepare_state(q, opts.transition[0])
-                    qpu.qop.x90(q, pulse={"beta": beta}, transition=opts.transition)
-                    qpu.qop.y180(
+                    qop.prepare_state(q, opts.transition[0])
+                    qop.x90(q, pulse={"beta": beta}, transition=opts.transition)
+                    qop.y180(
                         q, pulse={"beta": beta}, phase=phase, transition=opts.transition
                     )
-                    qpu.qop.measure(q, dsl.handles.result_handle(f"{q.uid}_{pulse_id}"))
-                    qpu.qop.passive_reset(q)
+                    qop.measure(q, dsl.handles.result_handle(f"{q.uid}_{pulse_id}"))
+                    qop.passive_reset(q)
             if opts.use_cal_traces:
                 with dsl.section(
                     name=f"cal_{q.uid}",
                 ):
                     for state in opts.cal_states:
-                        qpu.qop.prepare_state(q, state)
-                        qpu.qop.measure(
+                        qop.prepare_state(q, state)
+                        qop.measure(
                             q,
                             dsl.handles.calibration_trace_handle(q.uid, state),
                         )
-                        qpu.qop.passive_reset(q)
+                        qop.passive_reset(q)

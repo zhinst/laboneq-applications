@@ -106,7 +106,7 @@ def experiment_workflow(
         options.acquisition_type(AcquisitionType.SPECTROSCOPY)
         qpu = QPU(
             qubits=[TunableTransmonQubit("q0"), TunableTransmonQubit("q1")],
-            qop=SpectroscopyExperimentOptions(),
+            quantum_operations=SpectroscopyExperimentOptions(),
         )
         temp_qubits = qpu.copy_qubits()
         result = experiment_workflow(
@@ -180,7 +180,7 @@ def create_experiment(
         options.acquisition_type(AcquisitionType.SPECTROSCOPY)
         qpu = QPU(
             qubits=[TunableTransmonQubit("q0"), TunableTransmonQubit("q1")],
-            qop=TunableTransmonOperations(),
+            quantum_operations=TunableTransmonOperations(),
         )
         temp_qubits = qpu.copy_qubits()
         create_experiment(
@@ -201,6 +201,7 @@ def create_experiment(
             "because it sweeps frequency of a hardware oscillator.",
         )
 
+    qop = qpu.quantum_operations
     with dsl.acquire_loop_rt(
         count=opts.count,
         averaging_mode=opts.averaging_mode,
@@ -213,11 +214,11 @@ def create_experiment(
             name=f"frequency_sweep_{qubit.uid}",
             parameter=SweepParameter(f"frequency_{qubit.uid}", frequencies),
         ) as frequency:
-            qpu.qop.set_frequency(qubit, frequency=frequency, readout=True)
+            qop.set_frequency(qubit, frequency=frequency, readout=True)
             for state in states:
-                qpu.qop.prepare_state(qubit, state)
-                qpu.qop.measure(
+                qop.prepare_state(qubit, state)
+                qop.measure(
                     qubit,
                     dsl.handles.result_handle(qubit.uid, suffix=state),
                 )
-                qpu.qop.passive_reset(qubit)
+                qop.passive_reset(qubit)

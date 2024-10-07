@@ -94,7 +94,7 @@ def experiment_workflow(
         qpu = QPU(
             setup=DeviceSetup("my_device"),
             qubits=[TunableTransmonQubit("q0"), TunableTransmonQubit("q1")],
-            qop=TunableTransmonOperations(),
+            quantum_operations=TunableTransmonOperations(),
         )
         temp_qubits = qpu.copy_qubits()
         result = run(
@@ -163,7 +163,7 @@ def create_experiment(
         qpu = QPU(
             setup=DeviceSetup("my_device"),
             qubits=[TunableTransmonQubit("q0"), TunableTransmonQubit("q1")],
-            qop=TunableTransmonOperations(),
+            quantum_operations=TunableTransmonOperations(),
         )
         temp_qubits = qpu.copy_qubits()
         create_experiment(
@@ -179,6 +179,7 @@ def create_experiment(
 
     qubits, delays = dsl.validation.validate_and_convert_qubits_sweeps(qubits, delays)
 
+    qop = qpu.quantum_operations
     with dsl.acquire_loop_rt(
         count=opts.count,
         averaging_mode=opts.averaging_mode,
@@ -192,20 +193,20 @@ def create_experiment(
                 name=f"delays_{q.uid}",
                 parameter=SweepParameter(f"delay_{q.uid}", q_delays),
             ) as delay:
-                qpu.qop.prepare_state(q, opts.transition[0])
-                qpu.qop.ramsey(
+                qop.prepare_state(q, opts.transition[0])
+                qop.ramsey(
                     q, delay, 0, echo_pulse=opts.refocus_qop, transition=opts.transition
                 )
-                qpu.qop.measure(q, dsl.handles.result_handle(q.uid))
-                qpu.qop.passive_reset(q)
+                qop.measure(q, dsl.handles.result_handle(q.uid))
+                qop.passive_reset(q)
             if opts.use_cal_traces:
                 with dsl.section(
                     name=f"cal_{q.uid}",
                 ):
                     for state in opts.cal_states:
-                        qpu.qop.prepare_state(q, state)
-                        qpu.qop.measure(
+                        qop.prepare_state(q, state)
+                        qop.measure(
                             q,
                             dsl.handles.calibration_trace_handle(q.uid, state),
                         )
-                        qpu.qop.passive_reset(q)
+                        qop.passive_reset(q)

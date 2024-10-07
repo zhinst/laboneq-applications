@@ -1,13 +1,14 @@
 """This module defines the amplitude_fine experiment.
 
 In this experiment, we apply the same quantum operation a variable number of times. If
-each qop has a small error theta, then the sequence of multiple qop's will accumulate
-the error reps*theta, where reps is the number of repetitions. From the experiment
-result we can obtain the correction value for the amplitude of imperfect pulses.
+each quantum operation has a small rotation error theta, then the sequence of multiple
+quantum operations will accumulate the error reps*theta, where reps is the number of
+time the quantum operation is repeated. From the experiment result we can obtain the
+correction value for the amplitude of imperfect drive pulses.
 
 The amplitude_fine experiment has the following pulse sequence
 
-    qb --- [ prep transition ] --- [ qop ]**reps --- [ measure ]
+    qb --- [ prep transition ] --- [ quantum_operation ]**reps --- [ measure ]
 
 where reps is varied.
 
@@ -70,7 +71,8 @@ def experiment_workflow(
             qubit or a list of qubits.
         amplification_qop:
             str to identify the quantum operation to repeat to produce error
-            amplification. The quantum operation must exist in qpu.qop.keys().
+            amplification. The quantum operation must exist in
+            qop.keys().
         target_angle:
             target angle the specified quantum operation shuould rotate.
             The target_angle is used as initial guess for fitting.
@@ -100,7 +102,7 @@ def experiment_workflow(
         options.transition("ge")
         qpu = QPU(
             qubits=[TunableTransmonQubit("q0"), TunableTransmonQubit("q1")],
-            qop=TunableTransmonOperations(),
+            quantum_operations=TunableTransmonOperations(),
         )
         temp_qubits = qpu.copy_qubits()
         result = experiment_workflow(
@@ -157,11 +159,11 @@ def create_experiment(
         amplification_qop:
             String to define the quantum operation that should be applied multiple
             times to produce error amplification. The quantum operation must exist in
-            qpu.qop.keys().
+            qop.keys().
         repetitions:
-            Number of qop repetitions to sweep over. If `qubits` is a
-            single qubit, `repetitions` must be a list of integers. Otherwise,
-            it must be a list of lists of integers.
+            Number of time to repeat the quantum operation used to amplify the rotation
+            error. If `qubits` is a single qubit, `repetitions` must be a list of
+            integers. Otherwise, it must be a list of lists of integers.
         options:
             The options for building the experiment.
             See [TuneupExperimentOptions] and [BaseExperimentOptions] for
@@ -190,7 +192,7 @@ def create_experiment(
         options.cal_traces(True)
         qpu = QPU(
             qubits=[TunableTransmonQubit("q0"), TunableTransmonQubit("q1")],
-            qop=TunableTransmonOperations(),
+            quantum_operations=TunableTransmonOperations(),
         )
         temp_qubits = qpu.copy_qubits()
         create_experiment(
@@ -208,6 +210,7 @@ def create_experiment(
     # Define the custom options for the experiment
     opts = TuneupExperimentOptions() if options is None else options
     qubits, repetitions = validate_and_convert_qubits_sweeps(qubits, repetitions)
+    qop = qpu.quantum_operations
     with dsl.acquire_loop_rt(
         count=opts.count,
         averaging_mode=opts.averaging_mode,
@@ -221,8 +224,8 @@ def create_experiment(
                 name=f"loop_{q.uid}",
                 parameter=SweepParameter(f"n_{q.uid}", q_n),
             ) as index:
-                qpu.qop.prepare_state(q, opts.transition[0])
-                qpu.qop.x90(q, transition=opts.transition)
+                qop.prepare_state(q, opts.transition[0])
+                qop.x90(q, transition=opts.transition)
 
                 with dsl.match(
                     sweep_parameter=index,
@@ -230,23 +233,21 @@ def create_experiment(
                     for _i, num in enumerate(q_n):
                         with dsl.case(num):
                             for _j in range(num):
-                                qpu.qop[amplification_qop](
-                                    q, transition=opts.transition
-                                )
+                                qop[amplification_qop](q, transition=opts.transition)
 
-                qpu.qop.measure(q, dsl.handles.result_handle(q.uid))
-                qpu.qop.passive_reset(q)
+                qop.measure(q, dsl.handles.result_handle(q.uid))
+                qop.passive_reset(q)
             if opts.use_cal_traces:
                 with dsl.section(
                     name=f"cal_{q.uid}",
                 ):
                     for state in opts.cal_states:
-                        qpu.qop.prepare_state(q, state)
-                        qpu.qop.measure(
+                        qop.prepare_state(q, state)
+                        qop.measure(
                             q,
                             dsl.handles.calibration_trace_handle(q.uid, state),
                         )
-                        qpu.qop.passive_reset(q)
+                        qop.passive_reset(q)
 
 
 @workflow.workflow
@@ -296,7 +297,7 @@ def experiment_workflow_x180(
         options.create_experiment.transition = "ge"
         qpu = QPU(
             qubits=[TunableTransmonQubit("q0"), TunableTransmonQubit("q1")],
-            qop=TunableTransmonOperations(),
+            quantum_operations=TunableTransmonOperations(),
         )
         temp_qubits = qpu.copy_qubits()
         result = experiment_workflow(
@@ -386,7 +387,7 @@ def experiment_workflow_x90(
         options.create_experiment.transition = "ge"
         qpu = QPU(
             qubits=[TunableTransmonQubit("q0"), TunableTransmonQubit("q1")],
-            qop=TunableTransmonOperations(),
+            quantum_operations=TunableTransmonOperations(),
         )
         temp_qubits = qpu.copy_qubits()
         result = experiment_workflow(

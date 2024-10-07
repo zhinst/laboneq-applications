@@ -67,9 +67,9 @@ def analysis_workflow(
             str to identify the quantum operation to repeat to produce error
             amplification.
         repetitions:
-            Number of qop repetitions to sweep over. If `qubits` is a
-            single qubit, `repetitions` must be a list of integers. Otherwise
-            it must be a list of lists of integers.
+            Number of times to repeat the quantum operations used to amplify the
+            rotation errors. If `qubits` is a single qubit, `repetitions` must be a
+            list of integers. Otherwise it must be a list of lists of integers.
         target_angle:
             target angle the specified quantum operation shuould rotate.
             The target_angle is used as initial guess for fitting.

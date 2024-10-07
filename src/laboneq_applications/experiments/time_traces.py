@@ -152,6 +152,8 @@ def create_experiment(
             "AcquisitionType.RAW (or 'raw') because the "
             "experiment acquires raw traces."
         )
+
+    qop = qpu.quantum_operations
     with dsl.acquire_loop_rt(
         count=opts.count,
         averaging_mode=opts.averaging_mode,
@@ -161,8 +163,8 @@ def create_experiment(
         reset_oscillator_phase=opts.reset_oscillator_phase,
     ):
         if state in ("e", "f"):
-            qpu.qop.x180(qubit, transition="ge")
+            qop.x180(qubit, transition="ge")
         if state == "f":
-            qpu.qop.x180(qubit, transition="ef")
-        qpu.qop.measure(qubit, dsl.handles.result_handle(qubit.uid, state))
-        qpu.qop.passive_reset(qubit)
+            qop.x180(qubit, transition="ef")
+        qop.measure(qubit, dsl.handles.result_handle(qubit.uid, state))
+        qop.passive_reset(qubit)

@@ -82,7 +82,7 @@ def experiment_workflow(
         options.create_experiment.count = 10
         qpu = QPU(
             qubit=[TunableTransmonQubit("q0"), TunableTransmonQubit("q1")],
-            qop=TunableTransmonOperations(),
+            quantum_operations=TunableTransmonOperations(),
         )
         temp_qubits = qpu.copy_qubits()
         result = run(
@@ -150,7 +150,7 @@ def create_experiment(
         setup = DeviceSetup()
         qpu = QPU(
             qubits=[TunableTransmonQubit("q0"), TunableTransmonQubit("q1")],
-            qop=TunableTransmonOperations(),
+            quantum_operations=TunableTransmonOperations(),
         )
         temp_qubits = qpu.copy_qubits()
         create_experiment(
@@ -163,6 +163,7 @@ def create_experiment(
     """
     # Define the custom options for the experiment
     opts = TuneupExperimentOptions() if options is None else options
+    qop = qpu.quantum_operations
     if measure_delay is None:
         measure_delay = 1e-6
     calibration = dsl.experiment_calibration()
@@ -180,5 +181,5 @@ def create_experiment(
             reset_oscillator_phase=opts.reset_oscillator_phase,
         ):
             signal_calibration.port_delay = delay
-            qpu.qop.measure(qubit, dsl.handles.result_handle(qubit.uid))
-            qpu.qop.delay(qubit, measure_delay)
+            qop.measure(qubit, dsl.handles.result_handle(qubit.uid))
+            qop.delay(qubit, measure_delay)

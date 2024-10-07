@@ -36,7 +36,7 @@ class TestQPU:
 
         assert qpu.qubits == qubits
         assert qpu._qubit_map == {q.uid: q for q in qubits}
-        assert qpu.qop == qop
+        assert qpu.quantum_operations == qop
 
         copied_qubits = qpu.copy_qubits()
         assert copied_qubits == qubits

@@ -16,7 +16,7 @@ def platform(two_tunable_transmon_platform):
 
 @pytest.fixture()
 def qop(platform):
-    return platform.qpu.qop
+    return platform.qpu.quantum_operations
 
 
 @pytest.fixture()

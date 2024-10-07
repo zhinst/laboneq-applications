@@ -81,7 +81,7 @@ def experiment_workflow(
         qpu = QPU(
             setup=DeviceSetup("my_device"),
             qubits=[TunableTransmonQubit("q0"), TunableTransmonQubit("q1")],
-            qop=TunableTransmonOperations(),
+            quantum_operations=TunableTransmonOperations(),
         )
         temp_qubits = qpu.copy_qubits()
         result = run(
@@ -163,7 +163,7 @@ def create_experiment(
         qpu = QPU(
             setup=DeviceSetup("my_device"),
             qubits=[TunableTransmonQubit("q0"), TunableTransmonQubit("q1")],
-            qop=TunableTransmonOperations(),
+            quantum_operations=TunableTransmonOperations(),
         )
         temp_qubits = qpu.copy_qubits()
         create_experiment(
@@ -177,6 +177,7 @@ def create_experiment(
     # Define the custom options for the experiment
     opts = TuneupExperimentOptions() if options is None else options
     qubits, delays = dsl.validation.validate_and_convert_qubits_sweeps(qubits, delays)
+    qop = qpu.quantum_operations
     if opts.transition == "ef":
         on_system_grid = True
     elif opts.transition == "ge":
@@ -198,18 +199,18 @@ def create_experiment(
                 name=f"delays_{q.uid}",
                 parameter=SweepParameter(f"delay_{q.uid}", q_delays),
             ) as delay:
-                qpu.qop.prepare_state(q, opts.transition[0])
+                qop.prepare_state(q, opts.transition[0])
                 with dsl.section(
                     name=f"t1_{q.uid}",
                     on_system_grid=on_system_grid,
                     alignment=SectionAlignment.RIGHT,
                 ):
-                    sec_180 = qpu.qop.x180(q, transition=opts.transition)
-                    qpu.qop.delay(q, time=delay)
-                    sec_measure = qpu.qop.measure(q, dsl.handles.result_handle(q.uid))
+                    sec_180 = qop.x180(q, transition=opts.transition)
+                    qop.delay(q, time=delay)
+                    sec_measure = qop.measure(q, dsl.handles.result_handle(q.uid))
                 # to remove the gaps between ef_drive and measure pulses
                 # introduced by system grid alignment.
-                qpu.qop.passive_reset(q)
+                qop.passive_reset(q)
                 sec_180.on_system_grid = False
                 sec_measure.on_system_grid = False
             if opts.use_cal_traces:
@@ -217,9 +218,9 @@ def create_experiment(
                     name=f"cal_{q.uid}",
                 ):
                     for state in opts.cal_states:
-                        qpu.qop.prepare_state(q, state)
-                        qpu.qop.measure(
+                        qop.prepare_state(q, state)
+                        qop.measure(
                             q,
                             dsl.handles.calibration_trace_handle(q.uid, state),
                         )
-                        qpu.qop.passive_reset(q)
+                        qop.passive_reset(q)
