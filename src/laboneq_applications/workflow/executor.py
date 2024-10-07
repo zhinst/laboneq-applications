@@ -49,6 +49,7 @@ class ExecutionStatus(Enum):
     NOT_STARTED = "not_started"
     IN_PROGRESS = "in_progress"
     FINISHED = "finished"
+    SKIPPED = "skipped"
 
 
 class ExecutorState:

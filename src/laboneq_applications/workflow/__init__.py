@@ -17,7 +17,7 @@ and it is recommended to use tasks for any complex logic.
 """
 
 from laboneq_applications.workflow.blocks.for_block import for_
-from laboneq_applications.workflow.blocks.if_block import if_
+from laboneq_applications.workflow.blocks.if_block import elif_, else_, if_
 from laboneq_applications.workflow.blocks.return_block import return_
 from laboneq_applications.workflow.core import (
     Workflow,
@@ -47,6 +47,8 @@ __all__ = [
     # Workflow operations
     "return_",
     "if_",
+    "elif_",
+    "else_",
     "for_",
     # Task operations
     "comment",

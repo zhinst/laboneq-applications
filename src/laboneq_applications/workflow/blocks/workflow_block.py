@@ -136,8 +136,11 @@ class WorkflowBlock(Block):
         try:
             with executor:
                 with executor.set_active_workflow_settings(result, input_opts):
-                    for block in self._body:
-                        if executor.get_block_status(block) == ExecutionStatus.FINISHED:
+                    for block in self.body:
+                        if executor.get_block_status(block) in (
+                            ExecutionStatus.FINISHED,
+                            ExecutionStatus.SKIPPED,
+                        ):
                             continue
                         block.execute(executor)
                     executor.set_block_status(self, ExecutionStatus.FINISHED)

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import abc
+from contextlib import contextmanager
 from typing import TYPE_CHECKING
 
 from laboneq_applications.workflow._context import LocalContext
@@ -59,6 +60,18 @@ class Block(abc.ABC):
     def iter_child_blocks(self) -> Generator[Block]:
         """Iterate over the children of this block."""
         yield from self.body
+
+    @contextmanager
+    def collect(self) -> Generator[None, None, None]:
+        """Collect blocks defined within the context.
+
+        Every block defined within the context are added to the body of the
+        block.
+        """
+        self.__enter__()
+        yield
+        register = BlockBuilderContext.exit()
+        self.extend(register.blocks)
 
     def __enter__(self):
         BlockBuilderContext.enter(WorkflowBlockBuilder())

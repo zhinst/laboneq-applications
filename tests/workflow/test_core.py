@@ -17,7 +17,7 @@ from laboneq_applications.workflow import (
     workflow,
 )
 from laboneq_applications.workflow.blocks.for_block import for_
-from laboneq_applications.workflow.blocks.if_block import if_
+from laboneq_applications.workflow.blocks.if_block import elif_, else_, if_
 from laboneq_applications.workflow.blocks.return_block import return_
 from laboneq_applications.workflow.options import WorkflowOptions
 from laboneq_applications.workflow.options_base import BaseOptions
@@ -217,6 +217,34 @@ class TestWorkflow:
         result = flow.run(until="addition")
         assert len(result.tasks) == 1
         assert result.tasks[0].name == "substraction"
+
+    def test_run_until_if_to_else(self):
+        @workflow
+        def wf(x):
+            with if_(x == 1):
+                addition(1, 1)
+            with else_():
+                substraction(2, 1)
+            substraction(1, 1)
+
+        # IF condition true
+        flow = wf(1)
+        result = flow.run(until="substraction")
+        assert len(result.tasks) == 2
+        assert result.tasks[0].output == 2
+        assert result.tasks[1].output == 0
+
+        result = flow.resume()
+        assert len(result.tasks) == 2
+        assert result.tasks[0].output == 2
+        assert result.tasks[1].output == 0
+
+        # IF condition false, runs the whole thing
+        flow = wf(0)
+        result = flow.run(until="addition")
+        assert len(result.tasks) == 2
+        assert result.tasks[0].output == 1
+        assert result.tasks[1].output == 0
 
     def test_run_until_for_loop(self):
         @workflow
@@ -873,7 +901,7 @@ class TestWorkflowIfExpression:
         res = my_wf(2).run()
         assert len(res.tasks) == 1
 
-    def test_task_result_input(self):
+    def test_chained_if_expression(self):
         @workflow
         def my_wf():
             res = return_zero()
@@ -1011,6 +1039,143 @@ class TestWorkflowIfExpression:
         # No inner workflow
         result = outer(x=False).run()
         assert result.output == 0
+
+    def test_elif_else(self):
+        @task
+        def return_value(x):
+            return x
+
+        @workflow
+        def my_wf(x):
+            with if_(x == 1):
+                maybe_value = return_value(1)
+            with elif_(x == 2):
+                maybe_value = return_value(2)
+            with elif_(x == 2):  # Should never reach this
+                maybe_value = return_value(3)
+            with else_():
+                maybe_value = return_value(4)
+            return_(maybe_value)
+
+        wf = my_wf(1)
+        result = wf.run()
+        assert len(result.tasks) == 1
+        assert result.output == 1
+
+        wf = my_wf(2)
+        result = wf.run()
+        assert len(result.tasks) == 1
+        assert result.output == 2
+
+        wf = my_wf(4)
+        result = wf.run()
+        assert len(result.tasks) == 1
+        assert result.output == 4
+
+    def test_invalid_elif_position(self):
+        @task
+        def return_value(x):
+            return x
+
+        @workflow
+        def my_wf(x):
+            with elif_(x == 2):
+                return_value(2)
+
+        with pytest.raises(
+            exceptions.WorkflowError,
+            match="An `elif_` expression may only follow an `if_` or an `elif_`",
+        ):
+            my_wf(1)
+
+    def test_elif_position_after_else(self):
+        @task
+        def return_value(x):
+            return x
+
+        @workflow
+        def my_wf():
+            with if_(True):
+                return_value(2)
+            with else_():
+                return_value(2)
+            with elif_(False):
+                return_value(2)
+
+        with pytest.raises(
+            exceptions.WorkflowError,
+            match="An `elif_` expression may only follow an `if_` or an `elif_`",
+        ):
+            my_wf()
+
+    def test_invalid_else_position_no_if(self):
+        @task
+        def return_value(x):
+            return x
+
+        @workflow
+        def else_top():
+            with else_():
+                return_value(2)
+
+        with pytest.raises(
+            exceptions.WorkflowError,
+            match="An `else_` expression may only follow an `if_` or an `elif_`",
+        ):
+            else_top()
+
+    def test_invalid_else_position_on_else(self):
+        @task
+        def return_value(x):
+            return x
+
+        @workflow
+        def else_duplicate():
+            with if_(False):
+                return_value(None)
+            with else_():
+                return_value(None)
+            with else_():
+                return_value(None)
+
+        with pytest.raises(
+            exceptions.WorkflowError,
+            match="An `else_` expression may only follow an `if_` or an `elif_`",
+        ):
+            else_duplicate()
+
+    def test_if_else_if(self):
+        @task
+        def return_value(x):
+            return x
+
+        @workflow
+        def my_wf(x):
+            with if_(x == 1):
+                return_value(1)
+            with else_():
+                return_value(2)
+            with if_(x == 1):
+                return_value(3)
+            with if_(x == 5):
+                return_value(5)
+
+        wf = my_wf(1)
+        result = wf.run()
+        assert len(result.tasks) == 2
+        assert result.tasks[0].output == 1
+        assert result.tasks[1].output == 3
+
+        wf = my_wf(2)
+        result = wf.run()
+        assert len(result.tasks) == 1
+        assert result.tasks[0].output == 2
+
+        wf = my_wf(5)
+        result = wf.run()
+        assert len(result.tasks) == 2
+        assert result.tasks[0].output == 2
+        assert result.tasks[1].output == 5
 
 
 class TestTaskDependencyOutsideOfBlock:
@@ -1774,6 +1939,38 @@ workflow(name=outer)
 │  ├─ for_()
 │  │  └─ task(name=a_task)
 │  └─ task(name=a_task)
+└─ task(name=a_task)\
+"""
+        )
+
+    def test_display_graph_chained_if(self):
+        @task
+        def a_task(): ...
+
+        @workflow
+        def outer():
+            a_task()
+            with if_(False):
+                a_task()
+            with elif_(True):
+                a_task()
+            with else_():
+                a_task()
+            a_task()
+
+        wf = outer()
+        assert (
+            str(wf.graph.tree)
+            == """\
+workflow(name=outer)
+├─ task(name=a_task)
+├─ conditional
+│  ├─ if_()
+│  │  └─ task(name=a_task)
+│  ├─ elif_()
+│  │  └─ task(name=a_task)
+│  └─ else_()
+│     └─ task(name=a_task)
 └─ task(name=a_task)\
 """
         )

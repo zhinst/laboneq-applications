@@ -164,6 +164,8 @@ class Workflow(Generic[Parameters]):
             until: Run until a first task with the given name.
                 `None` will fully execute the workflow.
 
+                Until cannot be used for tasks and sub-workflows inside loops.
+
         Returns:
             Result of the workflow execution.
 
@@ -192,6 +194,8 @@ class Workflow(Generic[Parameters]):
         Arguments:
             until: Run until the first task or sub-workflow with the given name.
                 `None` will fully execute the workflow.
+
+                Until cannot be used for tasks and sub-workflows inside loops.
 
                 If `until` is used, the workflow execution can be resumed with
                 `.resume()`.
