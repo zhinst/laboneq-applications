@@ -6,14 +6,18 @@ from typing import TYPE_CHECKING
 
 import matplotlib.pyplot as plt
 
+from laboneq_applications.core.utils import local_timestamp
 from laboneq_applications.core.validation import validate_and_convert_qubits_sweeps
 from laboneq_applications.workflow import (
+    execution_info,
     save_artifact,
     task,
 )
 from laboneq_applications.workflow.options import TaskOptions
 
 if TYPE_CHECKING:
+    from datetime import datetime
+
     from laboneq.simple import Results
     from numpy.typing import ArrayLike
 
@@ -44,6 +48,33 @@ class PlotRawDataOptions(TaskOptions):
     cal_states: str | tuple = "ge"
     save_figures: bool = True
     close_figures: bool = True
+
+
+def timestamped_title(title: str, dt: datetime | None = None) -> str:
+    """Return a plot title with a timestamp in the local timezone.
+
+    Arguments:
+        title:
+            The title of the plot without a timestamp.
+        dt:
+            The time to use to create the timestamp. If None,
+            the workflow start time is used. If there is no
+            active workflow, the current time is used.
+
+    Note:
+        The timestamp is generated using the function `local_timestamp`
+        and thus has the same format as the timestamps used by the
+        `FolderStore` in the logbook folders it creates.
+
+    Returns:
+        The title with a timestamp, formatted as "TIMESTAMP - TITLE".
+    """
+    if dt is None:
+        wf_info = execution_info()
+        if wf_info is not None:
+            dt = wf_info.start_time
+
+    return f"{local_timestamp(dt)} - {title}"
 
 
 @task

@@ -1,10 +1,17 @@
+import datetime
 import re
 
 import pytest
+from freezegun import freeze_time
 
+from laboneq_applications import workflow
 from laboneq_applications.workflow.blocks.block import Block
 from laboneq_applications.workflow.exceptions import WorkflowError
-from laboneq_applications.workflow.executor import ExecutorState, _ExecutorInterrupt
+from laboneq_applications.workflow.executor import (
+    ExecutorState,
+    _ExecutorInterrupt,
+    execution_info,
+)
 from laboneq_applications.workflow.reference import Reference
 
 
@@ -96,3 +103,30 @@ class TestExecutorState:
             with pytest.raises(_ExecutorInterrupt):
                 obj.interrupt()
         assert obj.has_active_context is False
+
+
+@workflow.task
+def execution_info_task():
+    """Return the execution info"""
+    return execution_info()
+
+
+@workflow.workflow
+def wf_execution_info():
+    execution_info_task()
+
+
+@freeze_time("2024-07-28 17:55:00", tz_offset=0)
+class TestExecutionInfo:
+    def test_attributes(self):
+        wf = wf_execution_info()
+        result = wf.run()
+        info = result.tasks[0].output
+
+        assert info.workflows == ["wf_execution_info"]
+        assert str(info.start_time) == "2024-07-28 17:55:00+00:00"
+        assert isinstance(info.start_time, datetime.datetime)
+        assert info.start_time.tzname() == "UTC"
+
+    def test_outside_workflow(self):
+        assert execution_info() is None

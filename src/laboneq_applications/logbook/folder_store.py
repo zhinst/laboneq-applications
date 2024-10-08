@@ -6,7 +6,7 @@ import json
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from laboneq_applications.core import local_now, utc_now
+from laboneq_applications.core import local_date_stamp, local_timestamp, utc_now
 from laboneq_applications.logbook import Logbook, LogbookStore
 from laboneq_applications.logbook.serializer import SerializeOpener
 from laboneq_applications.logbook.serializer import (
@@ -48,11 +48,10 @@ class FolderStore(LogbookStore):
         self, workflow: Workflow, start_time: datetime.datetime
     ) -> Logbook:
         """Create a new logbook for the given workflow."""
-        local_start_time = local_now(start_time)
-        day = local_start_time.strftime("%Y%m%d")
+        day = local_date_stamp(start_time)
         Path(self._folder / day).mkdir(parents=False, exist_ok=True)
         assert workflow.name is not None  # noqa: S101
-        folder_name = self._unique_workflow_folder_name(workflow.name, local_start_time)
+        folder_name = self._unique_workflow_folder_name(workflow.name, start_time)
 
         return FolderLogbook(self._folder / day / folder_name, self._serialize)
 
@@ -68,9 +67,8 @@ class FolderStore(LogbookStore):
         Returns:
             A unique name for the folder.
         """
-        local_start_time = local_now(start_time)
-        day = local_start_time.strftime("%Y%m%d")
-        ts = local_start_time.strftime("%Y%m%dT%H%M%S")
+        day = local_date_stamp(start_time)
+        ts = local_timestamp(start_time)
         workflow_name = _sanitize_filename(workflow_name)
         count = 0
         while True:

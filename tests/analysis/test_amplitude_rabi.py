@@ -2,6 +2,7 @@ import matplotlib as mpl
 import matplotlib.pyplot as plt
 import numpy as np
 import pytest
+from freezegun import freeze_time
 from numpy.testing import assert_almost_equal, assert_array_almost_equal
 
 from laboneq_applications.analysis import amplitude_rabi
@@ -115,6 +116,25 @@ def results_single_qubit():
     return RunExperimentResults(data=data), sweep_points
 
 
+@pytest.fixture()
+def monkeypatch_tzlocal(monkeypatch):
+
+    import dateutil.tz
+
+    import laboneq_applications.core.utils
+
+    fake_local_tz = dateutil.tz.tzoffset("GMT+2", 7200)
+
+    def fake_tzlocal():
+        return fake_local_tz
+
+    monkeypatch.setattr(laboneq_applications.core.utils, "tzlocal", fake_tzlocal)
+
+    return fake_local_tz
+
+
+@freeze_time("2024-07-28 17:55:00", tz_offset=0)
+@pytest.mark.usefixtures("monkeypatch_tzlocal")
 class TestRabiAnalysisSingleQubit:
     def test_create_and_run_no_pca(
         self, single_tunable_transmon_platform, results_single_qubit
@@ -193,7 +213,9 @@ class TestRabiAnalysisSingleQubit:
         )
 
     def test_create_and_run_pca(
-        self, single_tunable_transmon_platform, results_single_qubit
+        self,
+        single_tunable_transmon_platform,
+        results_single_qubit,
     ):
         [q0] = single_tunable_transmon_platform.qpu.qubits
         options = amplitude_rabi.analysis_workflow.options()
@@ -267,6 +289,10 @@ class TestRabiAnalysisSingleQubit:
             ].std_dev,
             0.002875751217783006,
         )
+
+        population_plot = result.tasks["plot_population"].output["q0"]
+        [ax] = population_plot.axes
+        assert ax.title.get_text() == "20240728T195500 - Amplitude Rabi q0"
 
     def test_create_and_run_no_fitting(
         self, single_tunable_transmon_platform, results_single_qubit

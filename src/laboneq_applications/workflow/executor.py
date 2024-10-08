@@ -223,7 +223,10 @@ class WorkflowExecutionInfoView:
     """A view to query properties of the workflow execution."""
 
     def __init__(self, state: ExecutorState) -> None:
-        self._state = state
+        # We store the workflow names and start time here because the
+        # execution state is (highly) mutable.
+        self._workflows = [result.name for result in state.results()]
+        self._start_time = state.start_time
 
     @property
     def workflows(self) -> list[str]:
@@ -232,12 +235,12 @@ class WorkflowExecutionInfoView:
         The list is ordered from the outermost workflow to the
         innermost (active) workflow.
         """
-        return [result.name for result in self._state.results()]
+        return self._workflows
 
     @property
-    def start_time(self) -> datetime | None:
+    def start_time(self) -> str | None:
         """Return the timestamp of the workflow execution start."""
-        return self._state.start_time
+        return self._start_time
 
 
 def execution_info() -> WorkflowExecutionInfoView | None:
