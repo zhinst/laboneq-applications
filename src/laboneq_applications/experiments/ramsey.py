@@ -22,7 +22,7 @@ from typing import TYPE_CHECKING
 import numpy as np
 from laboneq.simple import Experiment, SectionAlignment, SweepParameter
 
-from laboneq_applications import dsl
+from laboneq_applications import dsl, workflow
 from laboneq_applications.analysis.ramsey import (
     analysis_workflow,
     validate_and_convert_detunings,
@@ -32,7 +32,6 @@ from laboneq_applications.experiments.options import (
     TuneUpWorkflowOptions,
 )
 from laboneq_applications.tasks import compile_experiment, run_experiment, update_qubits
-from laboneq_applications.workflow import if_, task, workflow
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
@@ -43,7 +42,7 @@ if TYPE_CHECKING:
     from laboneq_applications.typing import Qubits, QubitSweepPoints
 
 
-@workflow(name="ramsey")
+@workflow.workflow(name="ramsey")
 def experiment_workflow(
     session: Session,
     qpu: QPU,
@@ -115,15 +114,16 @@ def experiment_workflow(
         detunings=detunings,
     )
     compiled_exp = compile_experiment(session, exp)
-    _result = run_experiment(session, compiled_exp)
-    with if_(options.do_analysis):
-        analysis_results = analysis_workflow(_result, qubits, delays, detunings)
-        qubit_parameters = analysis_results.tasks["extract_qubit_parameters"].output
-        with if_(options.update):
+    result = run_experiment(session, compiled_exp)
+    with workflow.if_(options.do_analysis):
+        analysis_results = analysis_workflow(result, qubits, delays, detunings)
+        qubit_parameters = analysis_results.output
+        with workflow.if_(options.update):
             update_qubits(qpu, qubit_parameters["new_parameter_values"])
+    workflow.return_(result)
 
 
-@task
+@workflow.task
 @dsl.qubit_experiment
 def create_experiment(
     qpu: QPU,

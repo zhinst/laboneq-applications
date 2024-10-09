@@ -10,12 +10,14 @@ pi-half pulse amplitudes from the fit. Finally, we plot the data and the fit.
 
 from __future__ import annotations
 
+import logging
 from typing import TYPE_CHECKING
 
 import matplotlib.pyplot as plt
 import numpy as np
 import uncertainties as unc
 
+from laboneq_applications import workflow
 from laboneq_applications.analysis.cal_trace_rotation import calculate_qubit_population
 from laboneq_applications.analysis.fitting_helpers import (
     cosine_oscillatory_fit,
@@ -30,13 +32,6 @@ from laboneq_applications.experiments.options import (
     TuneupAnalysisOptions,
     TuneUpAnalysisWorkflowOptions,
 )
-from laboneq_applications.workflow import (
-    comment,
-    if_,
-    save_artifact,
-    task,
-    workflow,
-)
 
 if TYPE_CHECKING:
     import lmfit
@@ -47,7 +42,7 @@ if TYPE_CHECKING:
     from laboneq_applications.typing import Qubits, QubitSweepPoints
 
 
-@workflow
+@workflow.workflow(name="amplitude_rabi_analysis")
 def analysis_workflow(
     result: RunExperimentResults,
     qubits: Qubits,
@@ -106,16 +101,17 @@ def analysis_workflow(
     qubit_parameters = extract_qubit_parameters(
         qubits, processed_data_dict, fit_results
     )
-    with if_(options.do_plotting):
-        with if_(options.do_raw_data_plotting):
+    with workflow.if_(options.do_plotting):
+        with workflow.if_(options.do_raw_data_plotting):
             plot_raw_complex_data_1d(
                 qubits, result, amplitudes, xlabel="Amplitude Scaling"
             )
-        with if_(options.do_qubit_population_plotting):
+        with workflow.if_(options.do_qubit_population_plotting):
             plot_population(qubits, processed_data_dict, fit_results, qubit_parameters)
+    workflow.return_(qubit_parameters)
 
 
-@task
+@workflow.task
 def fit_data(
     qubits: Qubits,
     processed_data_dict: dict[str, dict[str, ArrayLike]],
@@ -158,12 +154,12 @@ def fit_data(
             )
             fit_results[q.uid] = fit_res
         except ValueError as err:
-            comment(f"Fit failed for {q.uid}: {err}.")
+            workflow.comment(f"Fit failed for {q.uid}: {err}.")
 
     return fit_results
 
 
-@task
+@workflow.task
 def extract_qubit_parameters(
     qubits: Qubits,
     processed_data_dict: dict[str, dict[str, ArrayLike]],
@@ -257,7 +253,11 @@ def extract_qubit_parameters(
                 pi2_amp = pi2_amps[0]
                 pi_amp = pi_amps[pi_amps > pi2_amp][0]
             except IndexError:
-                comment(f"Could not extract pi- and pi/2-pulse amplitudes for {q.uid}.")
+                workflow.log(
+                    logging.ERROR,
+                    "Could not extract pi- and pi/2-pulse amplitudes for %s.",
+                    q.uid,
+                )
                 continue
 
             qubit_parameters["new_parameter_values"][q.uid] = {
@@ -268,7 +268,7 @@ def extract_qubit_parameters(
     return qubit_parameters
 
 
-@task
+@workflow.task
 def plot_population(
     qubits: Qubits,
     processed_data_dict: dict[str, dict[str, ArrayLike]],
@@ -415,7 +415,7 @@ def plot_population(
         )
 
         if opts.save_figures:
-            save_artifact(f"Rabi_{q.uid}", fig)
+            workflow.save_artifact(f"Rabi_{q.uid}", fig)
 
         if opts.close_figures:
             plt.close(fig)

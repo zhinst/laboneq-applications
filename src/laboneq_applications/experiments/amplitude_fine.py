@@ -39,7 +39,7 @@ if TYPE_CHECKING:
     from laboneq_applications.typing import Qubits, QubitSweepPoints
 
 
-@workflow.workflow
+@workflow.workflow(name="amplitude_fine")
 def experiment_workflow(
     session: Session,
     qpu: QPU,
@@ -324,10 +324,10 @@ def experiment_workflow_x180(
         repetitions=repetitions,
     )
     compiled_exp = compile_experiment(session, exp)
-    _result = run_experiment(session, compiled_exp)
+    result = run_experiment(session, compiled_exp)
     with workflow.if_(options.do_analysis):
         analysis_results = analysis_workflow(
-            _result,
+            result,
             qubits,
             amplification_qop,
             repetitions,
@@ -335,9 +335,10 @@ def experiment_workflow_x180(
             phase_offset,
             parameter_to_update,
         )
-        qubit_parameters = analysis_results.tasks["extract_qubit_parameters"].output
+        qubit_parameters = analysis_results.output
         with workflow.if_(options.update):
             update_qubits(qpu, qubit_parameters["new_parameter_values"])
+    workflow.return_(result)
 
 
 @workflow.workflow
@@ -414,10 +415,10 @@ def experiment_workflow_x90(
         repetitions=repetitions,
     )
     compiled_exp = compile_experiment(session, exp)
-    _result = run_experiment(session, compiled_exp)
+    result = run_experiment(session, compiled_exp)
     with workflow.if_(options.do_analysis):
         analysis_results = analysis_workflow(
-            _result,
+            result,
             qubits,
             amplification_qop,
             repetitions,
@@ -425,6 +426,7 @@ def experiment_workflow_x90(
             phase_offset,
             parameter_to_update,
         )
-        qubit_parameters = analysis_results.tasks["extract_qubit_parameters"].output
+        qubit_parameters = analysis_results.output
         with workflow.if_(options.update):
             update_qubits(qpu, qubit_parameters["new_parameter_values"])
+    workflow.return_(result)

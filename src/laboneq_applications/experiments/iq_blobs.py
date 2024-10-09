@@ -18,8 +18,8 @@ from laboneq.simple import AveragingMode, Experiment
 from laboneq_applications import dsl, workflow
 from laboneq_applications.analysis.iq_blobs import analysis_workflow
 from laboneq_applications.experiments.options import (
-    TuneupExperimentOptions,
-    TuneUpWorkflowOptions,
+    BaseExperimentOptions,
+    WorkflowOptions,
 )
 from laboneq_applications.tasks import compile_experiment, run_experiment
 
@@ -32,19 +32,31 @@ if TYPE_CHECKING:
     from laboneq_applications.typing import Qubits
 
 
-class IQBlobExperimentOptions(TuneupExperimentOptions):
-    """Base options for the iq_blobs experiment.
+class IQBlobExperimentOptions(BaseExperimentOptions):
+    """Options for the iq_blobs experiment.
 
-    Additional attributes:
+    The purpose of this class is to change the default value of averaging_mode in
+    BaseExperimentOptions.
+
+    Attributes:
         averaging_mode:
             Averaging mode used for the experiment
             Default: `AveragingMode.SINGLE_SHOT`
-        use_cal_traces:
-            Default: `False`.
     """
 
     averaging_mode: AveragingMode = AveragingMode.SINGLE_SHOT
-    use_cal_traces: bool = False
+
+
+class IQBlobExperimentWorkflowOptions(WorkflowOptions):
+    """Options for the iq_blobs experiment workflow.
+
+    Attributes:
+        do_analysis (bool):
+            Whether to run the analysis workflow.
+            Default: True
+    """
+
+    do_analysis: bool = True
 
 
 @workflow.workflow(name="iq_blobs")
@@ -53,7 +65,7 @@ def experiment_workflow(
     qpu: QPU,
     qubits: Qubits,
     states: Sequence[str],
-    options: TuneUpWorkflowOptions | None = None,
+    options: IQBlobExperimentWorkflowOptions | None = None,
 ) -> None:
     """The IQ-blob experiment Workflow.
 
@@ -131,11 +143,8 @@ def create_experiment(
             The basis states the qubits should be prepared in. May be either a string,
             e.g. "gef", or a list of letters, e.g. ["g","e","f"].
         options:
-            The options for building the experiment.
-            See [IQBlobsExperimentOptions] and [BaseExperimentOptions] for
-            accepted options.
-            Overwrites the options from [TuneupExperimentOptions] and
-            [BaseExperimentOptions].
+            The options for building the experiment as an in stance of
+            [IQBlobExperimentOptions]. See the docstring of this class for more details.
 
     Returns:
         experiment:

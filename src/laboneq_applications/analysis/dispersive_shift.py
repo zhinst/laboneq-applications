@@ -74,7 +74,7 @@ class DispersiveShiftAnalysisWorkflowOptions(WorkflowOptions):
     do_plotting_signal_distances: bool = True
 
 
-@workflow.workflow
+@workflow.workflow(name="dispersive_shift_analysis")
 def analysis_workflow(
     result: RunExperimentResults,
     qubit: QuantumElement,

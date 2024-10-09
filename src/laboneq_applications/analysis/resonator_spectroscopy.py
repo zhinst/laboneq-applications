@@ -89,7 +89,7 @@ class ResonatorSpectroscopyAnalysisWorkflowOptions(WorkflowOptions):
     do_plotting_real_imaginary: bool = True
 
 
-@workflow.workflow
+@workflow.workflow(name="resonator_spectroscopy_analysis")
 def analysis_workflow(
     result: RunExperimentResults,
     qubit: QuantumElement,
@@ -182,7 +182,9 @@ def calculate_signal_magnitude_and_phase(
             phase
     """
     validate_result(result)
-    qubit = dsl.validation.validate_and_convert_single_qubit_sweeps(qubit)
+    qubit, frequencies = dsl.validation.validate_and_convert_single_qubit_sweeps(
+        qubit, frequencies
+    )
 
     raw_data = result.result[qubit.uid].data
     return {

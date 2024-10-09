@@ -36,7 +36,7 @@ if TYPE_CHECKING:
     from laboneq_applications.typing import Qubits, QubitSweepPoints
 
 
-@workflow.workflow
+@workflow.workflow(name="amplitude_fine_analysis")
 def analysis_workflow(
     result: RunExperimentResults,
     qubits: Qubits,
@@ -130,6 +130,8 @@ def analysis_workflow(
                 parameter_to_update,
                 qubit_parameters,
             )
+
+    workflow.return_(qubit_parameters)
 
 
 @workflow.task

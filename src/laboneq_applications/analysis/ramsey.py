@@ -20,6 +20,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import uncertainties as unc
 
+from laboneq_applications import workflow
 from laboneq_applications.analysis.cal_trace_rotation import calculate_qubit_population
 from laboneq_applications.analysis.fitting_helpers import cosine_oscillatory_decay_fit
 from laboneq_applications.analysis.plotting_helpers import plot_raw_complex_data_1d
@@ -27,13 +28,6 @@ from laboneq_applications.core.validation import validate_and_convert_qubits_swe
 from laboneq_applications.experiments.options import (
     TuneupAnalysisOptions,
     TuneUpAnalysisWorkflowOptions,
-)
-from laboneq_applications.workflow import (
-    if_,
-    log,
-    save_artifact,
-    task,
-    workflow,
 )
 
 if TYPE_CHECKING:
@@ -91,7 +85,7 @@ def validate_and_convert_detunings(
     return detunings
 
 
-@workflow
+@workflow.workflow(name="ramsey_analysis")
 def analysis_workflow(
     result: RunExperimentResults,
     qubits: Qubits,
@@ -155,8 +149,8 @@ def analysis_workflow(
     processed_data_dict = calculate_qubit_population(qubits, result, delays)
     fit_results = fit_data(qubits, processed_data_dict)
     qubit_parameters = extract_qubit_parameters(qubits, fit_results, detunings)
-    with if_(options.do_plotting):
-        with if_(options.do_raw_data_plotting):
+    with workflow.if_(options.do_plotting):
+        with workflow.if_(options.do_raw_data_plotting):
             plot_raw_complex_data_1d(
                 qubits,
                 result,
@@ -164,13 +158,14 @@ def analysis_workflow(
                 xlabel="Pulse Separation, $\\tau$ ($\\mu$s)",
                 xscaling=1e6,
             )
-        with if_(options.do_qubit_population_plotting):
+        with workflow.if_(options.do_qubit_population_plotting):
             plot_population(
                 qubits, processed_data_dict, fit_results, qubit_parameters, detunings
             )
+    workflow.return_(qubit_parameters)
 
 
-@task
+@workflow.task
 def fit_data(
     qubits: Qubits,
     processed_data_dict: dict[str, dict[str, ArrayLike]],
@@ -217,12 +212,12 @@ def fit_data(
             )
             fit_results[q.uid] = fit_res
         except ValueError as err:
-            log(logging.ERROR, "Fit failed for %s: %s.", q.uid, err)
+            workflow.log(logging.ERROR, "Fit failed for %s: %s.", q.uid, err)
 
     return fit_results
 
 
-@task
+@workflow.task
 def extract_qubit_parameters(
     qubits: Qubits,
     fit_results: dict[str, lmfit.model.ModelResult],
@@ -316,7 +311,7 @@ def extract_qubit_parameters(
     return qubit_parameters
 
 
-@task
+@workflow.task
 def plot_population(
     qubits: Qubits,
     processed_data_dict: dict[str, dict[str, ArrayLike]],
@@ -450,7 +445,7 @@ def plot_population(
         )
 
         if opts.save_figures:
-            save_artifact(f"Ramsey_{q.uid}", fig)
+            workflow.save_artifact(f"Ramsey_{q.uid}", fig)
 
         if opts.close_figures:
             plt.close(fig)

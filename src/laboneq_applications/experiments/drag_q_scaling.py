@@ -122,7 +122,7 @@ def experiment_workflow(
     result = run_experiment(session, compiled_exp)
     with workflow.if_(options.do_analysis):
         analysis_results = analysis_workflow(result, qubits, q_scalings)
-        qubit_parameters = analysis_results.tasks["extract_qubit_parameters"].output
+        qubit_parameters = analysis_results.output
         with workflow.if_(options.update):
             update_qubits(qpu, qubit_parameters["new_parameter_values"])
     workflow.return_(result)

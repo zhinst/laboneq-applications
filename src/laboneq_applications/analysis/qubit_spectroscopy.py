@@ -40,7 +40,7 @@ if TYPE_CHECKING:
 options = QubitSpectroscopyAnalysisWorkflowOptions
 
 
-@workflow.workflow
+@workflow.workflow(name="qubit_spectroscopy_analysis")
 def analysis_workflow(
     result: RunExperimentResults,
     qubits: Qubits,

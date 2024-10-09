@@ -82,15 +82,11 @@ class TuneupExperimentOptions(BaseExperimentOptions):
             The states to prepare in the calibration traces. Can be any
             string or tuple made from combining the characters 'g', 'e', 'f'.
             Default: same as transition
-        update_qubits:
-            Whether to update the qubit parameters with the results from the fit.
-            Default: `False`.
     """
 
     transition: Literal["ge", "ef"] = "ge"
     use_cal_traces: bool = True
     cal_states: str | tuple = "ge"
-    update_qubits: bool = False
 
     @model_validator(mode="before")
     @classmethod

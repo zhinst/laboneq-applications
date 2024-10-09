@@ -17,14 +17,13 @@ from typing import TYPE_CHECKING
 
 from laboneq.simple import Experiment, SweepParameter
 
-from laboneq_applications import dsl
+from laboneq_applications import dsl, workflow
 from laboneq_applications.analysis.amplitude_rabi import analysis_workflow
 from laboneq_applications.experiments.options import (
     TuneupExperimentOptions,
     TuneUpWorkflowOptions,
 )
 from laboneq_applications.tasks import compile_experiment, run_experiment, update_qubits
-from laboneq_applications.workflow import if_, task, workflow
 
 if TYPE_CHECKING:
     from laboneq.dsl.session import Session
@@ -33,7 +32,7 @@ if TYPE_CHECKING:
     from laboneq_applications.typing import Qubits, QubitSweepPoints
 
 
-@workflow(name="amplitude_rabi")
+@workflow.workflow(name="amplitude_rabi")
 def experiment_workflow(
     session: Session,
     qpu: QPU,
@@ -101,15 +100,16 @@ def experiment_workflow(
         amplitudes=amplitudes,
     )
     compiled_exp = compile_experiment(session, exp)
-    _result = run_experiment(session, compiled_exp)
-    with if_(options.do_analysis):
-        analysis_results = analysis_workflow(_result, qubits, amplitudes)
-        qubit_parameters = analysis_results.tasks["extract_qubit_parameters"].output
-        with if_(options.update):
+    result = run_experiment(session, compiled_exp)
+    with workflow.if_(options.do_analysis):
+        analysis_results = analysis_workflow(result, qubits, amplitudes)
+        qubit_parameters = analysis_results.output
+        with workflow.if_(options.update):
             update_qubits(qpu, qubit_parameters["new_parameter_values"])
+    workflow.return_(result)
 
 
-@task
+@workflow.task
 @dsl.qubit_experiment
 def create_experiment(
     qpu: QPU,

@@ -332,7 +332,7 @@ def extract_qubit_parameters(
                 )
             intercept_diff_mean = intercept[0] - intercept[1]
             slope_diff_mean = gradient[1] - gradient[0]
-            if slope_diff_mean != 0:
+            if slope_diff_mean.nominal_value != 0:
                 new_beta = intercept_diff_mean / slope_diff_mean
                 qubit_parameters["new_parameter_values"][q.uid] = {
                     f"{opts.transition}_drive_pulse.beta": new_beta

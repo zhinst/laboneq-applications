@@ -39,7 +39,7 @@ if TYPE_CHECKING:
 options = TuneUpAnalysisWorkflowOptions
 
 
-@workflow.workflow
+@workflow.workflow(name="lifetime_measurement_analysis")
 def analysis_workflow(
     result: RunExperimentResults,
     qubits: Qubits,
