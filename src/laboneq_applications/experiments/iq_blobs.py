@@ -15,13 +15,13 @@ from typing import TYPE_CHECKING
 
 from laboneq.simple import AveragingMode, Experiment
 
-from laboneq_applications import dsl
+from laboneq_applications import dsl, workflow
+from laboneq_applications.analysis.iq_blobs import analysis_workflow
 from laboneq_applications.experiments.options import (
     TuneupExperimentOptions,
     TuneUpWorkflowOptions,
 )
 from laboneq_applications.tasks import compile_experiment, run_experiment
-from laboneq_applications.workflow import task, workflow
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
@@ -47,7 +47,7 @@ class IQBlobExperimentOptions(TuneupExperimentOptions):
     use_cal_traces: bool = False
 
 
-@workflow(name="iq_blobs")
+@workflow.workflow(name="iq_blobs")
 def experiment_workflow(
     session: Session,
     qpu: QPU,
@@ -55,13 +55,14 @@ def experiment_workflow(
     states: Sequence[str],
     options: TuneUpWorkflowOptions | None = None,
 ) -> None:
-    """The IQblob Workflow.
+    """The IQ-blob experiment Workflow.
 
     The workflow consists of the following steps:
 
     - [create_experiment]()
     - [compile_experiment]()
     - [run_experiment]()
+    - [analysis_workflow]()
 
     Arguments:
         session:
@@ -74,26 +75,23 @@ def experiment_workflow(
             The basis states the qubits should be prepared in. May be either a string,
             e.g. "gef", or a list of letters, e.g. ["g","e","f"].
         options:
-            The options for building the workflow.
-            In addition to options from [WorkflowOptions], the following
-            custom options are supported:
-                - create_experiment: The options for creating the experiment.
+            The options for building the workflow as an instance of
+            [TuneUpWorkflowOptions]. See the docstring of this class for more details.
 
     Returns:
-        result:
-            The result of the workflow.
+        WorkflowBuilder:
+            The builder for the experiment workflow.
 
     Example:
         ```python
-        options = SpectroscopyWorkflowOptions()
-        options.create_experiment.count = 10
+        options = experiment_workflow.options()
+        options.count(10)
         qpu = QPU(
-            setup=DeviceSetup("my_device"),
             qubits=[TunableTransmonQubit("q0"), TunableTransmonQubit("q1")],
             quantum_operations=TunableTransmonOperations(),
         )
         temp_qubits = qpu.copy_qubits()
-        result = run(
+        result = experiment_workflow(
             session=session,
             qpu=qpu,
             qubits=[temp_qubits[0],temp_qubits[1]],
@@ -108,10 +106,13 @@ def experiment_workflow(
         states,
     )
     compiled_exp = compile_experiment(session, exp)
-    _result = run_experiment(session, compiled_exp)
+    result = run_experiment(session, compiled_exp)
+    with workflow.if_(options.do_analysis):
+        analysis_workflow(result, qubits, states)
+    workflow.return_(result)
 
 
-@task
+@workflow.task
 @dsl.qubit_experiment
 def create_experiment(
     qpu: QPU,
@@ -119,7 +120,7 @@ def create_experiment(
     states: Sequence[str],
     options: IQBlobExperimentOptions | None = None,
 ) -> Experiment:
-    """Creates an IQblob Experiment.
+    """Creates an IQ-blob Experiment.
 
     Arguments:
         qpu:
@@ -140,19 +141,12 @@ def create_experiment(
         experiment:
             The generated LabOne Q experiment instance to be compiled and executed.
 
-    Raises:
-        ValueError:
-            The argument 'states' contains other letters than "g", "e" or "f".
-
     Example:
         ```python
-        options = {
-            "count": 10,
-        }
-        options = IQBlobExperimentOptions(**options)
+        options = IQBlobExperimentOptions()
+        options.count(10)
         setup = DeviceSetup()
         qpu = QPU(
-            setup=DeviceSetup("my_device"),
             qubits=[TunableTransmonQubit("q0"), TunableTransmonQubit("q1")],
             quantum_operations=TunableTransmonOperations(),
         )
@@ -180,12 +174,12 @@ def create_experiment(
     ):
         for q in qubits:
             with dsl.section(
-                name=f"iq_{q.uid}",
+                name=f"iq_blobs_{q.uid}",
             ):
                 for state in states:
                     qop.prepare_state(q, state)
                     qop.measure(
                         q,
-                        dsl.handles.calibration_trace_handle(q.uid, state),
+                        dsl.handles.result_handle(q.uid, suffix=state),
                     )
                     qop.passive_reset(q)
