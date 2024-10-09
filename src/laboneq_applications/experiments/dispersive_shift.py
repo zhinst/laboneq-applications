@@ -194,6 +194,9 @@ def create_experiment(
     """
     # Define the custom options for the experiment
     opts = DispersiveShiftExperimentOptions() if options is None else options
+    qubit, frequencies = dsl.validation.validate_and_convert_single_qubit_sweeps(
+        qubit, frequencies
+    )
     if AcquisitionType(opts.acquisition_type) != AcquisitionType.SPECTROSCOPY:
         raise ValueError(
             "The only allowed acquisition_type for this experiment"

@@ -162,6 +162,9 @@ def create_experiment(
     """
     # Define the custom options for the experiment
     opts = ResonatorSpectroscopyExperimentOptions() if options is None else options
+    qubit, frequencies = dsl.validation.validate_and_convert_single_qubit_sweeps(
+        qubit, frequencies
+    )
     # guard against wrong options for the acquisition type
     if AcquisitionType(opts.acquisition_type) != AcquisitionType.SPECTROSCOPY:
         raise ValueError(

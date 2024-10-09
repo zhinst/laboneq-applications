@@ -18,7 +18,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import uncertainties as unc
 
-from laboneq_applications import workflow
+from laboneq_applications import dsl, workflow
 from laboneq_applications.analysis.fitting_helpers import lorentzian_fit
 from laboneq_applications.analysis.plotting_helpers import plot_raw_complex_data_1d
 from laboneq_applications.core.validation import validate_result
@@ -182,6 +182,8 @@ def calculate_signal_magnitude_and_phase(
             phase
     """
     validate_result(result)
+    qubit = dsl.validation.validate_and_convert_single_qubit_sweeps(qubit)
+
     raw_data = result.result[qubit.uid].data
     return {
         "sweep_points": frequencies,
@@ -269,6 +271,8 @@ def extract_qubit_parameters(
         left empty.
     """
     opts = ResonatorSpectroscopyAnalysisOptions() if options is None else options
+    qubit = dsl.validation.validate_and_convert_single_qubit_sweeps(qubit)
+
     qubit_parameters = {
         "old_parameter_values": {qubit.uid: {}},
         "new_parameter_values": {qubit.uid: {}},
@@ -334,6 +338,7 @@ def plot_magnitude_phase(
         textbox with the extracted readout resonator frequency are not plotted.
     """
     opts = ResonatorSpectroscopyAnalysisOptions() if options is None else options
+    qubit = dsl.validation.validate_and_convert_single_qubit_sweeps(qubit)
 
     base_name = f"Magnitude-Phase {qubit.uid}"
     sweep_points = processed_data_dict["sweep_points"]
@@ -456,8 +461,9 @@ def plot_real_imaginary(
     Returns:
         the matplotlib figure
     """
-    validate_result(result)
     opts = ResonatorSpectroscopyAnalysisOptions() if options is None else options
+    validate_result(result)
+    qubit = dsl.validation.validate_and_convert_single_qubit_sweeps(qubit)
 
     base_name = f"Real-Imaginary {qubit.uid}"
     raw_data = result.result[qubit.uid].data

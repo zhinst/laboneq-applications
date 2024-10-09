@@ -20,8 +20,7 @@ from typing import TYPE_CHECKING
 import matplotlib.pyplot as plt
 import numpy as np
 
-from laboneq_applications import workflow
-from laboneq_applications.core.validation import validate_result
+from laboneq_applications import dsl, workflow
 from laboneq_applications.experiments.options import (
     TaskOptions,
     WorkflowOptions,
@@ -167,7 +166,10 @@ def calculate_signal_differences(
         TypeError:
             If the result is not an instance of RunExperimentResults.
     """
-    validate_result(result)
+    qubit, frequencies = dsl.validation.validate_and_convert_single_qubit_sweeps(
+        qubit, frequencies
+    )
+    dsl.validation.validate_result(result)
     all_state_combinations = combinations(list(states), 2)
     processed_data_dict = {}
     joined_states = ["".join(sc) for sc in all_state_combinations]
@@ -235,6 +237,7 @@ def extract_qubit_parameters(
         }
         ```
     """
+    qubit = dsl.validation.validate_and_convert_single_qubit_sweeps(qubit)
     qubit_parameters = {
         "old_parameter_values": {qubit.uid: {}},
         "new_parameter_values": {qubit.uid: {}},
@@ -290,7 +293,10 @@ def plot_dispersive_shift(
             If the result is not an instance of RunExperimentResults.
     """
     opts = DispersiveShiftAnalysisOptions() if options is None else options
-    validate_result(result)
+    qubit, frequencies = dsl.validation.validate_and_convert_single_qubit_sweeps(
+        qubit, frequencies
+    )
+    dsl.validation.validate_result(result)
 
     # Plot S21 for each prep state
     fig, ax = plt.subplots()
@@ -338,6 +344,9 @@ def plot_signal_distances(
         the matplotlib figure
     """
     opts = DispersiveShiftAnalysisOptions() if options is None else options
+    qubit, frequencies = dsl.validation.validate_and_convert_single_qubit_sweeps(
+        qubit, frequencies
+    )
 
     # Plot the S21 distances
     fig, ax = plt.subplots()

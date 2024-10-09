@@ -4,7 +4,11 @@ import numpy as np
 import pytest
 
 from laboneq_applications.core.validation import (
+    convert_qubits_sweeps_to_lists,
     validate_and_convert_qubits_sweeps,
+    validate_and_convert_single_qubit_sweeps,
+    validate_and_convert_sweeps_to_arrays,
+    validate_length_qubits_sweeps,
     validate_result,
 )
 from laboneq_applications.tasks.run_experiment import (
@@ -67,7 +71,8 @@ class TestValidateAndConvertQubitSweeps:
             validate_and_convert_qubits_sweeps(q0, [[1, 2, 3]])
 
         assert str(err.value) == (
-            "If a single qubit is passed, the sweep points must be a list of numbers."
+            "If a single qubit is passed, the sweep points must be an array or a list "
+            "of numbers."
         )
 
     def test_number_of_qubits_and_sweeps_not_equal_error(
@@ -88,7 +93,276 @@ class TestValidateAndConvertQubitSweeps:
             validate_and_convert_qubits_sweeps([q0], [[1, "a"]])
 
         assert str(err.value) == (
-            "All elements of sweep points must be lists of numbers."
+            "All elements of sweep points must be arrays or lists of numbers."
+        )
+
+    def test_sweeps_none(self, single_tunable_transmon_platform):
+        [q0] = single_tunable_transmon_platform.qpu.qubits
+        qubits = validate_and_convert_qubits_sweeps([q0], None)
+        assert qubits == [q0]
+
+        qubits = validate_and_convert_qubits_sweeps(q0, None)
+        assert qubits == [q0]
+
+
+class TestValidateLengthQubitsSweeps:
+    def test_single_qubit(self, single_tunable_transmon_platform):
+        [q0] = single_tunable_transmon_platform.qpu.qubits
+        qubits, sweeps = validate_length_qubits_sweeps(q0, [1, 2, 3])
+        assert qubits == q0
+        np.testing.assert_almost_equal(sweeps, np.array([1, 2, 3]))
+
+    def test_single_qubit_with_numpy_array(self, single_tunable_transmon_platform):
+        [q0] = single_tunable_transmon_platform.qpu.qubits
+        sweep_0 = np.array([1, 2, 3])
+        qubits, sweeps = validate_length_qubits_sweeps(q0, sweep_0)
+        assert qubits == q0
+        np.testing.assert_equal(sweeps, [1, 2, 3])
+
+    def test_sequence_of_qubits(self, two_tunable_transmon_platform):
+        [q0, q1] = two_tunable_transmon_platform.qpu.qubits
+        qubits, sweeps = validate_length_qubits_sweeps(
+            [q0, q1],
+            [[1, 2, 3], [4, 5, 6]],
+        )
+        assert qubits == [q0, q1]
+        np.testing.assert_almost_equal(
+            sweeps, [np.array([1, 2, 3]), np.array([4, 5, 6])]
+        )
+
+    def test_sequence_of_qubits_with_numpy_arrays(self, two_tunable_transmon_platform):
+        [q0, q1] = two_tunable_transmon_platform.qpu.qubits
+        sweep_0 = np.array([1, 2, 3])
+        sweep_1 = np.array([4, 5, 6])
+        qubits, sweeps = validate_length_qubits_sweeps(
+            [q0, q1],
+            [sweep_0, sweep_1],
+        )
+        assert qubits == [q0, q1]
+        np.testing.assert_equal(sweeps, [[1, 2, 3], [4, 5, 6]])
+
+    def test_not_sequence_of_quantum_elements_error(self):
+        with pytest.raises(ValueError) as err:
+            validate_length_qubits_sweeps([1], [[1, 2, 3]])
+
+        assert str(err.value) == (
+            "Qubits must be a QuantumElement or a sequence of QuantumElements."
+        )
+
+    def test_single_qubit_with_sequence_of_sweeps_error(
+        self,
+        single_tunable_transmon_platform,
+    ):
+        [q0] = single_tunable_transmon_platform.qpu.qubits
+
+        with pytest.raises(ValueError) as err:
+            validate_length_qubits_sweeps(q0, [[1, 2, 3]])
+
+        assert str(err.value) == (
+            "If a single qubit is passed, the sweep points must be an array or a list "
+            "of numbers."
+        )
+
+    def test_number_of_qubits_and_sweeps_not_equal_error(
+        self,
+        single_tunable_transmon_platform,
+    ):
+        [q0] = single_tunable_transmon_platform.qpu.qubits
+
+        with pytest.raises(ValueError) as err:
+            validate_length_qubits_sweeps([q0], [[1, 2], [3, 4]])
+
+        assert str(err.value) == "Length of qubits and sweep points must be the same."
+
+    def test_not_all_sweeps_valid(self, single_tunable_transmon_platform):
+        [q0] = single_tunable_transmon_platform.qpu.qubits
+
+        with pytest.raises(ValueError) as err:
+            validate_length_qubits_sweeps([q0], [[1, "a"]])
+
+        assert str(err.value) == (
+            "All elements of sweep points must be arrays or lists of numbers."
+        )
+
+    def test_sweeps_none(self, single_tunable_transmon_platform):
+        [q0] = single_tunable_transmon_platform.qpu.qubits
+        qubits = validate_length_qubits_sweeps([q0], None)
+        assert qubits == [q0]
+
+        qubits = validate_length_qubits_sweeps(q0, None)
+        assert qubits == q0
+
+
+class TestConvertQubitsSweepsToLists:
+    def test_single_qubit(self, single_tunable_transmon_platform):
+        [q0] = single_tunable_transmon_platform.qpu.qubits
+        qubits, sweeps = convert_qubits_sweeps_to_lists(q0, [1, 2, 3])
+        assert qubits == [q0]
+        np.testing.assert_almost_equal(sweeps, [np.array([1, 2, 3])])
+
+    def test_single_qubit_with_numpy_array(self, single_tunable_transmon_platform):
+        [q0] = single_tunable_transmon_platform.qpu.qubits
+        sweep_0 = np.array([1, 2, 3])
+        qubits, sweeps = convert_qubits_sweeps_to_lists(q0, sweep_0)
+        assert qubits == [q0]
+        np.testing.assert_equal(sweeps, [[1, 2, 3]])
+
+    def test_sequence_of_qubits(self, two_tunable_transmon_platform):
+        [q0, q1] = two_tunable_transmon_platform.qpu.qubits
+        qubits, sweeps = convert_qubits_sweeps_to_lists(
+            [q0, q1],
+            [[1, 2, 3], [4, 5, 6]],
+        )
+        assert qubits == [q0, q1]
+        np.testing.assert_almost_equal(
+            sweeps, [np.array([1, 2, 3]), np.array([4, 5, 6])]
+        )
+
+    def test_sequence_of_qubits_with_numpy_arrays(self, two_tunable_transmon_platform):
+        [q0, q1] = two_tunable_transmon_platform.qpu.qubits
+        sweep_0 = np.array([1, 2, 3])
+        sweep_1 = np.array([4, 5, 6])
+        qubits, sweeps = convert_qubits_sweeps_to_lists(
+            [q0, q1],
+            [sweep_0, sweep_1],
+        )
+        assert qubits == [q0, q1]
+        np.testing.assert_equal(sweeps, [[1, 2, 3], [4, 5, 6]])
+
+    def test_not_sequence_of_quantum_elements_error(self):
+        with pytest.raises(ValueError) as err:
+            convert_qubits_sweeps_to_lists([1], [[1, 2, 3]])
+
+        assert str(err.value) == (
+            "Qubits must be a QuantumElement or a sequence of QuantumElements."
+        )
+
+    def test_single_qubit_with_sequence_of_sweeps(
+        self,
+        single_tunable_transmon_platform,
+    ):
+        [q0] = single_tunable_transmon_platform.qpu.qubits
+        qubits, sweeps = convert_qubits_sweeps_to_lists(q0, [[1, 2, 3]])
+        assert qubits == [q0]
+        np.testing.assert_equal(sweeps, [np.array([[1, 2, 3]])])
+
+    def test_number_of_qubits_and_sweeps_not_equal(
+        self,
+        single_tunable_transmon_platform,
+    ):
+        [q0] = single_tunable_transmon_platform.qpu.qubits
+
+        qubits, sweeps = convert_qubits_sweeps_to_lists([q0], [[1, 2], [3, 4]])
+        assert qubits == [q0]
+        np.testing.assert_equal(sweeps, [[1, 2], [3, 4]])
+
+    def test_not_all_sweeps_valid(self, single_tunable_transmon_platform):
+        [q0] = single_tunable_transmon_platform.qpu.qubits
+
+        with pytest.raises(ValueError) as err:
+            convert_qubits_sweeps_to_lists([q0], [[1, "a"]])
+
+        assert str(err.value) == (
+            "All elements of sweep points must be arrays or lists of numbers."
+        )
+
+    def test_sweeps_none(self, single_tunable_transmon_platform):
+        [q0] = single_tunable_transmon_platform.qpu.qubits
+        qubits = convert_qubits_sweeps_to_lists([q0], None)
+        assert qubits == [q0]
+
+        qubits = convert_qubits_sweeps_to_lists(q0, None)
+        assert qubits == [q0]
+
+
+class TestValidateConvertSweepsToArrays:
+    def test_list_of_numbers(self):
+        sweeps = validate_and_convert_sweeps_to_arrays([1, 2, 3])
+        np.testing.assert_almost_equal(sweeps, np.array([1, 2, 3]))
+
+    def test_list_of_lists_of_numbers(self):
+        sweeps = validate_and_convert_sweeps_to_arrays([[1, 2, 3], [4, 5, 6]])
+        np.testing.assert_almost_equal(
+            sweeps, [np.array([1, 2, 3]), np.array([4, 5, 6])]
+        )
+
+    def test_array_of_numbers(self):
+        sweeps = validate_and_convert_sweeps_to_arrays(np.array([1, 2, 3]))
+        np.testing.assert_almost_equal(sweeps, np.array([1, 2, 3]))
+
+    def test_list_of_arrays_of_numbers(self):
+        sweeps = validate_and_convert_sweeps_to_arrays(
+            [np.array([1, 2, 3]), np.array([4, 5, 6])]
+        )
+        np.testing.assert_almost_equal(
+            sweeps, [np.array([1, 2, 3]), np.array([4, 5, 6])]
+        )
+
+    def test_array_of_arrays_of_numbers(self):
+        sweeps = validate_and_convert_sweeps_to_arrays(
+            np.array([np.array([1, 2, 3]), np.array([4, 5, 6])])
+        )
+        np.testing.assert_almost_equal(
+            sweeps, np.array([np.array([1, 2, 3]), np.array([4, 5, 6])])
+        )
+
+    def test_invalid_sweeps_type(self):
+        with pytest.raises(TypeError) as err:
+            validate_and_convert_sweeps_to_arrays(1)
+        assert str(err.value) == "The sweep points must be an array or a list."
+
+    def test_invalid_sweeps_inner_type(self):
+        with pytest.raises(ValueError) as err:
+            validate_and_convert_sweeps_to_arrays([1, "a"])
+        assert str(err.value) == (
+            "The sweep points must be an array or a list of numbers."
+        )
+
+    def test_invalid_sweeps_inner_type_iterables(self):
+        with pytest.raises(ValueError) as err:
+            validate_and_convert_sweeps_to_arrays([[1, "a"], [1, 2]])
+        assert str(err.value) == (
+            "All elements of sweep points must be arrays or lists of numbers."
+        )
+
+
+class TestValidateAndConvertSingleQubitSweeps:
+    def test_list_of_numbers(self):
+        sweeps = validate_and_convert_sweeps_to_arrays([1, 2, 3])
+        np.testing.assert_almost_equal(sweeps, np.array([1, 2, 3]))
+
+    def test_sweeps_none(self, single_tunable_transmon_platform):
+        [q0] = single_tunable_transmon_platform.qpu.qubits
+        qubit = validate_and_convert_single_qubit_sweeps(q0, None)
+        assert qubit == q0
+
+    def test_sweep_list(self, single_tunable_transmon_platform):
+        [q0] = single_tunable_transmon_platform.qpu.qubits
+        qubit, sweeps = validate_and_convert_single_qubit_sweeps(q0, [1, 2, 3])
+        assert qubit == q0
+        np.testing.assert_almost_equal(sweeps, np.array([1, 2, 3]))
+
+    def test_sweep_array(self, single_tunable_transmon_platform):
+        [q0] = single_tunable_transmon_platform.qpu.qubits
+        qubit, sweeps = validate_and_convert_single_qubit_sweeps(
+            q0, np.array([1, 2, 3])
+        )
+        assert qubit == q0
+        np.testing.assert_almost_equal(sweeps, np.array([1, 2, 3]))
+
+    def test_invalid_qubits(self, two_tunable_transmon_platform):
+        qubits = two_tunable_transmon_platform.qpu.qubits
+        with pytest.raises(TypeError) as err:
+            validate_and_convert_single_qubit_sweeps(qubits, [1, 2, 3])
+        assert str(err.value) == "Only a single qubit is supported."
+
+    def test_invalid_qubit_sweeps(self, single_tunable_transmon_platform):
+        [q0] = single_tunable_transmon_platform.qpu.qubits
+        with pytest.raises(ValueError) as err:
+            validate_and_convert_single_qubit_sweeps(q0, [[1, 2, 3], [1, 2, 3]])
+        assert str(err.value) == (
+            "If a single qubit is passed, the sweep points must be an array or a list "
+            "of numbers."
         )
 
 
