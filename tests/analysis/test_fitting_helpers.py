@@ -780,3 +780,13 @@ def test_lorentzian_fit(fit_data_lorentzian):
     np.testing.assert_allclose(
         fit_res.best_values["offset"], 1.9721753641263535, rtol=1e-4
     )
+
+
+def test_linear_fit():
+    x = np.linspace(0, 1, 31)
+    data = fit_hlp.linear(x, gradient=10, intercept=2.34)
+    fit_res = fit_hlp.linear_fit(x, data)
+
+    assert fit_res.model.name == "Model(linear)"
+    np.testing.assert_equal(fit_res.best_values["gradient"], 10)
+    np.testing.assert_equal(fit_res.best_values["intercept"], 2.34)

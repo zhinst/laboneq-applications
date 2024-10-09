@@ -1,6 +1,7 @@
-"""This module defines the analysis for an drage beta parameter experiment.
+"""This module defines the analysis for a DRAG calibration experiment.
 
-The experiment is defined in laboneq_applications.experiments.
+The experiment is defined in laboneq_applications.experiments. See the docstring of
+this module for more details about the experiment and its parameters.
 
 In this analysis, we first interpret the raw data into qubit populations using
 principle-component analysis or rotation and projection on the measured calibration
@@ -10,17 +11,20 @@ and determine the optimal beta parameter. Finally, we plot the data and the fit.
 
 from __future__ import annotations
 
+import logging
 from typing import TYPE_CHECKING
 
 import matplotlib.pyplot as plt
 import numpy as np
 import uncertainties as unc
 
+from laboneq_applications import workflow
 from laboneq_applications.analysis.cal_trace_rotation import calculate_population_1d
 from laboneq_applications.analysis.fitting_helpers import (
     fit_data_lmfit,
     linear,
 )
+from laboneq_applications.analysis.plotting_helpers import plot_raw_complex_data_1d
 from laboneq_applications.core.validation import (
     validate_and_convert_qubits_sweeps,
     validate_result,
@@ -28,13 +32,6 @@ from laboneq_applications.core.validation import (
 from laboneq_applications.experiments.options import (
     TuneupAnalysisOptions,
     TuneUpAnalysisWorkflowOptions,
-)
-from laboneq_applications.workflow import (
-    comment,
-    if_,
-    save_artifact,
-    task,
-    workflow,
 )
 
 if TYPE_CHECKING:
@@ -46,20 +43,21 @@ if TYPE_CHECKING:
     from laboneq_applications.typing import Qubits, QubitSweepPoints
 
 
-@workflow
+@workflow.workflow(name="drag_q_scaling_analysis")
 def analysis_workflow(
     result: RunExperimentResults,
     qubits: Qubits,
-    beta_values: QubitSweepPoints,
+    q_scalings: QubitSweepPoints,
     options: TuneUpAnalysisWorkflowOptions | None = None,
 ) -> None:
-    """The Drag Beta Parameter analysis Workflow.
+    """The analysis Workflow for the DRAG quadrature-scaling calibration.
 
     The workflow consists of the following steps:
 
-    - [calculate_qubit_population]()
+    - [calculate_qubit_population_for_pulse_ids]()
     - [fit_data]()
     - [extract_qubit_parameters]()
+    - [plot_raw_complex_data_1d]()
     - [plot_population]()
 
     Arguments:
@@ -68,9 +66,9 @@ def analysis_workflow(
         qubits:
             The qubits on which to run the analysis. May be either a single qubit or
             a list of qubits. The UIDs of these qubits must exist in the result.
-        beta_values:
-            The beta_values that were swept over in the amplitude-Rabi experiment for
-            each qubit. If `qubits` is a single qubit, `beta_values` must be a list of
+        q_scalings:
+            The quadrature scaling factors that were swept over in the experiment for
+            each qubit. If `qubits` is a single qubit, `q_scalings` must be a list of
             numbers or an array. Otherwise, it must be a list of lists of numbers or
             arrays.
         options:
@@ -87,11 +85,12 @@ def analysis_workflow(
 
     Example:
         ```python
-        options = TuneUpAnalysisWorkflowOptions()
+        options = analysis_workflow.options()
+        options.close_figures(False)
         result = analysis_workflow(
             results=results
             qubits=[q0, q1],
-            beta_values=[
+            q_scalings=[
                 np.linspace(-0.05, 0.05, 11),
                 np.linspace(-0.05, 0.05, 11),
             ],
@@ -99,32 +98,36 @@ def analysis_workflow(
         ).run()
         ```
     """
-    processed_data_dict = calculate_qubit_population_from_ids(
-        qubits, result, beta_values, ["y180", "my180"]
+    processed_data_dict = calculate_qubit_population_for_pulse_ids(
+        qubits, result, q_scalings
     )
     fit_results = fit_data(qubits, processed_data_dict)
-    qubit_parameters = extract_qubit_parameters(
-        qubits, processed_data_dict, fit_results
-    )
-    with if_(options.do_plotting):
-        with if_(options.do_qubit_population_plotting):
+    qubit_parameters = extract_qubit_parameters(qubits, fit_results)
+    with workflow.if_(options.do_plotting):
+        with workflow.if_(options.do_raw_data_plotting):
+            plot_raw_complex_data_1d(
+                qubits,
+                result,
+                q_scalings,
+                xlabel="DRAG Quadrature Scaling Factor, $\\beta$",
+            )
+        with workflow.if_(options.do_qubit_population_plotting):
             plot_population(
                 qubits,
                 processed_data_dict,
                 fit_results,
                 qubit_parameters,
-                ["y180", "my180"],
             )
+    workflow.return_(qubit_parameters)
 
 
-@task
-def calculate_qubit_population_from_ids(
+@workflow.task
+def calculate_qubit_population_for_pulse_ids(
     qubits: Qubits,
     result: RunExperimentResults,
-    beta_values: QubitSweepPoints,
-    pulse_ids: list[str],
+    q_scalings: QubitSweepPoints,
     options: TuneupAnalysisOptions | None = None,
-) -> dict[str, dict[str, ArrayLike]]:
+) -> dict[str, dict[str, dict[str, ArrayLike]]]:
     """Processes the raw data from the experiment result.
 
      The data is processed in the following way:
@@ -141,9 +144,9 @@ def calculate_qubit_population_from_ids(
             The qubits on which the experiments was run. May be either
             a single qubit or a list of qubits.
         result: the result of the experiment, returned by the run_experiment task.
-        beta_values:
-            The beta_values that were swept over in the experiment for
-            each qubit. If `qubits` is a single qubit, `beta_values` must be a list of
+        q_scalings:
+            The quadrature scaling factors that were swept over in the experiment for
+            each qubit. If `qubits` is a single qubit, `q_scalings` must be a list of
             numbers or an array. Otherwise, it must be a list of lists of numbers or
             arrays.
         pulse_ids:
@@ -166,9 +169,9 @@ def calculate_qubit_population_from_ids(
     """
     validate_result(result)
     opts = TuneupAnalysisOptions() if options is None else options
-    qubits, beta_values = validate_and_convert_qubits_sweeps(qubits, beta_values)
+    qubits, q_scalings = validate_and_convert_qubits_sweeps(qubits, q_scalings)
     processed_data_dict = {}
-    for q, amps in zip(qubits, beta_values):
+    for q, qscales in zip(qubits, q_scalings):
         processed_data_dict[q.uid] = {}
         if opts.use_cal_traces:
             calibration_traces = [
@@ -178,11 +181,11 @@ def calculate_qubit_population_from_ids(
         else:
             calibration_traces = []
             do_pca = True
-        for pulse_id in pulse_ids:
-            raw_data = result.result[f"{q.uid}_{pulse_id}"].data
+        for pulse_id in result.result[q.uid]:
+            raw_data = result.result[q.uid][pulse_id].data
             data_dict = calculate_population_1d(
                 raw_data,
-                amps,
+                qscales,
                 calibration_traces,
                 do_pca=do_pca,
             )
@@ -190,12 +193,12 @@ def calculate_qubit_population_from_ids(
     return processed_data_dict
 
 
-@task
+@workflow.task
 def fit_data(
     qubits: Qubits,
-    processed_data_dict: dict[str, dict[str, ArrayLike]],
+    processed_data_dict: dict[str, dict[str, dict[str, ArrayLike]]],
     options: TuneupAnalysisOptions | None = None,
-) -> dict[str, lmfit.model.ModelResult]:
+) -> dict[str, dict[str, lmfit.model.ModelResult]]:
     """Perform a fit of a linear model to the data.
 
     Arguments:
@@ -223,38 +226,42 @@ def fit_data(
         fit_results[q.uid] = {}
         for pulse_id in processed_data_dict[q.uid]:
             swpts_fit = processed_data_dict[q.uid][pulse_id]["sweep_points"]
-            data_to_fit = processed_data_dict[q.uid][pulse_id][
-                "population" if opts.do_rotation else "data_raw"
-            ]
-            if not opts.do_rotation:
-                data_to_fit = np.array(data_to_fit, dtype=np.int32)
-            if not opts.fit_parameters_hints:
+            data_to_fit = processed_data_dict[q.uid][pulse_id]["population"]
+            if pulse_id == "xx":
+                param_hints = {
+                    "gradient": {"value": 0, "vary": False},
+                    "intercept": {"value": np.mean(data_to_fit)},
+                }
+            else:
                 gradient = (data_to_fit[-1] - data_to_fit[0]) / (
                     swpts_fit[-1] - swpts_fit[0]
                 )
-                opts.fit_parameters_hints = {
+                param_hints = {
                     "gradient": {"value": gradient},
                     "intercept": {"value": data_to_fit[-1] - gradient * swpts_fit[-1]},
                 }
+            param_hints_user = opts.fit_parameters_hints
+            if param_hints_user is None:
+                param_hints_user = {}
+            param_hints.update(param_hints_user)
             try:
                 fit_res = fit_data_lmfit(
                     model=linear,
                     x=swpts_fit,
                     y=data_to_fit,
-                    param_hints=opts.fit_parameters_hints,
+                    param_hints=param_hints,
                 )
                 fit_results[q.uid][pulse_id] = fit_res
             except ValueError as err:
-                comment(f"Fit failed for {q.uid}: {err}.")
+                workflow.log(logging.ERROR, "Fit failed for %s: %s.", q.uid, err)
 
     return fit_results
 
 
-@task
+@workflow.task
 def extract_qubit_parameters(
     qubits: Qubits,
-    processed_data_dict: dict[str, dict[str, ArrayLike]],
-    fit_results: dict[str, lmfit.model.ModelResult],
+    fit_results: dict[str, dict[str, lmfit.model.ModelResult]],
     options: TuneupAnalysisOptions | None = None,
 ) -> dict[str, dict[str, dict[str, int | float | unc.core.Variable | None]]]:
     """Extract the qubit parameters from the fit results.
@@ -264,7 +271,6 @@ def extract_qubit_parameters(
             The qubits on which to run the analysis. May be either a single qubit or
             a list of qubits. The UIDs of these qubits must exist in the
             processed_data_dict.
-        processed_data_dict: the processed data dictionary returned by process_raw_data
         fit_results: the fit-results dictionary returned by fit_data
         options:
             The options for extracting the qubit parameters.
@@ -301,21 +307,21 @@ def extract_qubit_parameters(
     }
 
     for q in qubits:
-        # Store the old beta values
+        # Store the old quadrature scaling factor values
         old_beta = (
             q.parameters.ef_drive_pulse["beta"]
             if "f" in opts.transition
             else q.parameters.ge_drive_pulse["beta"]
         )
         qubit_parameters["old_parameter_values"][q.uid] = {
-            f"{opts.transition}_beta": old_beta,
+            f"{opts.transition}_drive_pulse.beta": old_beta,
         }
 
         if opts.do_fitting and q.uid in fit_results:
             # Extract and store the new pi and pi-half pulse amplitude values
             gradient = {}
             intercept = {}
-            for i, pulse_id in enumerate(processed_data_dict[q.uid]):
+            for i, pulse_id in enumerate(["xy", "xmy"]):
                 gradient[i] = unc.ufloat(
                     fit_results[q.uid][pulse_id].params["gradient"].value,
                     fit_results[q.uid][pulse_id].params["gradient"].stderr,
@@ -326,27 +332,34 @@ def extract_qubit_parameters(
                 )
             intercept_diff_mean = intercept[0] - intercept[1]
             slope_diff_mean = gradient[1] - gradient[0]
-            new_beta = intercept_diff_mean / slope_diff_mean
-            qubit_parameters["new_parameter_values"][q.uid] = {
-                f"{opts.transition}_beta": new_beta,
-            }
+            if slope_diff_mean != 0:
+                new_beta = intercept_diff_mean / slope_diff_mean
+                qubit_parameters["new_parameter_values"][q.uid] = {
+                    f"{opts.transition}_drive_pulse.beta": new_beta
+                }
+            else:
+                workflow.log(
+                    logging.ERROR,
+                    "Could not extract the DRAG quadrature scaling for %s "
+                    "because the slope was zero.",
+                    q.uid,
+                )
     return qubit_parameters
 
 
-@task
+@workflow.task
 def plot_population(
     qubits: Qubits,
-    processed_data_dict: dict[str, dict[str, ArrayLike]],
-    fit_results: dict[str, lmfit.model.ModelResult] | None,
+    processed_data_dict: dict[str, dict[str, dict[str, ArrayLike]]],
+    fit_results: dict[str, dict[str, lmfit.model.ModelResult]] | None,
     qubit_parameters: dict[
         str,
         dict[str, dict[str, int | float | unc.core.Variable | None]],
     ]
     | None,
-    pulse_ids: list[str],
     options: TuneupAnalysisOptions | None = None,
 ) -> dict[str, mpl.figure.Figure]:
-    """Create the Drag Beta Parameter plots.
+    """Create the DRAG quadrature-scaling calibration plots.
 
     Arguments:
         qubits:
@@ -357,8 +370,6 @@ def plot_population(
         fit_results: the fit-results dictionary returned by fit_data
         qubit_parameters: the qubit-parameters dictionary returned by
             extract_qubit_parameters
-        pulse_ids:
-            ids to identify different measurement results.
         options:
             The options for processing the raw data.
             See [TuneupAnalysisOptions], [TuneupExperimentOptions] and
@@ -374,22 +385,40 @@ def plot_population(
     qubits = validate_and_convert_qubits_sweeps(qubits)
     figures = {}
     for q in qubits:
+        pulse_ids = list(processed_data_dict[q.uid])
         fig, ax = plt.subplots()
-        ax.set_title(f"DRAG Beta {q.uid}")  # add timestamp here
-        ax.set_xlabel("Beta")
+        ax.set_title(f"DRAG Q-Scaling {q.uid}")  # add timestamp here
+        ax.set_xlabel("Quadrature Scaling Factor, $\\beta$")
         num_cal_traces = processed_data_dict[q.uid][pulse_ids[0]]["num_cal_traces"]
         ax.set_ylabel(
             "Principal Component (a.u)"
             if (num_cal_traces == 0 or opts.do_pca)
             else f"$|{opts.cal_states[-1]}\\rangle$-State Population",
         )
+
         for pulse_id in pulse_ids:
             sweep_points = processed_data_dict[q.uid][pulse_id]["sweep_points"]
             data = processed_data_dict[q.uid][pulse_id][
                 "population" if opts.do_rotation else "data_raw"
             ]
-            ax.plot(sweep_points, data, "o", zorder=2, label=f"data_{pulse_id}")
+            # plot data
+            [line] = ax.plot(sweep_points, data, "o", zorder=2, label=pulse_id)
+            if opts.do_fitting and q.uid in fit_results:
+                fit_res_qb = fit_results[q.uid][pulse_id]
+                # plot fit
+                sweep_points = processed_data_dict[q.uid][pulse_id]["sweep_points"]
+                swpts_fine = np.linspace(sweep_points[0], sweep_points[-1], 501)
+                ax.plot(
+                    swpts_fine,
+                    fit_res_qb.model.func(swpts_fine, **fit_res_qb.best_values),
+                    c=line.get_color(),
+                    zorder=1,
+                    label="fit",
+                )
 
+        # the block plotting the lines at the calibration traces needs to come after
+        # the xlims have been determined by plotting the data because we want these
+        # lines to extend across the entire width of the axis
         if processed_data_dict[q.uid][pulse_ids[0]]["num_cal_traces"] > 0:
             # plot lines at the calibration traces
             xlims = ax.get_xlim()
@@ -403,46 +432,33 @@ def plot_population(
             )
             ax.set_xlim(xlims)
 
-        if opts.do_fitting and q.uid in fit_results:
-            for pulse_id in pulse_ids:
-                fit_res_qb = fit_results[q.uid][pulse_id]
-                # plot fit
-                sweep_points = processed_data_dict[q.uid][pulse_id]["sweep_points"]
-                swpts_fine = np.linspace(sweep_points[0], sweep_points[-1], 501)
-                ax.plot(
-                    swpts_fine,
-                    fit_res_qb.model.func(swpts_fine, **fit_res_qb.best_values),
-                    "r-",
-                    zorder=1,
-                    label=f"fit_{pulse_id}",
-                )
-
-            if len(qubit_parameters["new_parameter_values"][q.uid]) > 0:
-                new_beta = qubit_parameters["new_parameter_values"][q.uid][
-                    f"{opts.transition}_beta"
-                ]
-                # point at pi-pulse amplitude
-                ax.plot(
+        if len(qubit_parameters["new_parameter_values"][q.uid]) > 0:
+            new_beta = qubit_parameters["new_parameter_values"][q.uid][
+                f"{opts.transition}_drive_pulse.beta"
+            ]
+            # point at the optimal quadrature scaling factor
+            fit_res_qb = fit_results[q.uid][pulse_ids[0]]
+            ax.plot(
+                new_beta.nominal_value,
+                fit_res_qb.model.func(
                     new_beta.nominal_value,
-                    fit_res_qb.model.func(
-                        new_beta.nominal_value,
-                        **fit_res_qb.best_values,
-                    ),
-                    "sk",
-                    zorder=3,
-                    markersize=plt.rcParams["lines.markersize"] + 1,
-                )
-                # textbox
-                old_beta = qubit_parameters["old_parameter_values"][q.uid][
-                    f"{opts.transition}_beta"
-                ]
-                textstr = (
-                    "$\\beta$: "
-                    f"{new_beta.nominal_value:.4f} $\\pm$ "
-                    f"{new_beta.std_dev:.4f}"
-                )
-                textstr += "\nOld $\\beta$: " + f"{old_beta:.4f}"
-                ax.text(0, -0.15, textstr, ha="left", va="top", transform=ax.transAxes)
+                    **fit_res_qb.best_values,
+                ),
+                "sk",
+                zorder=3,
+                markersize=plt.rcParams["lines.markersize"] + 1,
+            )
+            # textbox
+            old_beta = qubit_parameters["old_parameter_values"][q.uid][
+                f"{opts.transition}_drive_pulse.beta"
+            ]
+            textstr = (
+                "$\\beta$: "
+                f"{new_beta.nominal_value:.4f} $\\pm$ "
+                f"{new_beta.std_dev:.4f}"
+            )
+            textstr += "\nPrevious value: " + f"{old_beta:.4f}"
+            ax.text(0, -0.15, textstr, ha="left", va="top", transform=ax.transAxes)
 
         ax.legend(
             loc="center left",
@@ -452,7 +468,7 @@ def plot_population(
         )
 
         if opts.save_figures:
-            save_artifact(f"Rabi_{q.uid}", fig)
+            workflow.save_artifact(f"Drag_q_scaling_{q.uid}", fig)
 
         if opts.close_figures:
             plt.close(fig)

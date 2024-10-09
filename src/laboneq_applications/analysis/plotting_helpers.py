@@ -5,9 +5,13 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 import matplotlib.pyplot as plt
+from laboneq.data.experiment_results import AcquiredResult as AcquiredResultLegacy
 
 from laboneq_applications.core.utils import local_timestamp
 from laboneq_applications.core.validation import validate_and_convert_qubits_sweeps
+from laboneq_applications.tasks.run_experiment import (
+    AcquiredResult as AcquiredResultRunExp,
+)
 from laboneq_applications.workflow import (
     execution_info,
     save_artifact,
@@ -44,7 +48,7 @@ class PlotRawDataOptions(TaskOptions):
             Default: `True`.
     """
 
-    use_cal_traces: bool = False
+    use_cal_traces: bool = True
     cal_states: str | tuple = "ge"
     save_figures: bool = True
     close_figures: bool = True
@@ -111,27 +115,37 @@ def plot_raw_complex_data_1d(
     qubits, sweep_points = validate_and_convert_qubits_sweeps(qubits, sweep_points)
     figures = {}
     for q, swpts in zip(qubits, sweep_points):
-        raw_data = result.result[q.uid].data
         figsize = plt.rcParams["figure.figsize"]
         fig, axs = plt.subplots(
             nrows=2, figsize=[0.75 * figsize[0], 1.5 * figsize[1]], sharex=True
         )
+        fig.align_ylabels()
+        fig.subplots_adjust(hspace=0.1)
         axs[0].set_title(f"Raw data {q.uid}")  # add timestamp here
         axs[1].set_xlabel(xlabel)
 
-        # plot real
-        axs[0].plot(swpts * xscaling, raw_data.real, "o-")
-        axs[0].set_ylabel("Real (arb.)")
-        # plot imaginary
-        axs[1].plot(swpts * xscaling, raw_data.imag, "o-")
-        axs[1].set_ylabel("Imaginary (arb.)")
-        fig.align_ylabels()
-        fig.subplots_adjust(hspace=0.1)
+        if isinstance(
+            result.result[q.uid], (AcquiredResultLegacy, AcquiredResultRunExp)
+        ):
+            raw_data_collection = [("raw data", result.result[q.uid])]
+        else:
+            raw_data_collection = [
+                (k, result.result[q.uid][k]) for k in result.result[q.uid]
+            ]
+
+        for legend_name, acquired_results in raw_data_collection:
+            raw_data = acquired_results.data
+            # plot real
+            axs[0].plot(swpts * xscaling, raw_data.real, "o-", label=legend_name)
+            axs[0].set_ylabel("Real (arb.)")
+            # plot imaginary
+            axs[1].plot(swpts * xscaling, raw_data.imag, "o-")
+            axs[1].set_ylabel("Imaginary (arb.)")
 
         # plot lines at calibration traces
         if opts.use_cal_traces and "cal_trace" in result:
             for i, ax in enumerate(axs):
-                for cs in opts.cal_states:
+                for j, cs in enumerate(opts.cal_states):
                     cal_trace = (
                         result.cal_trace[q.uid][cs].data.real
                         if i == 0
@@ -144,6 +158,7 @@ def plot_raw_complex_data_1d(
                         linestyles="--",
                         colors="gray",
                         zorder=0,
+                        label="calib.\ntraces" if i == 0 and j == 0 else None,
                     )
                     ax.text(
                         max(swpts * xscaling),
@@ -154,6 +169,14 @@ def plot_raw_complex_data_1d(
                         transform=ax.transData,
                     )
                     ax.set_xlim(xlims)
+
+        # Add legend
+        axs[0].legend(
+            loc="center left",
+            bbox_to_anchor=(1, 0),
+            handlelength=1.5,
+            frameon=False,
+        )
 
         if opts.save_figures:
             save_artifact(f"Raw_data_{q.uid}", fig)

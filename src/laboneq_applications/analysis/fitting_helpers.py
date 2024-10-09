@@ -359,7 +359,6 @@ def lorentzian_fit(
     return fit_res
 
 
-@fit_mods._fitting_function
 def linear(
     x: ArrayLike,
     gradient: float,
@@ -376,3 +375,38 @@ def linear(
         ArrayLike: The values of the linear function at the times `x`.
     """
     return gradient * x + intercept
+
+
+def linear_fit(
+    x: ArrayLike,
+    data: ArrayLike,
+    param_hints: dict[str, dict[str, float | bool | str]] | None = None,
+) -> lmfit.model.ModelResult:
+    """Performs a fit of a linear model to the data.
+
+    Arguments:
+        data: the data to be fitted
+        x: the independent variable
+        param_hints: dictionary of guesses for the fit parameters. See the lmfit
+            docstring for details on the form of the parameter hints dictionary:
+            https://lmfit.github.io/lmfit-py/model.html#lmfit.model.Model.set_param_hint
+
+    Returns:
+        The lmfit result
+    """
+    if param_hints is None:
+        param_hints = {}
+
+    gradient = (data[-1] - data[0]) / (x[-1] - x[0])
+    param_hints_default = {  # good guesses for fitting a drag q-scaling measurement
+        "gradient": {"value": gradient},
+        "intercept": {"value": data[-1] - gradient * x[-1]},
+    }
+    param_hints_default.update(param_hints)
+
+    return fit_data_lmfit(
+        linear,
+        x,
+        data,
+        param_hints=param_hints_default,
+    )
