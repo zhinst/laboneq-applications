@@ -11,6 +11,5 @@ This is the `laboneq_applications.workflow` reference documentation.
 * [options](options.md)
 * [reference](reference.md)
 * [graph](graph.md)
-* [blocks](blocks.md)
 * [exceptions](exceptions.md)
- 
+* [blocks](blocks.md)

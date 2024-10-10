@@ -58,13 +58,3 @@ alongside common quantum operations such as `play()`, `measure()`, etc.
 - `laboneq_applications.analysis`
 
 Analysis workflows, tasks and tools for various experiments.
-
-## Contents
-
-<!--nav-->
-
-* [Home](index.md)
-* [Tutorials](tutorials/index.md)
-* [How-to Guides](how-to-guides/index.md)
-* [Reference](reference/)
-* [Release Notes](release_notes.md)

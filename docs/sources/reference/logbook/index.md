@@ -1,10 +1,8 @@
- experiments
+# logbook
 
 This is the `laboneq_applications.logbook` reference documentation.
 
 ## Contents
-
-<!--nav-->
 
 * [core](core.md)
 * [combined_store](combined_store.md)

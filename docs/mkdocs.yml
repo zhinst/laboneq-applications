@@ -10,11 +10,87 @@ watch:
 
 nav:
   - Home: index.md
+  - How-to Guides:
+      - how-to-guides/index.md
+      - Amplitude Rabi: how-to-guides/sources/amplitude_rabi.ipynb
+      - Ramsey interferometry: how-to-guides/sources/ramsey.ipynb
+      - Amplitude Fine: how-to-guides/sources/amplitude_fine.ipynb
+      - Dispersive Shift: how-to-guides/sources/dispersive_shift.ipynb
+      - Echo: how-to-guides/sources/echo.ipynb
+      - IQ blobs: how-to-guides/sources/iq_blobs.ipynb
+      - Lifetime measurement: how-to-guides/sources/lifetime_measurement.ipynb
+      - Qubit spectroscopy: how-to-guides/sources/qubit_spectroscopy.ipynb
+      - Resonator Spectroscopy: how-to-guides/sources/resonator_spectroscopy.ipynb
+      - Resonator Spectroscopy DC bias: how-to-guides/sources/resonator_spectroscopy_dcbias.ipynb
+      - Raw Time Traces for Optimal Readout Weights: how-to-guides/sources/time_traces.ipynb
+  - Tutorials:
+      - tutorials/index.md
+      - Experiment Workflows: tutorials/sources/experiment_workflows.ipynb
+      - Quantum Operations: tutorials/sources/quantum_operations.ipynb
+      - Workflow:
+          - tutorials/workflow/index.md
+          - Build a workflow: tutorials/workflow/sources/build_workflow.ipynb
+          - Options: tutorials/workflow/sources/options.ipynb
+      - Tasks: tutorials/sources/tasks.ipynb
+      - Logbooks: tutorials/sources/logbooks.ipynb
+  - Release Notes: release_notes.md
+  - API Reference:
+      - reference/index.md
+      - core:
+          - reference/core/index.md
+          - build_experiment: reference/core/build_experiment.md
+          - quantum_operations: reference/core/quantum_operations.md
+          - handles: reference/core/handles.md
+          - validation: reference/core/validation.md
+          - utils: reference/core/utils.md
+      - experiments:
+          - reference/experiments/index.md
+          - amplitude_rabi: reference/experiments/amplitude_rabi.md
+          - amplitude_fine: reference/experiments/amplitude_fine.md
+          - dispersive_shift: reference/experiments/dispersive_shift.md
+          - drag_q_scaling: reference/experiments/drag_q_scaling.md
+          - echo: reference/experiments/echo.md
+          - iq_blobs: reference/experiments/iq_blobs.md
+          - lifetime_measurement: reference/experiments/lifetime_measurement.md
+          - qubit_spectroscopy_amplitude: reference/experiments/qubit_spectroscopy_amplitude.md
+          - qubit_spectroscopy: reference/experiments/qubit_spectroscopy.md
+          - ramsey: reference/experiments/ramsey.md
+          - resonator_spectroscopy: reference/experiments/resonator_spectroscopy.md
+          - resonator_spectroscopy_amplitude: reference/experiments/resonator_spectroscopy_amplitude.md
+          - time_traces: reference/experiments/time_traces.md
+          - options: reference/experiments/options.md
+      - logbook:
+          - reference/logbook/index.md
+          - combined_store: reference/logbook/combined_store.md
+          - core: reference/logbook/core.md
+          - folder_store: reference/logbook/folder_store.md
+          - logging_store: reference/logbook/logging_store.md
+          - serializer: reference/logbook/serializer.md
+      - qpu_types:
+          - reference/qpu_types/index.md
+          - qpu: reference/qpu_types/qpu.md
+          - tunable_transmon: reference/qpu_types/tunable_transmon.md
+      - tasks:
+          - reference/tasks/index.md
+          - compile_experiment: reference/tasks/compile_experiment.md
+          - parameter_updating: reference/tasks/parameter_updating.md
+          - run_experiment: reference/tasks/run_experiment.md
+      - testing: reference/testing.md
+      - typing: reference/typing.md
+      - workflow:
+          - reference/workflow/index.md
+          - core: reference/workflow/core.md
+          - task: reference/workflow/task.md
+          - result: reference/workflow/result.md
+          - taskview: reference/workflow/taskview.md
+          - options: reference/workflow/options.md
+          - reference: reference/workflow/reference.md
+          - graph: reference/workflow/graph.md
+          - exceptions: reference/workflow/exceptions.md
+          - blocks: reference/workflow/blocks.md
+      - dsl: reference/dsl.md
 
 plugins:
-  literate-nav:
-    nav_file: "index.md"
-    implicit_index: true
   macros:
     include_dir: ""
   mkdocstrings:
