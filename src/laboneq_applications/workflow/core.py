@@ -37,7 +37,7 @@ if TYPE_CHECKING:
 Parameters = ParamSpec("Parameters")
 
 
-class WorkflowRecovery:
+class _WorkflowRecovery:
     """A layer of indirection for storing workflow recovery results."""
 
     def __init__(self):
@@ -61,7 +61,7 @@ class Workflow(Generic[Parameters]):
         self._graph = WorkflowGraph(self._root)
         self._input = input or {}
         self._validate_input(**self._input)
-        self._recovery: WorkflowRecovery | None = (
+        self._recovery: _WorkflowRecovery | None = (
             None  # WorkflowRecovery (unused if left as None, set by WorkflowBuilder)
         )
         self._state: executor.ExecutorState | None = None
@@ -256,7 +256,7 @@ class WorkflowBuilder(Generic[Parameters]):
     def __init__(self, func: Callable[Parameters], name: str | None = None) -> None:
         self._func = func
         self._name = name or self._func.__name__
-        self._recovery = WorkflowRecovery()
+        self._recovery = _WorkflowRecovery()
         if "options" in inspect.signature(func).parameters:
             opt_type = get_and_validate_param_type(
                 func,
