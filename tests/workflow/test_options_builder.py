@@ -91,13 +91,6 @@ class TestOptionBuilder:
         ):
             _ = option_builder.non_existing
 
-    def test_str(self, option_builder):
-        assert (
-            str(option_builder.shared)
-            == "[(base,1), (base.task1,1), (base.task2,2), (base.nested_wf,3), "
-            "(base.nested_wf.task1,1)]"
-        )
-
     def test_dir(self, option_builder):
         assert dir(option_builder) == [
             "b",
@@ -108,7 +101,7 @@ class TestOptionBuilder:
         ]
 
 
-class TestOptionPrinting:
+class TestOptionBuilderPrinting:
     @pytest.fixture()
     def option_builder(self):
         class W(WorkflowOptions):
@@ -275,12 +268,12 @@ class TestOptionInfo:
         info = OptionNode("task1", "shared", TOpt1())
         assert info.name == "task1"
         assert info.field == "shared"
-        assert info.opt == TOpt1()
+        assert info.option == TOpt1()
 
     def test_call(self):
         info = OptionNode("task1", "shared", TOpt1())
         info(1234)
-        assert info.opt.shared == 1234
+        assert info.option.shared == 1234
 
     def test_str(self):
         info = OptionNode("task1", "shared", TOpt1())
@@ -309,15 +302,6 @@ class TestOptionInfoList:
         opts_list = OptionNodeList([OptionNode("task1", "shared", TOpt1())])
         assert opts_list == [OptionNode("task1", "shared", TOpt1())]
 
-    def test_str(self):
-        opts_list = OptionNodeList(
-            [
-                OptionNode("task1", "shared", TOpt1()),
-                OptionNode("task2", "shared", TOpt1()),
-            ]
-        )
-        assert str(opts_list) == "[(task1,1), (task2,1)]"
-
     def test_call(self):
         opts_list = OptionNodeList(
             [
@@ -326,8 +310,8 @@ class TestOptionInfoList:
             ]
         )
         opts_list(1234)
-        assert opts_list[0].opt.shared == 1234
-        assert opts_list[1].opt.shared == 1234
+        assert opts_list[0].option.shared == 1234
+        assert opts_list[1].option.shared == 1234
 
     def test_get(self):
         opts_list = OptionNodeList(
@@ -344,6 +328,25 @@ class TestOptionInfoList:
                 OptionNode("task2", "shared", TOpt2()),
             ]
         )
+
+    def test_str(self):
+        opts_list = OptionNodeList(
+            [
+                OptionNode("base", "shared", TOpt1()),
+                OptionNode("base.task1", "shared", TOpt1()),
+                OptionNode("base.inner_wf.task1", "shared", TOpt1()),
+            ]
+        )
+        expected_output = (
+            "---------------------------------------------------------------\n"
+            "Task/Workflow                                      | Value     \n"
+            "---------------------------------------------------------------\n"
+            ".                                                  | 1         \n"
+            "task1                                              | 1         \n"
+            "inner_wf.task1                                     | 1         \n"
+            "---------------------------------------------------------------"
+        )
+        assert str(opts_list) == expected_output
 
 
 def test_get_all_fields():

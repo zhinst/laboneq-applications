@@ -160,7 +160,33 @@ class OptionNodeList(UserList):
         return name == item.name or name == item.name.rsplit(".", 1)[0]
 
     def __str__(self):
-        return f"[{', '.join(str(item) for item in self)}]"
+        max_name_length = max([len(node.name) for node in self], default=0)
+        max_value_length = max([len(str(node._value)) for node in self], default=0)
+        name_field_width = max(max_name_length, 50)
+        value_field_width = max(max_value_length, 10)
+        formatted_nodes = []
+        for node in self:
+            # strip base. prefix:
+            _, _, post_dot = node.name.partition(".")
+            node_name = post_dot if post_dot != "" else "."
+            formatted_nodes.append(
+                f"{node_name.ljust(name_field_width)} | "
+                f"{str(node._value).ljust(value_field_width)}"
+            )
+        header = (
+            f"{'Task/Workflow'.ljust(name_field_width)}"
+            f" | {'Value'.ljust(value_field_width)}"
+        )
+        separator = "-" * len(header)
+        return "\n".join(
+            [
+                separator,
+                header,
+                separator,
+                *formatted_nodes,
+                separator,
+            ]
+        )
 
     def _repr_pretty_(self, p, _cycle):  # noqa: ANN001, ANN202
         p.text(str(self))
@@ -181,8 +207,8 @@ class OptionNode:
     def __init__(self, task_name: str, field: str, option: BaseOptions) -> None:
         self.name = task_name
         self.field = field
-        self.opt = option
-        self._value = str(getattr(self.opt, self.field, self.opt))
+        self.option = option
+        self._value = str(getattr(self.option, self.field, self.option))
 
     def is_top_level(self) -> bool:
         """Return True if the option is a top-level field."""
@@ -191,7 +217,7 @@ class OptionNode:
 
     def __call__(self, value: typing.Any) -> None:  # noqa: ANN401
         """Set the value of the option."""
-        setattr(self.opt, self.field, value)
+        setattr(self.option, self.field, value)
 
     def __eq__(self, other: object) -> bool:
         if not isinstance(other, OptionNode):
@@ -199,7 +225,7 @@ class OptionNode:
         return (
             self.name == other.name
             and self.field == other.field
-            and self.opt == other.opt
+            and self.option == other.option
             and self._value == other._value
         )
 
