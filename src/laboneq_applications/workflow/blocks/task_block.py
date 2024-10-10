@@ -14,7 +14,7 @@ from laboneq_applications.workflow.result import TaskResult
 
 if TYPE_CHECKING:
     from laboneq_applications.workflow.options_base import BaseOptions
-    from laboneq_applications.workflow.task import task_
+    from laboneq_applications.workflow.task_wrapper import task_
 
 
 class TaskBlock(Block):

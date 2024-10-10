@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from laboneq_applications.common.attribute_wrapper import find_common_prefix
-from laboneq_applications.workflow.task import task
+from laboneq_applications.workflow import task
 
 if TYPE_CHECKING:
     from laboneq.core.types import CompiledExperiment

@@ -2,8 +2,8 @@ import textwrap
 
 from IPython.lib.pretty import pretty
 
+from laboneq_applications.workflow import task
 from laboneq_applications.workflow.result import TaskResult, WorkflowResult
-from laboneq_applications.workflow.task import task, task_
 
 
 class TestWorkflowResult:
@@ -24,7 +24,7 @@ class TestWorkflowResult:
 
         obj = WorkflowResult("test")
         assert len(obj.tasks) == 0
-        t = TaskResult(task_(addition), output=1)
+        t = TaskResult(task(addition), output=1)
         obj._tasks.append(t)
         assert len(obj.tasks) == 1
         assert obj.tasks["addition"] == t

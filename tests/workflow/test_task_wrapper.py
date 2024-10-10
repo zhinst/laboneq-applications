@@ -4,7 +4,7 @@ import inspect
 import textwrap
 
 from laboneq_applications.workflow.options_base import BaseOptions
-from laboneq_applications.workflow.task import task
+from laboneq_applications.workflow.task_wrapper import task
 
 
 class TestTaskDecorator:

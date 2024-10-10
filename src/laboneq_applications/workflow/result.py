@@ -11,7 +11,7 @@ from laboneq_applications.workflow.taskview import TaskView
 if TYPE_CHECKING:
     from datetime import datetime
 
-    from laboneq_applications.workflow.task import task_
+    from laboneq_applications.workflow.task_wrapper import task_
 
 
 class TaskResult:

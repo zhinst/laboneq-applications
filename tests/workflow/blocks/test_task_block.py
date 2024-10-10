@@ -2,12 +2,12 @@ from __future__ import annotations
 
 import textwrap
 
+from laboneq_applications.workflow import task
 from laboneq_applications.workflow.blocks.task_block import TaskBlock
 from laboneq_applications.workflow.executor import ExecutorState
 from laboneq_applications.workflow.options_base import BaseOptions
 from laboneq_applications.workflow.reference import Reference
 from laboneq_applications.workflow.result import WorkflowResult
-from laboneq_applications.workflow.task import task
 
 
 class TaskOptions(BaseOptions):

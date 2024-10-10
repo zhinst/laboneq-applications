@@ -32,7 +32,7 @@ from laboneq_applications.workflow.recorder import (
     save_artifact,
 )
 from laboneq_applications.workflow.result import WorkflowResult
-from laboneq_applications.workflow.task import task
+from laboneq_applications.workflow.task_wrapper import task
 
 __all__ = [
     # Decorators

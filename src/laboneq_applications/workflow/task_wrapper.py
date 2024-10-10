@@ -1,4 +1,4 @@
-"""Task used within workflows."""
+"""Task wrapper to convert Python functions into workflow tasks."""
 
 from __future__ import annotations
 

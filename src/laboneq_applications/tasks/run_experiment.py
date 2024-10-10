@@ -9,8 +9,7 @@ from typing_extensions import TypeAlias
 
 from laboneq_applications.common.attribute_wrapper import AttributeWrapper
 from laboneq_applications.common.classformatter import classformatter
-from laboneq_applications.workflow.options import TaskOptions
-from laboneq_applications.workflow.task import task
+from laboneq_applications.workflow import TaskOptions, task
 
 if TYPE_CHECKING:
     from laboneq.core.types import CompiledExperiment
