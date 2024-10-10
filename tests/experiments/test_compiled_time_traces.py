@@ -21,8 +21,10 @@ def create_time_traces_verifier(
     if len(qubits) == 1:
         qubits = [qubits[0]]
     session = tunable_transmon_platform.session(do_emulation=True)
-    options = time_traces.options()
-    options.create_experiment.count = count
+    options = time_traces.experiment_workflow.options()
+    options.count(count)
+    # TODO: fix tests to work with do_analysis=True when the new options feature is in
+    options.do_analysis(False)
 
     # Run the experiment workflow
     res = time_traces.experiment_workflow(

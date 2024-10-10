@@ -140,6 +140,9 @@ class TuneupAnalysisOptions(TuneupExperimentOptions):
         fit_parameters_hints:
             Parameters hints accepted by lmfit
             Default: None.
+        save_figures:
+            Whether to save the figures.
+            Default: `True`.
         close_figures:
             Whether to close the figures.
             Default: `True`.

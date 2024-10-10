@@ -1,13 +1,14 @@
-"""This module defines the raw traces measurement.
+"""This module defines the raw-traces measurement.
 
 In this measurement, raw traces are acquired for qubits in different states in order to
-compute the optimal integration kernels for qubit readout.
+compute the optimal integration kernels for qubit readout, which allow to maximally
+distinguish between the qubit states (typically, g, e, f).
 
-The raw traces measurement has the following pulse sequence
+The raw-traces measurement has the following pulse sequence
 
     qb --- [prepare state] --- [measure]
 
-The corresponding traces are acquired for each combination of the qubits and states
+The corresponding traces are acquired for all combinations of the qubits and states
 given by the user.
 """
 
@@ -17,13 +18,13 @@ from typing import TYPE_CHECKING, Literal
 
 from laboneq.simple import AcquisitionType, Experiment
 
-from laboneq_applications import dsl, workflow
+from laboneq_applications import dsl, tasks, workflow
+from laboneq_applications.analysis.time_traces import analysis_workflow
 from laboneq_applications.core.build_experiment import qubit_experiment
-from laboneq_applications.core.validation import validate_and_convert_qubits_sweeps
 from laboneq_applications.experiments.options import (
     BaseExperimentOptions,
+    TuneUpWorkflowOptions,
 )
-from laboneq_applications.tasks import compile_experiment, run_experiment
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
@@ -36,9 +37,12 @@ if TYPE_CHECKING:
 
 
 class TimeTracesExperimentOptions(BaseExperimentOptions):
-    """Options for the time traces experiment.
+    """Options for the time-traces experiment.
 
-    Additional attributes:
+    This class is needed to change the default value of acquisition_type compared with
+    the value in BaseExperimentOptions.
+
+    Attributes:
         acquisition_type:
             Acquisition type to use for the experiment.
             Default: `AcquisitionType.RAW`.
@@ -47,35 +51,27 @@ class TimeTracesExperimentOptions(BaseExperimentOptions):
     acquisition_type: str | AcquisitionType = AcquisitionType.RAW
 
 
-class TimeTracesWorkflowOptions(workflow.WorkflowOptions):
-    """Option for time traces workflow.
-
-    Attributes:
-        create_experiment (TimeTracesExperimentOptions):
-            The options for creating the experiment.
-    """
-
-    create_experiment: TimeTracesExperimentOptions = TimeTracesExperimentOptions()
-
-
-options = TimeTracesWorkflowOptions
-
-
 @workflow.workflow(name="time_traces")
 def experiment_workflow(
     session: Session,
     qpu: QPU,
     qubits: Qubits,
     states: Sequence[Literal["g", "e", "f"]],
-    options: TimeTracesWorkflowOptions | None = None,
+    options: TuneUpWorkflowOptions | None = None,
 ) -> None:
-    """The raw traces experiment workflow.
+    """The raw-traces experiment workflow.
 
-    The workflow consists of the following steps:
+    The workflow consists of the following tasks:
 
-    - [create_experiment]()
-    - [compile_experiment]()
-    - [run_experiment]()
+    - [validate_and_convert_qubits_sweeps]()
+    - `with for_(qubits) as qubit`:
+        - [create_experiment]()
+        - [compile_experiment]()
+        - [run_experiment]()
+        - [append_result]()
+    - [combine_results]()
+    - [analysis_workflow]()
+    - [update_qubits]()
 
     Arguments:
         session:
@@ -89,21 +85,46 @@ def experiment_workflow(
             The qubit states for which to acquire the raw traces. Must be a
             list of strings containing g, e or f.
         options:
-            The options for building the workflow.
-            In addition to options from [WorkflowOptions], the following
-            custom options are supported:
-                - create_experiment: The options for creating the experiment.
+            The options for building the workflow as an instance of
+            [TuneUpWorkflowOptions]. See the docstring of this class for more details.
 
     Returns:
-        result:
-            A builder for the raw traces experiment.
+        WorkflowBuilder:
+            The builder for the experiment workflow.
+
+    Example:
+        ```python
+        options = experiment_workflow.options()
+        options.create_experiment.count(10)
+        qpu = QPU(
+            qubits=[TunableTransmonQubit("q0"), TunableTransmonQubit("q1")],
+            quantum_operations=TunableTransmonOperations(),
+        )
+        temp_qubits = qpu.copy_qubits()
+        result = experiment_workflow(
+            session=session,
+            qpu=qpu,
+            qubit=temp_qubits[0],
+            states="gef",
+            options=options,
+        ).run()
+        ```
     """
-    qubits = validate_and_convert_qubits_sweeps(qubits)
-    with workflow.for_(states) as state:
-        with workflow.for_(qubits) as qubit:
+    qubits = dsl.validation.validate_and_convert_qubits_sweeps(qubits)
+    results = []
+    with workflow.for_(qubits) as qubit:
+        with workflow.for_(states) as state:
             exp = create_experiment(qpu, qubit, state)
-            compiled_exp = compile_experiment(session, exp)
-            _ = run_experiment(session, compiled_exp)
+            compiled_exp = tasks.compile_experiment(session, exp)
+            result = tasks.run_experiment(session, compiled_exp)
+            tasks.append_result(results, result)
+    combined_results = tasks.combine_results(results)
+    with workflow.if_(options.do_analysis):
+        analysis_results = analysis_workflow(combined_results, qubits, states)
+        qubit_parameters = analysis_results.output
+        with workflow.if_(options.update):
+            tasks.update_qubits(qpu, qubit_parameters["new_parameter_values"])
+    workflow.return_(combined_results)
 
 
 @workflow.task
@@ -114,30 +135,47 @@ def create_experiment(
     state: Literal["g", "e", "f"],
     options: TimeTracesExperimentOptions | None = None,
 ) -> Experiment:
-    """Creates a raw trace measurement.
+    """Creates a raw-traces Experiment.
 
     Arguments:
-        session:
-            The connected session to use for running the experiment.
         qpu:
             The qpu consisting of the original qubits and quantum operations.
         qubit:
-            The qubit to run the experiments on.
+            The qubit for which to create the Experiment.
         state:
-            The qubit state for which to acquire the raw trace. Must be 'g', 'e' or 'f'.
+            The state in which to prepare the qubit. Must be 'g', 'e' or 'f'.
         options:
-            The options for building the experiment.
-            See [TimeTracesExperimentOptions] for
-            accepted options.
-            Overwrites the options from [BaseExperimentOptions].
+            The options for building the experiment as an instance of
+            [TimeTracesExperimentOptions]. See the docstring of this class for more
+            details.
 
     Returns:
-        result:
-            The result of the workflow.
+        experiment:
+            The generated LabOne Q experiment instance to be compiled and executed.
 
     Raises:
         ValueError:
-            If one the state is not 'g', 'e' or 'f'.
+            If the state is not 'g', 'e' or 'f'.
+
+        ValueError:
+            If options.acquisition_type is not AcquisitionType.RAW or "raw".
+
+    Example:
+        ```python
+        options = TimeTracesExperimentOptions()
+        options.count(10)
+        qpu = QPU(
+            qubits=[TunableTransmonQubit("q0"), TunableTransmonQubit("q1")],
+            quantum_operations=TunableTransmonOperations(),
+        )
+        temp_qubits = qpu.copy_qubits()
+        create_experiment(
+            qpu=qpu,
+            qubits=temp_qubits,
+            states="gef"
+            options=options,
+        )
+        ```
     """
     if state not in ("g", "e", "f"):
         raise ValueError(
@@ -166,5 +204,5 @@ def create_experiment(
             qop.x180(qubit, transition="ge")
         if state == "f":
             qop.x180(qubit, transition="ef")
-        qop.measure(qubit, dsl.handles.result_handle(qubit.uid, state))
+        qop.measure(qubit, dsl.handles.result_handle(qubit.uid, suffix=state))
         qop.passive_reset(qubit)

@@ -63,10 +63,25 @@ class TestTunableTransmonQubit:
             ),
         ]
 
-    def test_get_integration_kernels_pulses(self, q0):
+    def test_get_integration_kernels_pulses_type_default(self, q0):
         q0.parameters.readout_integration_kernels = [
             {"function": "const", "amplitude": 2.0},
         ]
+        q0.parameters.readout_integration_kernels_type = "default"
+        assert q0.get_integration_kernels() == [
+            tsl.pulse(
+                uid="__integration_kernel_q0_0",
+                function="const",
+                amplitude=1,
+                length=2e-6,
+            ),
+        ]
+
+    def test_get_integration_kernels_pulses_type_optimal(self, q0):
+        q0.parameters.readout_integration_kernels = [
+            {"function": "const", "amplitude": 2.0},
+        ]
+        q0.parameters.readout_integration_kernels_type = "optimal"
         assert q0.get_integration_kernels() == [
             tsl.pulse(
                 uid="__integration_kernel_q0_0",
@@ -86,24 +101,51 @@ class TestTunableTransmonQubit:
             ),
         ]
 
+    def test_get_integration_kernels_invalid_overrides(self, q0):
+        with pytest.raises(TypeError) as err:
+            q0.get_integration_kernels({"function": "const"})
+
+        assert str(err.value) == (
+            "The readout integration kernels should be a list of pulse "
+            "dictionaries or the values 'default' or 'optimal'. If no readout "
+            "integration kernels have been specified, then the parameter "
+            "TunableTransmonQubit.parameters.readout_integration_kernels_type'"
+            " should be either 'default' or 'optimal'."
+        )
+
     def test_get_integration_kernels_empty_list(self, q0):
+        q0.parameters.readout_integration_kernels_type = "optimal"
         q0.parameters.readout_integration_kernels = []
         with pytest.raises(TypeError) as err:
             q0.get_integration_kernels()
 
         assert str(err.value) == (
-            "TunableTransmonQubit readout integration kernels"
-            " should be either 'default' or a list of pulse dictionaries."
+            "TunableTransmonQubit.parameters.readout_integration_kernels' should be a "
+            "list of pulse dictionaries."
         )
 
-    def test_get_integration_kernels_invalid_type(self, q0):
+    def test_get_integration_kernels_invalid_kernel_pulses(self, q0):
+        q0.parameters.readout_integration_kernels_type = "optimal"
         q0.parameters.readout_integration_kernels = "zoo"
         with pytest.raises(TypeError) as err:
             q0.get_integration_kernels()
 
         assert str(err.value) == (
-            "TunableTransmonQubit readout integration kernels"
-            " should be either 'default' or a list of pulse dictionaries."
+            "TunableTransmonQubit.parameters.readout_integration_kernels' should be a "
+            "list of pulse dictionaries."
+        )
+
+    def test_get_integration_kernels_invalid_kernels_type(self, q0):
+        q0.parameters.readout_integration_kernels_type = "the_best"
+        with pytest.raises(TypeError) as err:
+            q0.get_integration_kernels()
+
+        assert str(err.value) == (
+            "The readout integration kernels should be a list of pulse "
+            "dictionaries or the values 'default' or 'optimal'. If no readout "
+            "integration kernels have been specified, then the parameter "
+            "TunableTransmonQubit.parameters.readout_integration_kernels_type'"
+            " should be either 'default' or 'optimal'."
         )
 
     def test_update(self, q0):

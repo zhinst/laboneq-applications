@@ -118,7 +118,6 @@ def results_single_qubit():
 
 @pytest.fixture()
 def monkeypatch_tzlocal(monkeypatch):
-
     import dateutil.tz
 
     import laboneq_applications.core.utils

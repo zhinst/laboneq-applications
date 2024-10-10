@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import copy
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Literal
 
 from laboneq.core.utilities.dsl_dataclass_decorator import classformatter
 from laboneq.dsl.quantum import (
@@ -132,7 +132,8 @@ class TunableTransmonQubitParameters(TransmonParameters):
         },
     )
     readout_integration_length: float = 2e-6
-    readout_integration_kernels: str | list[dict] = "default"
+    readout_integration_kernels_type: Literal["default", "optimal"] = "default"
+    readout_integration_kernels: list[dict] | None = None
     readout_integration_discrimination_thresholds: list[float] | None = None
 
     # reset parameters
@@ -293,31 +294,53 @@ class TunableTransmonQubit(Transmon):
 
         Arguments:
             kernel_pulses:
-                Custom definitions for the kernel pulses. If present,
-                it replaces the values of the qubit parameter
-                `readout_integration_kernels`.
+                Custom definitions for the kernel pulses, passed as a list of
+                pulse dictionaries, or the values "default" or "optimal".
 
-        The special value `"default"` for either `kernel_pulses` or the
-        `readout_integration_kernels` parameter returns
+        If `kernel_pulses` are passed as a list of pulse dictionaries, they are
+        returned as pulse functionals.
+
+        The special value `"optimal"` for `kernel_pulses` or for
+        `readout_integration_kernels_type` if kernel_pulses is None, returns
+        `TunableTransmonParameters.readout_integration_kernels`.
+
+        The special value `"default"` for either `kernel_pulses` or
+        `readout_integration_kernels_type` parameter returns
         the default kernels from `.default_integration_kernels()`.
+
 
         Returns:
             A list of integration kernel pulses.
         """
         if kernel_pulses is None:
-            kernel_pulses = self.parameters.readout_integration_kernels
+            kernel_pulses = self.parameters.readout_integration_kernels_type
 
         if kernel_pulses == "default":
             integration_kernels = self.default_integration_kernels()
-        elif isinstance(kernel_pulses, (list, tuple)) and len(kernel_pulses) > 0:
+        elif kernel_pulses == "optimal":
+            kernel_params = self.parameters.readout_integration_kernels
+            if isinstance(kernel_params, (list, tuple)) and len(kernel_params) > 0:
+                integration_kernels = [
+                    create_pulse(kernel_pulse, name=f"integration_kernel_{self.uid}")
+                    for kernel_pulse in kernel_params
+                ]
+            else:
+                raise TypeError(
+                    f"{self.__class__.__name__}.parameters.readout_integration_kernels'"
+                    f" should be a list of pulse dictionaries."
+                )
+        elif isinstance(kernel_pulses, (list, tuple)) and kernel_pulses:
             integration_kernels = [
                 create_pulse(kernel_pulse, name=f"integration_kernel_{self.uid}")
                 for kernel_pulse in kernel_pulses
             ]
         else:
             raise TypeError(
-                f"{self.__class__.__name__} readout integration kernels"
-                f" should be either 'default' or a list of pulse dictionaries.",
+                f"The readout integration kernels should be a list of pulse "
+                f"dictionaries or the values 'default' or 'optimal'. If no readout "
+                f"integration kernels have been specified, then the parameter "
+                f"{self.__class__.__name__}.parameters.readout_integration_kernels_type'"
+                f" should be either 'default' or 'optimal'."
             )
 
         return integration_kernels
