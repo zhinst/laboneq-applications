@@ -203,10 +203,6 @@ def else_() -> Generator[None, None, None]:
 
     The equivalent of Python's else-statement.
 
-    Arguments:
-        condition: A condition that has to be `True` for code block to be
-            executed.
-
     Example:
         ```python
         from laboneq_applications import workflow
