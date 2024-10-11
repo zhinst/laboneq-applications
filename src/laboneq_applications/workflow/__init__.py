@@ -13,6 +13,7 @@ from laboneq_applications.workflow.core import (
 from laboneq_applications.workflow.exceptions import WorkflowError
 from laboneq_applications.workflow.executor import execution_info
 from laboneq_applications.workflow.options import TaskOptions, WorkflowOptions
+from laboneq_applications.workflow.options_builder import show_fields
 from laboneq_applications.workflow.recorder import (
     comment,
     log,
@@ -32,6 +33,7 @@ __all__ = [
     # Options
     "WorkflowOptions",
     "TaskOptions",
+    "show_fields",
     # Workflow operations
     "return_",
     "if_",
