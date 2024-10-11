@@ -25,12 +25,14 @@ class TaskResult:
         task: task_,
         output: object,
         input: dict | None = None,  # noqa: A002
+        index: tuple[object] | None = None,
     ) -> None:
         self._task = task
         self._output = output
         self._input = input or {}
         self._start_time: datetime | None = None
         self._end_time: datetime | None = None
+        self._index = index
 
     @property
     def name(self) -> str:
@@ -47,6 +49,11 @@ class TaskResult:
     def src(self) -> str:
         """Source code of the task."""
         return self._task.src
+
+    @property
+    def index(self) -> tuple[object] | None:
+        """Index of the task."""
+        return self._index
 
     @property
     def output(self) -> object:
@@ -99,13 +106,19 @@ class TaskResult:
 class WorkflowResult:
     """Workflow result."""
 
-    def __init__(self, name: str, input: dict | None = None):  # noqa: A002
+    def __init__(
+        self,
+        name: str,
+        input: dict | None = None,  # noqa: A002
+        index: tuple[object] | None = None,
+    ):
         self._name = name
         self._input = input or {}
         self._tasks: list[TaskResult | WorkflowResult] = []
         self._output = None
         self._start_time: datetime | None = None
         self._end_time: datetime | None = None
+        self._index = index
 
     @property
     def name(self) -> str:
@@ -116,6 +129,11 @@ class WorkflowResult:
     def input(self) -> dict:
         """Input of the workflow."""
         return self._input
+
+    @property
+    def index(self) -> tuple[object] | None:
+        """Index of the workflow."""
+        return self._index
 
     @property
     def output(self) -> Any:  # noqa: ANN401

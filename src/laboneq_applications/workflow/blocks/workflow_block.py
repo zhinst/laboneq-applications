@@ -122,30 +122,31 @@ class WorkflowBlock(Block):
             # NOTE: Correct input options are resolved only after 'set_param()'
             # Therefore they need to be overwritten for result
             inputs["options"] = input_opts
-            result = WorkflowResult(self.name, input=inputs)
+            result = WorkflowResult(
+                name=self.name, input=inputs, index=executor.get_index()
+            )
             result._start_time = utc_now()
             executor.recorder.on_start(result)
             executor.set_variable(self, result)
+            executor.add_workflow_result(result)
         elif executor.get_block_status(self) == ExecutionStatus.IN_PROGRESS:
             result = executor.get_variable(self)
             input_opts = executor.get_variable((self, "options"))
         else:
             # Block is finished
             return
-        executor.add_workflow_result(result)
         try:
-            with executor:
-                with executor.set_active_workflow_settings(result, input_opts):
-                    for block in self.body:
-                        if executor.get_block_status(block) in (
-                            ExecutionStatus.FINISHED,
-                            ExecutionStatus.SKIPPED,
-                        ):
-                            continue
-                        block.execute(executor)
-                    executor.set_block_status(self, ExecutionStatus.FINISHED)
-                    result._end_time = utc_now()
-                    executor.recorder.on_end(result)
+            with executor.enter_workflow(result, input_opts):
+                for block in self.body:
+                    if executor.get_block_status(block) in (
+                        ExecutionStatus.FINISHED,
+                        ExecutionStatus.SKIPPED,
+                    ):
+                        continue
+                    block.execute(executor)
+                executor.set_block_status(self, ExecutionStatus.FINISHED)
+                result._end_time = utc_now()
+                executor.recorder.on_end(result)
             if executor.settings.run_until == self.name and executor.has_active_context:
                 executor.interrupt()
         except Exception as error:

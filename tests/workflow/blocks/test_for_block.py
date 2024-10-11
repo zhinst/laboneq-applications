@@ -31,7 +31,7 @@ class TestForExpression:
 
         executor = ExecutorState()
         result = WorkflowResult("test")
-        with executor.set_active_workflow_settings(result):
+        with executor.enter_workflow(result):
             expr.execute(executor)
         assert len(executor.block_variables) == 1 + 1
         assert executor.get_variable(expr) == 1
@@ -44,14 +44,14 @@ class TestForExpression:
         expr.extend(block)
 
         executor = ExecutorState()
-        with executor.set_active_workflow_settings(WorkflowResult("test")):
+        with executor.enter_workflow(WorkflowResult("test")):
             expr.execute(executor)
         assert len(executor.block_variables) == 0
 
     def test_not_iterable_raises_exception(self):
         expr = ForExpression(2)
         executor = ExecutorState()
-        with executor.set_active_workflow_settings(WorkflowResult("test")):
+        with executor.enter_workflow(WorkflowResult("test")):
             with pytest.raises(TypeError, match="'int' object is not iterable"):
                 expr.execute(executor)
 
@@ -62,7 +62,7 @@ class TestForExpression:
 
         executor = ExecutorState()
         executor.set_variable("abc", [1, 2])
-        with executor.set_active_workflow_settings(WorkflowResult("test")):
+        with executor.enter_workflow(WorkflowResult("test")):
             expr.execute(executor)
         assert executor.get_variable(expr) == 2
         assert executor.get_variable(block) == 3
@@ -75,7 +75,7 @@ class TestForExpression:
         executor = ExecutorState()
         executor.set_variable("abc", [1, 2])
 
-        with executor.set_active_workflow_settings(WorkflowResult("test")):
+        with executor.enter_workflow(WorkflowResult("test")):
             with pytest.raises(
                 TypeError,
                 match=re.escape(

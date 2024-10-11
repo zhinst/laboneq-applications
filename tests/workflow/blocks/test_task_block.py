@@ -74,7 +74,7 @@ class TestTaskBlock:
         block = TaskBlock(addition, parameters=params)
         state = ExecutorState()
         result = WorkflowResult("test")
-        with state.set_active_workflow_settings(result):
+        with state.enter_workflow(result):
             state.set_variable("x", 1)
             state.set_variable("y", 5)
             block.execute(state)

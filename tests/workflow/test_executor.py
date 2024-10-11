@@ -98,7 +98,7 @@ class TestExecutorState:
 
         assert obj.has_active_context is False
         # Test interrupt signal caught within the context
-        with obj:
+        with obj.enter_workflow(None):
             assert obj.has_active_context
             with pytest.raises(_ExecutorInterrupt):
                 obj.interrupt()

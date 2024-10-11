@@ -72,11 +72,11 @@ class TestWorkflowBlock:
         executor = ExecutorState()
         result = WorkflowResult("test")
 
-        with executor.set_active_workflow_settings(result):
+        with executor.enter_workflow(result):
             block.execute(executor)
         assert executor.get_block_status(block) == ExecutionStatus.FINISHED
 
-        with executor.set_active_workflow_settings(result):
+        with executor.enter_workflow(result):
             block.execute(executor)
         assert executor.get_block_status(block) == ExecutionStatus.FINISHED
         assert task_calls == 1

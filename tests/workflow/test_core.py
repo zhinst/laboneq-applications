@@ -1264,6 +1264,83 @@ class TestForExpression:
         assert [x.output for x in res.tasks["addition", :]] == [2, 3, 4, 5]
 
 
+class TestForExpressionLoopIndex:
+    def test_default_index(self):
+        @task
+        def a_task(): ...
+
+        @workflow
+        def single_loop(values):
+            with for_(values):
+                a_task()
+
+        result = single_loop([1]).run()
+        assert result.tasks[0].index == (0,)
+
+        result = single_loop([1, 2, 3]).run()
+        assert result.tasks[0].index == (0,)
+        assert result.tasks[-1].index == (2,)
+
+        @workflow
+        def nested_loop(x, y):
+            with for_(x):
+                with for_(y):
+                    a_task()
+
+        result = nested_loop([1], [1]).run()
+        assert result.tasks[0].index == (0, 0)
+
+        result = nested_loop([1, 2], [2, 3, 4]).run()
+        assert result.tasks[0].index == (0, 0)
+        assert result.tasks[-1].index == (1, 2)
+
+    def test_loop_indexer(self):
+        @task
+        def a_task(): ...
+
+        @workflow
+        def nested_loop(x, y):
+            with for_(x, loop_indexer=lambda x: x):
+                with for_(y):
+                    a_task()
+
+        result = nested_loop([1], [1]).run()
+        assert result.tasks[0].index == (1, 0)
+
+        result = nested_loop([1, 123], [2, 3, 4]).run()
+        assert result.tasks[0].index == (1, 0)
+        assert result.tasks[-1].index == (123, 2)
+
+    def test_nested_workflows(self):
+        @task
+        def a_task(): ...
+
+        @workflow
+        def inner(values):
+            with for_(values):
+                a_task()
+
+        @workflow
+        def outer(outer_vals, inner_vals):
+            with for_(outer_vals):
+                a_task()
+                inner(inner_vals)
+                a_task()
+            with for_(outer_vals):
+                a_task()
+
+        result = outer([1], [2, 3]).run()
+        assert result.tasks[0].index == (0,)
+        # Only nested workflow gets the parent indexes
+        assert result.tasks[1].index == (0,)
+        # Nested workflow tasks gets only current workflow indexes
+        assert result.tasks[1].tasks[0].index == (0,)
+        assert result.tasks[1].tasks[1].index == (1,)
+        # Back to root workflow, out of nested index scope
+        assert result.tasks[2].index == (0,)
+        assert result.tasks[3].index == (0,)
+
+
 class WfOptions(WorkflowOptions):
     task_with_opts: TaskOptions = TaskOptions()
 

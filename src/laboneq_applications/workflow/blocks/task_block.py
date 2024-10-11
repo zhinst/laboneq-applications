@@ -65,8 +65,8 @@ class TaskBlock(Block):
             task=self.task,
             output=None,
             input=_utils.create_argument_map(self.task.func, **params),
+            index=executor.get_index(),
         )
-
         task._start_time = utc_now()
         executor.recorder.on_task_start(task)
         try:

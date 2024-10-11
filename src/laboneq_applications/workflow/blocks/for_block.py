@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from contextlib import contextmanager
-from typing import TYPE_CHECKING, TypeVar, cast
+from typing import TYPE_CHECKING, Callable, TypeVar, cast
 
 from laboneq_applications.workflow import variable_tracker
 from laboneq_applications.workflow.blocks.block import Block
@@ -25,11 +25,25 @@ class ForExpression(Block):
     Arguments:
         values: An iterable.
             Iterable can contain workflow objects.
+        loop_indexer: A callable to produce dynamic loop indexes for each item.
+            The callable must accept a single argument, the item currently being
+            iterated.
+            The index should be a hashable and unique across the items in the loop.
+            Usually they are simple Python types such as
+            `str`, `int` or tuples of these.
+
+            When `loop_indexer` is `None`, each task executed within the loop is given
+            a loop index from `0..len(values) - 1`.
     """
 
-    def __init__(self, values: Iterable | Reference) -> None:
+    def __init__(
+        self,
+        values: Iterable | Reference,
+        loop_indexer: Callable[[object], object] | None = None,
+    ) -> None:
         super().__init__(parameters={"values": values})
         self._ref = Reference(self)
+        self._loop_indexer = loop_indexer or None
 
     @property
     def ref(self) -> Reference:
@@ -54,10 +68,13 @@ class ForExpression(Block):
         run_until = executor.settings.run_until
         executor.settings.run_until = None
         try:
-            for val in vals:
+            for idx, val in enumerate(vals):
                 executor.set_variable(self, val)
-                for block in self.body:
-                    block.execute(executor)
+                with executor.scoped_index(
+                    self._loop_indexer(val) if self._loop_indexer else idx
+                ):
+                    for block in self.body:
+                        block.execute(executor)
         finally:
             executor.settings.run_until = run_until
         executor.set_block_status(self, ExecutionStatus.FINISHED)
@@ -71,19 +88,30 @@ T = TypeVar("T")
 
 @variable_tracker.track
 @contextmanager
-def for_(values: Iterable[T]) -> Generator[T, None, None]:
+def for_(
+    values: Iterable[T], loop_indexer: Callable[[object], str] | None = None
+) -> Generator[T, None, None]:
     """For expression to iterate over the values within a code block.
 
     The equivalent of Python's for loop.
 
     Arguments:
         values: An iterable.
+        loop_indexer: A callable to produce dynamic loop indexes for each item.
+            The callable must accept a single argument, the item currently being
+            iterated.
+            The index should be a hashable and unique across the items in the loop.
+            Usually they are simple Python types such as
+            `str`, `int` or tuples of these.
+
+            When `loop_indexer` is `None`, each task executed within the loop is given
+            a loop index from `0..len(values) - 1`.
 
     Example:
         ```python
-       with for_([1, 2, 3]) as x:
+        with workflow.for_([1, 2, 3]) as x:
             ...
         ```
     """
-    with ForExpression(values=values) as x:
+    with ForExpression(values=values, loop_indexer=loop_indexer) as x:
         yield cast(T, x)

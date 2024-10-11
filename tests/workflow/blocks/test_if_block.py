@@ -52,7 +52,7 @@ def execute(block: object, variables: dict | None = None) -> WorkflowResult:
     result = WorkflowResult("test")
     for k, v in (variables or {}).items():
         executor.set_variable(k, v)
-    with executor.set_active_workflow_settings(result):
+    with executor.enter_workflow(result):
         block.execute(executor)
     return result
 
@@ -89,7 +89,7 @@ class TestIFExpression:
             a_function()
         executor = ExecutorState()
         executor.set_variable("condition", condition)
-        with executor.set_active_workflow_settings(WorkflowResult("test")):
+        with executor.enter_workflow(WorkflowResult("test")):
             expr.execute(executor)
         assert len(executor.block_variables) == result + 1
 

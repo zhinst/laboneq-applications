@@ -52,6 +52,39 @@ class ExecutionStatus(Enum):
     SKIPPED = "skipped"
 
 
+class _RunTimeIndexer:
+    """Runtime indexer for blocks."""
+
+    def __init__(self) -> None:
+        self._index: list = []
+
+    def push(self, index: object) -> None:
+        """Push an active index."""
+        self._index.append(index)
+
+    def pop(self) -> object:
+        """Pop an active index."""
+        return self._index.pop()
+
+    def format(self) -> tuple[object]:
+        """Format the index."""
+        return tuple(self._index)
+
+
+class _WorkflowExecutionContext:
+    """Workflow execution context.
+
+    Independent scope for each workflow that is being executed.
+    """
+
+    def __init__(
+        self, result: WorkflowResult, options: WorkflowOptions, indexer: _RunTimeIndexer
+    ) -> None:
+        self.result = result
+        self.options = options
+        self.indexer = indexer
+
+
 class ExecutorState:
     """A class that holds the graph execution state."""
 
@@ -61,8 +94,7 @@ class ExecutorState:
     ) -> None:
         self._settings = settings or ExecutorSettings()
         self._recorder_manager = ExecutionRecorderManager()
-        self._options = WorkflowOptions()
-        self._results: list[WorkflowResult] = []
+        self._workflow_contexts: list[_WorkflowExecutionContext] = []
         # Block variables, either workflow inputs or outputs of any block
         self._block_variables = {}
         self._block_status: dict[Block, ExecutionStatus] = {}
@@ -72,33 +104,64 @@ class ExecutorState:
     @property
     def has_active_context(self) -> bool:
         """Return true if executor has an active context."""
-        return self._context_depth != 0
-
-    def get_options(self, name: str) -> BaseOptions | None:
-        """Get options by block name."""
-        if name in self._options._task_options:
-            return self._options._task_options.get(name)
-        # TODO: Remove when WorkflowOptions are not required to have
-        # task names defined on upper level
-        return getattr(self._options, name, None)
+        return len(self._workflow_contexts) != 0
 
     @contextmanager
-    def set_active_workflow_settings(
-        self, result: WorkflowResult, options: WorkflowOptions | None = None
-    ) -> Generator[None]:
-        """Set an active workflow settings for the duration of the context.
+    def scoped_index(self, index: object) -> Generator[None, None, None]:
+        """Add a scoped index for the given context.
 
-        Given settings are then used and are available for sub-blocks executed
-        within the context.
+        Must be called within an active workflow.
         """
-        self._results.append(result)
-        opts_old = self._options
-        self._options = options or WorkflowOptions()
+        self._workflow_contexts[-1].indexer.push(index)
         try:
             yield
         finally:
-            self._results.pop()
-            self._options = opts_old
+            self._workflow_contexts[-1].indexer.pop()
+
+    def get_index(self) -> tuple:
+        """Get execution index."""
+        if not self.has_active_context:
+            return ()
+        return self._workflow_contexts[-1].indexer.format()
+
+    def get_options(self, name: str) -> BaseOptions | None:
+        """Get options by block name."""
+        if not self._workflow_contexts:
+            return None
+        opts = self._workflow_contexts[-1].options
+        if name in opts._task_options:
+            return opts._task_options.get(name)
+        # TODO: Remove when WorkflowOptions are not required to have
+        # task names defined on upper level
+        return getattr(opts, name, None)
+
+    @contextmanager
+    def enter_workflow(
+        self, result: WorkflowResult, options: WorkflowOptions | None = None
+    ) -> Generator[None]:
+        """Enter an workflow execution context.
+
+        Sets given settings for the duration of the context.
+
+        Given settings are then used and are available for sub-blocks executed
+        within the context.
+
+        When execution context is active, it can be interrupted
+        with '.interrupt()'. This will either exit the execution
+        or continue the upper context in case of nested context.
+        """
+        ctx = _WorkflowExecutionContext(
+            result=result,
+            options=options or WorkflowOptions(),
+            indexer=_RunTimeIndexer(),
+        )
+        self._workflow_contexts.append(ctx)
+        try:
+            yield
+        except _ExecutorInterrupt:
+            return
+        finally:
+            self._workflow_contexts.pop()
 
     def add_workflow_result(self, result: WorkflowResult) -> None:
         """Add executed workflow result.
@@ -111,16 +174,16 @@ class ExecutorState:
         # we append it into the parent workflow results.
         # If self._results is empty, the result is from the active workflow itself
         # and nothing should be done.
-        if self._results:
-            self._results[-1]._tasks.append(result)
+        if self.has_active_context:
+            self._workflow_contexts[-1].result._tasks.append(result)
 
     def add_task_result(self, task: TaskResult) -> None:
         """Add executed task result."""
-        self._results[-1]._tasks.append(task)
+        self._workflow_contexts[-1].result._tasks.append(task)
 
     def set_execution_output(self, output: Any) -> None:  # noqa: ANN401
         """Set an output for the workflow being executed."""
-        self._results[-1]._output = output
+        self._workflow_contexts[-1].result._output = output
 
     @property
     def settings(self) -> ExecutorSettings:
@@ -141,21 +204,6 @@ class ExecutorState:
         """Get block status."""
         # TODO: Move to executor blocks once a proper executor is ready.
         return self._block_status.get(block, ExecutionStatus.NOT_STARTED)
-
-    def __enter__(self):
-        """Enter an execution context.
-
-        When execution context is active, it can be interrupted
-        with '.interrupt()'. This will either exit the execution
-        or continue the upper context in case of nested context.
-        """
-        self._context_depth += 1
-        return self
-
-    def __exit__(self, exc_type, exc_value, traceback):  # noqa: ANN001
-        """Exit the execution context."""
-        self._context_depth -= 1
-        return isinstance(exc_value, _ExecutorInterrupt)
 
     def interrupt(self) -> None:
         """Interrupt the current active execution context.
@@ -205,7 +253,7 @@ class ExecutorState:
 
     def results(self) -> list[WorkflowResult]:
         """Return the results of the execution."""
-        return self._results
+        return [x.result for x in self._workflow_contexts]
 
     @property
     def start_time(self) -> datetime:
