@@ -20,7 +20,7 @@ class OptionBuilder:
 
     def __init__(self, base: WorkflowOptions) -> None:
         self._base = base
-        self._flatten_opts = _get_all_fields(self._base)
+        self._flatten_opts = sorted(_get_all_fields(self._base))
 
     @property
     def base(self) -> WorkflowOptions:
@@ -28,7 +28,7 @@ class OptionBuilder:
         return self._base
 
     def __dir__(self):
-        return sorted(self._flatten_opts)
+        return self._flatten_opts
 
     def __getattr__(self, field_name: str) -> OptionNodeList:
         if field_name.startswith("_"):
@@ -60,6 +60,61 @@ class OptionBuilder:
 
     def _repr_pretty_(self, p, _cycle):  # noqa: ANN001, ANN202
         p.text(str(self))
+
+    def _overview(self) -> str:
+        """Return the overview of all option fields."""
+        header_color = "\033[95m"  # Magenta
+        separator_color = "\033[94m"  # Blue
+        field_color = "\033[92m"  # Green
+        description_color = "\033[93m"  # Yellow
+        value_color = "\033[96m"  # Cyan
+        reset_color = "\033[0m"  # Reset to default color
+
+        header = f"{header_color}Option Fields{reset_color}"
+        separator = f"{separator_color}{'=' * len('Option Fields')}{reset_color}"
+        rows = []
+        for field in self._flatten_opts:
+            rows.append(f"{field_color}{field}:{reset_color}")
+            desc = self._get_field_descr(field)
+            for d in desc:
+                rows.append(
+                    f"{description_color}\tDescription:{reset_color} "
+                    f"{value_color}{d['description']}{reset_color}"
+                )
+                class_default = list(zip(d["options"], d["default"]))
+                rows.append(
+                    f"{description_color}\tClasses and Defaults:{reset_color} "
+                    f"{value_color}{class_default}{reset_color}, "
+                )
+                rows.append("")
+        fields_str = "\n".join(rows)
+        return f"{header}\n{separator}\n{fields_str}"
+
+    def _get_field_descr(self, field: str) -> str:
+        """Combine fields with the same description."""
+        # TODO: Optimize this method
+        fields: OptionNodeList = getattr(self, field)
+        d = {type(f.option).__name__: (f.description, f.default_value) for f in fields}
+        d2 = {}
+        # iterate over d and combine fields if they have the same description
+        for k, v in d.items():
+            if v[0] in d2:
+                d2[v[0]].append((k, v[1]))
+            else:
+                d2[v[0]] = [(k, v[1])]
+        return [
+            {
+                "description": k,
+                "options": [i[0] for i in v],
+                "default": [i[1] for i in v],
+            }
+            for k, v in d2.items()
+        ]
+
+
+def show_fields(opt: OptionBuilder) -> None:
+    """Print the overview of the option fields."""
+    print(opt._overview())  # noqa: T201
 
 
 def _retrieve_option_attributes(
@@ -209,6 +264,18 @@ class OptionNode:
         self.field = field
         self.option = option
         self._value = str(getattr(self.option, self.field, self.option))
+        self._description = option.model_fields[self.field].description
+        self._default_value = option.model_fields[self.field].default
+
+    @property
+    def description(self) -> str:
+        """Return the description of the option field."""
+        return self._description
+
+    @property
+    def default_value(self):  # noqa: ANN201
+        """Return the default value of the option field."""
+        return self._default_value
 
     def is_top_level(self) -> bool:
         """Return True if the option is a top-level field."""
@@ -230,7 +297,7 @@ class OptionNode:
         )
 
     def __str__(self) -> str:
-        return f"({self.name},{self._value})"
+        return f"{self.name} : {self._value}"
 
     def _repr_pretty_(self, p, _cycle):  # noqa: ANN001, ANN202
         p.text(str(self))

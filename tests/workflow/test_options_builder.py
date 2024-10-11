@@ -1,4 +1,5 @@
 import pytest
+from pydantic import Field
 
 from laboneq_applications.workflow.options import TaskOptions, WorkflowOptions
 from laboneq_applications.workflow.options_builder import (
@@ -119,6 +120,32 @@ class TestOptionBuilderPrinting:
             "W(a=1,_task_options={'task1':T(b='b'),'wf1':W(a=1,_task_options={})})"
         )
         assert expected_str == (strip_ansi_codes(minify_string(str(option_builder))))
+
+
+class TestOptionBuilderOverview:
+    @pytest.fixture()
+    def option_builder(self):
+        class W(WorkflowOptions):
+            a: int = Field(1, description="a")
+
+        class T(TaskOptions):
+            b: str = "b"
+            a: int = Field(2, description="aa")
+
+        option_builder = W()
+        option_builder._task_options = {"task1": T(), "wf1": W()}
+        return OptionBuilder(option_builder)
+
+    def test_overview(self, option_builder):
+        overview = option_builder._overview()
+        expected_overview = (
+            "OptionFields============="
+            "a:\tDescription:a\tClassesandDefaults:[('W',1)],"
+            "\tDescription:aa\tClassesandDefaults:[('T',2)],"
+            "b:\tDescription:None\tClassesandDefaults:[('T','b')],"
+            "logstore:\tDescription:None\tClassesandDefaults:[('W',None)],"
+        )
+        assert expected_overview == strip_ansi_codes(minify_string(overview))
 
 
 class TestOptionBuilderSetOption:
@@ -263,7 +290,7 @@ class TestOptionBuilderSetOption:
         }
 
 
-class TestOptionInfo:
+class TestOptionNode:
     def test_create(self):
         info = OptionNode("task1", "shared", TOpt1())
         assert info.name == "task1"
@@ -277,7 +304,7 @@ class TestOptionInfo:
 
     def test_str(self):
         info = OptionNode("task1", "shared", TOpt1())
-        assert str(info) == "(task1,1)"
+        assert str(info) == "task1 : 1"
 
     def test_equal(self):
         info1 = OptionNode("task1", "shared", TOpt1())
@@ -294,7 +321,7 @@ class TestOptionInfo:
         assert info1 != info2
 
 
-class TestOptionInfoList:
+class TestOptionNodeList:
     def test_create(self):
         opts_list = OptionNodeList()
         assert opts_list == []
