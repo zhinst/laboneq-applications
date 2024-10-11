@@ -41,12 +41,24 @@ class BaseExperimentOptions(TaskOptions):
             Default: False.
     """
 
-    count: NonNegativeInt = 1024
-    acquisition_type: str | AcquisitionType = AcquisitionType.INTEGRATION
-    averaging_mode: str | AveragingMode = AveragingMode.CYCLIC
-    repetition_mode: str | RepetitionMode = RepetitionMode.FASTEST
-    repetition_time: float | None = None
-    reset_oscillator_phase: bool = False
+    count: NonNegativeInt = Field(
+        default=1024, description="The number of repetitions."
+    )
+    acquisition_type: str | AcquisitionType = Field(
+        AcquisitionType.INTEGRATION,
+        description="Acquisition type to use for the experiment.",
+    )
+    averaging_mode: str | AveragingMode = Field(
+        AveragingMode.CYCLIC, description="Averaging mode to use for the experiment."
+    )
+    repetition_mode: str | RepetitionMode = Field(
+        RepetitionMode.FASTEST,
+        description="The repetition mode to use for the experiment.",
+    )
+    repetition_time: float | None = Field(None, description="The repetition time.")
+    reset_oscillator_phase: bool = Field(
+        False, description="Whether to reset the oscillator phase."
+    )
 
     @field_validator("acquisition_type", mode="after")
     @classmethod
@@ -84,9 +96,17 @@ class TuneupExperimentOptions(BaseExperimentOptions):
             Default: same as transition
     """
 
-    transition: Literal["ge", "ef"] = "ge"
-    use_cal_traces: bool = True
-    cal_states: str | tuple = "ge"
+    transition: Literal["ge", "ef"] = Field(
+        "ge",
+        description="Transition to perform the experiment on. May be any"
+        " transition supported by the quantum operations.",
+    )
+    use_cal_traces: bool = Field(
+        True, description="Whether to include calibration traces in the experiment."
+    )
+    cal_states: str | tuple = Field(
+        "ge", description="The states to prepare in the calibration traces."
+    )
 
     @model_validator(mode="before")
     @classmethod
@@ -105,9 +125,7 @@ class ResonatorSpectroscopyExperimentOptions(BaseExperimentOptions):
 
     Additional attributes:
         use_cw:
-            Perform a CW spectroscopy instead.
-            No pulse is emitted on measure and the corresponding
-            dictionary is ignored.
+            Perform a CW spectroscopy where no measure pulse is played.
             Default: False.
         spectroscopy_reset_delay:
             How long to wait after an acquisition in seconds.
@@ -117,9 +135,16 @@ class ResonatorSpectroscopyExperimentOptions(BaseExperimentOptions):
             Default: `AcquisitionType.SPECTROSCOPY`.
     """
 
-    use_cw: bool = False
-    spectroscopy_reset_delay: float = 1e-6
-    acquisition_type: AcquisitionType = AcquisitionType.SPECTROSCOPY
+    use_cw: bool = Field(
+        False, description="Perform a CW spectroscopy where no measure pulse is played."
+    )
+    spectroscopy_reset_delay: float = Field(
+        1e-6, description="How long to wait after an acquisition in seconds."
+    )
+    acquisition_type: AcquisitionType = Field(
+        AcquisitionType.SPECTROSCOPY,
+        description="Acquisition type to use for the experiment.",
+    )
 
 
 class TuneupAnalysisOptions(TuneupExperimentOptions):
@@ -149,12 +174,22 @@ class TuneupAnalysisOptions(TuneupExperimentOptions):
 
     """
 
-    do_rotation: bool = True
-    do_pca: bool = False
-    do_fitting: bool = True
-    fit_parameters_hints: dict | None = None
-    save_figures: bool = True
-    close_figures: bool = True
+    do_rotation: bool = Field(
+        True,
+        description="Whether to rotate the raw data based on calibration traces or "
+        "principal component analysis.",
+    )
+    do_pca: bool = Field(
+        False,
+        description="Whether to perform principal component analysis on the raw data"
+        " independent of whether there were calibration traces in the experiment.",
+    )
+    do_fitting: bool = Field(True, description="Whether to perform the fit.")
+    fit_parameters_hints: dict | None = Field(
+        None, description="Parameters hints accepted by lmfit."
+    )
+    save_figures: bool = Field(True, description="Whether to save the figures.")
+    close_figures: bool = Field(True, description="Whether to close the figures.")
 
 
 class TuneUpAnalysisWorkflowOptions(WorkflowOptions):
@@ -169,10 +204,14 @@ class TuneUpAnalysisWorkflowOptions(WorkflowOptions):
             Default: 'True'.
     """
 
-    do_fitting: bool = True
-    do_plotting: bool = True
-    do_raw_data_plotting: bool = True
-    do_qubit_population_plotting: bool = True
+    do_fitting: bool = Field(True, description="Whether to perform the fit.")
+    do_plotting: bool = Field(True, description="Whether to make plots.")
+    do_raw_data_plotting: bool = Field(
+        True, description="Whether to plot the raw data."
+    )
+    do_qubit_population_plotting: bool = Field(
+        True, description="Whether to plot the qubit population."
+    )
 
 
 class TuneUpWorkflowOptions(WorkflowOptions):
@@ -187,8 +226,12 @@ class TuneUpWorkflowOptions(WorkflowOptions):
             Default: False
     """
 
-    do_analysis: bool = True
-    update: bool = False
+    do_analysis: bool = Field(True, description="Whether to run the analysis workflow.")
+    update: bool = Field(
+        False,
+        description="Whether to update the setup based on the "
+        "results from the analysis.",
+    )
 
 
 class QubitSpectroscopyExperimentOptions(BaseExperimentOptions):
@@ -200,7 +243,9 @@ class QubitSpectroscopyExperimentOptions(BaseExperimentOptions):
             Default: 1e-6.
     """
 
-    spectroscopy_reset_delay: float = 1e-6
+    spectroscopy_reset_delay: float = Field(
+        1e-6, description="How long to wait after an acquisition in seconds."
+    )
 
 
 class QubitSpectroscopyAnalysisOptions(QubitSpectroscopyExperimentOptions):
@@ -221,10 +266,12 @@ class QubitSpectroscopyAnalysisOptions(QubitSpectroscopyExperimentOptions):
             Default: `True`.
     """
 
-    do_fitting: bool = True
-    fit_parameters_hints: dict | None = None
-    save_figures: bool = True
-    close_figures: bool = True
+    do_fitting: bool = Field(True, description="Whether to perform the fit.")
+    fit_parameters_hints: dict | None = Field(
+        None, description="Parameters hints accepted by lmfit."
+    )
+    save_figures: bool = Field(True, description="Whether to save the figures.")
+    close_figures: bool = Field(True, description="Whether to close the figures.")
 
 
 class QubitSpectroscopyAnalysisWorkflowOptions(WorkflowOptions):
@@ -242,6 +289,10 @@ class QubitSpectroscopyAnalysisWorkflowOptions(WorkflowOptions):
             Default: True.
     """
 
-    do_plotting: bool = True
-    do_raw_data_plotting: bool = True
-    do_plotting_qubit_spectroscopy: bool = True
+    do_plotting: bool = Field(True, description="Whether to make plots.")
+    do_raw_data_plotting: bool = Field(
+        True, description="Whether to plot the raw data."
+    )
+    do_plotting_qubit_spectroscopy: bool = Field(
+        True, description="Whether to plot the final qubit spectroscopy plot."
+    )

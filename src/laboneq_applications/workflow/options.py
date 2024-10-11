@@ -18,22 +18,24 @@ class WorkflowOptions(BaseOptions):
     """Base options for a workflow.
 
     Attributes:
-        logbook:
-            The logbook to use. Not serialized/deserialized.
+        logstore:
+            The logstore to use. Not serialized/deserialized.
             Default: `None`.
         task_options:
             A mapping of sub-task and sub-workflow options.
             A task can have only one unique set of options per workflow.
     """
 
-    logstore: LogbookStore | None = Field(default=None, repr=False, exclude=True)
+    logstore: LogbookStore | None = Field(
+        default=None, repr=False, exclude=True, description="The logstore to use."
+    )
     _task_options: dict[str, BaseOptions] = PrivateAttr(default_factory=dict)
 
     class Config:
         """Pydantic configuration."""
 
         # Exclude fields from serialization by default
-        exclude: typing.ClassVar[set[str]] = {"logbook"}
+        exclude: typing.ClassVar[set[str]] = {"logstore"}
         arbitrary_types_allowed = True
 
     def to_dict(self) -> dict:

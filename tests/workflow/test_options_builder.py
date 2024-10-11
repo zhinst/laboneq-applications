@@ -143,7 +143,7 @@ class TestOptionBuilderOverview:
             "a:\tDescription:a\tClassesandDefaults:[('W',1)],"
             "\tDescription:aa\tClassesandDefaults:[('T',2)],"
             "b:\tDescription:None\tClassesandDefaults:[('T','b')],"
-            "logstore:\tDescription:None\tClassesandDefaults:[('W',None)],"
+            "logstore:\tDescription:Thelogstoretouse.\tClassesandDefaults:[('W',None)],"
         )
         assert expected_overview == strip_ansi_codes(minify_string(overview))
 
