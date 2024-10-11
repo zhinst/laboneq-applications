@@ -5,7 +5,6 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from laboneq_applications.core import utc_now
-from laboneq_applications.core.utils import pygmentize
 from laboneq_applications.workflow import _utils
 from laboneq_applications.workflow.blocks.block import Block
 from laboneq_applications.workflow.executor import ExecutionStatus, ExecutorState
@@ -42,12 +41,6 @@ class TaskBlock(Block):
     def options_type(self) -> type[BaseOptions] | None:
         """Type of block options."""
         return self.task._options
-
-    @property
-    @pygmentize
-    def src(self) -> str:
-        """Source code of the task."""
-        return self.task.src
 
     @property
     def name(self) -> str:

@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-import textwrap
-
 from laboneq_applications.workflow import task
 from laboneq_applications.workflow.blocks.task_block import TaskBlock
 from laboneq_applications.workflow.executor import ExecutorState
@@ -39,18 +37,6 @@ class TestTaskBlock:
     def test_ref(self):
         block = TaskBlock(self.no_args_callable)
         assert block.ref == Reference(block)
-
-    def test_src(self):
-        @task
-        def addition(x, y):
-            return x + y
-
-        blk = TaskBlock(addition)
-        assert blk.src == textwrap.dedent("""\
-            @task
-            def addition(x, y):
-                return x + y
-        """)
 
     def test_options(self):
         @task
