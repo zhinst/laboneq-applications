@@ -42,12 +42,14 @@ set "ENABLE_MKDOCSTRINGS=true"
 After this you should be able to build the documentation with:
 
 ```
-mkdocs build
+mkdocs-zhinst build
 ```
 
 MkDocs also comes with a handy live preview that automatically adapts to your
 local changes. You can start the preview server using:
 
 ```
-mkdocs serve
+mkdocs-zhinst serve
 ```
+
+**IMPORTANT**: Using the `mkdocs` cli interface directly will result in a broken build. Make sure you use the `mkdocs-zhinst` cli instead. This ensures all the right plugins and theme is loaded.

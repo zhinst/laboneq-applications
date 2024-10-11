@@ -1,1 +1,2 @@
--r zi_mkdocs/requirements.txt
+--extra-index-url=https://artifactory.zhinst.com/artifactory/api/pypi/ZIPyPI/simple
+mkdocs-zhinst

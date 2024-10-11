@@ -208,7 +208,7 @@ class TunableTransmonOperations(dsl.QuantumOperations):
     ) -> None:
         """Perform a measurement on the qubit.
 
-        The measurement operation plays a readout pulse and performs an acquistion.
+        The measurement operation plays a readout pulse and performs an acquisition.
         If you wish to perform only an acquisition, use the `acquire` operation.
 
         Arguments:

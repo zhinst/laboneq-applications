@@ -1,12 +1,9 @@
-INHERIT: zi_mkdocs/global.yml
-
 site_name: LabOne Q Applications Library
 docs_dir: sources
 site_dir: ../site
 
 watch:
   - ../src/laboneq_applications
-  - zi_mkdocs
 
 nav:
   - Home: index.md
@@ -91,8 +88,6 @@ nav:
       - dsl: reference/dsl.md
 
 plugins:
-  macros:
-    include_dir: ""
   mkdocstrings:
     enabled: !ENV [ENABLE_MKDOCSTRINGS, false]
     handlers:
@@ -100,7 +95,5 @@ plugins:
         import: ["https://docs.zhinst.com/labone_q_user_manual/objects.inv"]
   mkdocs-jupyter:
     execute: true
-  # Overwrite zi-mkdocs gen-files scripts to enable mkdocs-jupyter
-  # to execute and render the output of source Notebook files
-  gen-files:
-    scripts: []
+  spellcheck:
+    known_words: ../known_words.txt

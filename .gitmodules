@@ -1,4 +1,0 @@
-[submodule "docs/zi_mkdocs"]
-	path = docs/zi_mkdocs
-	url = https://gitlab.zhinst.com/docs/zi-mkdocs.git
-	branch = main

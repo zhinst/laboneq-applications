@@ -12,8 +12,8 @@ doc:build:
   script:
     - pip install -e .
     - cd docs
-    - pip install -r requirements.txt
-    - mkdocs build --strict
+    - pip install -r requirements.txt --constraint constraints.txt
+    - mkdocs-zhinst build --strict
     - cd ..
     - find site -name "*.md" -type f -delete
   artifacts:
