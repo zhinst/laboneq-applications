@@ -54,13 +54,13 @@ class TestTaskDecorator:
         def foobar():
             return None
 
-        task1 = task(foobar, "foobar")
+        task1 = task(foobar, name="foobar")
         task2 = task(task1)
         assert task2.name == "foobar"
         assert task1._func == task2._func
         assert task1 is not task2
 
-        task1 = task(foobar, "foobar")
+        task1 = task(foobar, name="foobar")
         task2 = task(task1, name="foobar2")
         assert task2.name == "foobar2"
         assert task1._func == task2._func
@@ -86,6 +86,17 @@ class TestTaskDecorator:
             return x + y
 
         assert str(a_task) == "task(name=a_task)"
+
+    def test_save(self):
+        @task
+        def a_task(): ...
+
+        assert a_task._save is True
+
+        @task(save=False)
+        def b_task(): ...
+
+        assert b_task._save is False
 
 
 class NotABaseOptionTypeOptions:

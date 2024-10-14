@@ -57,12 +57,16 @@ class TestTaskResult:
         return 2
 
     def test_name(self):
-        t = TaskResult(self.task_a, 2)
+        t = TaskResult(self.task_a, None)
         assert t.name == "task_a"
 
     def test_func(self):
-        t = TaskResult(self.task_a, 2)
+        t = TaskResult(self.task_a, None)
         assert t.func == self.task_a.func
+
+    def test_task(self):
+        t = TaskResult(self.task_a, None)
+        assert t.task == self.task_a
 
     def test_eq(self):
         e1 = TaskResult(self.task_a, 2)

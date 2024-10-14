@@ -30,9 +30,14 @@ class TaskResult:
         self._task = task
         self._output = output
         self._input = input or {}
+        self._index = index
         self._start_time: datetime | None = None
         self._end_time: datetime | None = None
-        self._index = index
+
+    @property
+    def task(self) -> task_:
+        """Task producing the result."""
+        return self._task
 
     @property
     def name(self) -> str:
