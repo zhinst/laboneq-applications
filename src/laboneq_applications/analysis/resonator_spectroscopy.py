@@ -17,6 +17,7 @@ from typing import TYPE_CHECKING
 import matplotlib.pyplot as plt
 import numpy as np
 import uncertainties as unc
+from pydantic import Field
 
 from laboneq_applications import dsl, workflow
 from laboneq_applications.analysis.fitting_helpers import lorentzian_fit
@@ -58,11 +59,19 @@ class ResonatorSpectroscopyAnalysisOptions(ResonatorSpectroscopyExperimentOption
 
     """
 
-    fit_lorentzian: bool = False
-    fit_parameters_hints: dict[str, dict[str, float | bool | str]] | None = None
-    find_peaks: bool = False
-    save_figures: bool = True
-    close_figures: bool = True
+    fit_lorentzian: bool = Field(
+        False, description="Whether to fit a Lorentzian model to the data."
+    )
+    fit_parameters_hints: dict[str, dict[str, float | bool | str]] | None = Field(
+        None, description="Parameters hints accepted by lmfit"
+    )
+    find_peaks: bool = Field(
+        False,
+        description="Whether to search for peaks (True) or dips (False) "
+        "in the spectrum.",
+    )
+    save_figures: bool = Field(True, description="Whether to save the figures.")
+    close_figures: bool = Field(True, description="Whether to close the figures.")
 
 
 class ResonatorSpectroscopyAnalysisWorkflowOptions(WorkflowOptions):
@@ -83,10 +92,16 @@ class ResonatorSpectroscopyAnalysisWorkflowOptions(WorkflowOptions):
             Default: True.
     """
 
-    do_plotting: bool = True
-    do_raw_data_plotting: bool = True
-    do_plotting_magnitude_phase: bool = True
-    do_plotting_real_imaginary: bool = True
+    do_plotting: bool = Field(True, description="Whether to create plots.")
+    do_raw_data_plotting: bool = Field(
+        True, description="Whether to plot the raw data."
+    )
+    do_plotting_magnitude_phase: bool = Field(
+        True, description="Whether to plot the magnitude and phase."
+    )
+    do_plotting_real_imaginary: bool = Field(
+        True, description="Whether to plot the real and imaginary data."
+    )
 
 
 @workflow.workflow(name="resonator_spectroscopy_analysis")

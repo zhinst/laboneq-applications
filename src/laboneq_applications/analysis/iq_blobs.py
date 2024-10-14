@@ -18,6 +18,7 @@ from typing import TYPE_CHECKING
 import matplotlib.colors as mc
 import matplotlib.pyplot as plt
 import numpy as np
+from pydantic import Field
 from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
 from sklearn.inspection import DecisionBoundaryDisplay
 from sklearn.metrics import confusion_matrix
@@ -57,10 +58,14 @@ class IQBlobAnalysisWorkflowOptions(WorkflowOptions):
             Default: 'True'.
     """
 
-    do_fitting: bool = True
-    do_plotting: bool = True
-    do_plotting_iq_blobs: bool = True
-    do_plotting_assignment_matrices: bool = True
+    do_fitting: bool = Field(True, description="Whether to perform the fit.")
+    do_plotting: bool = Field(True, description="Whether to create plots.")
+    do_plotting_iq_blobs: bool = Field(
+        True, description="Whether to create the IQ-blob plots of the single shots."
+    )
+    do_plotting_assignment_matrices: bool = Field(
+        True, description="Whether to create the assignment matrix plots."
+    )
 
 
 class IQBlobAnalysisOptions(TaskOptions):
@@ -75,8 +80,8 @@ class IQBlobAnalysisOptions(TaskOptions):
             Default: `True`.
     """
 
-    save_figures: bool = True
-    close_figures: bool = True
+    save_figures: bool = Field(True, description="Whether to save the figures.")
+    close_figures: bool = Field(True, description="Whether to close the figures.")
 
 
 @workflow.workflow(name="iq_blobs_analysis")

@@ -37,8 +37,6 @@ if TYPE_CHECKING:
     from laboneq_applications.tasks.run_experiment import RunExperimentResults
     from laboneq_applications.typing import Qubits, QubitSweepPoints
 
-options = QubitSpectroscopyAnalysisWorkflowOptions
-
 
 @workflow.workflow(name="qubit_spectroscopy_analysis")
 def analysis_workflow(

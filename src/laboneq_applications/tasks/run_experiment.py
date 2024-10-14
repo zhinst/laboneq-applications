@@ -5,6 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any
 
+from pydantic import Field
 from typing_extensions import TypeAlias
 
 from laboneq_applications.common.attribute_wrapper import AttributeWrapper
@@ -161,7 +162,11 @@ class RunExperimentOptions(TaskOptions):
             Default: False.
     """
 
-    return_legacy_results: bool = False
+    return_legacy_results: bool = Field(
+        False,
+        description="Whether to return an instance of the LabOne Q Results instead of "
+        "an instance of RunExperimentResults.",
+    )
 
 
 @task

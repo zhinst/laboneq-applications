@@ -14,6 +14,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from laboneq.simple import AveragingMode, Experiment
+from pydantic import Field
 
 from laboneq_applications import dsl, workflow
 from laboneq_applications.analysis.iq_blobs import analysis_workflow
@@ -44,7 +45,9 @@ class IQBlobExperimentOptions(BaseExperimentOptions):
             Default: `AveragingMode.SINGLE_SHOT`
     """
 
-    averaging_mode: AveragingMode = AveragingMode.SINGLE_SHOT
+    averaging_mode: AveragingMode = Field(
+        AveragingMode.SINGLE_SHOT, description="Averaging mode used for the experiment"
+    )
 
 
 class IQBlobExperimentWorkflowOptions(WorkflowOptions):
@@ -56,7 +59,7 @@ class IQBlobExperimentWorkflowOptions(WorkflowOptions):
             Default: True
     """
 
-    do_analysis: bool = True
+    do_analysis: bool = Field(True, description="Whether to run the analysis workflow.")
 
 
 @workflow.workflow(name="iq_blobs")

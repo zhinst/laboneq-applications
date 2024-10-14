@@ -17,6 +17,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Literal
 
 from laboneq.simple import AcquisitionType, Experiment
+from pydantic import Field
 
 from laboneq_applications import dsl, tasks, workflow
 from laboneq_applications.analysis.time_traces import analysis_workflow
@@ -48,7 +49,9 @@ class TimeTracesExperimentOptions(BaseExperimentOptions):
             Default: `AcquisitionType.RAW`.
     """
 
-    acquisition_type: str | AcquisitionType = AcquisitionType.RAW
+    acquisition_type: str | AcquisitionType = Field(
+        AcquisitionType.RAW, description="Acquisition type to use for the experiment"
+    )
 
 
 @workflow.workflow(name="time_traces")

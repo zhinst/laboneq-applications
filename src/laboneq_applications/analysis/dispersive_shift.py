@@ -19,6 +19,7 @@ from typing import TYPE_CHECKING
 
 import matplotlib.pyplot as plt
 import numpy as np
+from pydantic import Field
 
 from laboneq_applications import dsl, workflow
 from laboneq_applications.experiments.options import (
@@ -49,8 +50,8 @@ class DispersiveShiftAnalysisOptions(TaskOptions):
 
     """
 
-    save_figures: bool = True
-    close_figures: bool = True
+    save_figures: bool = Field(True, description="Whether to save the figures.")
+    close_figures: bool = Field(True, description="Whether to close the figures.")
 
 
 class DispersiveShiftAnalysisWorkflowOptions(WorkflowOptions):
@@ -69,9 +70,14 @@ class DispersiveShiftAnalysisWorkflowOptions(WorkflowOptions):
             Default: True.
     """
 
-    do_plotting: bool = True
-    do_plotting_dispersive_shift: bool = True
-    do_plotting_signal_distances: bool = True
+    do_plotting: bool = Field(True, description="Whether to create the plots.")
+    do_plotting_dispersive_shift: bool = Field(
+        True, description="Whether to create the dispersive shift plot."
+    )
+    do_plotting_signal_distances: bool = Field(
+        True,
+        description="Whether to create the plot for the pair-wise signal distances.",
+    )
 
 
 @workflow.workflow(name="dispersive_shift_analysis")

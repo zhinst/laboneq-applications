@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING
 
 import matplotlib.pyplot as plt
 from laboneq.data.experiment_results import AcquiredResult as AcquiredResultLegacy
+from pydantic import Field
 
 from laboneq_applications.core.utils import local_timestamp
 from laboneq_applications.core.validation import validate_and_convert_qubits_sweeps
@@ -48,10 +49,16 @@ class PlotRawDataOptions(TaskOptions):
             Default: `True`.
     """
 
-    use_cal_traces: bool = True
-    cal_states: str | tuple = "ge"
-    save_figures: bool = True
-    close_figures: bool = True
+    use_cal_traces: bool = Field(
+        True, description="Whether to include calibration traces in the experiment."
+    )
+    cal_states: str | tuple = Field(
+        "ge",
+        description="The states to prepare in the calibration traces."
+        "Can be any string or tuple made from combining the characters 'g', 'e', 'f'.",
+    )
+    save_figures: bool = Field(True, description="Whether to save the figures.")
+    close_figures: bool = Field(True, description="Whether to close the figures.")
 
 
 def timestamped_title(title: str, dt: datetime | None = None) -> str:

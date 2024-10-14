@@ -21,6 +21,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from laboneq.simple import Experiment, SweepParameter
+from pydantic import Field
 
 from laboneq_applications import dsl
 from laboneq_applications.experiments.options import (
@@ -46,7 +47,10 @@ class EchoExperimentOptions(TuneupExperimentOptions):
             Default: "y180".
     """
 
-    refocus_qop: str = "y180"
+    refocus_qop: str = Field(
+        "y180",
+        description="String to define the quantum operation in-between the x90 pulses",
+    )
 
 
 @workflow(name="echo")

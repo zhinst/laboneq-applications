@@ -18,6 +18,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import scipy as sp
 from laboneq.analysis import calculate_integration_kernels_thresholds
+from pydantic import Field
 
 from laboneq_applications import workflow
 from laboneq_applications.core.validation import validate_and_convert_qubits_sweeps
@@ -57,12 +58,18 @@ class TimeTracesAnalysisWorkflowOptions(WorkflowOptions):
             Default: 'True'.
     """
 
-    filter_kernels: bool = False
-    do_fitting: bool = True
-    do_plotting: bool = True
-    do_plotting_time_traces: bool = True
-    do_plotting_kernels_traces: bool = True
-    do_plotting_kernels_fft: bool = True
+    filter_kernels: bool = Field(False, description="Whether to filter the kernels.")
+    do_fitting: bool = Field(True, description="Whether to perform the fit.")
+    do_plotting: bool = Field(True, description="Whether to create plots.")
+    do_plotting_time_traces: bool = Field(
+        True, description="Whether to create time-traces plots."
+    )
+    do_plotting_kernels_traces: bool = Field(
+        True, description="Whether to create the integration-kernel plots."
+    )
+    do_plotting_kernels_fft: bool = Field(
+        True, description="Whether to create the kernels-FFT plots."
+    )
 
 
 class TimeTracesAnalysisOptions(TaskOptions):
@@ -93,12 +100,14 @@ class TimeTracesAnalysisOptions(TaskOptions):
             Default: `True`.
     """
 
-    granularity: int = 16
-    filter_cutoff_frequency: float | None = None
-    sampling_rate: float = 2e9
-    do_fitting: bool = True
-    save_figures: bool = True
-    close_figures: bool = True
+    granularity: int = Field(16, description="The granularity of the acquisition.")
+    filter_cutoff_frequency: float | None = Field(
+        None, description="The cut-off frequency."
+    )
+    sampling_rate: float = Field(2e9, description="The sampling rate.")
+    do_fitting: bool = Field(True, description="Whether to perform the fit.")
+    save_figures: bool = Field(True, description="Whether to save the figures.")
+    close_figures: bool = Field(True, description="Whether to close the figures.")
 
 
 @workflow.workflow(name="time_traces_analysis")
