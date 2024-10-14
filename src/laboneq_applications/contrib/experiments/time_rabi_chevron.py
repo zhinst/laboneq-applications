@@ -68,7 +68,7 @@ def experiment_workflow(
             is a single qubit, `frequencies` must be a list of numbers or an array.
             Otherwise, it must be a list of lists of numbers or arrays.
         lengths:
-            The lenghts to sweep over for each qubit drive pulse. `lenghts` must
+            The lengths to sweep over for each qubit drive pulse. `lengths` must
             be a list of numbers or an array. Otherwise it must be a list of lists of
             numbers or arrays.
         options:
@@ -201,7 +201,7 @@ def create_experiment(
         for q, q_frequencies, q_lengths in zip(qubits, frequencies, lengths):
             with dsl.sweep(
                 name=f"amps_{q.uid}",
-                parameter=SweepParameter(f"lenght_{q.uid}", q_lengths),
+                parameter=SweepParameter(f"length_{q.uid}", q_lengths),
             ) as length:
                 with dsl.sweep(
                     name=f"freqs_{q.uid}",

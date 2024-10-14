@@ -18,7 +18,9 @@ import numpy as np
 import uncertainties as unc
 
 from laboneq_applications import workflow
-from laboneq_applications.analysis.cal_trace_rotation import calculate_qubit_population
+from laboneq_applications.analysis.calibration_traces_rotation import (
+    calculate_qubit_population,
+)
 from laboneq_applications.analysis.fitting_helpers import (
     cosine_oscillatory_fit,
     get_pi_pi2_xvalues_on_cos,

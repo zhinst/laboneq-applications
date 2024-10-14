@@ -1,0 +1,1 @@
+::: laboneq_applications.contrib.analysis.signal_propagation_delay

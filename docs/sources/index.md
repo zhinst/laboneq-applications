@@ -57,4 +57,11 @@ alongside common quantum operations such as `play()`, `measure()`, etc.
 
 - `laboneq_applications.analysis`
 
-Analysis workflows, tasks and tools for various experiments.
+Analysis workflows, tasks and tools for the analysis routines of various experiments, such as 
+[calibration_traces_rotation][laboneq_applications.analysis.calibration_traces_rotation], 
+[fitting_helpers][laboneq_applications.analysis.fitting_helpers], [plotting_helpers][laboneq_applications.analysis.plotting_helpers].
+
+- `laboneq_applications.contrib`
+
+Experiment and analysis workflows as well as `QuantumElement` types and quantum operations added by us or contributed by our customers. This 
+content is primarily here for reference, and its correct functionality is not guaranteed. 

@@ -19,7 +19,9 @@ import uncertainties as unc
 from laboneq.analysis import fitting as fit_mods
 from uncertainties.umath import exp
 
-from laboneq_applications.analysis.cal_trace_rotation import calculate_population_1d
+from laboneq_applications.analysis.calibration_traces_rotation import (
+    calculate_population_1d,
+)
 from laboneq_applications.analysis.fitting_helpers import (
     fit_data_lmfit,
 )
@@ -107,10 +109,11 @@ def calculate_qubit_population_rb(
 
      - If calibration traces were used in the experiment, the raw data is rotated based
      on the calibration traces.
-     See cal_trace_rotation.py/rotate_data_to_cal_trace_results for more details.
+     See calibration_traces_rotation.py/rotate_data_to_cal_trace_results for more
+     details.
      - If no calibration traces were used in the experiment, or do_pca = True is passed
      in options, principal component analysis is performed on the data.
-     See cal_trace_rotation.py/principal_component_analysis for more details.
+     See calibration_traces_rotation.py/principal_component_analysis for more details.
 
     Arguments:
         qubits:
@@ -130,11 +133,12 @@ def calculate_qubit_population_rb(
 
     Returns:
         dict with qubit UIDs as keys and the dictionary of processed data for each qubit
-        as values. See [cal_trace_rotation.py/calculate_population_1d] for what this
-        dictionary looks like.
+        as values. See [calibration_traces_rotation.py/calculate_population_1d] for what
+        this dictionary looks like.
 
     Raises:
-        TypeError if result is not an instance of RunExperimentResults.
+        TypeError:
+            If result is not an instance of RunExperimentResults.
     """
     validate_result(result)
     opts = TuneupAnalysisOptions() if options is None else options
@@ -236,11 +240,11 @@ def plot_population(
         qubits:
             The qubits on which to run the analysis. May be either a single qubit or
             a list of qubits. The UIDs of these qubits must exist in the
-            processed_data_dict, fit_results and qubit_parameters.
-        processed_data_dict: the processed data dictionary returned by process_raw_data
-        fit_results: the fit-results dictionary returned by fit_data
-        qubit_parameters: the qubit-parameters dictionary returned by
-            extract_qubit_parameters
+            processed_data_dict and fit_results parameters.
+        processed_data_dict:
+            The processed data dictionary returned by process_raw_data.
+        fit_results:
+            The fit-results dictionary returned by fit_data.
         options:
             The options for processing the raw data.
             See [TuneupAnalysisOptions], [TuneupExperimentOptions] and

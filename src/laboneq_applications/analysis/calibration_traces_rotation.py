@@ -258,10 +258,11 @@ def calculate_qubit_population(
 
      - If calibration traces were used in the experiment, the raw data is rotated based
      on the calibration traces.
-     See [cal_trace_rotation.py/rotate_data_to_cal_trace_results] for more details.
+     See [calibration_traces_rotation.py/rotate_data_to_cal_trace_results] for more
+     details.
      - If no calibration traces were used in the experiment, or do_pca = True is passed
      in options, principal-component analysis is performed on the data.
-     See [cal_trace_rotation.py/principal_component_analysis] for more details.
+     See [calibration_traces_rotation.py/principal_component_analysis] for more details.
 
     Arguments:
         qubits:
@@ -282,11 +283,12 @@ def calculate_qubit_population(
 
     Returns:
         dict with qubit UIDs as keys and the dictionary of processed data for each qubit
-        as values. See [cal_trace_rotation.py/calculate_population_1d] for what this
-        dictionary looks like.
+        as values. See [calibration_traces_rotation.py/calculate_population_1d] for what
+        this dictionary looks like.
 
     Raises:
-        TypeError if result is not an instance of RunExperimentResults.
+        TypeError:
+            If result is not an instance of RunExperimentResults.
     """
     validate_result(result)
     opts = TuneupAnalysisOptions() if options is None else options

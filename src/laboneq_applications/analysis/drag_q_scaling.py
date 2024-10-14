@@ -19,7 +19,9 @@ import numpy as np
 import uncertainties as unc
 
 from laboneq_applications import workflow
-from laboneq_applications.analysis.cal_trace_rotation import calculate_population_1d
+from laboneq_applications.analysis.calibration_traces_rotation import (
+    calculate_population_1d,
+)
 from laboneq_applications.analysis.fitting_helpers import (
     fit_data_lmfit,
     linear,
@@ -134,10 +136,11 @@ def calculate_qubit_population_for_pulse_ids(
 
      - If calibration traces were used in the experiment, the raw data is rotated based
      on the calibration traces.
-     See [cal_trace_rotation.py/rotate_data_to_cal_trace_results] for more details.
+     See [calibration_traces_rotation.py/rotate_data_to_cal_trace_results] for more
+     details.
      - If no calibration traces were used in the experiment, or do_pca = True is passed
      in options, principal-component analysis is performed on the data.
-     See [cal_trace_rotation.py/principal_component_analysis] for more details.
+     See [calibration_traces_rotation.py/principal_component_analysis] for more details.
 
     Arguments:
         qubits:
@@ -149,8 +152,6 @@ def calculate_qubit_population_for_pulse_ids(
             each qubit. If `qubits` is a single qubit, `q_scalings` must be a list of
             numbers or an array. Otherwise, it must be a list of lists of numbers or
             arrays.
-        pulse_ids:
-            IDs to identify different measurement results.
         options:
             The options for processing the raw data.
             See [TuneupAnalysisOptions], [TuneupExperimentOptions] and
@@ -161,11 +162,12 @@ def calculate_qubit_population_for_pulse_ids(
     Returns:
         dict with qubit UIDs as keys. The dictionary of processed data for each qubit
         further has "y180" and "my180" as keys.
-        See [cal_trace_rotation.py/calculate_population_1d] for what this
+        See [calibration_traces_rotation.py/calculate_population_1d] for what this
         dictionary looks like.
 
     Raises:
-        TypeError if result is not an instance of RunExperimentResults.
+        TypeError:
+            If result is not an instance of RunExperimentResults.
     """
     validate_result(result)
     opts = TuneupAnalysisOptions() if options is None else options

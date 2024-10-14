@@ -21,7 +21,9 @@ import numpy as np
 import uncertainties as unc
 
 from laboneq_applications import workflow
-from laboneq_applications.analysis.cal_trace_rotation import calculate_qubit_population
+from laboneq_applications.analysis.calibration_traces_rotation import (
+    calculate_qubit_population,
+)
 from laboneq_applications.analysis.fitting_helpers import cosine_oscillatory_decay_fit
 from laboneq_applications.analysis.plotting_helpers import plot_raw_complex_data_1d
 from laboneq_applications.core.validation import validate_and_convert_qubits_sweeps

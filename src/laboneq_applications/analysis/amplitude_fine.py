@@ -18,7 +18,9 @@ import numpy as np
 import uncertainties as unc
 
 from laboneq_applications import workflow
-from laboneq_applications.analysis.cal_trace_rotation import calculate_qubit_population
+from laboneq_applications.analysis.calibration_traces_rotation import (
+    calculate_qubit_population,
+)
 from laboneq_applications.analysis.fitting_helpers import cosine_oscillatory_fit
 from laboneq_applications.analysis.plotting_helpers import plot_raw_complex_data_1d
 from laboneq_applications.core.validation import validate_and_convert_qubits_sweeps
@@ -273,12 +275,11 @@ def extract_qubit_parameters(
             The qubits on which to run the analysis. May be either a single qubit or
             a list of qubits. The UIDs of these qubits must exist in the
             processed_data_dict and fit_results.
-        processed_data_dict: the processed data dictionary returned by process_raw_data
         fit_results: the fit-results dictionary returned by fit_data
         processed_fit_results:
             the processed fit-results dictionary returned by process_fit_data
         parameter_to_update:
-            str that defines the paramter to be updated.
+            str that defines the parameter to be updated.
         options:
             The options for extracting the qubit parameters.
             See [TuneupAnalysisOptions], [TuneupExperimentOptions] and
@@ -377,7 +378,7 @@ def plot_population(
         processed_fit_results:
             the processed fit-results dictionary returned by process_fit_data
         parameter_to_update:
-            str that defines the paramter to be updated.
+            str that defines the parameter to be updated.
         qubit_parameters: the qubit-parameters dictionary returned by
             extract_qubit_parameters
         options:

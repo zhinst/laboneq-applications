@@ -259,7 +259,7 @@ def extract_kernels_thresholds(
 
     Args:
         qubits:
-            The qubits on which to run the taks. May be either a single qubit or
+            The qubits on which to run the task. May be either a single qubit or
             a list of qubits. The UIDs of these qubits must exist in the keys of the
             truncated_time_traces dictionary.
         truncated_time_traces:

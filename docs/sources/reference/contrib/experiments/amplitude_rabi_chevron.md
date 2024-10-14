@@ -1,0 +1,1 @@
+::: laboneq_applications.contrib.experiments.amplitude_rabi_chevron

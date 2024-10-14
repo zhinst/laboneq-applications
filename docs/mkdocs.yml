@@ -42,20 +42,52 @@ nav:
           - utils: reference/core/utils.md
       - experiments:
           - reference/experiments/index.md
-          - amplitude_rabi: reference/experiments/amplitude_rabi.md
-          - amplitude_fine: reference/experiments/amplitude_fine.md
-          - dispersive_shift: reference/experiments/dispersive_shift.md
-          - drag_q_scaling: reference/experiments/drag_q_scaling.md
-          - echo: reference/experiments/echo.md
-          - iq_blobs: reference/experiments/iq_blobs.md
-          - lifetime_measurement: reference/experiments/lifetime_measurement.md
-          - qubit_spectroscopy_amplitude: reference/experiments/qubit_spectroscopy_amplitude.md
-          - qubit_spectroscopy: reference/experiments/qubit_spectroscopy.md
-          - ramsey: reference/experiments/ramsey.md
           - resonator_spectroscopy: reference/experiments/resonator_spectroscopy.md
           - resonator_spectroscopy_amplitude: reference/experiments/resonator_spectroscopy_amplitude.md
+          - qubit_spectroscopy: reference/experiments/qubit_spectroscopy.md
+          - qubit_spectroscopy_amplitude: reference/experiments/qubit_spectroscopy_amplitude.md
+          - amplitude_rabi: reference/experiments/amplitude_rabi.md
+          - ramsey: reference/experiments/ramsey.md
+          - lifetime_measurement: reference/experiments/lifetime_measurement.md
+          - echo: reference/experiments/echo.md
+          - drag_q_scaling: reference/experiments/drag_q_scaling.md
+          - amplitude_fine: reference/experiments/amplitude_fine.md
+          - dispersive_shift: reference/experiments/dispersive_shift.md
+          - iq_blobs: reference/experiments/iq_blobs.md
           - time_traces: reference/experiments/time_traces.md
           - options: reference/experiments/options.md
+      - analysis:
+          - reference/analysis/index.md
+          - resonator_spectroscopy: reference/analysis/resonator_spectroscopy.md
+          - qubit_spectroscopy: reference/analysis/qubit_spectroscopy.md
+          - amplitude_rabi: reference/analysis/amplitude_rabi.md
+          - ramsey: reference/analysis/ramsey.md
+          - lifetime_measurement: reference/analysis/lifetime_measurement.md
+          - drag_q_scaling: reference/analysis/drag_q_scaling.md
+          - amplitude_fine: reference/analysis/amplitude_fine.md
+          - dispersive_shift: reference/analysis/dispersive_shift.md
+          - iq_blobs: reference/analysis/iq_blobs.md
+          - time_traces: reference/analysis/time_traces.md
+          - calibration_traces_rotation: reference/analysis/calibration_traces_rotation.md
+          - fitting_helpers: reference/analysis/fitting_helpers.md
+          - plotting_helpers: reference/analysis/plotting_helpers.md
+      - contrib:
+          - reference/contrib/index.md
+          - experiments:
+              - reference/contrib/experiments/index.md
+              - amplitude_rabi_chevron: reference/contrib/experiments/amplitude_rabi_chevron.md
+              - time_rabi: reference/contrib/experiments/time_rabi.md
+              - time_rabi_chevron: reference/contrib/experiments/time_rabi_chevron.md
+              - signal_propagation_delay: reference/contrib/experiments/signal_propagation_delay.md
+              - single_qubit_randomized_benchmarking: reference/contrib/experiments/single_qubit_randomized_benchmarking.md
+              - spin_locking: reference/contrib/experiments/spin_locking.md
+          - analysis:
+              - reference/contrib/analysis/index.md
+              - amplitude_rabi_chevron: reference/contrib/analysis/amplitude_rabi_chevron.md
+              - time_rabi: reference/contrib/analysis/time_rabi.md
+              - time_rabi_chevron: reference/contrib/analysis/time_rabi_chevron.md
+              - signal_propagation_delay: reference/contrib/analysis/signal_propagation_delay.md
+              - single_qubit_randomized_benchmarking: reference/contrib/analysis/single_qubit_randomized_benchmarking.md
       - logbook:
           - reference/logbook/index.md
           - combined_store: reference/logbook/combined_store.md

@@ -31,7 +31,7 @@ if TYPE_CHECKING:
 
 
 class PlotRawDataOptions(TaskOptions):
-    """Options for the plot_raw_complex_data_1d taks.
+    """Options for the plot_raw_complex_data_1d task.
 
     Attributes:
         use_cal_traces:
