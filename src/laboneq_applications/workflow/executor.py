@@ -129,11 +129,7 @@ class ExecutorState:
         if not self._workflow_contexts:
             return None
         opts = self._workflow_contexts[-1].options
-        if name in opts._task_options:
-            return opts._task_options.get(name)
-        # TODO: Remove when WorkflowOptions are not required to have
-        # task names defined on upper level
-        return getattr(opts, name, None)
+        return opts._task_options.get(name, None)
 
     @contextmanager
     def enter_workflow(

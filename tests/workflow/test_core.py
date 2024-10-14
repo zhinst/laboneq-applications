@@ -1341,64 +1341,20 @@ class TestForExpressionLoopIndex:
         assert result.tasks[3].index == (0,)
 
 
-class WfOptions(WorkflowOptions):
-    task_with_opts: TaskOptions = TaskOptions()
-
-
-class TestWorkflowValidOptions:
-    @pytest.fixture()
-    def task_with_opts(self):
-        @task
-        def task_with_opts(options: TaskOptions | None = None):
-            return options
-
-        return task_with_opts
-
-    def test_task_indirect_assignment(self, task_with_opts):
-        @workflow
-        def my_wf(options: WfOptions | None = None):
-            task_with_opts()
-
-        opts = WfOptions()
-        wf = my_wf(opts)
-        result = wf.run()
-        assert result.tasks["task_with_opts"].output == opts.task_with_opts
-
-    def test_task_direct_assignment(self, task_with_opts):
-        @workflow
-        def my_wf(options: WfOptions | None = None):
-            task_with_opts(options=options.task_with_opts)
-
-        opts = WfOptions()
-        wf = my_wf(opts)
-        result = wf.run()
-        assert result.tasks["task_with_opts"].output == opts.task_with_opts
-
-    def test_workflow_options_not_provided_use_default(self, task_with_opts):
-        @workflow
-        def my_wf(options: WfOptions | None = None):
-            task_with_opts(options=options)
-
-        wf = my_wf()
-        result = wf.run()
-        assert result.tasks["task_with_opts"].output == WfOptions()
-
-    def test_workflow_valid_options_invalid_input_type(self, task_with_opts):
-        @workflow
-        def my_wf(options: WfOptions | None = None):
-            task_with_opts(options=options)
-
-        with pytest.raises(
-            TypeError,
-            match="Workflow input options must be of type 'WfOptions', 'dict' or 'None'",  # noqa: E501
-        ):
-            my_wf(options=123)
-
-
 class ValidOptions(WorkflowOptions): ...
 
 
 class TestWorkflowInvalidOptions:
+    def test_workflow_valid_options_invalid_input_type(self):
+        @workflow
+        def my_wf(options: ValidOptions | None = None): ...
+
+        with pytest.raises(
+            TypeError,
+            match="Workflow input options must be of type 'ValidOptions', 'dict' or 'None'",  # noqa: E501
+        ):
+            my_wf(options=123)
+
     def test_invalid_options_type(self):
         with pytest.raises(
             TypeError,
@@ -1460,9 +1416,7 @@ class BarOpt(BaseOptions):
     bar: int = 2
 
 
-class OptionFooBar(WorkflowOptions):
-    task_foo: FooOpt = FooOpt()
-    task_bar: BarOpt = BarOpt()
+class OptionFooBar(WorkflowOptions): ...
 
 
 class OptionFooBarInvalid(WorkflowOptions):
@@ -1472,10 +1426,6 @@ class OptionFooBarInvalid(WorkflowOptions):
 
 class OptionNotExisting(OptionFooBar):
     task_not_existing: BarOpt = BarOpt()
-
-
-class FooOptWorkFlow(WorkflowOptions):
-    task_foo: FooOpt = FooOpt()
 
 
 @task
@@ -1494,23 +1444,6 @@ def task_bar(bar, options: BarOpt | None = None):
 
 
 class TestWorkflowOptions:
-    """
-    Case 1: If a workflow has no options declared,
-        it is users responsibility to handle it
-
-    Case 2: If workflow has options declared, and options is not passed
-        The default values of options, declared in the workflow, are used.
-
-    Case 3: Workflow options is declared and options is provided to the workflow
-        3.1: If the targeted task does not need options => ignore, raise warning
-        3.2: If the targeted task does not exist => ignore, raise warning
-        3.3: If the targeted task needs options => pass it in
-
-    Case 4: Workflow options is declared, but got updated inside the workflow.
-        Current implementation: options got updated. Use case: options could be
-        used conditioned on results of previous tasks.
-    """
-
     def test_run_workflow_with_invalid_options(self):
         @workflow
         def workflow_a(options: WorkflowOptions | None = None):
@@ -1524,125 +1457,28 @@ class TestWorkflowOptions:
         ):
             _ = workflow_a(options=1)
 
-    def test_run_with_option_class(self):
-        @workflow
-        def workflow_a(options: OptionFooBar | None = None):
-            task_foo(1)
-            task_bar(2)
-
-        @workflow
-        def workflow_b(options: Optional[OptionFooBar] = None):  # noqa: UP007
-            task_foo(1)
-            task_bar(2)
-
-        @workflow
-        def workflow_c(options: Union[OptionFooBar, None] = None):  # noqa: UP007
-            task_foo(1)
-            task_bar(2)
-
-        tbs = [workflow_a, workflow_b, workflow_c]
-
-        opt = OptionFooBar()
-        assert isinstance(opt, OptionFooBar)
-        assert isinstance(opt.task_foo, FooOpt)
-        assert isinstance(opt.task_bar, BarOpt)
-        assert opt.task_foo.foo == 1
-        assert opt.task_bar.bar == 2
-
-        for tb in tbs:
-            res = tb(options=opt).run()
-            assert res.tasks[0] == TaskResult(
-                task=task_foo,
-                output=1,
-                input={"foo": 1, "options": opt.task_foo},
-            )
-            assert res.tasks[1] == TaskResult(
-                task=task_bar,
-                output=2,
-                input={"bar": 2, "options": opt.task_bar},
-            )
-
-        for tb in tbs:
-            res = tb().run()
-            assert res.tasks[0] == TaskResult(
-                task=task_foo,
-                output=1,
-                input={"foo": 1, "options": opt.task_foo},
-            )
-            assert res.tasks[1] == TaskResult(
-                task=task_bar,
-                output=2,
-                input={"bar": 2, "options": opt.task_bar},
-            )
-
     def test_run_with_options(self):
-        # Case 3.3
         @workflow
         def workflow_a(options: OptionFooBar | None = None):
             task_foo(1)
             task_bar(2)
             task_no_opt(3)
 
-        opt1 = FooOpt()
-        opt2 = BarOpt()
-        opts = OptionFooBar(task_foo=opt1, task_bar=opt2)
+        opts = workflow_a.options()
 
         res = workflow_a(options=opts).run()
         assert res.tasks[0] == TaskResult(
             task=task_foo,
             output=1,
-            input={"foo": 1, "options": opt1},
+            input={"foo": 1, "options": opts._base._task_options["task_foo"]},
         )
         assert res.tasks[1] == TaskResult(
             task=task_bar,
             output=2,
-            input={"bar": 2, "options": opt2},
+            input={"bar": 2, "options": opts._base._task_options["task_bar"]},
         )
 
-    def test_task_not_existing(self):
-        # Case 3.2
-        @workflow
-        def workflow_a(options: OptionNotExisting | None = None):
-            task_foo(1)
-            task_bar(2)
-
-        opt1 = FooOpt()
-        opt2 = BarOpt()
-        opts = OptionNotExisting(task_foo=opt1, task_not_existing=opt2)
-
-        res = workflow_a(options=opts).run()
-        assert res.tasks[0] == TaskResult(
-            task=task_foo,
-            output=1,
-            input={"foo": 1, "options": opt1},
-        )
-        assert res.tasks[1] == TaskResult(
-            task=task_bar,
-            output=2,
-            input={"bar": 2, "options": opt2},
-        )
-
-    def test_task_requires_options_but_not_provided(self):
-        @workflow
-        def workflow_a(options: FooOptWorkFlow | None = None):
-            task_foo(1)
-            task_bar(2)
-
-        opts = FooOptWorkFlow(task_foo=FooOpt(foo=11))
-        res = workflow_a(options=opts).run()
-        assert res.tasks[0] == TaskResult(
-            task=task_foo,
-            output=1,
-            input={"foo": 1, "options": FooOpt(foo=11)},
-        )
-        assert res.tasks[1] == TaskResult(
-            task=task_bar,
-            output=2,
-            input={"bar": 2, "options": None},
-        )
-
-    def test_options_is_declared_but_not_provided(self):
-        # Case 2
+    def test_run_workflow_with_default_options(self):
         @task
         def task_foo(foo, options: FooOpt | None = None):
             options = FooOpt() if options is None else options
@@ -1659,24 +1495,23 @@ class TestWorkflowOptions:
             task_bar(2)
 
         res = workflow_a().run()
-        # default values of options are used.
+        # default values of options OptionFooBar are used.
         assert res.tasks == TaskView(
             [
                 TaskResult(
                     task=task_foo,
                     output=(1, FooOpt().foo),
-                    input={"foo": 1, "options": FooOpt()},
+                    input={"foo": 1, "options": None},
                 ),
                 TaskResult(
                     task=task_bar,
                     output=(2, BarOpt().bar),
-                    input={"bar": 2, "options": BarOpt()},
+                    input={"bar": 2, "options": None},
                 ),
             ],
         )
 
     def test_without_declaring_options(self):
-        # Case 1
         @workflow
         def workflow_a():
             task_foo(1)
@@ -1703,68 +1538,6 @@ class TestWorkflowOptions:
             [
                 TaskResult(task=task_fed, output=0, input={"options": 0}),
             ],
-        )
-
-    @pytest.mark.xfail(reason="Not implemented in workflow yet")
-    def test_workflow_manual_handling_options(self):
-        @workflow
-        def workflow_a(options=None):
-            task_foo(1, options[0])
-            task_bar(2, options=options[1])
-
-        options = [FooOpt(), BarOpt()]
-        res = workflow_a(options)
-        assert res.tasks == TaskView(
-            [
-                TaskResult(
-                    task=task_foo, output=1, input={"foo": 1, "options": options[0]}
-                ),
-                TaskResult(
-                    task=task_bar, output=2, input={"bar": 2, "options": options[1]}
-                ),
-            ],
-        )
-
-        @workflow
-        def workflow_a(options: list | None = None):
-            task_foo(1, options[0])
-            task_bar(2, options=options[1])
-
-        options = [FooOpt(), BarOpt()]
-        res = workflow_a(options)
-        assert res.tasks == TaskView(
-            [
-                TaskResult(
-                    task=task_foo, output=1, input={"foo": 1, "options": options[0]}
-                ),
-                TaskResult(
-                    task=task_bar, output=2, input={"bar": 2, "options": options[1]}
-                ),
-            ],
-        )
-
-    @pytest.mark.xfail(reason="Behaviour not finalized yet")
-    def test_mid_update(self):
-        # Case 4
-        @workflow(options=OptionFooBar)
-        def workflow_a(options=None):
-            task_foo(1)
-            options.task_foo.foo = 1234
-            task_bar(2)
-
-        opts = OptionFooBar(task_foo=FooOpt(), task_bar=BarOpt())
-
-        res = workflow_a(options=opts)
-
-        assert res.tasks[0] == TaskResult(
-            task=task_foo,
-            output=1,
-            input={"foo": 1, "options": FooOpt()},
-        )
-        assert res.tasks[1] == TaskResult(
-            task=task_bar,
-            output=2,
-            input={"bar": 2, "options": BarOpt()},
         )
 
     def test_options_as_task_options(self):
@@ -1832,19 +1605,18 @@ def test_nested_workflows_options():
         mytask()
         return_(options)
 
-    opts = TopLevelOptions(
-        workflow_nested=NestedOptions(mytask=TaskOptionsTest(foo=1)),
-        mytask=TaskOptionsTest(foo=2),
-    )
+    opts = workflow_b.options()
     wf = workflow_b(options=opts)
     result = wf.run()
     assert len(result.tasks) == 3
-    assert result.output == opts
-    assert result.tasks[0].input == {"options": opts.mytask}
-    assert result.tasks[2].input == {"options": opts.mytask}
+    assert result.output == opts._base
+    assert result.tasks[0].input == {"options": opts._base._task_options["mytask"]}
+    assert result.tasks[2].input == {"options": opts._base._task_options["mytask"]}
 
-    assert result.tasks[1].tasks[0].input == {"options": opts.workflow_nested.mytask}
-    assert result.tasks[1].output == opts.workflow_nested
+    assert result.tasks[1].tasks[0].input == {
+        "options": opts._base._task_options["workflow_nested"]._task_options["mytask"]
+    }
+    assert result.tasks[1].output == opts._base._task_options["workflow_nested"]
 
 
 class BTaskOptions(BaseOptions):
