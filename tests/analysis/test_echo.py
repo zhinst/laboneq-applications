@@ -1,4 +1,4 @@
-"""Tests for the lifetime_measurement analysis using the testing utilities."""
+"""Tests for the Hahn echo analysis using the testing utilities."""
 
 import matplotlib as mpl
 import matplotlib.pyplot as plt
@@ -12,10 +12,10 @@ from test_lifetime_measurement_data import (  # noqa: F401
     results_two_qubit_ge,
 )
 
-from laboneq_applications.analysis import lifetime_measurement
+from laboneq_applications.analysis import echo
 
 
-class TestLifetimeMeasurementAnalysisSingleQubit:
+class TestEchoAnalysisSingleQubit:
     def test_create_and_run_no_pca(
         self,
         single_tunable_transmon_platform,
@@ -23,9 +23,19 @@ class TestLifetimeMeasurementAnalysisSingleQubit:
         population_q0_q1_no_pca,  # noqa: F811
     ):
         [q0] = single_tunable_transmon_platform.qpu.qubits
-        options = lifetime_measurement.analysis_workflow.options()
+        options = echo.analysis_workflow.options()
         options.do_pca(False)
-        result = lifetime_measurement.analysis_workflow(
+        # The raw data used in this test if from a lifetime measurement, meaning
+        # that the exponential decay saturates at 0, not at 0.5 as for the echo
+        # measurement. In order to account for this, we overwrite the guess offset
+        # in the echo analysis, where it is fixed to 0.5.
+        options.fit_parameters_hints(
+            {
+                "offset": {"value": 0, "vary": False},
+            }
+        )
+
+        result = echo.analysis_workflow(
             result=results_single_qubit_ge[0],
             qubits=q0,
             delays=results_single_qubit_ge[1],
@@ -47,26 +57,26 @@ class TestLifetimeMeasurementAnalysisSingleQubit:
 
         fit_values = result.tasks["fit_data"].output["q0"].best_values
         np.testing.assert_allclose(
-            fit_values["decay_rate"], 65645.08548221787, rtol=1e-4
+            fit_values["decay_rate"], 65645.08691668451, rtol=1e-4
         )
         np.testing.assert_allclose(
-            fit_values["amplitude"], 0.971258379771985, rtol=1e-4
+            fit_values["amplitude"], 0.9745155138153203, rtol=1e-4
         )
         assert_almost_equal(fit_values["offset"], 0)
 
         qubit_parameters = result.tasks["extract_qubit_parameters"].output
         assert_almost_equal(
-            qubit_parameters["old_parameter_values"]["q0"]["ge_T1"],
+            qubit_parameters["old_parameter_values"]["q0"]["ge_T2"],
             0.0,
         )
         np.testing.assert_allclose(
-            qubit_parameters["new_parameter_values"]["q0"]["ge_T1"].nominal_value,
-            1.5233432825232331e-05,
+            qubit_parameters["new_parameter_values"]["q0"]["ge_T2"].nominal_value,
+            1.5233432492353631e-05,
             rtol=1e-4,
         )
         np.testing.assert_allclose(
-            qubit_parameters["new_parameter_values"]["q0"]["ge_T1"].std_dev,
-            1.7538784708046533e-07,
+            qubit_parameters["new_parameter_values"]["q0"]["ge_T2"].std_dev,
+            1.753879303425367e-07,
             rtol=1e-4,
         )
 
@@ -77,9 +87,19 @@ class TestLifetimeMeasurementAnalysisSingleQubit:
         population_q0_q1_pca,  # noqa: F811
     ):
         [q0] = single_tunable_transmon_platform.qpu.qubits
-        options = lifetime_measurement.analysis_workflow.options()
+        options = echo.analysis_workflow.options()
         options.do_pca(True)
-        result = lifetime_measurement.analysis_workflow(
+        # The raw data used in this test if from a lifetime measurement, meaning
+        # that the exponential decay saturates at 0, not at 0.5 as for the echo
+        # measurement. In order to account for this, we overwrite the guess offset
+        # in the echo analysis, where it is fixed to 0.5.
+        options.fit_parameters_hints(
+            {
+                "offset": {"value": 0, "vary": True},
+            }
+        )
+
+        result = echo.analysis_workflow(
             result=results_single_qubit_ge[0],
             qubits=q0,
             delays=results_single_qubit_ge[1],
@@ -104,28 +124,28 @@ class TestLifetimeMeasurementAnalysisSingleQubit:
 
         fit_values = result.tasks["fit_data"].output["q0"].best_values
         np.testing.assert_allclose(
-            fit_values["decay_rate"], 71133.73792785374, rtol=1e-4
+            fit_values["decay_rate"], 71133.71869530156, rtol=1e-4
         )
         np.testing.assert_allclose(
-            fit_values["amplitude"], 1.2354133959247915, rtol=1e-4
+            fit_values["amplitude"], 1.2399033908405075, rtol=1e-4
         )
         np.testing.assert_allclose(
-            fit_values["offset"], -0.36344008061260663, rtol=1e-4
+            fit_values["offset"], -0.36344015970413246, rtol=1e-4
         )
 
         qubit_parameters = result.tasks["extract_qubit_parameters"].output
         np.testing.assert_almost_equal(
-            qubit_parameters["old_parameter_values"]["q0"]["ge_T1"],
+            qubit_parameters["old_parameter_values"]["q0"]["ge_T2"],
             0.0,
         )
         np.testing.assert_allclose(
-            qubit_parameters["new_parameter_values"]["q0"]["ge_T1"].nominal_value,
-            1.4058026881902847e-05,
+            qubit_parameters["new_parameter_values"]["q0"]["ge_T2"].nominal_value,
+            1.4058030682797001e-05,
             rtol=1e-4,
         )
         np.testing.assert_allclose(
-            qubit_parameters["new_parameter_values"]["q0"]["ge_T1"].std_dev,
-            2.38004046315109e-07,
+            qubit_parameters["new_parameter_values"]["q0"]["ge_T2"].std_dev,
+            2.3800314754586135e-07,
             rtol=1e-4,
         )
 
@@ -135,10 +155,10 @@ class TestLifetimeMeasurementAnalysisSingleQubit:
         results_single_qubit_ge,  # noqa: F811
     ):
         [q0] = single_tunable_transmon_platform.qpu.qubits
-        options = lifetime_measurement.analysis_workflow.options()
+        options = echo.analysis_workflow.options()
         options.do_fitting(False)
 
-        result = lifetime_measurement.analysis_workflow(
+        result = echo.analysis_workflow(
             result=results_single_qubit_ge[0],
             qubits=q0,
             delays=results_single_qubit_ge[1],
@@ -158,10 +178,10 @@ class TestLifetimeMeasurementAnalysisSingleQubit:
         results_single_qubit_ge,  # noqa: F811
     ):
         [q0] = single_tunable_transmon_platform.qpu.qubits
-        options = lifetime_measurement.analysis_workflow.options()
+        options = echo.analysis_workflow.options()
         options.do_plotting(False)
 
-        result = lifetime_measurement.analysis_workflow(
+        result = echo.analysis_workflow(
             result=results_single_qubit_ge[0],
             qubits=q0,
             delays=results_single_qubit_ge[1],
@@ -177,7 +197,7 @@ class TestLifetimeMeasurementAnalysisSingleQubit:
         assert "extract_qubit_parameters" in task_names
 
 
-class TestLifetimeMeasurementAnalysisTwoQubit:
+class TestEchoAnalysisTwoQubit:
     def test_create_and_run_no_pca(
         self,
         two_tunable_transmon_platform,
@@ -185,9 +205,19 @@ class TestLifetimeMeasurementAnalysisTwoQubit:
         population_q0_q1_no_pca,  # noqa: F811
     ):
         qubits = two_tunable_transmon_platform.qpu.qubits
-        options = lifetime_measurement.analysis_workflow.options()
+        options = echo.analysis_workflow.options()
         options.do_pca(False)
-        result = lifetime_measurement.analysis_workflow(
+        # The raw data used in this test if from a lifetime measurement, meaning
+        # that the exponential decay saturates at 0, not at 0.5 as for the echo
+        # measurement. In order to account for this, we overwrite the guess offset
+        # in the echo analysis, where it is fixed to 0.5.
+        options.fit_parameters_hints(
+            {
+                "offset": {"value": 0, "vary": False},
+            }
+        )
+
+        result = echo.analysis_workflow(
             result=results_two_qubit_ge[0],
             qubits=qubits,
             delays=results_two_qubit_ge[1],
@@ -214,53 +244,54 @@ class TestLifetimeMeasurementAnalysisTwoQubit:
 
         fit_values = result.tasks["fit_data"].output["q0"].best_values
         np.testing.assert_allclose(
-            fit_values["decay_rate"], 65645.08548221787, rtol=1e-4
+            fit_values["decay_rate"], 65645.08691668451, rtol=1e-4
         )
         np.testing.assert_allclose(
-            fit_values["amplitude"], 0.971258379771985, rtol=1e-4
+            fit_values["amplitude"], 0.9745155138153203, rtol=1e-4
         )
         assert_almost_equal(fit_values["offset"], 0)
+
         qubit_parameters = result.tasks["extract_qubit_parameters"].output
         assert_almost_equal(
-            qubit_parameters["old_parameter_values"]["q0"]["ge_T1"],
+            qubit_parameters["old_parameter_values"]["q0"]["ge_T2"],
             0.0,
         )
         np.testing.assert_allclose(
-            qubit_parameters["new_parameter_values"]["q0"]["ge_T1"].nominal_value,
-            1.5233432825232331e-05,
+            qubit_parameters["new_parameter_values"]["q0"]["ge_T2"].nominal_value,
+            1.5233432492353631e-05,
             rtol=1e-4,
         )
         np.testing.assert_allclose(
-            qubit_parameters["new_parameter_values"]["q0"]["ge_T1"].std_dev,
-            1.7538784708046533e-07,
+            qubit_parameters["new_parameter_values"]["q0"]["ge_T2"].std_dev,
+            1.753879303425367e-07,
             rtol=1e-4,
         )
 
         fit_values = result.tasks["fit_data"].output["q1"].best_values
         np.testing.assert_allclose(
             fit_values["decay_rate"],
-            34619.52793115473,
+            34619.52783396432,
             rtol=1e-4,
         )
         np.testing.assert_allclose(
             fit_values["amplitude"],
-            0.9989747821396329,
+            1.000740124740089,
             rtol=1e-4,
         )
         assert_almost_equal(fit_values["offset"], 0)
         qubit_parameters = result.tasks["extract_qubit_parameters"].output
         assert_almost_equal(
-            qubit_parameters["old_parameter_values"]["q1"]["ge_T1"],
+            qubit_parameters["old_parameter_values"]["q1"]["ge_T2"],
             0.0,
         )
         np.testing.assert_allclose(
-            qubit_parameters["new_parameter_values"]["q1"]["ge_T1"].nominal_value,
-            2.8885431424386415e-05,
+            qubit_parameters["new_parameter_values"]["q1"]["ge_T2"].nominal_value,
+            2.8885431505478998e-05,
             rtol=1e-4,
         )
         np.testing.assert_allclose(
-            qubit_parameters["new_parameter_values"]["q1"]["ge_T1"].std_dev,
-            2.2661395978112074e-07,
+            qubit_parameters["new_parameter_values"]["q1"]["ge_T2"].std_dev,
+            2.2661389181410697e-07,
             rtol=1e-4,
         )
 
@@ -271,10 +302,19 @@ class TestLifetimeMeasurementAnalysisTwoQubit:
         population_q0_q1_pca,  # noqa: F811
     ):
         qubits = two_tunable_transmon_platform.qpu.qubits
-        options = lifetime_measurement.analysis_workflow.options()
+        options = echo.analysis_workflow.options()
         options.do_pca(True)
+        # The raw data used in this test if from a lifetime measurement, meaning
+        # that the exponential decay saturates at 0, not at 0.5 as for the echo
+        # measurement. In order to account for this, we overwrite the guess offset
+        # in the echo analysis, where it is fixed to 0.5.
+        options.fit_parameters_hints(
+            {
+                "offset": {"value": 0, "vary": True},
+            }
+        )
 
-        result = lifetime_measurement.analysis_workflow(
+        result = echo.analysis_workflow(
             result=results_two_qubit_ge[0],
             qubits=qubits,
             delays=results_two_qubit_ge[1],
@@ -303,53 +343,53 @@ class TestLifetimeMeasurementAnalysisTwoQubit:
 
         fit_values = result.tasks["fit_data"].output["q0"].best_values
         np.testing.assert_allclose(
-            fit_values["decay_rate"], 71133.73792785374, rtol=1e-4
+            fit_values["decay_rate"], 71133.71869530156, rtol=1e-4
         )
         np.testing.assert_allclose(
-            fit_values["amplitude"], 1.2354133959247915, rtol=1e-4
+            fit_values["amplitude"], 1.2399033908405075, rtol=1e-4
         )
         np.testing.assert_allclose(
-            fit_values["offset"], -0.36344008061260663, rtol=1e-4
+            fit_values["offset"], -0.36344015970413246, rtol=1e-4
         )
 
         qubit_parameters = result.tasks["extract_qubit_parameters"].output
         np.testing.assert_almost_equal(
-            qubit_parameters["old_parameter_values"]["q0"]["ge_T1"],
+            qubit_parameters["old_parameter_values"]["q0"]["ge_T2"],
             0.0,
         )
         np.testing.assert_allclose(
-            qubit_parameters["new_parameter_values"]["q0"]["ge_T1"].nominal_value,
-            1.4058026881902847e-05,
+            qubit_parameters["new_parameter_values"]["q0"]["ge_T2"].nominal_value,
+            1.4058030682797001e-05,
             rtol=1e-4,
         )
         np.testing.assert_allclose(
-            qubit_parameters["new_parameter_values"]["q0"]["ge_T1"].std_dev,
-            2.38004046315109e-07,
+            qubit_parameters["new_parameter_values"]["q0"]["ge_T2"].std_dev,
+            2.3800314754586135e-07,
             rtol=1e-4,
         )
 
         fit_values = result.tasks["fit_data"].output["q1"].best_values
         np.testing.assert_allclose(
-            fit_values["decay_rate"], 35717.784188456186, rtol=1e-4
+            fit_values["decay_rate"], 35717.78408814981, rtol=1e-4
         )
         np.testing.assert_allclose(
-            fit_values["amplitude"], 1.8684762419939445, rtol=1e-4
+            fit_values["amplitude"], 1.8718829750005228, rtol=1e-4
         )
-        np.testing.assert_allclose(fit_values["offset"], -0.8806252822168226, rtol=1e-4)
+        np.testing.assert_allclose(fit_values["offset"], -0.8806252845575583, rtol=1e-4)
 
         qubit_parameters = result.tasks["extract_qubit_parameters"].output
         np.testing.assert_almost_equal(
-            qubit_parameters["old_parameter_values"]["q1"]["ge_T1"],
+            qubit_parameters["old_parameter_values"]["q1"]["ge_T2"],
             0.0,
         )
         np.testing.assert_allclose(
-            qubit_parameters["new_parameter_values"]["q1"]["ge_T1"].nominal_value,
-            2.799725746490162e-05,
+            qubit_parameters["new_parameter_values"]["q1"]["ge_T2"].nominal_value,
+            2.7997257543526412e-05,
             rtol=1e-4,
         )
         np.testing.assert_allclose(
-            qubit_parameters["new_parameter_values"]["q1"]["ge_T1"].std_dev,
-            8.758721477575979e-07,
+            qubit_parameters["new_parameter_values"]["q1"]["ge_T2"].std_dev,
+            8.758720890152574e-07,
             rtol=1e-4,
         )
 
@@ -359,10 +399,10 @@ class TestLifetimeMeasurementAnalysisTwoQubit:
         results_two_qubit_ge,  # noqa: F811
     ):
         qubits = two_tunable_transmon_platform.qpu.qubits
-        options = lifetime_measurement.analysis_workflow.options()
+        options = echo.analysis_workflow.options()
         options.do_fitting(False)
 
-        result = lifetime_measurement.analysis_workflow(
+        result = echo.analysis_workflow(
             result=results_two_qubit_ge[0],
             qubits=qubits,
             delays=results_two_qubit_ge[1],
@@ -384,10 +424,10 @@ class TestLifetimeMeasurementAnalysisTwoQubit:
         results_two_qubit_ge,  # noqa: F811
     ):
         qubits = two_tunable_transmon_platform.qpu.qubits
-        options = lifetime_measurement.analysis_workflow.options()
+        options = echo.analysis_workflow.options()
         options.do_plotting(False)
 
-        result = lifetime_measurement.analysis_workflow(
+        result = echo.analysis_workflow(
             result=results_two_qubit_ge[0],
             qubits=qubits,
             delays=results_two_qubit_ge[1],
@@ -408,10 +448,10 @@ class TestLifetimeMeasurementAnalysisTwoQubit:
         results_two_qubit_ge,  # noqa: F811
     ):
         qubits = two_tunable_transmon_platform.qpu.qubits
-        options = lifetime_measurement.analysis_workflow.options()
+        options = echo.analysis_workflow.options()
         options.close_figures(True)
 
-        result = lifetime_measurement.analysis_workflow(
+        result = echo.analysis_workflow(
             result=results_two_qubit_ge[0],
             qubits=qubits,
             delays=results_two_qubit_ge[1],
@@ -426,7 +466,7 @@ class TestLifetimeMeasurementAnalysisTwoQubit:
         )
 
         options.close_figures(False)
-        result = lifetime_measurement.analysis_workflow(
+        result = echo.analysis_workflow(
             result=results_two_qubit_ge[0],
             qubits=qubits,
             delays=results_two_qubit_ge[1],

@@ -228,7 +228,7 @@ def calculate_population_1d(
     swpts_w_cal_tr = _extend_sweep_points_cal_traces(sweep_points, num_cal_traces)
 
     return {
-        "sweep_points": sweep_points,
+        "sweep_points": np.array(sweep_points),
         "sweep_points_with_cal_traces": swpts_w_cal_tr,
         "sweep_points_cal_traces": swpts_w_cal_tr[
             len(swpts_w_cal_tr) - num_cal_traces :
@@ -249,10 +249,10 @@ def calculate_population_1d(
 def calculate_qubit_population(
     qubits: Qubits,
     result: RunExperimentResults,
-    amplitudes: QubitSweepPoints,
+    sweep_points: QubitSweepPoints,
     options: TuneupAnalysisOptions | None = None,
 ) -> dict[str, dict[str, ArrayLike]]:
-    """Processes the raw data.
+    """Calculates the qubit population from the raw data.
 
      The data is processed in the following way:
 
@@ -269,17 +269,14 @@ def calculate_qubit_population(
             The qubits on which the amplitude-Rabi experiments was run. May be either
             a single qubit or a list of qubits.
         result: the result of the experiment, returned by the run_experiment task.
-        amplitudes:
-            The amplitudes that were swept over in the amplitude-Rabi experiment for
-            each qubit. If `qubits` is a single qubit, `amplitudes` must be a list of
-            numbers or an array. Otherwise, it must be a list of lists of numbers or
-            arrays.
+        sweep_points:
+            The sweep points used in the experiment for each qubit. If `qubits` is a
+            single qubit, `sweep_points` must be an array. Otherwise, it must be a list
+            of arrays.
         options:
-            The options for processing the raw data.
-            See [TuneupAnalysisOptions], [TuneupExperimentOptions] and
-            [BaseExperimentOptions] for accepted options.
-            Overwrites the options from [TuneupAnalysisOptions],
-            [TuneupExperimentOptions] and [BaseExperimentOptions].
+            The options for building the workflow as an instance of
+            [TuneupAnalysisOptions]. See the docstrings of this class for more
+            details.
 
     Returns:
         dict with qubit UIDs as keys and the dictionary of processed data for each qubit
@@ -289,12 +286,14 @@ def calculate_qubit_population(
     Raises:
         TypeError:
             If result is not an instance of RunExperimentResults.
+        ValueError:
+            If the conditions in validate_and_convert_qubits_sweeps are not met.
     """
-    validate_result(result)
     opts = TuneupAnalysisOptions() if options is None else options
-    qubits, amplitudes = validate_and_convert_qubits_sweeps(qubits, amplitudes)
+    validate_result(result)
+    qubits, sweep_points = validate_and_convert_qubits_sweeps(qubits, sweep_points)
     processed_data_dict = {}
-    for q, amps in zip(qubits, amplitudes):
+    for q, swpts in zip(qubits, sweep_points):
         raw_data = result.result[q.uid].data
         if opts.use_cal_traces:
             calibration_traces = [
@@ -306,7 +305,7 @@ def calculate_qubit_population(
             do_pca = True
         data_dict = calculate_population_1d(
             raw_data,
-            amps,
+            swpts,
             calibration_traces,
             do_pca=do_pca,
         )

@@ -63,6 +63,7 @@ nav:
           - amplitude_rabi: reference/analysis/amplitude_rabi.md
           - ramsey: reference/analysis/ramsey.md
           - lifetime_measurement: reference/analysis/lifetime_measurement.md
+          - echo: reference/analysis/echo.md          
           - drag_q_scaling: reference/analysis/drag_q_scaling.md
           - amplitude_fine: reference/analysis/amplitude_fine.md
           - dispersive_shift: reference/analysis/dispersive_shift.md

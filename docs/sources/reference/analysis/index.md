@@ -9,6 +9,7 @@ This is the `laboneq_applications.analysis` reference documentation.
 * [amplitude_rabi](amplitude_rabi.md)
 * [ramsey](ramsey.md)
 * [lifetime_measurement](lifetime_measurement.md)
+* [echo](echo.md)
 * [drag_q_scaling](drag_q_scaling.md)
 * [amplitude_fine](amplitude_fine.md)
 * [dispersive_shift](dispersive_shift.md)

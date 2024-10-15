@@ -1,18 +1,19 @@
 """This module defines the Hahn echo experiment.
 
-In the Hahn echo experiment, we perform a Ramsey experiment and place one extra y180
-pulse between the two x90 pulses. Due to the additional y180 pulse, the quasi-static
-contributions to dephasing can be “refocused” and by that the experiment is less
-sensitive to quasi-static noise.
+In the Hahn echo experiment, we perform a Ramsey experiment and place one extra
+refocusing pulse, typically y180, between the two x90 pulses. Due to this additional
+pulse, the quasi-static contributions to dephasing can be “refocused” and by that the
+experiment is less sensitive to quasi-static noise.
+
 The pulses are generally chosen to be resonant with the qubit transition for a
 Hahn echo, since any frequency detuning would be nominally refocused anyway.
 
 The Hahn echo experiment has the following pulse sequence:
 
     qb --- [ prep transition ] --- [ x90_transition ] --- [ delay/2 ] ---
-    [ y180_transition ] --- [ delay/2 ] --- [ x90_transition ] --- [ measure ]
+    [ refocusing pulse ] --- [ delay/2 ] --- [ x90_transition ] --- [ measure ]
 
-If multiple qubits are passed to the `run` workflow, the above pulses are applied
+If multiple qubits are passed to the experiment workflow, the above pulses are applied
 in parallel on all the qubits.
 """
 
@@ -23,13 +24,13 @@ from typing import TYPE_CHECKING
 from laboneq.simple import Experiment, SweepParameter
 from pydantic import Field
 
-from laboneq_applications import dsl
+from laboneq_applications import dsl, workflow
+from laboneq_applications.analysis.echo import analysis_workflow
 from laboneq_applications.experiments.options import (
     TuneupExperimentOptions,
     TuneUpWorkflowOptions,
 )
-from laboneq_applications.tasks import compile_experiment, run_experiment
-from laboneq_applications.workflow import task, workflow
+from laboneq_applications.tasks import compile_experiment, run_experiment, update_qubits
 
 if TYPE_CHECKING:
     from laboneq.dsl.session import Session
@@ -39,7 +40,7 @@ if TYPE_CHECKING:
 
 
 class EchoExperimentOptions(TuneupExperimentOptions):
-    """Base options for the resonator spectroscopy experiment.
+    """Options for the Hahn echo experiment.
 
     Additional attributes:
         refocus_pulse:
@@ -53,7 +54,7 @@ class EchoExperimentOptions(TuneupExperimentOptions):
     )
 
 
-@workflow(name="echo")
+@workflow.workflow(name="echo")
 def experiment_workflow(
     session: Session,
     qpu: QPU,
@@ -61,13 +62,15 @@ def experiment_workflow(
     delays: QubitSweepPoints,
     options: TuneUpWorkflowOptions | None = None,
 ) -> None:
-    """The Hahn echo Workflow.
+    """The Hahn echo experiment workflow.
 
     The workflow consists of the following steps:
 
     - [create_experiment]()
     - [compile_experiment]()
     - [run_experiment]()
+    - [analysis_workflow]()
+    - [update_qubits]()
 
     Arguments:
         session:
@@ -75,28 +78,27 @@ def experiment_workflow(
         qpu:
             The qpu consisting of the original qubits and quantum operations.
         qubits:
-            The qubits to run the experiments on. May be either a single
+            The qubits on which to run the experiments. May be either a single
             qubit or a list of qubits.
         delays:
-            The delays to sweep over for each qubit. Note that `delays` must be
+            The delays to sweep over for each qubit. The delays between the two x90
+            pulses and the refocusing pulse are `delays / 2`; see the schematic of
+            the pulse sequence at the top of the file. Note that `delays` must be
             identical for qubits that use the same measure port.
         options:
-            The options for building the workflow.
-            In addition to options from [WorkflowOptions], the following
-            custom options are supported:
-                - create_experiment: The options for creating the experiment.
+            The options for building the workflow as an instance of
+            [TuneUpWorkflowOptions]. See the docstrings of this class for more details.
 
     Returns:
-        result:
-            The result of the workflow.
+        WorkflowBuilder:
+            The builder for the experiment workflow.
 
     Example:
         ```python
         options = EchoWorkflowOptions()
-        options.create_experiment.count = 10
-        options.create_experiment.transition = "ge"
+        options.count(10)
+        options.transition("ge")
         qpu = QPU(
-            setup=DeviceSetup("my_device"),
             qubits=[TunableTransmonQubit("q0"), TunableTransmonQubit("q1")],
             quantum_operations=TunableTransmonOperations(),
         )
@@ -105,7 +107,7 @@ def experiment_workflow(
             session=session,
             qpu=qpu,
             qubits=temp_qubits,
-            delays=[[1e-6, 5e-6, 10e-6]], [1e-6, 5e-6, 10e-6]],
+            delays=[np.linspace(0, 30e-6, 51), np.linspace(0, 30e-6, 51)],
             options=options,
         )
         ```
@@ -116,10 +118,16 @@ def experiment_workflow(
         delays=delays,
     )
     compiled_exp = compile_experiment(session, exp)
-    _result = run_experiment(session, compiled_exp)
+    result = run_experiment(session, compiled_exp)
+    with workflow.if_(options.do_analysis):
+        analysis_results = analysis_workflow(result, qubits, delays)
+        qubit_parameters = analysis_results.output
+        with workflow.if_(options.update):
+            update_qubits(qpu, qubit_parameters["new_parameter_values"])
+    workflow.return_(result)
 
 
-@task
+@workflow.task
 @dsl.qubit_experiment
 def create_experiment(
     qpu: QPU,
@@ -133,39 +141,34 @@ def create_experiment(
         qpu:
             The qpu consisting of the original qubits and quantum operations.
         qubits:
-            The qubits to run the experiments on. May be either a single
+            The qubits on which to run the experiments. May be either a single
             qubit or a list of qubits.
         delays:
-            The delays to sweep over for each qubit. Note that `delays` must be
+            The delays to sweep over for each qubit. The delays between the two x90
+            pulses and the refocusing pulse are `delays / 2`; see the schematic of
+            the pulse sequence at the top of the file. Note that `delays` must be
             identical for qubits that use the same measure port.
         options:
-            The options for building the experiment.
-            See [EchoExperimentOptions] and [BaseExperimentOptions] for
-            accepted options.
-            Overwrites the options from [TuneupExperimentOptions] and
-            [BaseExperimentOptions].
+            The options for building the workflow as an instance of
+            [EchoExperimentOptions], inheriting from [TuneupExperimentOptions].
+            See the docstrings of these classes for more details.
 
     Returns:
-        experiment:
-            The generated LabOne Q experiment instance to be compiled and executed.
+        Experiment:
+            The generated LabOne Q Experiment instance to be compiled and executed.
 
     Raises:
         ValueError:
-            If delays is not a list of numbers or array when a single qubit is passed.
+            If the conditions in validation.validate_and_convert_qubits_sweeps are not
+            fulfilled.
 
     Example:
         ```python
-        options = {
-            "count": 10,
-            "transition": "ge",
-            "averaging_mode": "cyclic",
-            "acquisition_type": "integration_trigger",
-            "cal_traces": True,
-        }
-        options = TuneupExperimentOptions(**options)
+        options = TuneupExperimentOptions()
+        options.count = 10
+        options.cal_traces = True
         setup = DeviceSetup()
         qpu = QPU(
-            setup=DeviceSetup("my_device"),
             qubits=[TunableTransmonQubit("q0"), TunableTransmonQubit("q1")],
             quantum_operations=TunableTransmonOperations(),
         )
@@ -173,7 +176,7 @@ def create_experiment(
         create_experiment(
             qpu=qpu,
             qubits=temp_qubits,
-            delays=[[1e-6, 5e-6, 10e-6], [1e-6, 5e-6, 10e-6]]
+            delays=[np.linspace(0, 30e-6, 51), np.linspace(0, 30e-6, 51)],
             options=options,
         )
         ```

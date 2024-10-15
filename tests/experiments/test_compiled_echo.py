@@ -38,6 +38,7 @@ def create_echo_verifier(
     options.transition(transition)
     options.use_cal_traces(use_cal_traces)
     options.cal_states(cal_states)
+    options.do_analysis(False)  # TODO: fix tests to work with do_analysis=True
 
     res = echo.experiment_workflow(
         session=session,
