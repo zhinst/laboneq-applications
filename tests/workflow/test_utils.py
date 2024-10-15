@@ -24,3 +24,9 @@ class TestCreateArguments:
 
         with pytest.raises(TypeError):
             _utils.create_argument_map(func, 1, 2, bar="Test")
+
+    def test_kwargs(self):
+        def func(x, **kwargs): ...
+
+        r = _utils.create_argument_map(func, 1, y=2)
+        assert r == {"x": 1, "y": 2}

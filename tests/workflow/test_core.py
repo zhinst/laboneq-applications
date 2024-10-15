@@ -383,7 +383,7 @@ class TestWorkflow:
         assert wf_err._state is None
 
 
-class TestMultipleTasks:
+class TestTasks:
     def test_each_call_produces_task(self):
         n_tasks = 10
 
@@ -466,6 +466,19 @@ class TestMultipleTasks:
 
         wf().run()
         assert mock_obj.call_count == 1
+
+    def test_task_kwargs(self):
+        @task
+        def a_task(a, **kwargs):
+            return a, kwargs
+
+        @workflow
+        def wf():
+            a_task(1, b=2, c=3)
+
+        result = wf().run()
+        assert result.tasks["a_task"].input == {"a": 1, "b": 2, "c": 3}
+        assert result.tasks["a_task"].output == (1, {"b": 2, "c": 3})
 
 
 class TestNestedWorkflows:
