@@ -10,7 +10,11 @@ from laboneq_applications.workflow.blocks.if_block import (
     else_,
     if_,
 )
-from laboneq_applications.workflow.blocks.return_block import ReturnStatement, return_
+from laboneq_applications.workflow.blocks.return_block import (
+    Namespace,
+    ReturnStatement,
+    return_,
+)
 from laboneq_applications.workflow.blocks.task_block import TaskBlock
 from laboneq_applications.workflow.blocks.workflow_block import WorkflowBlock
 
@@ -30,4 +34,5 @@ __all__ = [
     "WorkflowBlock",
     "BlockVisitor",
     "BreakLoopBlock",
+    "Namespace",
 ]

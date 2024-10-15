@@ -884,6 +884,25 @@ class TestReturnStatement:
         wf = my_wf(1)
         assert wf.run().output == 1
 
+    def test_return_namespace(self):
+        @workflow
+        def my_wf(a, b):
+            return_(a=a, output=b)
+
+        wf = my_wf(1, 2)
+        out = wf.run().output
+        assert out.a == 1
+        assert out.output == 2
+
+    def test_return_namespace_single_kw(self):
+        @workflow
+        def my_wf(a):
+            return_(a=a)
+
+        wf = my_wf(1)
+        out = wf.run().output
+        assert out.a == 1
+
 
 @task
 def return_zero():

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import TYPE_CHECKING, Callable
+from typing import TYPE_CHECKING, Any, Callable
 
 from laboneq_applications.core.utils import pygmentize
 from laboneq_applications.workflow.taskview import TaskView
@@ -139,7 +139,7 @@ class WorkflowResult:
     def __init__(
         self,
         name: str,
-        output: object | None = None,
+        output: Any = None,  # noqa: ANN401
         input: dict | None = None,  # noqa: A002
         start_time: datetime | None = None,
         end_time: datetime | None = None,
@@ -159,7 +159,7 @@ class WorkflowResult:
         return self._name
 
     @property
-    def output(self) -> object:
+    def output(self) -> Any:  # # noqa: ANN401
         """Output of the workflow."""
         return self._output
 
