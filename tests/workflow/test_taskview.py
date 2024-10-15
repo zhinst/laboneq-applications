@@ -41,20 +41,20 @@ class TestTaskView:
     def test_repr(self, view):
         t = TaskResult(task=task_a, output=1)
         view = TaskView([t])
-        assert (
-            repr(view)
-            == f"[TaskResult(name=task_a, output=1, input={{}}, func={task_a.func})]"
+        assert repr(view) == (
+            f"[TaskResult(name=task_a, output=1, input={{}}, "
+            f"func={task_a.func}, index=None)]"
         )
 
     def test_str(self):
         t = TaskResult(task=task_a, output=1)
         view = TaskView([t])
-        assert str(view) == "TaskResult(task_a)"
+        assert str(view) == "TaskResult(name=task_a, index=None)"
 
     def test_ipython_pretty(self):
         t = TaskResult(task=task_a, output=1)
         view = TaskView([t])
-        assert pretty(view) == "TaskResult(task_a)"
+        assert pretty(view) == "TaskResult(name=task_a, index=None)"
 
     def test_len(self, view):
         assert len(view) == 4

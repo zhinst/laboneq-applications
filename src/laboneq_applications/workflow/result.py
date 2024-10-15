@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import TYPE_CHECKING, Any, Callable
+from typing import TYPE_CHECKING, Callable
 
 from laboneq_applications.core.utils import pygmentize
 from laboneq_applications.workflow.taskview import TaskView
@@ -15,9 +15,17 @@ if TYPE_CHECKING:
 
 
 class TaskResult:
-    """Task result.
+    """Task execution result.
 
     The instance holds execution information of an task.
+
+    Arguments:
+        task: Task producing the results.
+        output: Output of the task.
+        input: Input parameters of the task.
+        start_time: Start time of the execution.
+        end_time: End time of the execution.
+        index: Index of the task.
     """
 
     def __init__(
@@ -25,14 +33,16 @@ class TaskResult:
         task: task_,
         output: object,
         input: dict | None = None,  # noqa: A002
+        start_time: datetime | None = None,
+        end_time: datetime | None = None,
         index: tuple[object] | None = None,
     ) -> None:
         self._task = task
         self._output = output
         self._input = input or {}
+        self._start_time = start_time
+        self._end_time = end_time
         self._index = index
-        self._start_time: datetime | None = None
-        self._end_time: datetime | None = None
 
     @property
     def task(self) -> task_:
@@ -80,13 +90,16 @@ class TaskResult:
         """Time when the task has ended regularly or failed."""
         return self._end_time
 
-    def __eq__(self, value: object) -> bool:
-        if not isinstance(value, TaskResult):
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, TaskResult):
             return NotImplemented
         return (
-            self._task == value._task
-            and self.output == value.output
-            and self.input == value.input
+            self._task == other._task
+            and self.output == other.output
+            and self.input == other.input
+            and self.index == other.index
+            and self.start_time == other.start_time
+            and self.end_time == other.end_time
         )
 
     def __repr__(self) -> str:
@@ -96,12 +109,13 @@ class TaskResult:
                 f"output={self.output}",
                 f"input={self.input}",
                 f"func={self.func}",
+                f"index={self.index}",
             ],
         )
         return f"TaskResult({attrs})"
 
     def __str__(self) -> str:
-        return f"TaskResult({self.name})"
+        return f"TaskResult(name={self.name}, index={self.index})"
 
     def _repr_pretty_(self, p, cycle):  # noqa: ANN001, ANN202, ARG002
         # For Notebooks
@@ -109,26 +123,45 @@ class TaskResult:
 
 
 class WorkflowResult:
-    """Workflow result."""
+    """Workflow execution result.
+
+    The instance holds execution information of an workflow.
+
+    Arguments:
+        name: Name of the workflow.
+        output: Output of the workflow.
+        input: Input parameters of the workflow.
+        start_time: Start time of the execution.
+        end_time: End time of the execution.
+        index: Index of the workflow.
+    """
 
     def __init__(
         self,
         name: str,
+        output: object | None = None,
         input: dict | None = None,  # noqa: A002
+        start_time: datetime | None = None,
+        end_time: datetime | None = None,
         index: tuple[object] | None = None,
     ):
         self._name = name
+        self._output = output
         self._input = input or {}
-        self._tasks: list[TaskResult | WorkflowResult] = []
-        self._output = None
-        self._start_time: datetime | None = None
-        self._end_time: datetime | None = None
+        self._start_time = start_time
+        self._end_time = end_time
         self._index = index
+        self._tasks: list[TaskResult | WorkflowResult] = []
 
     @property
     def name(self) -> str:
         """Name of the workflow producing the results."""
         return self._name
+
+    @property
+    def output(self) -> object:
+        """Output of the workflow."""
+        return self._output
 
     @property
     def input(self) -> dict:
@@ -139,11 +172,6 @@ class WorkflowResult:
     def index(self) -> tuple[object] | None:
         """Index of the workflow."""
         return self._index
-
-    @property
-    def output(self) -> Any:  # noqa: ANN401
-        """Output of the workflow."""
-        return self._output
 
     @property
     def tasks(self) -> TaskView:
@@ -179,7 +207,7 @@ class WorkflowResult:
         return self._end_time
 
     def __str__(self) -> str:
-        return f"WorkflowResult({self.name})"
+        return f"WorkflowResult(name={self.name}, index={self.index})"
 
     def _repr_pretty_(self, p, cycle):  # noqa: ANN001, ANN202, ARG002
         # For Notebooks
@@ -195,4 +223,5 @@ class WorkflowResult:
             and self.tasks == other.tasks
             and self.end_time == other.end_time
             and self.start_time == other.start_time
+            and self.index == other.index
         )

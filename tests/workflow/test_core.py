@@ -22,8 +22,6 @@ from laboneq_applications.workflow.blocks.return_block import return_
 from laboneq_applications.workflow.options import WorkflowOptions
 from laboneq_applications.workflow.options_base import BaseOptions
 from laboneq_applications.workflow.options_builder import OptionBuilder
-from laboneq_applications.workflow.result import TaskResult
-from laboneq_applications.workflow.taskview import TaskView
 
 if TYPE_CHECKING:
     from laboneq_applications.workflow.core import WorkflowBuilder
@@ -1467,16 +1465,19 @@ class TestWorkflowOptions:
         opts = workflow_a.options()
 
         res = workflow_a(options=opts).run()
-        assert res.tasks[0] == TaskResult(
-            task=task_foo,
-            output=1,
-            input={"foo": 1, "options": opts._base._task_options["task_foo"]},
-        )
-        assert res.tasks[1] == TaskResult(
-            task=task_bar,
-            output=2,
-            input={"bar": 2, "options": opts._base._task_options["task_bar"]},
-        )
+        assert res.tasks[0].task == task_foo
+        assert res.tasks[0].output == 1
+        assert res.tasks[0].input == {
+            "foo": 1,
+            "options": opts._base._task_options["task_foo"],
+        }
+
+        assert res.tasks[1].task == task_bar
+        assert res.tasks[1].output == 2
+        assert res.tasks[1].input == {
+            "bar": 2,
+            "options": opts._base._task_options["task_bar"],
+        }
 
     def test_run_workflow_with_default_options(self):
         @task
@@ -1496,20 +1497,13 @@ class TestWorkflowOptions:
 
         res = workflow_a().run()
         # default values of options OptionFooBar are used.
-        assert res.tasks == TaskView(
-            [
-                TaskResult(
-                    task=task_foo,
-                    output=(1, FooOpt().foo),
-                    input={"foo": 1, "options": None},
-                ),
-                TaskResult(
-                    task=task_bar,
-                    output=(2, BarOpt().bar),
-                    input={"bar": 2, "options": None},
-                ),
-            ],
-        )
+        assert res.tasks[0].task == task_foo
+        assert res.tasks[0].output == (1, FooOpt().foo)
+        assert res.tasks[0].input == {"foo": 1, "options": None}
+
+        assert res.tasks[1].task == task_bar
+        assert res.tasks[1].output == (2, BarOpt().bar)
+        assert res.tasks[1].input == {"bar": 2, "options": None}
 
     def test_without_declaring_options(self):
         @workflow
@@ -1518,12 +1512,13 @@ class TestWorkflowOptions:
             task_bar(2)
 
         res = workflow_a().run()
-        assert res.tasks == TaskView(
-            [
-                TaskResult(task=task_foo, output=1, input={"foo": 1, "options": None}),
-                TaskResult(task=task_bar, output=2, input={"bar": 2, "options": None}),
-            ],
-        )
+        assert res.tasks[0].task == task_foo
+        assert res.tasks[0].output == 1
+        assert res.tasks[0].input == {"foo": 1, "options": None}
+
+        assert res.tasks[1].task == task_bar
+        assert res.tasks[1].output == 2
+        assert res.tasks[1].input == {"bar": 2, "options": None}
 
         @task
         def task_fed(options=0):
@@ -1534,11 +1529,9 @@ class TestWorkflowOptions:
             task_fed()
 
         res = workflow_b().run()
-        assert res.tasks == TaskView(
-            [
-                TaskResult(task=task_fed, output=0, input={"options": 0}),
-            ],
-        )
+        assert res.tasks[0].task == task_fed
+        assert res.tasks[0].output == 0
+        assert res.tasks[0].input == {"options": 0}
 
     def test_options_as_task_options(self):
         @task

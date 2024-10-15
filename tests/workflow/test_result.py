@@ -30,19 +30,23 @@ class TestWorkflowResult:
         assert obj.tasks["addition"] == t
 
     def test_str(self):
-        assert str(WorkflowResult("test")) == "WorkflowResult(test)"
+        assert str(WorkflowResult("test")) == "WorkflowResult(name=test, index=None)"
+        assert (
+            str(WorkflowResult("test", index=("q1",)))
+            == "WorkflowResult(name=test, index=('q1',))"
+        )
 
     def test_ipython_pretty(self):
-        assert pretty(WorkflowResult("test")) == "WorkflowResult(test)"
+        assert pretty(WorkflowResult("test")) == "WorkflowResult(name=test, index=None)"
 
     def test_eq(self):
         assert WorkflowResult("test") == WorkflowResult("test")
         assert WorkflowResult("test") != WorkflowResult("test1")
         assert WorkflowResult("test", {"a": 1}) == WorkflowResult(
-            "test", input={"a": 1}
+            "test", output={"a": 1}
         )
         assert WorkflowResult("test", {"a": 1}) != WorkflowResult(
-            "test", input={"a": 2}
+            "test", output={"a": 2}
         )
 
 
@@ -88,17 +92,18 @@ class TestTaskResult:
 
     def test_repr(self):
         t = TaskResult(self.task_a, 2)
-        assert (
-            repr(t) == f"TaskResult(name=task_a, output=2, input={{}}, func={t.func})"
+        assert repr(t) == (
+            "TaskResult("
+            f"name=task_a, output=2, input={{}}, func={t.func}, index=None)"
         )
 
     def test_str(self):
         t = TaskResult(self.task_a, 2)
-        assert str(t) == "TaskResult(task_a)"
+        assert str(t) == "TaskResult(name=task_a, index=None)"
 
     def test_ipython_pretty(self):
         t = TaskResult(self.task_a, 2)
-        assert pretty(t) == "TaskResult(task_a)"
+        assert pretty(t) == "TaskResult(name=task_a, index=None)"
 
     def test_src(self):
         @task
