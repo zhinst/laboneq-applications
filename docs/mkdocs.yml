@@ -130,3 +130,6 @@ plugins:
     execute: true
   spellcheck:
     known_words: ../known_words.txt
+  zhinst-standalone:
+    projects:
+      - qccs/qccs
