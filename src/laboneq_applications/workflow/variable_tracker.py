@@ -5,7 +5,7 @@ from __future__ import annotations
 import inspect
 from collections import defaultdict
 from functools import wraps
-from typing import Callable
+from typing import Callable, TypeVar
 
 from laboneq_applications.workflow import reference
 from laboneq_applications.workflow._context import LocalContext
@@ -48,7 +48,10 @@ class WorkflowFunctionVariableTrackerContext(
         return None
 
 
-def track(func: Callable):  # noqa: ANN201
+T = TypeVar("T", bound=Callable)
+
+
+def track(func: T) -> T:
     """A decorator to mark a callable to track local scope variables.
 
     When a callable with decorated, the tracker will look up one level
@@ -70,4 +73,4 @@ def track(func: Callable):  # noqa: ANN201
                     ctx.add_variable(k, v)
         return func(*args, **kwargs)
 
-    return inner
+    return inner  # type: ignore  # noqa: PGH003
