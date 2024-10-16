@@ -59,7 +59,8 @@ def reference_rabi_exp(qubits, count, amplitudes, transition):
                 ),
             )
             acq.children(
-                tsl.section(uid=f"cal_{q.uid}_0").children(
+                tsl.section(uid=f"calibration_traces_{q.uid}_0").children(
+                    reserve_ops(q),
                     tsl.section(uid=f"prepare_state_{q.uid}_1").children(
                         reserve_ops(q),
                     ),
@@ -116,7 +117,8 @@ def reference_rabi_exp(qubits, count, amplitudes, transition):
                 ),
             )
             acq.children(
-                tsl.section(uid=f"cal_{q.uid}_0").children(
+                tsl.section(uid=f"calibration_traces_{q.uid}_0").children(
+                    reserve_ops(q),
                     tsl.section(uid=f"prepare_state_{q.uid}_1").children(
                         reserve_ops(q),
                         tsl.section(uid=f"x180_{q.uid}_2").children(

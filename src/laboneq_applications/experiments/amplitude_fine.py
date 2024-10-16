@@ -21,7 +21,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 import numpy as np
-from laboneq.simple import Experiment, SweepParameter
+from laboneq.simple import AveragingMode, Experiment, SweepParameter
 
 from laboneq_applications import dsl, workflow
 from laboneq_applications.analysis.amplitude_fine import analysis_workflow
@@ -185,6 +185,10 @@ def create_experiment(
         ValueError:
             If qubit_amplitudes is not a list of lists of numbers.
 
+        ValueError:
+            If the experiment uses calibration traces and the averaging mode is
+            sequential.
+
     Example:
         ```python
         options = TuneupExperimentOptions()
@@ -210,6 +214,16 @@ def create_experiment(
     # Define the custom options for the experiment
     opts = TuneupExperimentOptions() if options is None else options
     qubits, repetitions = validate_and_convert_qubits_sweeps(qubits, repetitions)
+    if (
+        opts.use_cal_traces
+        and AveragingMode(opts.averaging_mode) == AveragingMode.SEQUENTIAL
+    ):
+        raise ValueError(
+            "'AveragingMode.SEQUENTIAL' (or {AveragingMode.SEQUENTIAL}) cannot be used "
+            "with calibration traces because the calibration traces are added "
+            "outside the sweep."
+        )
+
     qop = qpu.quantum_operations
     with dsl.acquire_loop_rt(
         count=opts.count,
@@ -238,16 +252,7 @@ def create_experiment(
                 qop.measure(q, dsl.handles.result_handle(q.uid))
                 qop.passive_reset(q)
             if opts.use_cal_traces:
-                with dsl.section(
-                    name=f"cal_{q.uid}",
-                ):
-                    for state in opts.cal_states:
-                        qop.prepare_state(q, state)
-                        qop.measure(
-                            q,
-                            dsl.handles.calibration_trace_handle(q.uid, state),
-                        )
-                        qop.passive_reset(q)
+                qop.calibration_traces(q, states=opts.cal_states)
 
 
 @workflow.workflow

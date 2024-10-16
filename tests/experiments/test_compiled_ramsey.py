@@ -2,6 +2,7 @@
 provided by the LabOne Q Applications Library.
 """
 
+import numpy as np
 import pytest
 
 from laboneq_applications.experiments import ramsey
@@ -544,3 +545,28 @@ class TestRamseyTwoQubits:
                 start=start_measure,
                 end=start_measure + 2e-6,
             )
+
+
+def test_invalid_averaging_mode(single_tunable_transmon_platform):
+    [q0] = single_tunable_transmon_platform.qpu.qubits
+    session = single_tunable_transmon_platform.session(do_emulation=True)
+    options = ramsey.experiment_workflow.options()
+    options.averaging_mode("sequential")
+    options.use_cal_traces(True)
+    options.do_analysis(False)
+
+    with pytest.raises(ValueError) as err:
+        ramsey.experiment_workflow(
+            session=session,
+            qubits=q0,
+            qpu=single_tunable_transmon_platform.qpu,
+            delays=np.linspace(0, 10e-6, 10),
+            detunings=0.67e6,
+            options=options,
+        ).run()
+
+    assert str(err.value) == (
+        "'AveragingMode.SEQUENTIAL' (or {AveragingMode.SEQUENTIAL}) cannot be used "
+        "with calibration traces because the calibration traces are added "
+        "outside the sweep."
+    )

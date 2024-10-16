@@ -573,3 +573,27 @@ class TestAmplitudeRabiTwoQubits:
                 start=112e-9,  # For new experiments: change this value as needed
                 end=112e-9 + 2e-6,  # For new experiments: change this value as needed
             )
+
+
+def test_invalid_averaging_mode(single_tunable_transmon_platform):
+    [q0] = single_tunable_transmon_platform.qpu.qubits
+    session = single_tunable_transmon_platform.session(do_emulation=True)
+    options = amplitude_rabi.experiment_workflow.options()
+    options.averaging_mode("sequential")
+    options.use_cal_traces(True)
+    options.do_analysis(False)
+
+    with pytest.raises(ValueError) as err:
+        amplitude_rabi.experiment_workflow(
+            session=session,
+            qubits=q0,
+            qpu=single_tunable_transmon_platform.qpu,
+            amplitudes=np.linspace(0, 1, 10),
+            options=options,
+        ).run()
+
+    assert str(err.value) == (
+        "'AveragingMode.SEQUENTIAL' (or {AveragingMode.SEQUENTIAL}) cannot be used "
+        "with calibration traces because the calibration traces are added "
+        "outside the sweep."
+    )

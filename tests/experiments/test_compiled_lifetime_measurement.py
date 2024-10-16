@@ -7,6 +7,7 @@ and measure are most critical and should be verified to be
 equal to `delays`.
 """
 
+import numpy as np
 import pytest
 
 from laboneq_applications.experiments import (
@@ -422,3 +423,27 @@ class TestT1TwoQubits:
                 indices=[0, 0],
                 start=0,
             )
+
+
+def test_invalid_averaging_mode(single_tunable_transmon_platform):
+    [q0] = single_tunable_transmon_platform.qpu.qubits
+    session = single_tunable_transmon_platform.session(do_emulation=True)
+    options = lifetime_measurement.experiment_workflow.options()
+    options.averaging_mode("sequential")
+    options.use_cal_traces(True)
+    options.do_analysis(False)
+
+    with pytest.raises(ValueError) as err:
+        lifetime_measurement.experiment_workflow(
+            session=session,
+            qubits=q0,
+            qpu=single_tunable_transmon_platform.qpu,
+            delays=np.linspace(0, 10e-6, 10),
+            options=options,
+        ).run()
+
+    assert str(err.value) == (
+        "'AveragingMode.SEQUENTIAL' (or {AveragingMode.SEQUENTIAL}) cannot be used "
+        "with calibration traces because the calibration traces are added "
+        "outside the sweep."
+    )

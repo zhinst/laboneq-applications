@@ -20,7 +20,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 import numpy as np
-from laboneq.simple import Experiment, SectionAlignment, SweepParameter
+from laboneq.simple import AveragingMode, Experiment, SectionAlignment, SweepParameter
 
 from laboneq_applications import dsl, workflow
 from laboneq_applications.analysis.ramsey import (
@@ -172,6 +172,10 @@ def create_experiment(
             If `delays` is not a list of lists of numbers when a list of qubits
             is passed.
 
+        ValueError:
+            If the experiment uses calibration traces and the averaging mode is
+            sequential.
+
     Example:
         ```python
         options = TuneupExperimentOptions()
@@ -196,6 +200,15 @@ def create_experiment(
     opts = TuneupExperimentOptions() if options is None else options
     qubits, delays = dsl.validation.validate_and_convert_qubits_sweeps(qubits, delays)
     detunings = validate_and_convert_detunings(qubits, detunings)
+    if (
+        opts.use_cal_traces
+        and AveragingMode(opts.averaging_mode) == AveragingMode.SEQUENTIAL
+    ):
+        raise ValueError(
+            "'AveragingMode.SEQUENTIAL' (or {AveragingMode.SEQUENTIAL}) cannot be used "
+            "with calibration traces because the calibration traces are added "
+            "outside the sweep."
+        )
 
     qop = qpu.quantum_operations
     with dsl.acquire_loop_rt(
@@ -242,13 +255,4 @@ def create_experiment(
 
         if opts.use_cal_traces:
             for q in qubits:
-                with dsl.section(
-                    name=f"cal_{q.uid}",
-                ):
-                    for state in opts.cal_states:
-                        qop.prepare_state(q, state)
-                        qop.measure(
-                            q,
-                            dsl.handles.calibration_trace_handle(q.uid, state),
-                        )
-                        qop.passive_reset(q)
+                qop.calibration_traces(q, states=opts.cal_states)

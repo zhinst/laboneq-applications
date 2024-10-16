@@ -15,7 +15,6 @@ from .qubit_types import TunableTransmonQubit
 if TYPE_CHECKING:
     from laboneq.dsl.parameter import SweepParameter
 
-
 # TODO: Implement multistate 0-1-2 measurement operation
 
 # TODO: Add rotate_xy gate that performs a rotation about an axis in the xy-plane.
@@ -878,3 +877,24 @@ class TunableTransmonOperations(dsl.QuantumOperations):
             sec_echo.on_system_grid = False
         sec_x90_1.on_system_grid = False
         sec_x90_2.on_system_grid = False
+
+    @dsl.quantum_operation
+    def calibration_traces(
+        self,
+        q: TunableTransmonQubit,
+        states: str | tuple = "ge",
+    ) -> None:
+        """Add calibration-trace measurements.
+
+        Arguments:
+            q:
+                The qubit to reset.
+            states:
+                The calibration states to prepare. Can be any combination of
+                ("g", "e", "f").
+                Default: "ge"
+        """
+        for state in states:
+            self.prepare_state(q, state)
+            self.measure(q, dsl.handles.calibration_trace_handle(q.uid, state))
+            self.passive_reset(q)
