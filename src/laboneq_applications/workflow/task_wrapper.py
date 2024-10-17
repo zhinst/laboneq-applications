@@ -1,4 +1,4 @@
-"""Task wrapper to convert Python functions into workflow tasks."""
+"""Task decorator to convert Python functions into workflow tasks."""
 
 from __future__ import annotations
 
@@ -25,7 +25,7 @@ class task_(Generic[T, B]):  # noqa: N801
     """A task that wraps a Python function.
 
     Arguments:
-        func: Function to be called as a task.
+        func: Function to be executed as a task.
         name: Optional name of the task.
             If `None`, the name of the function is used.
         save: A flag to indicate whether the task inputs and outputs should be
@@ -77,7 +77,7 @@ class task_(Generic[T, B]):  # noqa: N801
         return self._func(*args, **kwargs)
 
     def __repr__(self):
-        return f"task(func={self.func}, name={self.name})"
+        return f"task(func={self.func}, name={self.name}, save={self.save})"
 
     def __str__(self):
         return f"task(name={self.name})"
@@ -98,10 +98,12 @@ def task(
 def task(
     func: Callable[T, B] | None = None, *, name: str | None = None, save: bool = True
 ) -> task_[T, B] | Callable[[Callable[T, B]], task_[T, B]]:
-    """Mark a function as a task.
+    """Mark a function as a workflow task.
 
     If the decorated function is used outside of an workflow related context, or
     within another task, the underlying behavior does not change.
+
+    The function signature must not have positional-only arguments.
 
     Arguments:
         func: Function to be wrapped as a task.

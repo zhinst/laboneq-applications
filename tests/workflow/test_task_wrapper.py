@@ -78,7 +78,7 @@ class TestTaskDecorator:
         def a_task(x, y):
             return x + y
 
-        assert repr(a_task) == f"task(func={a_task.func}, name=a_task)"
+        assert repr(a_task) == f"task(func={a_task.func}, name=a_task, save=True)"
 
     def test_str(self):
         @task
