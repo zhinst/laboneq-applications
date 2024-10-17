@@ -7,6 +7,8 @@ from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, Literal
 
 from laboneq.core.utilities.dsl_dataclass_decorator import classformatter
+from laboneq.dsl.calibration import Calibration, Oscillator
+from laboneq.dsl.enums import ModulationType
 from laboneq.dsl.quantum import (
     Transmon,
     TransmonParameters,
@@ -65,6 +67,10 @@ class TunableTransmonQubitParameters(TransmonParameters):
             Pulse parameters for the readout pulse.
         readout_integration_length:
             Duration of the weighted integration.
+        readout_integration_kernels_type:
+            The type of integration kernel to use, either "default" or "optimal".
+            Setting this parameter to "optimal" disables the modulation in the acquire
+            signal, as the optimal kernels are assumed to be already modulated.
         readout_integration_kernels:
             Either "default" or a list of pulse dictionaries.
         readout_integration_discrimination_thresholds:
@@ -408,3 +414,24 @@ class TunableTransmonQubit(Transmon):
             self.parameters._override(parameters)
         except ValueError as err:
             raise ValueError(f"Cannot update {self.uid}: {err}.") from err
+
+    def calibration(self, set_local_oscillators: bool = True) -> Calibration:  # noqa: FBT001, FBT002
+        """Generate calibration from the parameters and attached signal lines.
+
+        Overloads the method with the same name from the base class [Transmon] in
+        order to set the readout_integration_discrimination_thresholds and to
+        disable the modulation of the acquire oscillator if optimal weights are used
+        (readout_integration_kernels_type == "optimal").
+        """
+        qubit_calib = super().calibration(set_local_oscillators=set_local_oscillators)
+        if "acquire" in self.signals:
+            acq_sig_calib = qubit_calib[self.signals["acquire"]]
+            acq_sig_calib.threshold = (
+                self.parameters.readout_integration_discrimination_thresholds
+            )
+
+            if self.parameters.readout_integration_kernels_type == "optimal":
+                acq_sig_calib.oscillator = Oscillator(
+                    frequency=0, modulation_type=ModulationType.SOFTWARE
+                )
+        return qubit_calib

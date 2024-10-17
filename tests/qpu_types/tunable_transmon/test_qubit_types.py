@@ -259,6 +259,20 @@ class TestTunableTransmonQubit:
             f"parameters: {non_existing_params}"
         )
 
+    @pytest.mark.parametrize("kernels_type", ["default", "optimal"])
+    @pytest.mark.parametrize("thresholds", [None, [0, 0, 0]])
+    def test_calibration(self, q0, thresholds, kernels_type):
+        q0.parameters.readout_integration_discrimination_thresholds = thresholds
+        q0.parameters.readout_integration_kernels_type = kernels_type
+        qubit_calib = q0.calibration()
+        acq_sig_calib = qubit_calib[q0.signals["acquire"]]
+        assert acq_sig_calib.threshold == thresholds
+        assert (
+            acq_sig_calib.oscillator.frequency == 0
+            if kernels_type == "optimal"
+            else 100e6
+        )
+
 
 class TestTunableTransmonParameters:
     def test_create(self):
