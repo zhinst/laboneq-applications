@@ -22,7 +22,6 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from laboneq.simple import AveragingMode, Experiment, SweepParameter
-from pydantic import Field
 
 from laboneq_applications import dsl, workflow
 from laboneq_applications.analysis.echo import analysis_workflow
@@ -31,6 +30,7 @@ from laboneq_applications.experiments.options import (
     TuneUpWorkflowOptions,
 )
 from laboneq_applications.tasks import compile_experiment, run_experiment, update_qubits
+from laboneq_applications.workflow import option_field, options
 
 if TYPE_CHECKING:
     from laboneq.dsl.session import Session
@@ -39,6 +39,7 @@ if TYPE_CHECKING:
     from laboneq_applications.typing import Qubits, QubitSweepPoints
 
 
+@options
 class EchoExperimentOptions(TuneupExperimentOptions):
     """Options for the Hahn echo experiment.
 
@@ -48,7 +49,7 @@ class EchoExperimentOptions(TuneupExperimentOptions):
             Default: "y180".
     """
 
-    refocus_qop: str = Field(
+    refocus_qop: str = option_field(
         "y180",
         description="String to define the quantum operation in-between the x90 pulses",
     )

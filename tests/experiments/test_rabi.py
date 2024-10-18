@@ -321,7 +321,9 @@ class TestAmplitudeRabiSingleQubit:
         self.qpu = self.platform.qpu
         [self.q0] = self.qpu.qubits
         self.amplitude = np.linspace(0, 1, 21)
-        self.options = TuneupExperimentOptions(count=count, transition=transition)
+        self.options = TuneupExperimentOptions(
+            count=count, transition=transition, cal_states=transition
+        )
 
     def test_create_exp_single_qubit(self):
         exp = amplitude_rabi.create_experiment(
@@ -387,7 +389,9 @@ class TestAmplitudeRabiTwoQubit:
         self.qpu = self.platform.qpu
         self.q0, self.q1 = self.qpu.qubits
         self.amplitudes = [np.linspace(0, 1, 21), np.linspace(0, 0.5, 21)]
-        self.options = TuneupExperimentOptions(count=count, transition=transition)
+        self.options = TuneupExperimentOptions(
+            count=count, transition=transition, cal_states=transition
+        )
 
     def test_run_standalone(self):
         exp = amplitude_rabi.create_experiment(

@@ -2,18 +2,20 @@
 
 from __future__ import annotations
 
-import typing
-
-from pydantic import Field, PrivateAttr
-
 from laboneq_applications.logbook import LogbookStore  # noqa: TCH001
-from laboneq_applications.workflow.options_base import BaseOptions
+from laboneq_applications.workflow.options_base import (
+    BaseOptions,
+    option_field,
+    options,
+)
 
 
+@options
 class TaskOptions(BaseOptions):
     """Base class for task options."""
 
 
+@options
 class WorkflowOptions(BaseOptions):
     """Base options for a workflow.
 
@@ -26,26 +28,9 @@ class WorkflowOptions(BaseOptions):
             A task can have only one unique set of options per workflow.
     """
 
-    logstore: LogbookStore | None = Field(
-        default=None, repr=False, exclude=True, description="The logstore to use."
+    logstore: LogbookStore | None = option_field(
+        None, description="The logstore to use.", exclude=True, repr=False
     )
-    _task_options: dict[str, BaseOptions] = PrivateAttr(default_factory=dict)
-
-    class Config:
-        """Pydantic configuration."""
-
-        # Exclude fields from serialization by default
-        exclude: typing.ClassVar[set[str]] = {"logstore"}
-        arbitrary_types_allowed = True
-
-    def to_dict(self) -> dict:
-        """Generate a dictionary representation of the options."""
-        data = super().to_dict()
-        data["_task_options"] = {
-            key: value.to_dict() for key, value in self._task_options.items()
-        }
-        return data
-
-    def __rich_repr__(self):
-        yield from super().__rich_repr__()
-        yield "_task_options", self._task_options
+    _task_options: dict[str, BaseOptions] = option_field(
+        factory=dict, description="task options", alias="_task_options"
+    )

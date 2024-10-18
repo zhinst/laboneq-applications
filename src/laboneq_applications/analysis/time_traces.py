@@ -18,11 +18,11 @@ import matplotlib.pyplot as plt
 import numpy as np
 import scipy as sp
 from laboneq.analysis import calculate_integration_kernels_thresholds
-from pydantic import Field
 
 from laboneq_applications import workflow
 from laboneq_applications.core.validation import validate_and_convert_qubits_sweeps
 from laboneq_applications.experiments.options import TaskOptions, WorkflowOptions
+from laboneq_applications.workflow import option_field, options
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
@@ -34,6 +34,7 @@ if TYPE_CHECKING:
     from laboneq_applications.typing import Qubits
 
 
+@options
 class TimeTracesAnalysisWorkflowOptions(WorkflowOptions):
     """Option class for the time-traces analysis workflow.
 
@@ -58,20 +59,23 @@ class TimeTracesAnalysisWorkflowOptions(WorkflowOptions):
             Default: 'True'.
     """
 
-    filter_kernels: bool = Field(False, description="Whether to filter the kernels.")
-    do_fitting: bool = Field(True, description="Whether to perform the fit.")
-    do_plotting: bool = Field(True, description="Whether to create plots.")
-    do_plotting_time_traces: bool = Field(
+    filter_kernels: bool = option_field(
+        False, description="Whether to filter the kernels."
+    )
+    do_fitting: bool = option_field(True, description="Whether to perform the fit.")
+    do_plotting: bool = option_field(True, description="Whether to create plots.")
+    do_plotting_time_traces: bool = option_field(
         True, description="Whether to create time-traces plots."
     )
-    do_plotting_kernels_traces: bool = Field(
+    do_plotting_kernels_traces: bool = option_field(
         True, description="Whether to create the integration-kernel plots."
     )
-    do_plotting_kernels_fft: bool = Field(
+    do_plotting_kernels_fft: bool = option_field(
         True, description="Whether to create the kernels-FFT plots."
     )
 
 
+@options
 class TimeTracesAnalysisOptions(TaskOptions):
     """Option class for the tasks in the time-traces analysis workflows.
 
@@ -100,14 +104,18 @@ class TimeTracesAnalysisOptions(TaskOptions):
             Default: `True`.
     """
 
-    granularity: int = Field(16, description="The granularity of the acquisition.")
-    filter_cutoff_frequency: float | None = Field(
+    granularity: int = option_field(
+        16, description="The granularity of the acquisition."
+    )
+    filter_cutoff_frequency: float | None = option_field(
         None, description="The cut-off frequency."
     )
-    sampling_rate: float = Field(2e9, description="The sampling rate.")
-    do_fitting: bool = Field(True, description="Whether to perform the fit.")
-    save_figures: bool = Field(True, description="Whether to save the figures.")
-    close_figures: bool = Field(True, description="Whether to close the figures.")
+    sampling_rate: float = option_field(2e9, description="The sampling rate.")
+    do_fitting: bool = option_field(True, description="Whether to perform the fit.")
+    save_figures: bool = option_field(True, description="Whether to save the figures.")
+    close_figures: bool = option_field(
+        True, description="Whether to close the figures."
+    )
 
 
 @workflow.workflow(name="time_traces_analysis")

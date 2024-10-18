@@ -23,7 +23,6 @@ from typing import TYPE_CHECKING
 
 from laboneq.dsl.enums import AcquisitionType
 from laboneq.simple import Experiment, SweepParameter
-from pydantic import Field
 
 from laboneq_applications import dsl, workflow
 from laboneq_applications.analysis.dispersive_shift import analysis_workflow
@@ -32,6 +31,7 @@ from laboneq_applications.experiments.options import (
     TuneUpWorkflowOptions,
 )
 from laboneq_applications.tasks import compile_experiment, run_experiment, update_qubits
+from laboneq_applications.workflow import option_field, options
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
@@ -44,6 +44,7 @@ if TYPE_CHECKING:
     from laboneq_applications.typing import QubitSweepPoints
 
 
+@options
 class DispersiveShiftExperimentOptions(BaseExperimentOptions):
     """Options for the dispersive-shift experiment.
 
@@ -56,7 +57,7 @@ class DispersiveShiftExperimentOptions(BaseExperimentOptions):
             Default: `AcquisitionType.SPECTROSCOPY`.
     """
 
-    acquisition_type: AcquisitionType = Field(
+    acquisition_type: AcquisitionType = option_field(
         AcquisitionType.SPECTROSCOPY, description="Acquisition type to use."
     )
 

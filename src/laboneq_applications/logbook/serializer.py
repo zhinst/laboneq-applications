@@ -12,7 +12,6 @@ from typing import TYPE_CHECKING
 import matplotlib.figure as mpl_figure
 import numpy as np
 import PIL
-import pydantic
 
 if TYPE_CHECKING:
     from typing import IO
@@ -103,20 +102,6 @@ def serialize_bytes(obj: bytes, opener: SerializeOpener) -> None:
     """
     with opener.open("dat", binary=True) as f:
         f.write(obj)
-
-
-@serialize.register
-def serialize_pydantic_model(obj: pydantic.BaseModel, opener: SerializeOpener) -> None:
-    """Serialize a Pydantic model.
-
-    Pydantic models are saved as JSON file with extension `.json`.
-
-    Any options are passed directly as keyword arguments to the Pydantic model's
-    `..model_dump_json` method.
-    """
-    json_txt = obj.model_dump_json(**opener.options())
-    with opener.open("json") as f:
-        f.write(json_txt)
 
 
 @serialize.register

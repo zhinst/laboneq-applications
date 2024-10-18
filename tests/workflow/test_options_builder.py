@@ -1,6 +1,6 @@
 import pytest
-from pydantic import Field
 
+from laboneq_applications.workflow import option_field, options
 from laboneq_applications.workflow.options import TaskOptions, WorkflowOptions
 from laboneq_applications.workflow.options_builder import (
     OptionBuilder,
@@ -12,20 +12,24 @@ from laboneq_applications.workflow.options_builder import (
 from tests.helpers.format import minify_string, strip_ansi_codes
 
 
+@options
 class TOpt1(TaskOptions):
     shared: int = 1
 
 
+@options
 class TOpt2(TaskOptions):
     shared: int = 2
     b: int = 2
 
 
+@options
 class OuterOptions(WorkflowOptions):
     shared: int = 1
     outer_not_shared: int = 1
 
 
+@options
 class NestedOptions(WorkflowOptions):
     nested_shared: int = 3
     shared: int = 3
@@ -105,9 +109,11 @@ class TestOptionBuilder:
 class TestOptionBuilderPrinting:
     @pytest.fixture()
     def option_builder(self):
+        @options
         class W(WorkflowOptions):
             a: int = 1
 
+        @options
         class T(TaskOptions):
             b: str = "b"
 
@@ -117,7 +123,7 @@ class TestOptionBuilderPrinting:
 
     def test_str(self, option_builder):
         expected_str = (
-            "W(a=1,_task_options={'task1':T(b='b'),'wf1':W(a=1,_task_options={})})"
+            "W(_task_options={'task1':T(b='b'),'wf1':W(_task_options={},a=1)},a=1)"
         )
         assert expected_str == (strip_ansi_codes(minify_string(str(option_builder))))
 
@@ -125,12 +131,14 @@ class TestOptionBuilderPrinting:
 class TestOptionBuilderOverview:
     @pytest.fixture()
     def option_builder(self):
+        @options
         class W(WorkflowOptions):
-            a: int = Field(1, description="a")
+            a: int = option_field(1, description="a")
 
+        @options
         class T(TaskOptions):
             b: str = "b"
-            a: int = Field(2, description="aa")
+            a: int = option_field(2, description="aa")
 
         option_builder = W()
         option_builder._task_options = {"task1": T(), "wf1": W()}
@@ -377,10 +385,12 @@ class TestOptionNodeList:
 
 
 def test_get_all_fields():
+    @options
     class T(TaskOptions):
         shared: int = 1
         not_shared: int = 2
 
+    @options
     class A(WorkflowOptions):
         alice: int = 1
         shared: int = 2
@@ -392,6 +402,7 @@ def test_get_all_fields():
         "logstore",
     }
 
+    @options
     class B(WorkflowOptions):
         bob: int = 1
 

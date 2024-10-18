@@ -124,7 +124,7 @@ def _retrieve_option_attributes(
 ) -> OptionNodeList:
     """Return OptionNodeList that contains the option fields."""
     option_list = OptionNodeList()
-    opt_field = option.model_fields.get(field_name, None)
+    opt_field = option.fields.get(field_name, None)
     if opt_field is not None:
         option_list.append(OptionNode(current_node, field_name, option))
     for task_name, opt in option._task_options.items():
@@ -139,14 +139,14 @@ def _retrieve_option_attributes(
 
 def _get_all_fields(option: WorkflowOptions) -> set[str]:
     """Return all fields in the task_options and the top level fields."""
-    all_fields = set(option.model_fields.keys())
+    all_fields = set(option.fields.keys())
     for opt in option._task_options.values():
         if isinstance(opt, WorkflowOptions):
             all_fields.update(_get_all_fields(opt))
         else:
-            for field_name, _ in opt:
+            for field_name in opt.fields:
                 all_fields.add(field_name)
-    top_level_options = option.model_fields.keys()
+    top_level_options = option.fields.keys()
     all_fields.update(top_level_options)
     return all_fields
 
@@ -264,8 +264,8 @@ class OptionNode:
         self.field = field
         self.option = option
         self._value = str(getattr(self.option, self.field, self.option))
-        self._description = option.model_fields[self.field].description
-        self._default_value = option.model_fields[self.field].default
+        self._description = option.fields[self.field].metadata.get("description", None)
+        self._default_value = option.fields[self.field].default
 
     @property
     def description(self) -> str:

@@ -17,7 +17,6 @@ from typing import TYPE_CHECKING
 import matplotlib.pyplot as plt
 import numpy as np
 import uncertainties as unc
-from pydantic import Field
 
 from laboneq_applications import dsl, workflow
 from laboneq_applications.analysis.fitting_helpers import lorentzian_fit
@@ -27,6 +26,7 @@ from laboneq_applications.experiments.options import (
     ResonatorSpectroscopyExperimentOptions,
     WorkflowOptions,
 )
+from laboneq_applications.workflow import option_field, options
 
 if TYPE_CHECKING:
     import lmfit
@@ -37,6 +37,7 @@ if TYPE_CHECKING:
     from laboneq_applications.tasks.run_experiment import RunExperimentResults
 
 
+@options
 class ResonatorSpectroscopyAnalysisOptions(ResonatorSpectroscopyExperimentOptions):
     """Options for the analysis of the resonator spectroscopy experiment.
 
@@ -59,21 +60,24 @@ class ResonatorSpectroscopyAnalysisOptions(ResonatorSpectroscopyExperimentOption
 
     """
 
-    fit_lorentzian: bool = Field(
+    fit_lorentzian: bool = option_field(
         False, description="Whether to fit a Lorentzian model to the data."
     )
-    fit_parameters_hints: dict[str, dict[str, float | bool | str]] | None = Field(
-        None, description="Parameters hints accepted by lmfit"
+    fit_parameters_hints: dict[str, dict[str, float | bool | str]] | None = (
+        option_field(None, description="Parameters hints accepted by lmfit")
     )
-    find_peaks: bool = Field(
+    find_peaks: bool = option_field(
         False,
         description="Whether to search for peaks (True) or dips (False) "
         "in the spectrum.",
     )
-    save_figures: bool = Field(True, description="Whether to save the figures.")
-    close_figures: bool = Field(True, description="Whether to close the figures.")
+    save_figures: bool = option_field(True, description="Whether to save the figures.")
+    close_figures: bool = option_field(
+        True, description="Whether to close the figures."
+    )
 
 
+@options
 class ResonatorSpectroscopyAnalysisWorkflowOptions(WorkflowOptions):
     """Option class for spectroscopy analysis workflows.
 
@@ -92,14 +96,14 @@ class ResonatorSpectroscopyAnalysisWorkflowOptions(WorkflowOptions):
             Default: True.
     """
 
-    do_plotting: bool = Field(True, description="Whether to create plots.")
-    do_raw_data_plotting: bool = Field(
+    do_plotting: bool = option_field(True, description="Whether to create plots.")
+    do_raw_data_plotting: bool = option_field(
         True, description="Whether to plot the raw data."
     )
-    do_plotting_magnitude_phase: bool = Field(
+    do_plotting_magnitude_phase: bool = option_field(
         True, description="Whether to plot the magnitude and phase."
     )
-    do_plotting_real_imaginary: bool = Field(
+    do_plotting_real_imaginary: bool = option_field(
         True, description="Whether to plot the real and imaginary data."
     )
 

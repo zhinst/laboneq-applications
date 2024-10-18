@@ -17,7 +17,6 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Literal
 
 from laboneq.simple import AcquisitionType, Experiment
-from pydantic import Field
 
 from laboneq_applications import dsl, tasks, workflow
 from laboneq_applications.analysis.time_traces import analysis_workflow
@@ -26,6 +25,7 @@ from laboneq_applications.experiments.options import (
     BaseExperimentOptions,
     TuneUpWorkflowOptions,
 )
+from laboneq_applications.workflow import option_field, options
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
@@ -37,6 +37,7 @@ if TYPE_CHECKING:
     from laboneq_applications.typing import Qubits
 
 
+@options
 class TimeTracesExperimentOptions(BaseExperimentOptions):
     """Options for the time-traces experiment.
 
@@ -49,7 +50,7 @@ class TimeTracesExperimentOptions(BaseExperimentOptions):
             Default: `AcquisitionType.RAW`.
     """
 
-    acquisition_type: str | AcquisitionType = Field(
+    acquisition_type: str | AcquisitionType = option_field(
         AcquisitionType.RAW, description="Acquisition type to use for the experiment"
     )
 

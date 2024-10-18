@@ -33,7 +33,12 @@ class TestBaseExperimentOptions:
 
 class TestTuneupExperimentOptions:
     def test_create_options(self):
-        # explicitly pass cal_states
+        opt = TuneupExperimentOptions()
+        assert opt.count == 1024
+        assert opt.transition == "ge"
+        assert opt.use_cal_traces
+        assert opt.cal_states == "ge"
+
         input_options = {
             "count": 2**12,
             "transition": "ge",
@@ -45,41 +50,3 @@ class TestTuneupExperimentOptions:
         assert opt.transition == "ge"
         assert not opt.use_cal_traces
         assert opt.cal_states == "gef"
-
-    def test_create_options_default_transition(self):
-        # test cal_states different to default transition
-        input_options = {
-            "count": 2**12,
-            "use_cal_traces": True,
-            "cal_states": "ef",
-        }
-        opt = TuneupExperimentOptions(**input_options)
-        assert opt.count == 2**12
-        assert opt.transition == "ge"
-        assert opt.use_cal_traces
-        assert opt.cal_states == "ef"
-
-    def test_create_options_default_cal_states(self):
-        # test cal_states created from transition
-        input_options = {
-            "count": 2**12,
-            "transition": "ef",
-            "use_cal_traces": True,
-        }
-        opt = TuneupExperimentOptions(**input_options)
-        assert opt.count == 2**12
-        assert opt.transition == "ef"
-        assert opt.use_cal_traces
-        assert opt.cal_states == "ef"
-
-    def test_create_options_default_transition_cal_states(self):
-        # test default cal_states and transition
-        input_options = {
-            "count": 2**12,
-            "use_cal_traces": True,
-        }
-        opt = TuneupExperimentOptions(**input_options)
-        assert opt.count == 2**12
-        assert opt.transition == "ge"
-        assert opt.use_cal_traces
-        assert opt.cal_states == "ge"

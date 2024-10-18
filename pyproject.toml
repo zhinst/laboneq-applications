@@ -39,10 +39,9 @@ dependencies = [
     "scipy",
     "matplotlib",
     "lmfit",
-    "pydantic>=2.0",
     "pygments",
-    "eval_type_backport", # Required for using Union type in pydantic with python 3.9
     "scikit-learn~=1.5.2",
+    "attrs >= 20.1.0",
 ]
 
 [tool.setuptools.packages.find]

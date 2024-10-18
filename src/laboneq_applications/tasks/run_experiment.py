@@ -5,12 +5,11 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any
 
-from pydantic import Field
 from typing_extensions import TypeAlias
 
+from laboneq_applications import workflow
 from laboneq_applications.common.attribute_wrapper import AttributeWrapper
 from laboneq_applications.common.classformatter import classformatter
-from laboneq_applications.workflow import TaskOptions, task
 
 if TYPE_CHECKING:
     from laboneq.core.types import CompiledExperiment
@@ -152,7 +151,8 @@ def extract_results(results: Results | None) -> RunExperimentResults:
     )
 
 
-class RunExperimentOptions(TaskOptions):
+@workflow.options
+class RunExperimentOptions(workflow.TaskOptions):
     """Options for the run_experiment task.
 
     Attributes:
@@ -162,14 +162,14 @@ class RunExperimentOptions(TaskOptions):
             Default: False.
     """
 
-    return_legacy_results: bool = Field(
+    return_legacy_results: bool = workflow.option_field(
         False,
         description="Whether to return an instance of the LabOne Q Results instead of "
         "an instance of RunExperimentResults.",
     )
 
 
-@task
+@workflow.task
 def run_experiment(
     session: Session,
     compiled_experiment: CompiledExperiment,

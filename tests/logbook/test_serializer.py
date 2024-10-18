@@ -2,13 +2,11 @@
 
 from __future__ import annotations
 
-import json
 from typing import IO
 
 import matplotlib.pyplot as plt
 import numpy as np
 import PIL
-import pydantic
 import pytest
 
 from laboneq_applications.logbook.serializer import SerializeOpener, serialize
@@ -87,19 +85,6 @@ class TestSerializeBytes:
 
         assert store.files() == ["foo.dat"]
         assert store.path("foo.dat").read_bytes() == b"Bytes \xff\x00"
-        assert store.descriptions() == {}
-
-
-class TestSerializePydanticModel:
-    def test_serialize(self, store):
-        class SimpleModel(pydantic.BaseModel):
-            i: int
-            s: str
-
-        serialize(SimpleModel(i=5, s="foo"), store.opener)
-
-        assert store.files() == ["foo.json"]
-        assert json.loads(store.path("foo.json").read_text()) == {"i": 5, "s": "foo"}
         assert store.descriptions() == {}
 
 

@@ -1,14 +1,15 @@
 from __future__ import annotations
 
 import pytest
-from pydantic import ValidationError
 
 from laboneq_applications.workflow import (
     TaskOptions,
     WorkflowOptions,
+    options,
 )
 
 
+@options
 class A(WorkflowOptions):
     alice: int = 1
 
@@ -25,7 +26,7 @@ class TestWorkflowOptions:
 
     def test_init_non_existing_fields(self):
         # Creating option with non-existing attributes will raise errors
-        with pytest.raises(ValidationError):
+        with pytest.raises(TypeError):
             WorkflowOptions(non_existing=1)
 
     def test_task_options(self):
@@ -34,9 +35,11 @@ class TestWorkflowOptions:
         assert a._task_options["task1"] == TaskOptions()
 
     def test_to_dict(self):
+        @options
         class B(TaskOptions):
             bob: int = 2
 
+        @options
         class C(WorkflowOptions):
             charlie: int = 3
 

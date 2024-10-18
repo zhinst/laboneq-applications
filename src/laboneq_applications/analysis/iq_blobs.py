@@ -18,7 +18,6 @@ from typing import TYPE_CHECKING
 import matplotlib.colors as mc
 import matplotlib.pyplot as plt
 import numpy as np
-from pydantic import Field
 from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
 from sklearn.inspection import DecisionBoundaryDisplay
 from sklearn.metrics import confusion_matrix
@@ -29,6 +28,7 @@ from laboneq_applications.core.validation import (
     validate_result,
 )
 from laboneq_applications.experiments.options import TaskOptions, WorkflowOptions
+from laboneq_applications.workflow import option_field, options
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
@@ -40,6 +40,7 @@ if TYPE_CHECKING:
     from laboneq_applications.typing import Qubits
 
 
+@options
 class IQBlobAnalysisWorkflowOptions(WorkflowOptions):
     """Option class for IQ-blob analysis workflows.
 
@@ -58,16 +59,17 @@ class IQBlobAnalysisWorkflowOptions(WorkflowOptions):
             Default: 'True'.
     """
 
-    do_fitting: bool = Field(True, description="Whether to perform the fit.")
-    do_plotting: bool = Field(True, description="Whether to create plots.")
-    do_plotting_iq_blobs: bool = Field(
+    do_fitting: bool = option_field(True, description="Whether to perform the fit.")
+    do_plotting: bool = option_field(True, description="Whether to create plots.")
+    do_plotting_iq_blobs: bool = option_field(
         True, description="Whether to create the IQ-blob plots of the single shots."
     )
-    do_plotting_assignment_matrices: bool = Field(
+    do_plotting_assignment_matrices: bool = option_field(
         True, description="Whether to create the assignment matrix plots."
     )
 
 
+@options
 class IQBlobAnalysisOptions(TaskOptions):
     """Option class for the tasks in the iq-blob analysis workflows.
 
@@ -80,8 +82,10 @@ class IQBlobAnalysisOptions(TaskOptions):
             Default: `True`.
     """
 
-    save_figures: bool = Field(True, description="Whether to save the figures.")
-    close_figures: bool = Field(True, description="Whether to close the figures.")
+    save_figures: bool = option_field(True, description="Whether to save the figures.")
+    close_figures: bool = option_field(
+        True, description="Whether to close the figures."
+    )
 
 
 @workflow.workflow(name="iq_blobs_analysis")

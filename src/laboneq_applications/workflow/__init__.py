@@ -13,6 +13,7 @@ from laboneq_applications.workflow.core import (
 from laboneq_applications.workflow.exceptions import WorkflowError
 from laboneq_applications.workflow.executor import execution_info
 from laboneq_applications.workflow.options import TaskOptions, WorkflowOptions
+from laboneq_applications.workflow.options_base import option_field, options
 from laboneq_applications.workflow.options_builder import show_fields
 from laboneq_applications.workflow.recorder import (
     comment,
@@ -31,6 +32,8 @@ __all__ = [
     "WorkflowResult",
     "TaskResult",
     # Options
+    "options",
+    "option_field",
     "WorkflowOptions",
     "TaskOptions",
     "show_fields",

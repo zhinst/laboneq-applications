@@ -13,6 +13,7 @@ from laboneq_applications.workflow import (
     Workflow,
     WorkflowResult,
     exceptions,
+    options,
     task,
     workflow,
 )
@@ -1419,22 +1420,27 @@ class TestWorkflowInvalidOptions:
             def workflow_e(options: Optional[ValidOptions]): ...  # noqa: UP007
 
 
+@options
 class FooOpt(BaseOptions):
     foo: int = 1
 
 
+@options
 class BarOpt(BaseOptions):
     bar: int = 2
 
 
+@options
 class OptionFooBar(WorkflowOptions): ...
 
 
+@options
 class OptionFooBarInvalid(WorkflowOptions):
     task_foo: FooOpt = FooOpt()
     task_no_opt: BarOpt = BarOpt()
 
 
+@options
 class OptionNotExisting(OptionFooBar):
     task_not_existing: BarOpt = BarOpt()
 
@@ -1710,20 +1716,24 @@ class TestWorkflowGeneratedOptions:
         assert opts == OptionBuilder(base_opt)
 
 
+@options
 class TestOption1(TaskOptions):
     t1: int = 1
     shared: int = 1
 
 
+@options
 class TestOption2(TaskOptions):
     t2: int = 2
     shared: int = 2
 
 
+@options
 class InnerOptions(WorkflowOptions):
     inner: int = 3
 
 
+@options
 class OuterWorkflowOptions(WorkflowOptions):
     outer: int = 4
     shared: int = 4

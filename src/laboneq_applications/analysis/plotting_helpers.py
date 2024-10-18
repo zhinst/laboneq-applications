@@ -6,7 +6,6 @@ from typing import TYPE_CHECKING
 
 import matplotlib.pyplot as plt
 from laboneq.data.experiment_results import AcquiredResult as AcquiredResultLegacy
-from pydantic import Field
 
 from laboneq_applications.core.utils import local_timestamp
 from laboneq_applications.core.validation import validate_and_convert_qubits_sweeps
@@ -15,6 +14,8 @@ from laboneq_applications.tasks.run_experiment import (
 )
 from laboneq_applications.workflow import (
     execution_info,
+    option_field,
+    options,
     save_artifact,
     task,
 )
@@ -30,6 +31,7 @@ if TYPE_CHECKING:
     from laboneq_applications.typing import Qubits, QubitSweepPoints
 
 
+@options
 class PlotRawDataOptions(TaskOptions):
     """Options for the plot_raw_complex_data_1d task.
 
@@ -49,16 +51,18 @@ class PlotRawDataOptions(TaskOptions):
             Default: `True`.
     """
 
-    use_cal_traces: bool = Field(
+    use_cal_traces: bool = option_field(
         True, description="Whether to include calibration traces in the experiment."
     )
-    cal_states: str | tuple = Field(
+    cal_states: str | tuple = option_field(
         "ge",
         description="The states to prepare in the calibration traces."
         "Can be any string or tuple made from combining the characters 'g', 'e', 'f'.",
     )
-    save_figures: bool = Field(True, description="Whether to save the figures.")
-    close_figures: bool = Field(True, description="Whether to close the figures.")
+    save_figures: bool = option_field(True, description="Whether to save the figures.")
+    close_figures: bool = option_field(
+        True, description="Whether to close the figures."
+    )
 
 
 def timestamped_title(title: str, dt: datetime | None = None) -> str:

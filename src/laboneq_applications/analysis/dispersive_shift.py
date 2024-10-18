@@ -19,13 +19,13 @@ from typing import TYPE_CHECKING
 
 import matplotlib.pyplot as plt
 import numpy as np
-from pydantic import Field
 
 from laboneq_applications import dsl, workflow
 from laboneq_applications.experiments.options import (
     TaskOptions,
     WorkflowOptions,
 )
+from laboneq_applications.workflow import option_field, options
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
@@ -37,6 +37,7 @@ if TYPE_CHECKING:
     from laboneq_applications.tasks.run_experiment import RunExperimentResults
 
 
+@options
 class DispersiveShiftAnalysisOptions(TaskOptions):
     """Base options for the analysis of a dispersive-shift experiment.
 
@@ -50,10 +51,13 @@ class DispersiveShiftAnalysisOptions(TaskOptions):
 
     """
 
-    save_figures: bool = Field(True, description="Whether to save the figures.")
-    close_figures: bool = Field(True, description="Whether to close the figures.")
+    save_figures: bool = option_field(True, description="Whether to save the figures.")
+    close_figures: bool = option_field(
+        True, description="Whether to close the figures."
+    )
 
 
+@options
 class DispersiveShiftAnalysisWorkflowOptions(WorkflowOptions):
     """Option class for a dispersive-shift analysis workflows.
 
@@ -70,11 +74,11 @@ class DispersiveShiftAnalysisWorkflowOptions(WorkflowOptions):
             Default: True.
     """
 
-    do_plotting: bool = Field(True, description="Whether to create the plots.")
-    do_plotting_dispersive_shift: bool = Field(
+    do_plotting: bool = option_field(True, description="Whether to create the plots.")
+    do_plotting_dispersive_shift: bool = option_field(
         True, description="Whether to create the dispersive shift plot."
     )
-    do_plotting_signal_distances: bool = Field(
+    do_plotting_signal_distances: bool = option_field(
         True,
         description="Whether to create the plot for the pair-wise signal distances.",
     )
