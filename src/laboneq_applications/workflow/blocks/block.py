@@ -70,41 +70,23 @@ class Block(abc.ABC):
         """
         self.__enter__()
         yield
-        register = BlockBuilderContext.exit()
-        self.extend(register.blocks)
+        BlockBuilderContext.exit()
 
     def __enter__(self):
-        BlockBuilderContext.enter(WorkflowBlockBuilder())
+        BlockBuilderContext.enter(self)
 
     def __exit__(self, exc_type, exc_value, traceback):  # noqa: ANN001
-        register = BlockBuilderContext.exit()
-        self.extend(register.blocks)
+        BlockBuilderContext.exit()
         active_ctx = BlockBuilderContext.get_active()
         if active_ctx:
-            active_ctx.register(self)
+            active_ctx.extend(self)
 
     @abc.abstractmethod
     def execute(self, executor: ExecutorState) -> None:
         """Execute the block."""
 
 
-class WorkflowBlockBuilder:
-    """Workflow block builder."""
-
-    def __init__(self):
-        self._blocks: list[Block] = []
-
-    @property
-    def blocks(self) -> list[Block]:
-        """Workflow blocks."""
-        return self._blocks
-
-    def register(self, block: Block) -> None:
-        """Register a block."""
-        self._blocks.append(block)
-
-
-class BlockBuilderContext(LocalContext[WorkflowBlockBuilder]):
+class BlockBuilderContext(LocalContext[Block]):
     """Workflow block builder context."""
 
     _scope = "block_builder"

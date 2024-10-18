@@ -27,8 +27,24 @@ if TYPE_CHECKING:
     from laboneq_applications.workflow.result import TaskResult, WorkflowResult
 
 
-class _ExecutorInterrupt(Exception):  # noqa: N818
-    """Executor interrupt signal."""
+class _ExecutorSignal(Exception):  # noqa: N818
+    """A base signal class for executor control flow."""
+
+
+class _WorkflowSignal(_ExecutorSignal):
+    """A base signal class for workflow control flow.
+
+    The signal and its subclasses must be handled by the current executing workflow
+    and must not leak outside.
+    """
+
+
+class _BreakLoopSignal(_WorkflowSignal):
+    """A signal to indicate the current innermost loop should be stopped."""
+
+
+class _WorkflowStopExecutionSignal(_WorkflowSignal):
+    """A signal to indicate the current workflow should be stopped."""
 
 
 @dataclass
@@ -56,19 +72,19 @@ class _RunTimeIndexer:
     """Runtime indexer for blocks."""
 
     def __init__(self) -> None:
-        self._index: list = []
+        self.index: list = []
 
     def push(self, index: object) -> None:
         """Push an active index."""
-        self._index.append(index)
+        self.index.append(index)
 
     def pop(self) -> object:
         """Pop an active index."""
-        return self._index.pop()
+        return self.index.pop()
 
     def format(self) -> tuple[object]:
         """Format the index."""
-        return tuple(self._index)
+        return tuple(self.index)
 
 
 class _WorkflowExecutionContext:
@@ -108,15 +124,21 @@ class ExecutorState:
 
     @contextmanager
     def scoped_index(self, index: object) -> Generator[None, None, None]:
-        """Add a scoped index for the given context.
+        """Add a scoped iteration index for the given context.
 
         Must be called within an active workflow.
         """
         self._workflow_contexts[-1].indexer.push(index)
         try:
             yield
+        except _BreakLoopSignal:
+            return
         finally:
             self._workflow_contexts[-1].indexer.pop()
+
+    def interrupt_loop(self) -> None:
+        """Interrupt the current innermost loop."""
+        raise _BreakLoopSignal
 
     def get_index(self) -> tuple:
         """Get execution index."""
@@ -154,8 +176,11 @@ class ExecutorState:
         self._workflow_contexts.append(ctx)
         try:
             yield
-        except _ExecutorInterrupt:
+        except _WorkflowStopExecutionSignal:
             return
+        except _WorkflowSignal as signal:
+            # Workflow signals must not leak outside of workflow
+            raise RuntimeError("Workflow internal error.") from signal
         finally:
             self._workflow_contexts.pop()
 
@@ -208,7 +233,7 @@ class ExecutorState:
         raises an `WorkflowError`.
         """
         if self.has_active_context:
-            raise _ExecutorInterrupt
+            raise _WorkflowStopExecutionSignal
         raise WorkflowError(
             "interrupt() cannot be called outside of active executor context."
         )

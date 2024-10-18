@@ -66,13 +66,13 @@ class task_(Generic[T, B]):  # noqa: N801
 
     @variable_tracker.track
     def __call__(self, *args: T.args, **kwargs: T.kwargs) -> B:  # noqa: D102
-        ctx = BlockBuilderContext.get_active()
-        if ctx:
+        root = BlockBuilderContext.get_active()
+        if root:
             block = TaskBlock(
                 task=self,
                 parameters=_utils.create_argument_map(self.func, *args, **kwargs),
             )
-            ctx.register(block)
+            root.extend(block)
             return cast(B, block.ref)
         return self._func(*args, **kwargs)
 

@@ -3,9 +3,14 @@
 The package provides tools and building blocks to define workflows.
 """
 
-from laboneq_applications.workflow.blocks.for_block import for_
-from laboneq_applications.workflow.blocks.if_block import elif_, else_, if_
-from laboneq_applications.workflow.blocks.return_block import return_
+from laboneq_applications.workflow.blocks import (
+    break_,
+    elif_,
+    else_,
+    for_,
+    if_,
+    return_,
+)
 from laboneq_applications.workflow.core import (
     Workflow,
     workflow,
@@ -43,6 +48,7 @@ __all__ = [
     "elif_",
     "else_",
     "for_",
+    "break_",
     # Task operations
     "comment",
     "log",

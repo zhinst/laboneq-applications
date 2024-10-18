@@ -9,7 +9,7 @@ from laboneq_applications.workflow.blocks.block import Block
 from laboneq_applications.workflow.exceptions import WorkflowError
 from laboneq_applications.workflow.executor import (
     ExecutorState,
-    _ExecutorInterrupt,
+    _ExecutorSignal,
     execution_info,
 )
 from laboneq_applications.workflow.reference import Reference
@@ -84,7 +84,7 @@ class TestExecutorState:
         block = NoOpBlock(parameters={"y": Reference(None, default=1)})
         assert obj.resolve_inputs(block) == {"y": 1}
 
-    def test_interrupt(self):
+    def test_interrupt_workflow(self):
         obj = ExecutorState()
         assert obj.has_active_context is False
         # Context not active (Internal error)
@@ -100,9 +100,15 @@ class TestExecutorState:
         # Test interrupt signal caught within the context
         with obj.enter_workflow(None):
             assert obj.has_active_context
-            with pytest.raises(_ExecutorInterrupt):
+            with pytest.raises(_ExecutorSignal):
                 obj.interrupt()
         assert obj.has_active_context is False
+
+    def test_unhandled_break_loop_signal(self):
+        obj = ExecutorState()
+        with pytest.raises(RuntimeError, match="Workflow internal error."):
+            with obj.enter_workflow(None):
+                obj.interrupt_loop()
 
 
 @workflow.task

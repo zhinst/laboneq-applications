@@ -142,10 +142,10 @@ def if_(condition: Any) -> Generator[None, None, None]:  # noqa: ANN401
         ```
     """
     expr = IFExpression(condition=condition)
-    active_ctx = blocks.BlockBuilderContext.get_active()
     collection = ConditionalChain()
-    if active_ctx:
-        active_ctx.register(collection)
+    root = blocks.BlockBuilderContext.get_active()
+    if root:
+        root.extend(collection)
     with expr.collect():
         yield
     collection.extend(expr)
@@ -178,22 +178,22 @@ def elif_(condition: Any) -> Generator[None, None, None]:  # noqa: ANN401
         WorkflowError:
             Expression is defined without `if_()`
     """
-    ctx = blocks.BlockBuilderContext.get_active()
-    if not ctx:
+    root = blocks.BlockBuilderContext.get_active()
+    if not root:
         yield
         return
     if (
-        not ctx.blocks
-        or not isinstance(ctx.blocks[-1], ConditionalChain)
-        or not ctx.blocks[-1].body
-        or not isinstance(ctx.blocks[-1].body[-1], (IFExpression, ElseIfExpression))
+        not root.body
+        or not isinstance(root.body[-1], ConditionalChain)
+        or not root.body[-1].body
+        or not isinstance(root.body[-1].body[-1], (IFExpression, ElseIfExpression))
     ):
         msg = "An `elif_` expression may only follow an `if_` or an `elif_`"
         raise WorkflowError(msg)
     expr = ElseIfExpression(condition=condition)
     with expr.collect():
         yield
-    ctx.blocks[-1].extend(expr)
+    root.body[-1].extend(expr)
 
 
 @variable_tracker.track
@@ -220,19 +220,19 @@ def else_() -> Generator[None, None, None]:
     Raises:
         WorkflowError: Expression is defined without `elif_()` or `if_()`
     """
-    ctx = blocks.BlockBuilderContext.get_active()
-    if not ctx:
+    root = blocks.BlockBuilderContext.get_active()
+    if not root:
         yield
         return
     if (
-        not ctx.blocks
-        or not isinstance(ctx.blocks[-1], ConditionalChain)
-        or not ctx.blocks[-1].body
-        or not isinstance(ctx.blocks[-1].body[-1], (IFExpression, ElseIfExpression))
+        not root.body
+        or not isinstance(root.body[-1], ConditionalChain)
+        or not root.body[-1].body
+        or not isinstance(root.body[-1].body[-1], (IFExpression, ElseIfExpression))
     ):
         msg = "An `else_` expression may only follow an `if_` or an `elif_`"
         raise WorkflowError(msg)
     expr = ElseExpression()
     with expr.collect():
         yield
-    ctx.blocks[-1].extend(expr)
+    root.body[-1].extend(expr)

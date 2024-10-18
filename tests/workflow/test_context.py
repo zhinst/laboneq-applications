@@ -35,6 +35,15 @@ class TestLocalContext:
                 assert LocalContext.get_active() is None
             assert LocalContext.get_active() == handler
 
+    def test_iter_stack(self):
+        with LocalContext.scoped(1):
+            with LocalContext.scoped(2):
+                assert list(LocalContext.iter_stack()) == [1, 2]
+
+        with LocalContext.scoped(1):
+            with LocalContext.scoped(2):
+                assert list(LocalContext.iter_stack(reverse=True)) == [2, 1]
+
 
 def test_get_active_context():
     assert LocalContext.get_active() is None

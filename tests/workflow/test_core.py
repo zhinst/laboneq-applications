@@ -12,14 +12,17 @@ from laboneq_applications.workflow import (
     TaskOptions,
     Workflow,
     WorkflowResult,
+    break_,
+    elif_,
+    else_,
     exceptions,
+    for_,
+    if_,
     options,
+    return_,
     task,
     workflow,
 )
-from laboneq_applications.workflow.blocks.for_block import for_
-from laboneq_applications.workflow.blocks.if_block import elif_, else_, if_
-from laboneq_applications.workflow.blocks.return_block import return_
 from laboneq_applications.workflow.options import WorkflowOptions
 from laboneq_applications.workflow.options_base import BaseOptions
 from laboneq_applications.workflow.options_builder import OptionBuilder
@@ -1274,6 +1277,49 @@ class TestForExpression:
 
         res = my_wf(x=[[1, 2], [3, 4]]).run()
         assert [x.output for x in res.tasks["addition", :]] == [2, 3, 4, 5]
+
+
+class TestBreakLoop:
+    def test_break_breaks_loop(self):
+        @workflow
+        def my_wf(x):
+            with for_(x) as _:
+                addition(1, 1)  # 2
+                with for_(x) as _:
+                    addition(1, 1)  # 4
+                    break_()
+                    addition(1, 1)
+                addition(1, 1)  # 2
+
+        res = my_wf([None, None]).run()
+        assert len(res.tasks) == 2 + 2 + 4
+
+    def test_break_does_not_carry_over_workflows(self):
+        @workflow
+        def inner():
+            break_()
+
+        @workflow
+        def outer(x):
+            with for_(x) as _:
+                inner()
+
+        with pytest.raises(
+            exceptions.WorkflowError,
+            match="A `break_` statement may only occur within a `for_` loop",
+        ):
+            outer([])
+
+    def test_break_outside_of_loop(self):
+        @workflow
+        def my_wf():
+            break_()
+
+        with pytest.raises(
+            exceptions.WorkflowError,
+            match="A `break_` statement may only occur within a `for_` loop",
+        ):
+            my_wf()
 
 
 class TestForExpressionLoopIndex:

@@ -46,6 +46,6 @@ def return_(value: Any | None = None) -> None:  # noqa: ANN401
     Arguments:
         value: Value to be set for workflow output.
     """
-    ctx = BlockBuilderContext.get_active()
-    if ctx:
-        ctx.register(ReturnStatement(value=value))
+    root = BlockBuilderContext.get_active()
+    if root:
+        root.extend(ReturnStatement(value=value))

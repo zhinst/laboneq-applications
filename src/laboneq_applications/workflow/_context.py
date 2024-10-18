@@ -52,3 +52,18 @@ class LocalContext(Generic[T]):
             return _contexts.scopes[cls._scope][-1]
         except IndexError:
             return None
+
+    @classmethod
+    def iter_stack(cls, *, reverse: bool = False) -> Generator[T, None, None]:
+        """Iterate over the existing stack.
+
+        Iterates from top to bottom by default.
+
+        Arguments:
+            reverse: Iterate from bottom to top.
+        """
+        yield from (
+            reversed(_contexts.scopes[cls._scope])
+            if reverse
+            else _contexts.scopes[cls._scope]
+        )
