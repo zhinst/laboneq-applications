@@ -47,6 +47,18 @@ test:docs_notebooks:python-3.9:
     - pip install -e .
     - pytest --nbmake docs/sources --nbmake-kernel=python --nbmake-timeout=240 --durations=0
 
+test:laboneq-develop:
+  stage: test
+  image: python:3.9
+  tags:
+    - linux
+    - docker
+  script:
+    - pip install -r requirements-dev.txt
+    - pip install -e .
+    - pip install laboneq --upgrade --pre --extra-index-url=https://artifactory.zhinst.com/artifactory/api/pypi/ZIPyPI/simple
+    - pytest tests -vv
+
 test:laboneq-feature-branch:
   when: manual
   variables:
