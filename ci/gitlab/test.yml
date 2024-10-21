@@ -46,3 +46,18 @@ test:docs_notebooks:python-3.9:
     - pip install -r requirements-dev.txt
     - pip install -e .
     - pytest --nbmake docs/sources --nbmake-kernel=python --nbmake-timeout=240 --durations=0
+
+test:laboneq-feature-branch:
+  when: manual
+  variables:
+      VERSION: "OVERRIDE"
+  stage: test
+  image: python:3.9
+  tags:
+    - linux
+    - docker
+  script:
+    - pip install -r requirements-dev.txt
+    - pip install -e .
+    - pip install --upgrade laboneq==${VERSION} --extra-index-url=$ZI_PYPI_INDEX_URL
+    - pytest tests -vv
