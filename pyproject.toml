@@ -41,7 +41,8 @@ dependencies = [
     "lmfit",
     "pygments",
     "scikit-learn~=1.5.2",
-    "attrs >= 20.1.0",
+    "attrs>=20.1.0",
+    "rich"
 ]
 
 [tool.setuptools.packages.find]
@@ -65,9 +66,6 @@ include = [
     "ci/**/*.py",
 ]
 target-version = "py39"
-exclude = [
-  "docs/zi_mkdocs",
-]
 
 lint.select = ["ALL"]
 lint.ignore = [
