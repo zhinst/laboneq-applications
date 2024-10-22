@@ -62,7 +62,7 @@ test:laboneq-develop:
 test:laboneq-feature-branch:
   when: manual
   variables:
-      VERSION: "OVERRIDE"
+    VERSION: "OVERRIDE WITH LABONEQ VERSION"
   stage: test
   image: python:3.9
   tags:
@@ -71,5 +71,5 @@ test:laboneq-feature-branch:
   script:
     - pip install -r requirements-dev.txt
     - pip install -e .
-    - pip install --upgrade laboneq==${VERSION} --extra-index-url=$ZI_PYPI_INDEX_URL
+    - pip install --upgrade laboneq==${VERSION} --extra-index-url=$LABONEQ_INDEX_URL
     - pytest tests -vv
