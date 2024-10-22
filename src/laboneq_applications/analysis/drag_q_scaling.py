@@ -26,7 +26,10 @@ from laboneq_applications.analysis.fitting_helpers import (
     fit_data_lmfit,
     linear,
 )
-from laboneq_applications.analysis.plotting_helpers import plot_raw_complex_data_1d
+from laboneq_applications.analysis.plotting_helpers import (
+    plot_raw_complex_data_1d,
+    timestamped_title,
+)
 from laboneq_applications.core.validation import (
     validate_and_convert_qubits_sweeps,
     validate_result,
@@ -389,7 +392,7 @@ def plot_population(
     for q in qubits:
         pulse_ids = list(processed_data_dict[q.uid])
         fig, ax = plt.subplots()
-        ax.set_title(f"DRAG Q-Scaling {q.uid}")  # add timestamp here
+        ax.set_title(timestamped_title(f"DRAG Q-Scaling {q.uid}"))
         ax.set_xlabel("Quadrature Scaling Factor, $\\beta$")
         num_cal_traces = processed_data_dict[q.uid][pulse_ids[0]]["num_cal_traces"]
         ax.set_ylabel(

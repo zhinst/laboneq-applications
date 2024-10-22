@@ -22,7 +22,10 @@ from laboneq_applications.analysis.calibration_traces_rotation import (
     calculate_qubit_population,
 )
 from laboneq_applications.analysis.fitting_helpers import cosine_oscillatory_fit
-from laboneq_applications.analysis.plotting_helpers import plot_raw_complex_data_1d
+from laboneq_applications.analysis.plotting_helpers import (
+    plot_raw_complex_data_1d,
+    timestamped_title,
+)
 from laboneq_applications.core.validation import validate_and_convert_qubits_sweeps
 from laboneq_applications.experiments.options import (
     TuneupAnalysisOptions,
@@ -395,7 +398,6 @@ def plot_population(
     qubits = validate_and_convert_qubits_sweeps(qubits)
     figures = {}
     for q in qubits:
-        base_name = f"Amplitude Fine {amplification_qop} {q.uid}"
         sweep_points = processed_data_dict[q.uid]["sweep_points"]
         data = processed_data_dict[q.uid][
             "population" if opts.do_rotation else "data_raw"
@@ -403,7 +405,7 @@ def plot_population(
         num_cal_traces = processed_data_dict[q.uid]["num_cal_traces"]
 
         fig, ax = plt.subplots()
-        ax.set_title(base_name)  # add timestamp here
+        ax.set_title(timestamped_title(f"Amplitude Fine {amplification_qop} {q.uid}"))
         ax.set_xlabel(xaxis_label(amplification_qop))
         ax.set_ylabel(
             "Principal Component (a.u)"

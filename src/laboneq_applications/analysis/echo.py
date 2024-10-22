@@ -341,7 +341,7 @@ def plot_population(
         num_cal_traces = processed_data_dict[q.uid]["num_cal_traces"]
 
         fig, ax = plt.subplots()
-        ax.set_title(f"T2_{q.uid}")  # add timestamp here
+        ax.set_title(plt_hlp.timestamped_title(f"Echo {q.uid}"))
         ax.set_xlabel("x90-Pulse Separation, $\\tau$ ($\\mu$s)")
         ax.set_ylabel(
             "Principal Component (a.u)"

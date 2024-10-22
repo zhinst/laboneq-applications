@@ -21,6 +21,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from laboneq_applications import dsl, workflow
+from laboneq_applications.analysis.plotting_helpers import timestamped_title
 from laboneq_applications.experiments.options import (
     TaskOptions,
     WorkflowOptions,
@@ -278,7 +279,7 @@ def plot_dispersive_shift(
     states: Sequence[str],
     options: DispersiveShiftAnalysisOptions | None = None,
 ) -> mpl.figure.Figure | None:
-    """Plot the magnitude acquire transmission signals for each preparation state.
+    """Plot the magnitude of the transmission signals for each preparation state.
 
     Arguments:
         qubit:
@@ -312,7 +313,7 @@ def plot_dispersive_shift(
     fig, ax = plt.subplots()
     ax.set_xlabel("Readout Frequency, $f_{\\mathrm{RO}}$ (GHz)")
     ax.set_ylabel("Signal Magnitude, $|S_{21}|$ (a.u.)")
-    ax.set_title(f"Dispersive Shift {qubit.uid}")  # add timestamp here
+    ax.set_title(timestamped_title(f"Dispersive Shift {qubit.uid}"))
     for state in states:
         data_mag = abs(result.result[qubit.uid][state].data)
         ax.plot(frequencies / 1e9, data_mag, label=state)
@@ -362,7 +363,7 @@ def plot_signal_distances(
     fig, ax = plt.subplots()
     ax.set_xlabel("Readout Frequency, $f_{\\mathrm{RO}}$ (GHz)")
     ax.set_ylabel("Signal-Magnitude Difference, $|\\Delta S_{21}|$ (a.u.)")
-    ax.set_title(f"Dispersive Shift {qubit.uid}")  # add timestamp here
+    ax.set_title(timestamped_title(f"Signal Differences {qubit.uid}"))
     for state_pairs, (
         s21_dist,
         opt_s21_dist,

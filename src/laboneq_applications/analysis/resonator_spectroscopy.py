@@ -20,7 +20,10 @@ import uncertainties as unc
 
 from laboneq_applications import dsl, workflow
 from laboneq_applications.analysis.fitting_helpers import lorentzian_fit
-from laboneq_applications.analysis.plotting_helpers import plot_raw_complex_data_1d
+from laboneq_applications.analysis.plotting_helpers import (
+    plot_raw_complex_data_1d,
+    timestamped_title,
+)
 from laboneq_applications.core.validation import validate_result
 from laboneq_applications.experiments.options import (
     ResonatorSpectroscopyExperimentOptions,
@@ -361,13 +364,12 @@ def plot_magnitude_phase(
     opts = ResonatorSpectroscopyAnalysisOptions() if options is None else options
     qubit = dsl.validation.validate_and_convert_single_qubit_sweeps(qubit)
 
-    base_name = f"Magnitude-Phase {qubit.uid}"
     sweep_points = processed_data_dict["sweep_points"]
     magnitude = processed_data_dict["magnitude"]
     phase = processed_data_dict["phase"]
 
     fig, axs = plt.subplots(nrows=2, sharex=True)
-    axs[0].set_title(base_name)  # add timestamp here
+    axs[0].set_title(timestamped_title(f"Magnitude-Phase {qubit.uid}"))
     axs[0].plot(
         sweep_points / 1e9,
         magnitude,
@@ -486,11 +488,10 @@ def plot_real_imaginary(
     validate_result(result)
     qubit = dsl.validation.validate_and_convert_single_qubit_sweeps(qubit)
 
-    base_name = f"Real-Imaginary {qubit.uid}"
     raw_data = result.result[qubit.uid].data
 
     fig, ax = plt.subplots()
-    ax.set_title(base_name)  # add timestamp here
+    ax.set_title(timestamped_title(f"Real-Imaginary {qubit.uid}"))
     ax.set_xlabel("Real Transmission Signal, Re($S_{21}$) (a.u.)")
     ax.set_ylabel("Imaginary Transmission Signal, Im($S_{21}$) (a.u.)")
     ax.plot(

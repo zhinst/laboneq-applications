@@ -19,7 +19,10 @@ import uncertainties as unc
 
 from laboneq_applications import workflow
 from laboneq_applications.analysis.fitting_helpers import lorentzian_fit
-from laboneq_applications.analysis.plotting_helpers import plot_raw_complex_data_1d
+from laboneq_applications.analysis.plotting_helpers import (
+    plot_raw_complex_data_1d,
+    timestamped_title,
+)
 from laboneq_applications.core.validation import (
     validate_and_convert_qubits_sweeps,
     validate_result,
@@ -302,7 +305,7 @@ def plot_qubit_spectroscopy(
         magnitude = processed_data_dict[q.uid]["magnitude"]
 
         fig, ax = plt.subplots()
-        ax.set_title(f"Qubit Spectroscopy {q.uid}")  # add timestamp here
+        ax.set_title(timestamped_title(f"Qubit Spectroscopy {q.uid}"))
         ax.plot(
             sweep_points / 1e9,
             magnitude,

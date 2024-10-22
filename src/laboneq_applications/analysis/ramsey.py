@@ -25,7 +25,10 @@ from laboneq_applications.analysis.calibration_traces_rotation import (
     calculate_qubit_population,
 )
 from laboneq_applications.analysis.fitting_helpers import cosine_oscillatory_decay_fit
-from laboneq_applications.analysis.plotting_helpers import plot_raw_complex_data_1d
+from laboneq_applications.analysis.plotting_helpers import (
+    plot_raw_complex_data_1d,
+    timestamped_title,
+)
 from laboneq_applications.core.validation import validate_and_convert_qubits_sweeps
 from laboneq_applications.experiments.options import (
     TuneupAnalysisOptions,
@@ -366,7 +369,7 @@ def plot_population(
         num_cal_traces = processed_data_dict[q.uid]["num_cal_traces"]
 
         fig, ax = plt.subplots()
-        ax.set_title(f"Ramsey {q.uid}")  # add timestamp here
+        ax.set_title(timestamped_title(f"Ramsey {q.uid}"))
         ax.set_xlabel("Pulse Separation, $\\tau$ ($\\mu$s)")
         ax.set_ylabel(
             "Principal Component (a.u)"

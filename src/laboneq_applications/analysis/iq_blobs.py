@@ -23,6 +23,7 @@ from sklearn.inspection import DecisionBoundaryDisplay
 from sklearn.metrics import confusion_matrix
 
 from laboneq_applications import workflow
+from laboneq_applications.analysis.plotting_helpers import timestamped_title
 from laboneq_applications.core.validation import (
     validate_and_convert_qubits_sweeps,
     validate_result,
@@ -357,7 +358,7 @@ def plot_iq_blobs(
         shots_combined = processed_data_dict[q.uid]["shots_combined"]
 
         fig, ax = plt.subplots()
-        ax.set_title(f"IQ Blobs {q.uid}")  # add timestamp here
+        ax.set_title(timestamped_title(f"IQ Blobs {q.uid}"))
         ax.set_xlabel("Real Signal Component, $V_{\\mathrm{I}}$ (a.u.)")
         ax.set_ylabel("Imaginary Signal Component, $V_{\\mathrm{Q}}$ (a.u.)")
 
@@ -449,7 +450,7 @@ def plot_assignment_matrices(
             if q.uid in assignment_fidelities
             else ""
         )
-        ax.set_title(f"Assignment matrix {q.uid}")
+        ax.set_title(timestamped_title(f"Assignment matrix {q.uid}"))
 
         cmap = plt.get_cmap("Reds")
         im = ax.imshow(

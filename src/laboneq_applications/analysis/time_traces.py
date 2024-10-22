@@ -20,6 +20,7 @@ import scipy as sp
 from laboneq.analysis import calculate_integration_kernels_thresholds
 
 from laboneq_applications import workflow
+from laboneq_applications.analysis.plotting_helpers import timestamped_title
 from laboneq_applications.core.validation import validate_and_convert_qubits_sweeps
 from laboneq_applications.experiments.options import TaskOptions, WorkflowOptions
 from laboneq_applications.workflow import option_field, options
@@ -485,7 +486,7 @@ def plot_time_traces(
             figsize=(fig_size[0], fig_size[1] * 1.5),
         )
         fig.align_ylabels()
-        axs[0].set_title(f"Time Traces {q.uid}")  # add timestamp here
+        axs[0].set_title(timestamped_title(f"Time Traces {q.uid}"))
         axs[-1].set_xlabel("Samples, $N$")
         for i, s in enumerate(states):
             time_trace = truncated_time_traces[q.uid][i]
@@ -560,7 +561,7 @@ def plot_kernels_traces(
         if not isinstance(axs, np.ndarray):
             axs = [axs]
         fig.align_ylabels()
-        axs[0].set_title(f"Integration Kernels {q.uid}")  # add timestamp here
+        axs[0].set_title(timestamped_title(f"Integration Kernels {q.uid}"))
         axs[-1].set_xlabel("Samples, $N$")
 
         for i, krns in enumerate(kernels_to_plot):
@@ -681,7 +682,7 @@ def plot_kernels_fft(
         axs[-1].set_ylabel("FFT")
         axs[0].legend(frameon=False)
         axs[-1].legend(frameon=False)
-        axs[0].set_title(f"Integration Kernels {q.uid}")
+        axs[0].set_title(timestamped_title(f"Integration Kernels {q.uid}"))
         fig.subplots_adjust(hspace=0.1)
 
         if opts.save_figures:

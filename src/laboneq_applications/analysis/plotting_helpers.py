@@ -132,7 +132,7 @@ def plot_raw_complex_data_1d(
         )
         fig.align_ylabels()
         fig.subplots_adjust(hspace=0.1)
-        axs[0].set_title(f"Raw data {q.uid}")  # add timestamp here
+        axs[0].set_title(timestamped_title(f"Raw data {q.uid}"))
         axs[1].set_xlabel(xlabel)
 
         if isinstance(
