@@ -2,12 +2,16 @@
 
 from __future__ import annotations
 
-from laboneq_applications.logbook import LogbookStore  # noqa: TCH001
+from typing import TYPE_CHECKING
+
 from laboneq_applications.workflow.options_base import (
     BaseOptions,
     option_field,
     options,
 )
+
+if TYPE_CHECKING:
+    from laboneq_applications.logbook import LogbookStore
 
 
 @options
