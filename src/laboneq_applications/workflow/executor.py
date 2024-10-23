@@ -256,21 +256,20 @@ class ExecutorState:
         inp = {}
         for k, v in block.parameters.items():
             if isinstance(v, reference.Reference):
-                value = resolve_to_value(v, self._block_variables)
-                inp[k] = reference.unwrap(v, value)
+                inp[k] = resolve_to_value(v, self._block_variables)
             else:
                 inp[k] = v
         return inp
 
-    def set_variable(self, block: object, value: object) -> None:
-        """Set the block variable."""
+    def set_variable(self, ref: reference.Reference, value: object) -> None:
+        """Set the reference variable."""
         # TODO: Move to executor blocks once a proper executor is ready.
-        self._block_variables[block] = value
+        self._block_variables[id(ref)] = value
 
-    def get_variable(self, block: object) -> Any:  # noqa: ANN401
-        """Get block_variable."""
+    def get_variable(self, ref: reference.Reference) -> Any:  # noqa: ANN401
+        """Get reference."""
         # TODO: Move to executor blocks once a proper executor is ready.
-        return self._block_variables[block]
+        return self._block_variables[id(ref)]
 
     def results(self) -> list[WorkflowResult]:
         """Return the results of the execution."""

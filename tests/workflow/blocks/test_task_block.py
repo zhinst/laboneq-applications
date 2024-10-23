@@ -61,8 +61,8 @@ class TestTaskBlock:
         state = ExecutorState()
         result = WorkflowResult("test")
         with state.enter_workflow(result):
-            state.set_variable("x", 1)
-            state.set_variable("y", 5)
+            state.set_variable(block.parameters["x"], 1)
+            state.set_variable(block.parameters["y"], 5)
             block.execute(state)
-            assert state.get_variable(block) == 6
+            assert state.get_variable(block.ref) == 6
         assert result.tasks[0].output == 6

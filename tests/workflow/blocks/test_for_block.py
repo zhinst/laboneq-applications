@@ -34,8 +34,8 @@ class TestForExpression:
         with executor.enter_workflow(result):
             expr.execute(executor)
         assert len(executor.block_variables) == 1 + 1
-        assert executor.get_variable(expr) == 1
-        assert executor.get_variable(block) == 2
+        assert executor.get_variable(expr.ref) == 1
+        assert executor.get_variable(block.ref) == 2
         assert len(result.tasks) == 2
 
     def test_empty_iterable(self):
@@ -56,17 +56,18 @@ class TestForExpression:
                 expr.execute(executor)
 
     def test_input_reference(self):
-        expr = ForExpression(Reference("abc"))
+        inp = Reference("abc")
+        expr = ForExpression(inp)
         block = TaskBlock(addition, parameters={"x": expr.ref, "y": 1})
         expr.extend(block)
 
         executor = ExecutorState()
-        executor.set_variable("abc", [1, 2])
+        executor.set_variable(inp, [1, 2])
         with executor.enter_workflow(WorkflowResult("test")):
             expr.execute(executor)
-        assert executor.get_variable(expr) == 2
-        assert executor.get_variable(block) == 3
-        assert executor.get_variable("abc") == [1, 2]
+        assert executor.get_variable(expr.ref) == 2
+        assert executor.get_variable(block.ref) == 3
+        assert executor.get_variable(inp) == [1, 2]
 
     def test_input_reference_within_container_error(self):
         expr = ForExpression([Reference("abc"), 5])

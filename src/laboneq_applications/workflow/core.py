@@ -134,11 +134,11 @@ class Workflow(Generic[Parameters]):
                 self._root.execute(state)
         except Exception:
             if self._recovery is not None:
-                result = state.get_variable(self._root)
+                result = state.get_variable(self._root.ref)
                 self._recovery.results = result
                 self._reset()
             raise
-        result = state.get_variable(self._root)
+        result = state.get_variable(self._root.ref)
         if state.get_block_status(self._root) == executor.ExecutionStatus.IN_PROGRESS:
             self._state = state
         else:

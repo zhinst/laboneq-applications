@@ -74,7 +74,7 @@ class TaskBlock(Block):
             executor.add_task_result(task)
             executor.recorder.on_task_end(task)
             executor.set_block_status(self, ExecutionStatus.FINISHED)
-        executor.set_variable(self, task.output)
+        executor.set_variable(self.ref, task.output)
         if executor.settings.run_until == self.name:
             executor.interrupt()
 

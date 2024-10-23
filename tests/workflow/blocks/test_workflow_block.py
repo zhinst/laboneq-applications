@@ -88,16 +88,17 @@ class TestWorkflowBlock:
         executor = ExecutorState()
         block.set_params(executor, x=1)
         block.execute(executor)
-        result = executor.get_variable(block)
+        result = executor.get_variable(block.ref)
         assert result.input == {"x": 1, "y": 5, "options": WorkflowOptions()}
 
     def test_result_input_reference(self):
         def work(x, y: int = 5): ...
 
-        block = WorkflowBlock.from_callable("test", work, y=Reference("param"))
+        inp = Reference("param")
+        block = WorkflowBlock.from_callable("test", work, y=inp)
         executor = ExecutorState()
         block.set_params(executor, x=1)
-        executor.set_variable("param", 8)
+        executor.set_variable(inp, 8)
         block.execute(executor)
-        result = executor.get_variable(block)
+        result = executor.get_variable(block.ref)
         assert result.input == {"x": 1, "y": 8, "options": WorkflowOptions()}

@@ -88,7 +88,7 @@ class TestIFExpression:
         with expr:
             a_function()
         executor = ExecutorState()
-        executor.set_variable("condition", condition)
+        executor.set_variable(expr.parameters["condition"], condition)
         with executor.enter_workflow(WorkflowResult("test")):
             expr.execute(executor)
         assert len(executor.block_variables) == result + 1

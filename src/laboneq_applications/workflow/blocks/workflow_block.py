@@ -96,20 +96,20 @@ class WorkflowBlock(Block):
             executor: Active executor.
             **kwargs: Input parameters of the block.
         """
-        inputs = kwargs
-        input_opts = kwargs.get("options")  # Options from input arguments
-        # Options might be in a dict
+        inputs = kwargs.copy()
+        input_opts = inputs.get("options")  # Options from input arguments
         if isinstance(input_opts, dict):
             input_opts = self.options_type.from_dict(input_opts)
         elif input_opts is None:
             # Options from parent options
             input_opts = executor.get_options(self.name)
         if input_opts is None:
-            # TODO: Replace with create_options() when new options are in
-            input_opts = self.options_type()  # Default options
+            # Default options
+            input_opts = self.options_type()
         inputs["options"] = input_opts
         for k, v in inputs.items():
-            executor.set_variable((self, k), v)
+            if k in self.parameters:
+                executor.set_variable(self.parameters[k], v)
 
     def execute(self, executor: ExecutorState) -> None:
         """Execute the block."""
@@ -118,7 +118,11 @@ class WorkflowBlock(Block):
             executor.set_block_status(self, ExecutionStatus.IN_PROGRESS)
             inputs = executor.resolve_inputs(self)
             self.set_params(executor, **inputs)
-            input_opts = executor.get_variable((self, "options"))
+            input_opts = (
+                executor.get_variable(self.parameters["options"])
+                if "options" in self.parameters
+                else self.options_type()
+            )
             # NOTE: Correct input options are resolved only after 'set_param()'
             # Therefore they need to be overwritten for result
             inputs["options"] = input_opts
@@ -127,11 +131,15 @@ class WorkflowBlock(Block):
             )
             result._start_time = utc_now()
             executor.recorder.on_start(result)
-            executor.set_variable(self, result)
+            executor.set_variable(self.ref, result)
             executor.add_workflow_result(result)
         elif executor.get_block_status(self) == ExecutionStatus.IN_PROGRESS:
-            result = executor.get_variable(self)
-            input_opts = executor.get_variable((self, "options"))
+            result = executor.get_variable(self.ref)
+            input_opts = (
+                executor.get_variable(self.parameters["options"])
+                if "options" in self.parameters
+                else self.options_type()
+            )
         else:
             # Block is finished
             return

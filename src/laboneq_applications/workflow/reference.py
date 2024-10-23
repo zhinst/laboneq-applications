@@ -165,25 +165,23 @@ def resolve_to_value(ref: Reference, states: dict, *, only_ref: bool = False) ->
         WorkflowError: Value cannot be resolved.
     """
     if not ref._overwrites or only_ref:
-        ref_unwrapped = get_ref(ref)
         try:
-            return states[ref_unwrapped]
+            return unwrap(ref, states[id(ref._head)])
         except KeyError as error:
-            default = get_default(ref)
+            default = get_default(ref._head)
             if default != notset:
-                return default
+                return unwrap(ref, default)
             # Reference was never executed (e.g. undefined variable).
-            raise WorkflowError(
-                f"Result for '{ref_unwrapped}' is not resolved.",
-            ) from error
+            msg = f"Result for '{get_ref(ref)}' is not resolved."
+            raise WorkflowError(msg) from error
     else:
         to_try = [ref, *ref._overwrites]
         for x in to_try:
             ref_unwrapped = get_ref(x)
             # Constant, not from workflow construct
             if ref_unwrapped is None:
-                return get_default(x)
-            if ref_unwrapped not in states:
+                return unwrap(x, get_default(x._head))
+            if id(x._head) not in states:
                 continue
-            return states[ref_unwrapped]
+            return unwrap(x, states[id(x._head)])
         return resolve_to_value(ref, states, only_ref=True)

@@ -16,6 +16,9 @@ from laboneq_applications.workflow.reference import Reference
 
 
 class NoOpBlock(Block):
+    def __init__(self, parameters=None):
+        super().__init__(parameters)
+
     def execute(self, executor: ExecutorState) -> None: ...
 
 
@@ -25,7 +28,7 @@ class TestExecutorState:
         assert obj.block_variables == {}
 
         obj.set_variable("a", 2)
-        assert obj.block_variables == {"a": 2}
+        assert obj.block_variables == {id("a"): 2}
 
     def test_set_get_variable(self):
         obj = ExecutorState()
@@ -63,14 +66,14 @@ class TestExecutorState:
         # Test straight reference
         obj = ExecutorState()
         block = NoOpBlock(parameters={"x": 1, "y": Reference("z")})
-        obj.set_variable("z", 5)
+        obj.set_variable(block.parameters["y"], 5)
         assert obj.resolve_inputs(block) == {"x": 1, "y": 5}
 
         # Test unwrap reference
         obj = ExecutorState()
         z = Reference("z")
         block = NoOpBlock(parameters={"x": 1, "y": z[0]})
-        obj.set_variable("z", [5])
+        obj.set_variable(z, [5])
         assert obj.resolve_inputs(block) == {"x": 1, "y": 5}
 
         # Test unresolved reference

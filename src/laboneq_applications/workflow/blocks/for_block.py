@@ -69,7 +69,7 @@ class ForExpression(Block):
         executor.settings.run_until = None
         try:
             for idx, val in enumerate(vals):
-                executor.set_variable(self, val)
+                executor.set_variable(self.ref, val)
                 with executor.scoped_index(
                     self._loop_indexer(val) if self._loop_indexer else idx
                 ):
