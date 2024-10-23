@@ -116,8 +116,8 @@ def experiment_workflow(
     """
     qubits = dsl.validation.validate_and_convert_qubits_sweeps(qubits)
     results = []
-    with workflow.for_(qubits) as qubit:
-        with workflow.for_(states) as state:
+    with workflow.for_(qubits, lambda q: q.uid) as qubit:
+        with workflow.for_(states, lambda s: s) as state:
             exp = create_experiment(qpu, qubit, state)
             compiled_exp = tasks.compile_experiment(session, exp)
             result = tasks.run_experiment(session, compiled_exp)

@@ -6,7 +6,7 @@ from laboneq_applications import workflow
 from laboneq_applications.tasks.run_experiment import RunExperimentResults
 
 
-@workflow.task
+@workflow.task(save=False)
 def append_result(
     results: list[RunExperimentResults], result: RunExperimentResults
 ) -> None:
