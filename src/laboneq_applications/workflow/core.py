@@ -260,8 +260,8 @@ class WorkflowBuilder(Generic[Parameters]):
         if "options" in inspect.signature(func).parameters:
             opt_type = get_and_validate_param_type(
                 func,
-                parameter="options",
                 type_check=WorkflowOptions,
+                parameter="options",
             )
             if opt_type is None:
                 msg = "Workflow input options must be of type 'WorkflowOptions'"

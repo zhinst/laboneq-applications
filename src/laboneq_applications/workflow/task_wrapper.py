@@ -40,7 +40,7 @@ class task_(Generic[T, B]):  # noqa: N801
         self._name: str = name if name is not None else func.__name__
         self._save = save
         self.__doc__ = func.__doc__
-        self._options = get_and_validate_param_type(self._func, "options", BaseOptions)
+        self._options = get_and_validate_param_type(self._func, BaseOptions, "options")
 
     @property
     @pygmentize

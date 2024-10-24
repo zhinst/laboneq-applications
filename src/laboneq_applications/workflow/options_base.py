@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import sys
 import typing
 from io import StringIO
 from typing import final
@@ -9,6 +10,8 @@ from typing import final
 import attr
 from rich.console import Console
 from rich.pretty import pprint
+
+from laboneq_applications.workflow.options_parser import check_type
 
 
 def options(cls: type) -> type:
@@ -23,6 +26,28 @@ def options(cls: type) -> type:
         raise ValueError(f"All fields in {cls.__name__} must have default values.")
 
     return cls
+
+
+def _type_validator(inst, attr: attr.Attribute, value) -> None:  # noqa: ANN001
+    """A validator for common type checking.
+
+    Raises:
+        TypeError:
+            With a human readable error message, including the attribute name
+            the expected type, and the value it got.
+    """
+    module_name = inst.__class__.__module__
+
+    module = sys.modules[module_name]
+
+    globals_ = module.__dict__
+    locals_ = globals_
+    if not check_type(value, attr.type, globals_, locals_):
+        msg = (
+            f"'{attr.name}' must be {attr.type!r} (got {value!r} that is of "
+            f"type {type(value)!r})."
+        )
+        raise TypeError(msg)
 
 
 def option_field(
@@ -46,7 +71,16 @@ def option_field(
         factory:
             The factory to use for the field.
         validators:
-            The validators to use for the field.
+            The validators to use for the field. When provided, only the
+            custom validators are used. When not provided or None,
+            a basic validator is used that performs type checking for
+            the following types:
+            - Non-generic types: int, str, float, etc.
+            - Union, Optional
+            - Generic types: List, Dict, Tuple, Set, Callable, etc. Only
+            the origin is checked.
+            - User-defined classes
+
         description:
             The description of the field.
         exclude:
@@ -61,9 +95,7 @@ def option_field(
             Whether to include the field in the representation.
     """
     if validators is None:
-        validators = []
-    # TODO: Uncomment this when we know how to handle type checking properly
-    # validators.append(_type_validator) # noqa: ERA001
+        validators = [_type_validator]
     return attr.field(
         default=default,
         factory=factory,

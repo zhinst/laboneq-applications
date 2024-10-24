@@ -5,18 +5,19 @@ from __future__ import annotations
 import inspect
 import sys
 import typing
-from typing import Any, Callable, ForwardRef, Union, get_args, get_origin
-
-from laboneq_applications.workflow.options_base import BaseOptions
 
 _PY_V39 = sys.version_info < (3, 10)
 
 if not _PY_V39:
-    from types import UnionType
+    import types
+
+
+class TypeConvertError(Exception):
+    """Exception raised for errors encountered during converting string to type."""
 
 
 def _get_argument_types(
-    fn: Callable[..., object],
+    fn: typing.Callable[..., object],
     arg_name: str,
 ) -> set[type]:
     """Get the type of the parameter for a function-like object.
@@ -25,8 +26,8 @@ def _get_argument_types(
         A set containing the parameter's types. Empty set if the parameter
         does not exist or does not have a type hint.
     """
-    _globals = getattr(fn, "__globals__", {})
-    _locals = _globals
+    globals_ = getattr(fn, "__globals__", {})
+    locals_ = globals_
 
     # typing.get_type_hints does not work on 3.9 with A | None = None.
     # It is also overkill for retrieving type of a single parameter of
@@ -38,16 +39,13 @@ def _get_argument_types(
     if param is None or param.annotation is inspect.Parameter.empty:
         return set()
 
-    if _PY_V39:
-        return _get_argument_types_v39(param.annotation, _globals, _locals)
-
-    return _parse_types(param.annotation, _globals, _locals, is_py_39=False)
+    return _parse_types(param.annotation, globals_, locals_, is_py_39=_PY_V39)
 
 
 def _get_default_argument(
-    fn: Callable,
+    fn: typing.Callable,
     arg_name: str,
-) -> Any:  # noqa: ANN401
+) -> typing.Any:  # noqa: ANN401
     """Get the default value of the parameter for a function-like object."""
     param = inspect.signature(fn).parameters.get(arg_name, None)
     if param is None:
@@ -56,61 +54,68 @@ def _get_default_argument(
     return param.default
 
 
-def _get_argument_types_v39(
-    hint: str | type,
-    _globals: dict,
-    _locals: dict,
-) -> set[type]:
-    return_types: set[type]
-    args = hint.split("|")
-    if len(args) > 1:
-        args = [arg.strip() for arg in args]
-        return_types = {
-            typing._eval_type(ForwardRef(arg), _globals, _locals) for arg in args
-        }
-        return return_types
+def _convert_str_type(
+    t: str,
+    globals_,  # noqa: ANN001
+    locals_,  # noqa: ANN001
+) -> type:
+    """Convert a type in a string form to a type object, handling Union types.
 
-    return _parse_types(hint, _globals, _locals, is_py_39=True)
+    Raises:
+        TypeConvertError if the type cannot be resolved.
+    """
+    args = [arg.strip() for arg in t.split("|")]
+    try:
+        type_args = [
+            typing._eval_type(typing.ForwardRef(arg), globals_, locals_) for arg in args
+        ]
+    except (TypeError, SyntaxError, NameError) as e:
+        raise TypeConvertError(f"Could not resolve type {t}.") from e
+    return typing.Union[tuple(type_args)]
 
 
 def _parse_types(
     type_hint: str | type,
-    _globals,  # noqa: ANN001
-    _locals,  # noqa: ANN001
+    globals_: dict,
+    locals_: dict,
     *,
     is_py_39: bool,
 ) -> set[type]:
     if isinstance(type_hint, str):
-        opt_type = typing._eval_type(ForwardRef(type_hint), _globals, _locals)
+        opt_type = _convert_str_type(type_hint, globals_, locals_)
     else:
         opt_type = type_hint
+
     if _is_union_type(opt_type, is_py_39):
-        return set(get_args(opt_type))
+        return set(typing.get_args(opt_type))
     return {opt_type}
 
 
 def _is_union_type(opt_type: type, is_py_39: bool) -> bool:  # noqa: FBT001
     return (
         is_py_39
-        and get_origin(opt_type) == Union
-        or (not is_py_39 and get_origin(opt_type) in (UnionType, Union))
+        and typing.get_origin(opt_type) == typing.Union
+        or (
+            not is_py_39
+            and typing.get_origin(opt_type) in (types.UnionType, typing.Union)
+        )
     )
 
 
-T = typing.TypeVar("T")
-
-
-def _unwrap_wrapped_func(func: Callable) -> Callable:
+def _unwrap_wrapped_func(func: typing.Callable) -> typing.Callable:
     """Unwrap wrappers from a function."""
     while hasattr(func, "__wrapped__"):
         func = func.__wrapped__
     return func
 
 
+T = typing.TypeVar("T")
+
+
 def get_and_validate_param_type(
-    fn: Callable,
+    fn: typing.Callable,
+    type_check: type[T],
     parameter: str = "options",
-    type_check: type[T] = BaseOptions,
 ) -> type[T] | None:
     """Get the type of the parameter for a function-like object.
 
@@ -152,3 +157,50 @@ def get_and_validate_param_type(
             )
         return compatible_types[0]
     return None
+
+
+def check_type(
+    value,  # noqa: ANN001
+    t: type | str,
+    globals_: dict,
+    locals_: dict,
+) -> bool:
+    """Check if the value conforms to common types.
+
+    The types are as follows:
+    - Non-generic types: int, str, float, etc.
+    - Union
+    - Literal
+    - Sequence: List, Tuple
+    - Callable
+    - Dict
+    - Custom data classes
+
+    For genetic types, only the origin is checked.
+
+
+    Returns:
+        True if the value conforms to the type hint or type cannot be resolved.
+        False otherwise.
+    """
+    if isinstance(t, str):
+        try:
+            t = _convert_str_type(t, globals_, locals_)
+        except TypeConvertError:
+            # Type could not be resolved => skip the check
+            return True
+
+    if t in (object, typing.Any):
+        return True
+    origin = typing.get_origin(t)
+    if origin is None:
+        return isinstance(value, t)
+    if origin is typing.Union:
+        return any(isinstance(value, arg) for arg in typing.get_args(t))
+    if origin is typing.Literal:
+        return value in typing.get_args(t)
+    # check containers  like List, Tuple, Set, Sequence
+    # and Callable, Dict
+    if origin in (list, tuple, set, typing.Sequence, typing.Callable, dict):
+        return isinstance(value, origin)
+    return True

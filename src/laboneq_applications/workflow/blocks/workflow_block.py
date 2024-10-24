@@ -192,7 +192,7 @@ class WorkflowBlock(Block):
         opt_type_hint = None
         if "options" in params:
             opt_type_hint = get_and_validate_param_type(
-                func, "options", WorkflowOptions
+                func, WorkflowOptions, "options"
             )
         obj = cls(name, opt_type_hint, params)
         with variable_tracker.WorkflowFunctionVariableTrackerContext.scoped(

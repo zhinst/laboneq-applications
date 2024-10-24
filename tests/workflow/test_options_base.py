@@ -149,3 +149,30 @@ class TestOptionPrinting:
             "more=None)"
         )
         assert expected_str == strip_ansi_codes(minify_string(str(f"{opt}")))
+
+
+class TestOptionTypeChecker:
+    def test_wrong_type_raise_error(self):
+        with pytest.raises(TypeError) as e:
+            SimpleOption(a="str")
+        assert str(e.value) == (
+            "'a' must be 'int' (got 'str' that is of type <class 'str'>)."
+        )
+
+    def test_set_validator(self):
+        def mock_validator(*args, **kwargs):
+            mock_validator.called = True
+
+        @options
+        class A:
+            a: int = option_field(1, validators=[mock_validator])
+
+        A()
+        assert mock_validator.called
+
+        # nullify the default validator
+        @options
+        class B:
+            a: int = option_field(1, validators=[])
+
+        B(a="str")
