@@ -25,10 +25,10 @@ class NoOpBlock(Block):
 class TestExecutorState:
     def test_variables(self):
         obj = ExecutorState()
-        assert obj.block_variables == {}
+        assert obj.runtime_variables == {}
 
         obj.set_variable("a", 2)
-        assert obj.block_variables == {id("a"): 2}
+        assert obj.runtime_variables == {id("a"): 2}
 
     def test_set_get_variable(self):
         obj = ExecutorState()

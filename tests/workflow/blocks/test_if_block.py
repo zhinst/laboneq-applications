@@ -91,7 +91,7 @@ class TestIFExpression:
         executor.set_variable(expr.parameters["condition"], condition)
         with executor.enter_workflow(WorkflowResult("test")):
             expr.execute(executor)
-        assert len(executor.block_variables) == result + 1
+        assert len(executor.runtime_variables) == result + 1
 
 
 class TestConditionalChain:

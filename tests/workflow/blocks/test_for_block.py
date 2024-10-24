@@ -33,7 +33,7 @@ class TestForExpression:
         result = WorkflowResult("test")
         with executor.enter_workflow(result):
             expr.execute(executor)
-        assert len(executor.block_variables) == 1 + 1
+        assert len(executor.runtime_variables) == 1 + 1
         assert executor.get_variable(expr.ref) == 1
         assert executor.get_variable(block.ref) == 2
         assert len(result.tasks) == 2
@@ -46,7 +46,7 @@ class TestForExpression:
         executor = ExecutorState()
         with executor.enter_workflow(WorkflowResult("test")):
             expr.execute(executor)
-        assert len(executor.block_variables) == 0
+        assert len(executor.runtime_variables) == 0
 
     def test_not_iterable_raises_exception(self):
         expr = ForExpression(2)

@@ -1,4 +1,4 @@
-"""A module that defines workflow graph executor."""
+"""A module that defines a workflow executor."""
 
 from __future__ import annotations
 
@@ -16,15 +16,17 @@ from laboneq_applications.workflow.recorder import (
     ExecutionRecorder,
     ExecutionRecorderManager,
 )
-from laboneq_applications.workflow.reference import resolve_to_value
 
 if TYPE_CHECKING:
     from collections.abc import Generator
     from datetime import datetime
 
+    from laboneq_applications.workflow import (
+        TaskOptions,
+        TaskResult,
+        WorkflowResult,
+    )
     from laboneq_applications.workflow.blocks import Block
-    from laboneq_applications.workflow.options_base import BaseOptions
-    from laboneq_applications.workflow.result import TaskResult, WorkflowResult
 
 
 class _ExecutorSignal(Exception):  # noqa: N818
@@ -102,19 +104,24 @@ class _WorkflowExecutionContext:
 
 
 class ExecutorState:
-    """A class that holds the graph execution state."""
+    """A class that holds the workflow execution state."""
 
     def __init__(
         self,
         settings: ExecutorSettings | None = None,
     ) -> None:
+        # Global runtime settings
         self._settings = settings or ExecutorSettings()
         self._recorder_manager = ExecutionRecorderManager()
         self._workflow_contexts: list[_WorkflowExecutionContext] = []
-        # Block variables, either workflow inputs or outputs of any block
-        self._block_variables = {}
-        self._block_status: dict[Block, ExecutionStatus] = {}
-        self._context_depth = 0
+        # Execution variables, either workflow inputs or outputs of any block
+        self._runtime_variables: dict[int, Any] = {}
+        # Mapping of each block status, where the key is block identifier
+        # NOTE: Currently the blocks are identified by their object ID, which is ok
+        #       as long as the graph is static, as individual block objects wont be
+        #       destroyed while the workflow object exists.
+        #       For dynamic graph, a better identifier system is needed.
+        self._block_status: dict[int, ExecutionStatus] = {}
         self._start_time: datetime = utc_now()
 
     @property
@@ -146,7 +153,7 @@ class ExecutorState:
             return ()
         return self._workflow_contexts[-1].indexer.format()
 
-    def get_options(self, name: str) -> BaseOptions | None:
+    def get_options(self, name: str) -> WorkflowOptions | TaskOptions | None:
         """Get options by block name."""
         if not self._workflow_contexts:
             return None
@@ -190,11 +197,6 @@ class ExecutorState:
         If workflow is within another workflow, the result is added
         to the parent workflow, otherwise not action is done.
         """
-        # self._results is a list of active workflows and self._results[-1]
-        # is the parent of the workflow producing the 'result' and therefore
-        # we append it into the parent workflow results.
-        # If self._results is empty, the result is from the active workflow itself
-        # and nothing should be done.
         if self.has_active_context:
             self._workflow_contexts[-1].result._tasks.append(result)
 
@@ -212,19 +214,19 @@ class ExecutorState:
         return self._settings
 
     @property
-    def block_variables(self) -> dict:
-        """Block variables."""
-        return self._block_variables
+    def runtime_variables(self) -> dict:
+        """Runtime variables."""
+        return self._runtime_variables
 
     def set_block_status(self, block: Block, status: ExecutionStatus) -> None:
         """Set block status."""
         # TODO: Move to executor blocks once a proper executor is ready.
-        self._block_status[block] = status
+        self._block_status[id(block)] = status
 
     def get_block_status(self, block: Block) -> ExecutionStatus:
         """Get block status."""
         # TODO: Move to executor blocks once a proper executor is ready.
-        return self._block_status.get(block, ExecutionStatus.NOT_STARTED)
+        return self._block_status.get(id(block), ExecutionStatus.NOT_STARTED)
 
     def interrupt(self) -> None:
         """Interrupt the current active execution context.
@@ -256,7 +258,7 @@ class ExecutorState:
         inp = {}
         for k, v in block.parameters.items():
             if isinstance(v, reference.Reference):
-                inp[k] = resolve_to_value(v, self._block_variables)
+                inp[k] = reference.resolve_to_value(v, self._runtime_variables)
             else:
                 inp[k] = v
         return inp
@@ -264,12 +266,12 @@ class ExecutorState:
     def set_variable(self, ref: reference.Reference, value: object) -> None:
         """Set the reference variable."""
         # TODO: Move to executor blocks once a proper executor is ready.
-        self._block_variables[id(ref)] = value
+        self._runtime_variables[id(ref)] = value
 
     def get_variable(self, ref: reference.Reference) -> Any:  # noqa: ANN401
         """Get reference."""
         # TODO: Move to executor blocks once a proper executor is ready.
-        return self._block_variables[id(ref)]
+        return self._runtime_variables[id(ref)]
 
     def results(self) -> list[WorkflowResult]:
         """Return the results of the execution."""
