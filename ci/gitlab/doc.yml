@@ -2,6 +2,7 @@ variables:
   GIT_SUBMODULE_STRATEGY: recursive
 
 doc:build:
+  needs: []
   stage: doc
   image: $DEFAULT_PYTHON_IMAGE
   tags:
@@ -42,15 +43,14 @@ pages:
   rules:
     - if: $CI_COMMIT_BRANCH == "main" && $CI_PIPELINE_SOURCE == "push"
 
-doc:deploy:
+doc:trigger_hub_internal:
   stage: doc
-  image: $DEFAULT_CLI_IMAGE
-  tags:
-    - linux
-    - docker
   needs:
-    - job: doc:build
-  script:
-    - ci/scripts/deploy-docs.sh "$WEB_SERVER_DOC_KEY" site/ /home/docs/data/labone_q_applications/
+    job: doc:build
+  trigger:
+    project: qccs/qt-documentation-hub
+    branch: main
+  variables:
+    PROJECT_PIPELINE: "qccs/laboneq-applications:${CI_PIPELINE_ID}"
   rules:
-    - !reference [.release-docs]
+    - if: $CI_COMMIT_BRANCH == "main" && $CI_PIPELINE_SOURCE == "push"
