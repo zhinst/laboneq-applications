@@ -43,6 +43,15 @@ class Block(abc.ABC):
         return self.__class__.__name__
 
     @property
+    def hidden(self) -> bool:
+        """Whether or not the block is a hidden block.
+
+        Hidden blocks are generally used only for execution and
+        they are not deemed relevant in results.
+        """
+        return False
+
+    @property
     def body(self) -> list[Block]:
         """Body of the block.
 

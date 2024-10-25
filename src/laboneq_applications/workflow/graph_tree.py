@@ -23,7 +23,10 @@ class _BlockTreeDisplay(blocks.BlockVisitor):
         return f"{prefix}{formatted}"
 
     def visit(self, block: blocks.Block, ctx: Context | None = None) -> list[str]:
-        """Visit the node and display a tree graph."""
+        """Visit the node and display a tree graph.
+
+        Does not display hidden blocks.
+        """
         if ctx is None:
             ctx = self.Context()
         if ctx.depth_changes:
@@ -33,13 +36,14 @@ class _BlockTreeDisplay(blocks.BlockVisitor):
             prefix = ""
         ctx.lines.append(self._format(prefix, block))
         ctx.depth_changes.append(True)
-        for child in block.body[:-1]:
+        visible_body = [x for x in block.body if not x.hidden]
+        for child in visible_body[:-1]:
             ctx.branch = "├─"
             self.visit(child, ctx)
-        if block.body:
+        if visible_body:
             ctx.branch = "└─"
             ctx.depth_changes[-1] = False
-            self.visit(block.body[-1], ctx)
+            self.visit(visible_body[-1], ctx)
         ctx.depth_changes.pop()
         return ctx.lines
 
