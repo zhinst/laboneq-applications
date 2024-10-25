@@ -5,7 +5,6 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from laboneq_applications.core import utc_now
-from laboneq_applications.workflow import _utils
 from laboneq_applications.workflow.blocks.block import Block
 from laboneq_applications.workflow.executor import ExecutionStatus, ExecutorState
 from laboneq_applications.workflow.reference import Reference
@@ -29,13 +28,17 @@ class TaskBlock(Block):
     def __init__(self, task: task_, parameters: dict | None = None):
         super().__init__(parameters=parameters)
         self.task = task
-        # TODO: Should this be by object ID? Still bound to the object
         self._ref = Reference(self)
 
     @property
     def ref(self) -> Reference:
         """Reference to the object."""
         return self._ref
+
+    @property
+    def hidden(self) -> bool:
+        """Whether or not the task is a hidden task."""
+        return self.task._hidden
 
     @property
     def options_type(self) -> type[BaseOptions] | None:
@@ -49,6 +52,24 @@ class TaskBlock(Block):
 
     def execute(self, executor: ExecutorState) -> None:
         """Execute the task."""
+        if self.hidden:
+            self._exucute_hidden(executor)
+        else:
+            self._execute_visible(executor)
+
+    def _exucute_hidden(self, executor: ExecutorState) -> None:
+        params = {}
+        if self.parameters:
+            params = executor.resolve_inputs(self)
+            if self.options_type and params.get("options") is None:
+                params["options"] = executor.get_options(self.name)
+        executor.set_block_status(self, ExecutionStatus.IN_PROGRESS)
+        try:
+            executor.set_variable(self.ref, self.task.func(**params))
+        finally:
+            executor.set_block_status(self, ExecutionStatus.FINISHED)
+
+    def _execute_visible(self, executor: ExecutorState) -> None:
         params = {}
         if self.parameters:
             params = executor.resolve_inputs(self)
@@ -57,23 +78,23 @@ class TaskBlock(Block):
         task = TaskResult(
             task=self.task,
             output=None,
-            input=_utils.create_argument_map(self.task.func, **params),
+            input=params,
             index=executor.get_index(),
+            start_time=utc_now(),
         )
-        task._start_time = utc_now()
         executor.recorder.on_task_start(task)
+        executor.set_block_status(self, ExecutionStatus.IN_PROGRESS)
         try:
-            executor.set_block_status(self, ExecutionStatus.IN_PROGRESS)
             task._output = self.task.func(**params)
-            task._end_time = utc_now()
         except Exception as error:
             task._end_time = utc_now()
             executor.recorder.on_task_error(task, error)
             raise
         finally:
+            task._end_time = utc_now()
+            executor.set_block_status(self, ExecutionStatus.FINISHED)
             executor.add_task_result(task)
             executor.recorder.on_task_end(task)
-            executor.set_block_status(self, ExecutionStatus.FINISHED)
         executor.set_variable(self.ref, task.output)
         if executor.settings.run_until == self.name:
             executor.interrupt()

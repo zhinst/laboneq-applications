@@ -34,11 +34,17 @@ class task_(Generic[T, B]):  # noqa: N801
     """
 
     def __init__(
-        self, func: Callable[T, B], name: str | None = None, *, save: bool = True
+        self,
+        func: Callable[T, B],
+        name: str | None = None,
+        *,
+        save: bool = True,
+        hidden: bool = False,
     ) -> None:
         self._func = func
         self._name: str = name if name is not None else func.__name__
         self._save = save
+        self._hidden = hidden
         self.__doc__ = func.__doc__
         self._options = get_and_validate_param_type(self._func, BaseOptions, "options")
 
@@ -85,18 +91,26 @@ class task_(Generic[T, B]):  # noqa: N801
 
 @overload
 def task(
-    func: Callable[T, B], *, name: str | None = ..., save: bool = ...
+    func: Callable[T, B],
+    *,
+    name: str | None = ...,
+    save: bool = ...,
+    hidden: bool = ...,
 ) -> task_[T, B]: ...
 
 
 @overload
 def task(
-    func: None = ..., *, name: str | None = ..., save: bool = ...
+    func: None = ..., *, name: str | None = ..., save: bool = ..., hidden: bool = ...
 ) -> Callable[[Callable[T, B]], task_[T, B]]: ...
 
 
 def task(
-    func: Callable[T, B] | None = None, *, name: str | None = None, save: bool = True
+    func: Callable[T, B] | None = None,
+    *,
+    name: str | None = None,
+    save: bool = True,
+    hidden: bool = False,
 ) -> task_[T, B] | Callable[[Callable[T, B]], task_[T, B]]:
     """Mark a function as a workflow task.
 
@@ -112,6 +126,9 @@ def task(
         save: A flag to indicate whether the task inputs and outputs should be
             saved by logbooks.
             The flag has no effect on saving done inside the task.
+        hidden: Mark the task as hidden task.
+            When set, the task won't be visible to `LogBook`s and won't be
+            included in the results.
 
     Example:
         ```python
@@ -125,13 +142,13 @@ def task(
         ```
     """
     if func is None:
-        return partial(task_, name=name, save=save)
+        return partial(task_, name=name, save=save, hidden=hidden)
     if isinstance(func, task_):
         return update_wrapper(
-            task_(func=func.func, name=name, save=save),
+            task_(func=func.func, name=name, save=save, hidden=hidden),
             func.func,
         )
     return update_wrapper(
-        task_(func=func, name=name, save=save),
+        task_(func=func, name=name, save=save, hidden=hidden),
         func,
     )

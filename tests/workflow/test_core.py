@@ -484,6 +484,23 @@ class TestTasks:
         assert result.tasks["a_task"].input == {"a": 1, "b": 2, "c": 3}
         assert result.tasks["a_task"].output == (1, {"b": 2, "c": 3})
 
+    def test_hidden_task_not_in_results(self):
+        @task(hidden=False)
+        def visible_task(x):
+            return x
+
+        @task(hidden=True)
+        def hidden_task(x):
+            return x + 1
+
+        @workflow
+        def wf(x):
+            visible_task(hidden_task(x))
+
+        result = wf(1).run()
+        assert len(result.tasks) == 1
+        assert result.tasks["visible_task"].output == 1 + 1
+
 
 class TestNestedWorkflows:
     def test_workflow_definition_inside_workflow(self):
@@ -1901,6 +1918,27 @@ workflow(name=outer)
 │  │  └─ task(name=a_task)
 │  └─ else_()
 │     └─ task(name=a_task)
+└─ task(name=a_task)\
+"""
+        )
+
+    def test_display_graph_hidden_blocks_ignored(self):
+        @task
+        def a_task(): ...
+
+        @task(hidden=True)
+        def b_task(): ...
+
+        @workflow
+        def outer():
+            a_task()
+            b_task()
+
+        wf = outer()
+        assert (
+            str(wf.graph.tree)
+            == """\
+workflow(name=outer)
 └─ task(name=a_task)\
 """
         )
