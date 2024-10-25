@@ -28,6 +28,7 @@ nav:
           - tutorials/workflow/index.md
           - Build a workflow: tutorials/workflow/sources/build_workflow.ipynb
           - Options: tutorials/workflow/sources/options.ipynb
+          - Variables and references: tutorials/workflow/sources/workflow_language.ipynb
       - Tasks: tutorials/sources/tasks.ipynb
       - Logbooks: tutorials/sources/logbooks.ipynb
   - Release Notes: release_notes.md

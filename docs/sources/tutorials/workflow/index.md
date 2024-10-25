@@ -19,3 +19,8 @@ values are propagated to the tasks that require them.
 
 This [example](sources/options.ipynb) shows how workflow functionality can
 be extended with options.
+
+## Workflow variables and references
+
+This [example](sources/workflow_language.ipynb) shows how variables behave inside a workflow 
+and gives an intuition for how regular Python operations should be used when writing workflows.
