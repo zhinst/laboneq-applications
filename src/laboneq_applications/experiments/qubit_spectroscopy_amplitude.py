@@ -25,8 +25,12 @@ from laboneq_applications.experiments.options import (
     TuneUpWorkflowOptions,
 )
 from laboneq_applications.tasks import compile_experiment, run_experiment
+from laboneq_applications.tasks.parameter_updating import temporary_modify
 
 if TYPE_CHECKING:
+    from laboneq.dsl.quantum import (
+        TransmonParameters,
+    )
     from laboneq.dsl.session import Session
 
     from laboneq_applications.qpu_types import QPU
@@ -40,6 +44,7 @@ def experiment_workflow(
     qubits: Qubits,
     frequencies: QubitSweepPoints,
     amplitudes: QubitSweepPoints,
+    temporary_parameters: dict[str, dict | TransmonParameters] | None = None,
     options: TuneUpWorkflowOptions | None = None,
 ) -> None:
     """The Qubit Spectroscopy Workflow.
@@ -66,6 +71,8 @@ def experiment_workflow(
             The amplitudes to sweep over for each qubit drive pulse.  `amplitudes` must
             be a list of numbers or an array. Otherwise it must be a list of lists of
              numbers or arrays.
+        temporary_parameters:
+            The temporary parameters to update the qubits with.
         options:
             The options for building the workflow as an in stance of
             [QubitSpectroscopyWorkflowOptions]. See the docstring of
@@ -97,6 +104,7 @@ def experiment_workflow(
         ).run()
         ```
     """
+    qubits = temporary_modify(qubits, temporary_parameters)
     exp = create_experiment(
         qpu,
         qubits,

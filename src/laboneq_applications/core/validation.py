@@ -245,7 +245,7 @@ def validate_and_convert_single_qubit_sweeps(
     """Converts and validates qubits, sweep points and the experiment result.
 
     Check for the following conditions:
-        - qubits must be an instance or a child of `QuantumElement`
+        - type of qubits must be `QuantumElement` or a subclass of it.
         - sweep_points is a list or array with all its elements lists of numbers or
             arrays (see validate_and_convert_sweeps_to_arrays)
         - the length of qubits and sweep_points is the same

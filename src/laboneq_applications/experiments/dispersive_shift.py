@@ -31,11 +31,15 @@ from laboneq_applications.experiments.options import (
     TuneUpWorkflowOptions,
 )
 from laboneq_applications.tasks import compile_experiment, run_experiment, update_qubits
+from laboneq_applications.tasks.parameter_updating import temporary_modify
 from laboneq_applications.workflow import option_field, options
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
 
+    from laboneq.dsl.quantum import (
+        TransmonParameters,
+    )
     from laboneq.dsl.quantum.quantum_element import QuantumElement
     from laboneq.dsl.session import Session
     from numpy.typing import ArrayLike
@@ -69,6 +73,7 @@ def experiment_workflow(
     qubit: QuantumElement,
     frequencies: QubitSweepPoints,
     states: Sequence[str],
+    temporary_parameters: dict[str, dict | TransmonParameters] | None = None,
     options: TuneUpWorkflowOptions | None = None,
 ) -> None:
     """The Dispersive Shift Workflow.
@@ -95,6 +100,8 @@ def experiment_workflow(
         states:
             The basis states the qubits should be prepared in. May be either a string,
             e.g. "gef", or a list of letters, e.g. ["g","e","f"].
+        temporary_parameters:
+            The temporary parameters to update the qubits with.
         options:
             The options for building the workflow as an instance of
             [TuneUpWorkflowOptions]. See the docstring of this class for more details.
@@ -123,6 +130,7 @@ def experiment_workflow(
         ).run()
         ```
     """
+    qubit = temporary_modify(qubit, temporary_parameters)
     exp = create_experiment(
         qpu,
         qubit,

@@ -27,8 +27,10 @@ from laboneq_applications.experiments.options import (
     TuneUpWorkflowOptions,
 )
 from laboneq_applications.tasks import compile_experiment, run_experiment, update_qubits
+from laboneq_applications.tasks.parameter_updating import temporary_modify
 
 if TYPE_CHECKING:
+    from laboneq.dsl.quantum import TransmonParameters
     from laboneq.dsl.session import Session
 
     from laboneq_applications.qpu_types import QPU
@@ -41,6 +43,7 @@ def experiment_workflow(
     qpu: QPU,
     qubits: Qubits,
     delays: QubitSweepPoints,
+    temporary_parameters: dict[str, dict | TransmonParameters] | None = None,
     options: TuneUpWorkflowOptions | None = None,
 ) -> None:
     """The lifetime_measurement experiment Workflow.
@@ -63,6 +66,8 @@ def experiment_workflow(
             The delays to sweep over for each qubit. If `qubits` is a
             single qubit, `delays` must be a list of numbers or an array. Otherwise
             it must be a list of lists of numbers or arrays.
+        temporary_parameters:
+            The temporary parameters to update the qubits with.
         options:
             The options for building the workflow.
             In addition to options from [WorkflowOptions], the following
@@ -93,6 +98,7 @@ def experiment_workflow(
         )
         ```
     """
+    qubits = temporary_modify(qubits, temporary_parameters)
     exp = create_experiment(
         qpu,
         qubits,

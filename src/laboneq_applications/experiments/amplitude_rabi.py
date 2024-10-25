@@ -23,9 +23,17 @@ from laboneq_applications.experiments.options import (
     TuneupExperimentOptions,
     TuneUpWorkflowOptions,
 )
-from laboneq_applications.tasks import compile_experiment, run_experiment, update_qubits
+from laboneq_applications.tasks import (
+    compile_experiment,
+    run_experiment,
+    temporary_modify,
+    update_qubits,
+)
 
 if TYPE_CHECKING:
+    from laboneq.dsl.quantum import (
+        TransmonParameters,
+    )
     from laboneq.dsl.session import Session
 
     from laboneq_applications.qpu_types import QPU
@@ -38,6 +46,9 @@ def experiment_workflow(
     qpu: QPU,
     qubits: Qubits,
     amplitudes: QubitSweepPoints,
+    # TODO: Update the type hint for the temporary_parameters argument when the new
+    # qubit class is available. Same for other experiment workflows.
+    temporary_parameters: dict[str, dict | TransmonParameters] | None = None,
     options: TuneUpWorkflowOptions | None = None,
 ) -> None:
     """The Amplitude Rabi Workflow.
@@ -62,6 +73,8 @@ def experiment_workflow(
             The amplitudes to sweep over for each qubit. If `qubits` is a
             single qubit, `amplitudes` must be a list of numbers or an array. Otherwise
             it must be a list of lists of numbers or arrays.
+        temporary_parameters:
+            The temporary parameters to update the qubits with.
         options:
             The options for building the workflow.
             In addition to options from [WorkflowOptions], the following
@@ -94,6 +107,7 @@ def experiment_workflow(
         ).run()
         ```
     """
+    qubits = temporary_modify(qubits, temporary_parameters)
     exp = create_experiment(
         qpu,
         qubits,

@@ -211,7 +211,7 @@ class TestWorkflow:
             options=options,
         ).run()
 
-        assert len(result.tasks) == 4
+        assert len(result.tasks) == 5
 
         exp = result.tasks["create_experiment"].output
         assert exp.uid == "create_experiment"
@@ -246,7 +246,7 @@ class TestWorkflow:
             options=options,
         ).run()
 
-        assert len(result.tasks) == 3
+        assert len(result.tasks) == 4
 
     def test_create_and_run_update(self, single_tunable_transmon_platform):
         [q0] = single_tunable_transmon_platform.qpu.qubits
@@ -264,7 +264,7 @@ class TestWorkflow:
             options=options,
         ).run()
 
-        assert len(result.tasks) == 4
+        assert len(result.tasks) == 5
 
     def test_create_and_run_two_qubits(self, two_tunable_transmon_platform):
         [q0, q1] = two_tunable_transmon_platform.qpu.qubits
@@ -281,7 +281,7 @@ class TestWorkflow:
             options=options,
         ).run()
 
-        assert len(result.tasks) == 4
+        assert len(result.tasks) == 5
 
         exp = result.tasks["create_experiment"].output
         assert exp.uid == "create_experiment"

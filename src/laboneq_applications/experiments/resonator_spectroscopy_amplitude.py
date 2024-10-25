@@ -25,8 +25,12 @@ from laboneq_applications.experiments.options import (
     TuneUpWorkflowOptions,
 )
 from laboneq_applications.tasks import compile_experiment, run_experiment
+from laboneq_applications.tasks.parameter_updating import temporary_modify
 
 if TYPE_CHECKING:
+    from laboneq.dsl.quantum import (
+        TransmonParameters,
+    )
     from laboneq.dsl.quantum.quantum_element import QuantumElement
     from laboneq.dsl.session import Session
     from numpy.typing import ArrayLike
@@ -41,6 +45,7 @@ def experiment_workflow(
     qubit: QuantumElement,
     frequencies: ArrayLike,
     amplitudes: ArrayLike,
+    temporary_parameters: dict[str, dict | TransmonParameters] | None = None,
     options: TuneUpWorkflowOptions | None = None,
 ) -> None:
     """The Workflow for a resonator spectroscopy with a readout-amplitude sweep.
@@ -65,6 +70,8 @@ def experiment_workflow(
         amplitudes:
             The amplitudes of the readout pulses to sweep over.
             Must be a list of numbers or an array.
+        temporary_parameters:
+            The temporary parameters to update the qubits with.
         options:
             The options for building the workflow.
             In addition to options from [WorkflowOptions], the following
@@ -94,6 +101,7 @@ def experiment_workflow(
         )
         ```
     """
+    qubit = temporary_modify(qubit, temporary_parameters)
     exp = create_experiment(
         qpu,
         qubit,

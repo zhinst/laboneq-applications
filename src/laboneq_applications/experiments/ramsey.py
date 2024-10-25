@@ -32,10 +32,14 @@ from laboneq_applications.experiments.options import (
     TuneUpWorkflowOptions,
 )
 from laboneq_applications.tasks import compile_experiment, run_experiment, update_qubits
+from laboneq_applications.tasks.parameter_updating import temporary_modify
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
 
+    from laboneq.dsl.quantum import (
+        TransmonParameters,
+    )
     from laboneq.dsl.session import Session
 
     from laboneq_applications.qpu_types import QPU
@@ -49,6 +53,7 @@ def experiment_workflow(
     qubits: Qubits,
     delays: QubitSweepPoints,
     detunings: float | Sequence[float] | None = None,
+    temporary_parameters: dict[str, dict | TransmonParameters] | None = None,
     options: TuneUpWorkflowOptions | None = None,
 ) -> None:
     """The Ramsey Workflow.
@@ -76,6 +81,8 @@ def experiment_workflow(
         detunings:
             The detuning in Hz to generate oscillating qubit occupations. `detunings`
             is a list of float values for each qubits following the order in `qubits`.
+        temporary_parameters:
+            The temporary parameters to update the qubits with.
         options:
             The options for building the workflow.
             In addition to options from [WorkflowOptions], the following
@@ -107,6 +114,7 @@ def experiment_workflow(
         ).run()
         ```
     """
+    qubits = temporary_modify(qubits, temporary_parameters)
     exp = create_experiment(
         qpu,
         qubits,

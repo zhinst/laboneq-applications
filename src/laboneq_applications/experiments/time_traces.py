@@ -25,11 +25,15 @@ from laboneq_applications.experiments.options import (
     BaseExperimentOptions,
     TuneUpWorkflowOptions,
 )
+from laboneq_applications.tasks.parameter_updating import temporary_modify
 from laboneq_applications.workflow import option_field, options
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
 
+    from laboneq.dsl.quantum import (
+        TransmonParameters,
+    )
     from laboneq.dsl.quantum.quantum_element import QuantumElement
     from laboneq.dsl.session import Session
 
@@ -61,6 +65,7 @@ def experiment_workflow(
     qpu: QPU,
     qubits: Qubits,
     states: Sequence[Literal["g", "e", "f"]],
+    temporary_parameters: dict[str, dict | TransmonParameters] | None = None,
     options: TuneUpWorkflowOptions | None = None,
 ) -> None:
     """The raw-traces experiment workflow.
@@ -88,6 +93,8 @@ def experiment_workflow(
         states:
             The qubit states for which to acquire the raw traces. Must be a
             list of strings containing g, e or f.
+        temporary_parameters:
+            The temporary parameters to update the qubits with.
         options:
             The options for building the workflow as an instance of
             [TuneUpWorkflowOptions]. See the docstring of this class for more details.
@@ -114,6 +121,7 @@ def experiment_workflow(
         ).run()
         ```
     """
+    qubits = temporary_modify(qubits, temporary_parameters)
     qubits = dsl.validation.validate_and_convert_qubits_sweeps(qubits)
     results = []
     with workflow.for_(qubits, lambda q: q.uid) as qubit:

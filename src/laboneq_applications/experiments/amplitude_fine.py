@@ -30,9 +30,17 @@ from laboneq_applications.experiments.options import (
     TuneupExperimentOptions,
     TuneUpWorkflowOptions,
 )
-from laboneq_applications.tasks import compile_experiment, run_experiment, update_qubits
+from laboneq_applications.tasks import (
+    compile_experiment,
+    run_experiment,
+    temporary_modify,
+    update_qubits,
+)
 
 if TYPE_CHECKING:
+    from laboneq.dsl.quantum import (
+        TransmonParameters,
+    )
     from laboneq.dsl.session import Session
 
     from laboneq_applications.qpu_types import QPU
@@ -49,6 +57,7 @@ def experiment_workflow(
     phase_offset: float,
     repetitions: QubitSweepPoints[int],
     parameter_to_update: str | None = None,
+    temporary_parameters: dict[str, dict | TransmonParameters] | None = None,
     options: TuneUpWorkflowOptions | None = None,
 ) -> None:
     """The amplitude fine experiment workflow.
@@ -85,6 +94,8 @@ def experiment_workflow(
             lists of integers.
         parameter_to_update:
             str that defines the qubit parameter to be updated.
+        temporary_parameters:
+            The temporary parameters to update the qubits with.
         options:
             The options for building the workflow.
             In addition to options from [WorkflowOptions], the following
@@ -118,6 +129,7 @@ def experiment_workflow(
         ).run()
         ```
     """
+    qubits = temporary_modify(qubits, temporary_parameters)
     exp = create_experiment(
         qpu,
         qubits,

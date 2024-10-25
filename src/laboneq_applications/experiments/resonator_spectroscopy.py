@@ -25,8 +25,12 @@ from laboneq_applications.experiments.options import (
     TuneUpWorkflowOptions,
 )
 from laboneq_applications.tasks import compile_experiment, run_experiment, update_qubits
+from laboneq_applications.tasks.parameter_updating import temporary_modify
 
 if TYPE_CHECKING:
+    from laboneq.dsl.quantum import (
+        TransmonParameters,
+    )
     from laboneq.dsl.quantum.quantum_element import QuantumElement
     from laboneq.dsl.session import Session
     from numpy.typing import ArrayLike
@@ -40,6 +44,7 @@ def experiment_workflow(
     qpu: QPU,
     qubit: QuantumElement,
     frequencies: ArrayLike,
+    temporary_parameters: dict[str, dict | TransmonParameters] | None = None,
     options: TuneUpWorkflowOptions | None = None,
 ) -> None:
     """The Resonator Spectroscopy Workflow.
@@ -63,6 +68,8 @@ def experiment_workflow(
         frequencies:
             The resonator frequencies to sweep over for the readout pulse (or CW)
             sent to the resonator. Must be a list of numbers or an array.
+        temporary_parameters:
+            The temporary parameters to update the qubits with.
         options:
             The options for building the workflow.
             In addition to options from [WorkflowOptions], the following
@@ -91,6 +98,8 @@ def experiment_workflow(
         ).run()
         ```
     """
+    qubit = temporary_modify(qubit, temporary_parameters)
+
     exp = create_experiment(
         qpu,
         qubit,
