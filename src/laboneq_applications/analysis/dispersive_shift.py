@@ -189,7 +189,8 @@ def calculate_signal_differences(
     for state_pair in joined_states:
         s0, s1 = state_pair
         s21_dist = abs(
-            result.result[qubit.uid][s1].data - result.result[qubit.uid][s0].data
+            result[dsl.handles.result_handle(qubit.uid, suffix=s1)].data
+            - result[dsl.handles.result_handle(qubit.uid, suffix=s0)].data
         )
         max_idx = np.argmax(s21_dist)
         processed_data_dict[state_pair] = (
@@ -315,7 +316,7 @@ def plot_dispersive_shift(
     ax.set_ylabel("Signal Magnitude, $|S_{21}|$ (a.u.)")
     ax.set_title(timestamped_title(f"Dispersive Shift {qubit.uid}"))
     for state in states:
-        data_mag = abs(result.result[qubit.uid][state].data)
+        data_mag = abs(result[dsl.handles.result_handle(qubit.uid, suffix=state)].data)
         ax.plot(frequencies / 1e9, data_mag, label=state)
     ax.legend(frameon=False)
 

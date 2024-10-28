@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from laboneq_applications import workflow
+from laboneq_applications import dsl, workflow
 from laboneq_applications.tasks.run_experiment import RunExperimentResults
 
 
@@ -23,6 +23,9 @@ def append_result(
 def combine_results(results: list[RunExperimentResults]) -> RunExperimentResults:
     """Combines the results in results into a single RunExperimentResults instance.
 
+    The results are assumed to be instances of RunExperimentResults, with three
+    layers of nesting of the form given by `result_handle(q_uid, suffix=suffix)`.
+
     Args:
         results: list of RunExperimentResults instances to be combined into a single
             instance of RunExperimentResults
@@ -32,7 +35,9 @@ def combine_results(results: list[RunExperimentResults]) -> RunExperimentResults
     """
     data = {}
     for res in results:
-        q_uid = next(iter(res["result"]))
-        state = next(iter(res["result"][q_uid]))
-        data[f"result/{q_uid}/{state}"] = res["result"][q_uid][state]
+        q_names = [n for n in res if n not in ["errors", "neartime_callbacks"]]
+        for q_uid in q_names:
+            state = next(iter(res[dsl.handles.result_handle(q_uid)]))
+            res_handle = dsl.handles.result_handle(q_uid, suffix=state)
+            data[res_handle] = res[res_handle]
     return RunExperimentResults(data=data)

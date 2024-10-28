@@ -2,6 +2,7 @@ import numpy as np
 import pytest
 
 from laboneq_applications.analysis import plotting_helpers as plt_hlp
+from laboneq_applications.core.handles import calibration_trace_handle, result_handle
 from laboneq_applications.experiments.options import TuneupAnalysisOptions
 from laboneq_applications.tasks.run_experiment import (
     AcquiredResult,
@@ -13,7 +14,7 @@ from laboneq_applications.tasks.run_experiment import (
 def result():
     """Results from an AmplitudeRabi experiment."""
     data = {}
-    data["result/q0"] = AcquiredResult(
+    data[result_handle("q0")] = AcquiredResult(
         data=np.array(
             [
                 0.05290302 - 0.13215136j,
@@ -38,16 +39,14 @@ def result():
                 0.164842 + 0.82561295j,
                 0.15646681 + 0.76574749j,
             ]
-        ),
-        axis_name=["Amplitude Scaling"],
-        axis=[],
+        )
     )
-    data["cal_trace/q0/g"] = AcquiredResult(
+    data[calibration_trace_handle("q0", "g")] = AcquiredResult(
         data=(0.05745863888207082 - 0.13026141779382786j),
         axis_name=[],
         axis=[],
     )
-    data["cal_trace/q0/e"] = AcquiredResult(
+    data[calibration_trace_handle("q0", "e")] = AcquiredResult(
         data=(0.1770431406621688 + 0.91612948998106j),
         axis_name=[],
         axis=[],
@@ -88,7 +87,7 @@ def result_nested_two_qubits():
     The same data and sweep points are used for both qubits.
     """
     data = {}
-    data["result/q0/nest"] = AcquiredResult(
+    data[result_handle("q0", suffix="nest")] = AcquiredResult(
         data=np.array(
             [
                 0.05290302 - 0.13215136j,
@@ -113,11 +112,9 @@ def result_nested_two_qubits():
                 0.164842 + 0.82561295j,
                 0.15646681 + 0.76574749j,
             ]
-        ),
-        axis_name=["Amplitude Scaling"],
-        axis=[],
+        )
     )
-    data["result/q1/nest"] = data["result/q0/nest"]
+    data[result_handle("q1", suffix="nest")] = data[result_handle("q0", suffix="nest")]
 
     sweep_points = np.array(
         [

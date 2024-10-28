@@ -19,7 +19,7 @@ import numpy as np
 import scipy as sp
 from laboneq.analysis import calculate_integration_kernels_thresholds
 
-from laboneq_applications import workflow
+from laboneq_applications import dsl, workflow
 from laboneq_applications.analysis.plotting_helpers import timestamped_title
 from laboneq_applications.core.validation import validate_and_convert_qubits_sweeps
 from laboneq_applications.experiments.options import TaskOptions, WorkflowOptions
@@ -251,7 +251,7 @@ def truncate_time_traces(
     for q in qubits:
         raw_traces = []
         for s in states:
-            trace = result.result[q.uid][s].data
+            trace = result[dsl.handles.result_handle(q.uid, suffix=s)].data
             raw_traces += [trace[: (len(trace) // opts.granularity) * opts.granularity]]
         truncated_time_traces[q.uid] = raw_traces
 

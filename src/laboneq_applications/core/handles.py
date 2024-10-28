@@ -29,15 +29,15 @@ def result_handle(
         ```
     """
     return (
-        f"{prefix}/{qubit_name}"
+        f"{qubit_name}/{prefix}"
         if suffix is None
-        else f"{prefix}/{qubit_name}/{suffix}"
+        else f"{qubit_name}/{prefix}/{suffix}"
     )
 
 
 def calibration_trace_handle(
     qubit_name: str,
-    state: str,
+    state: str | None = None,
     prefix: str = CALIBRATION_TRACE_PREFIX,
 ) -> str:
     """Return the acquisition handle for a calibration trace.
@@ -60,13 +60,17 @@ def calibration_trace_handle(
         handle = trace_handle(qubit_name, state)
         ```
     """
-    return f"{prefix}/{qubit_name}/{state}"
+    return (
+        f"{qubit_name}/{prefix}/{state}"
+        if state is not None
+        else f"{qubit_name}/{prefix}"
+    )
 
 
 def active_reset_handle(
     qubit_name: str,
-    tag: str,
     prefix: str = ACTIVE_RESET_PREFIX,
+    suffix: str | None = None,
 ) -> str:
     """Return the acquisition handle for an active reset.
 
@@ -75,7 +79,7 @@ def active_reset_handle(
 
     Args:
         qubit_name: The name of the qubit.
-        tag: The tag of the active reset.
+        suffix: The suffix of the active reset handle.
         prefix: The prefix to use for the handle.
 
     Returns:
@@ -83,9 +87,14 @@ def active_reset_handle(
 
     Example:
         ```python
-        qubit_name = "q0"
-        tag = "0"
-        handle = active_reset_handle(qubit_name, tag)
+        suffix = "0"
+        handle = active_reset_handle(q0, suffix=suffix)
         ```
     """
-    return f"{prefix}/{qubit_name}/{tag}"
+    res_handle_split = result_handle(qubit_name).split("/")
+    res_handle = "/".join([h for h in res_handle_split if h != qubit_name])
+    return (
+        f"{qubit_name}/{prefix}/{res_handle}"
+        if suffix is None
+        else f"{qubit_name}/{prefix}/{res_handle}/{suffix}"
+    )

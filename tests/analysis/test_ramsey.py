@@ -6,6 +6,7 @@ import numpy as np
 import pytest
 
 from laboneq_applications.analysis import ramsey
+from laboneq_applications.core.handles import calibration_trace_handle, result_handle
 from laboneq_applications.tasks.run_experiment import (
     AcquiredResult,
     RunExperimentResults,
@@ -21,7 +22,7 @@ def results_single_qubit():
     result obtained in integrated-average mode.
     """
     data = {}
-    data["result/q0"] = AcquiredResult(
+    data[result_handle("q0")] = AcquiredResult(
         data=np.array(
             [
                 -0.41226907 - 0.23724557j,
@@ -66,67 +67,63 @@ def results_single_qubit():
                 -0.60668187 - 1.18829886j,
                 -0.55594966 - 0.92351248j,
             ]
-        ),
-        axis_name=["Pulse Delay"],
-        axis=[
-            np.array(
-                [
-                    0.0000e00,
-                    6.7500e-07,
-                    1.3500e-06,
-                    2.0250e-06,
-                    2.7000e-06,
-                    3.3750e-06,
-                    4.0500e-06,
-                    4.7250e-06,
-                    5.4000e-06,
-                    6.0750e-06,
-                    6.7500e-06,
-                    7.4250e-06,
-                    8.1000e-06,
-                    8.7750e-06,
-                    9.4500e-06,
-                    1.0125e-05,
-                    1.0800e-05,
-                    1.1475e-05,
-                    1.2150e-05,
-                    1.2825e-05,
-                    1.3500e-05,
-                    1.4175e-05,
-                    1.4850e-05,
-                    1.5525e-05,
-                    1.6200e-05,
-                    1.6875e-05,
-                    1.7550e-05,
-                    1.8225e-05,
-                    1.8900e-05,
-                    1.9575e-05,
-                    2.0250e-05,
-                    2.0925e-05,
-                    2.1600e-05,
-                    2.2275e-05,
-                    2.2950e-05,
-                    2.3625e-05,
-                    2.4300e-05,
-                    2.4975e-05,
-                    2.5650e-05,
-                    2.6325e-05,
-                    2.7000e-05,
-                ]
-            )
-        ],
+        )
     )
-    data["cal_trace/q0/g"] = AcquiredResult(
+    data[calibration_trace_handle("q0", "g")] = AcquiredResult(
         data=(-0.772875386725562 - 1.9347566625390387j),
         axis_name=[],
         axis=[],
     )
-    data["cal_trace/q0/e"] = AcquiredResult(
+    data[calibration_trace_handle("q0", "e")] = AcquiredResult(
         data=(-0.4094606327325466 - 0.24116128694103414j),
         axis_name=[],
         axis=[],
     )
-    sweep_points = data["result/q0"].axis[0]
+    sweep_points = np.array(
+        [
+            0.0000e00,
+            6.7500e-07,
+            1.3500e-06,
+            2.0250e-06,
+            2.7000e-06,
+            3.3750e-06,
+            4.0500e-06,
+            4.7250e-06,
+            5.4000e-06,
+            6.0750e-06,
+            6.7500e-06,
+            7.4250e-06,
+            8.1000e-06,
+            8.7750e-06,
+            9.4500e-06,
+            1.0125e-05,
+            1.0800e-05,
+            1.1475e-05,
+            1.2150e-05,
+            1.2825e-05,
+            1.3500e-05,
+            1.4175e-05,
+            1.4850e-05,
+            1.5525e-05,
+            1.6200e-05,
+            1.6875e-05,
+            1.7550e-05,
+            1.8225e-05,
+            1.8900e-05,
+            1.9575e-05,
+            2.0250e-05,
+            2.0925e-05,
+            2.1600e-05,
+            2.2275e-05,
+            2.2950e-05,
+            2.3625e-05,
+            2.4300e-05,
+            2.4975e-05,
+            2.5650e-05,
+            2.6325e-05,
+            2.7000e-05,
+        ]
+    )
     return RunExperimentResults(data=data), sweep_points
 
 
@@ -422,7 +419,7 @@ def results_two_qubit():
     """
     data = {}
     # q0
-    data["result/q0"] = AcquiredResult(
+    data[result_handle("q0")] = AcquiredResult(
         data=np.array(
             [
                 -0.41226907 - 0.23724557j,
@@ -467,68 +464,20 @@ def results_two_qubit():
                 -0.60668187 - 1.18829886j,
                 -0.55594966 - 0.92351248j,
             ]
-        ),
-        axis_name=["Pulse Delay"],
-        axis=[
-            np.array(
-                [
-                    0.0000e00,
-                    6.7500e-07,
-                    1.3500e-06,
-                    2.0250e-06,
-                    2.7000e-06,
-                    3.3750e-06,
-                    4.0500e-06,
-                    4.7250e-06,
-                    5.4000e-06,
-                    6.0750e-06,
-                    6.7500e-06,
-                    7.4250e-06,
-                    8.1000e-06,
-                    8.7750e-06,
-                    9.4500e-06,
-                    1.0125e-05,
-                    1.0800e-05,
-                    1.1475e-05,
-                    1.2150e-05,
-                    1.2825e-05,
-                    1.3500e-05,
-                    1.4175e-05,
-                    1.4850e-05,
-                    1.5525e-05,
-                    1.6200e-05,
-                    1.6875e-05,
-                    1.7550e-05,
-                    1.8225e-05,
-                    1.8900e-05,
-                    1.9575e-05,
-                    2.0250e-05,
-                    2.0925e-05,
-                    2.1600e-05,
-                    2.2275e-05,
-                    2.2950e-05,
-                    2.3625e-05,
-                    2.4300e-05,
-                    2.4975e-05,
-                    2.5650e-05,
-                    2.6325e-05,
-                    2.7000e-05,
-                ]
-            )
-        ],
+        )
     )
-    data["cal_trace/q0/g"] = AcquiredResult(
+    data[calibration_trace_handle("q0", "g")] = AcquiredResult(
         data=(-0.772875386725562 - 1.9347566625390387j),
         axis_name=[],
         axis=[],
     )
-    data["cal_trace/q0/e"] = AcquiredResult(
+    data[calibration_trace_handle("q0", "e")] = AcquiredResult(
         data=(-0.4094606327325466 - 0.24116128694103414j),
         axis_name=[],
         axis=[],
     )
     # q1
-    data["result/q1"] = AcquiredResult(
+    data[result_handle("q1")] = AcquiredResult(
         data=np.array(
             [
                 -0.5869649 - 1.27564237j,
@@ -573,67 +522,110 @@ def results_two_qubit():
                 -0.32880129 - 0.64904714j,
                 -0.32547872 - 0.64817809j,
             ]
-        ),
-        axis_name=["Pulse Delay"],
-        axis=[
-            np.array(
-                [
-                    0.0000e00,
-                    6.7500e-07,
-                    1.3500e-06,
-                    2.0250e-06,
-                    2.7000e-06,
-                    3.3750e-06,
-                    4.0500e-06,
-                    4.7250e-06,
-                    5.4000e-06,
-                    6.0750e-06,
-                    6.7500e-06,
-                    7.4250e-06,
-                    8.1000e-06,
-                    8.7750e-06,
-                    9.4500e-06,
-                    1.0125e-05,
-                    1.0800e-05,
-                    1.1475e-05,
-                    1.2150e-05,
-                    1.2825e-05,
-                    1.3500e-05,
-                    1.4175e-05,
-                    1.4850e-05,
-                    1.5525e-05,
-                    1.6200e-05,
-                    1.6875e-05,
-                    1.7550e-05,
-                    1.8225e-05,
-                    1.8900e-05,
-                    1.9575e-05,
-                    2.0250e-05,
-                    2.0925e-05,
-                    2.1600e-05,
-                    2.2275e-05,
-                    2.2950e-05,
-                    2.3625e-05,
-                    2.4300e-05,
-                    2.4975e-05,
-                    2.5650e-05,
-                    2.6325e-05,
-                    2.7000e-05,
-                ]
-            )
-        ],
+        )
     )
-    data["cal_trace/q1/g"] = AcquiredResult(
+    data[calibration_trace_handle("q1", "g")] = AcquiredResult(
         data=(-0.047990956067688245 + 0.01885716311907388j),
         axis_name=[],
         axis=[],
     )
-    data["cal_trace/q1/e"] = AcquiredResult(
+    data[calibration_trace_handle("q1", "e")] = AcquiredResult(
         data=(-0.5862257200659212 - 1.2763478584265495j),
         axis_name=[],
         axis=[],
     )
-    sweep_points = [data["result/q0"].axis[0], data["result/q1"].axis[0]]
+    sweep_points = [
+        np.array(
+            [
+                0.0000e00,
+                6.7500e-07,
+                1.3500e-06,
+                2.0250e-06,
+                2.7000e-06,
+                3.3750e-06,
+                4.0500e-06,
+                4.7250e-06,
+                5.4000e-06,
+                6.0750e-06,
+                6.7500e-06,
+                7.4250e-06,
+                8.1000e-06,
+                8.7750e-06,
+                9.4500e-06,
+                1.0125e-05,
+                1.0800e-05,
+                1.1475e-05,
+                1.2150e-05,
+                1.2825e-05,
+                1.3500e-05,
+                1.4175e-05,
+                1.4850e-05,
+                1.5525e-05,
+                1.6200e-05,
+                1.6875e-05,
+                1.7550e-05,
+                1.8225e-05,
+                1.8900e-05,
+                1.9575e-05,
+                2.0250e-05,
+                2.0925e-05,
+                2.1600e-05,
+                2.2275e-05,
+                2.2950e-05,
+                2.3625e-05,
+                2.4300e-05,
+                2.4975e-05,
+                2.5650e-05,
+                2.6325e-05,
+                2.7000e-05,
+            ]
+        ),
+        np.array(
+            [
+                0.0000e00,
+                6.7500e-07,
+                1.3500e-06,
+                2.0250e-06,
+                2.7000e-06,
+                3.3750e-06,
+                4.0500e-06,
+                4.7250e-06,
+                5.4000e-06,
+                6.0750e-06,
+                6.7500e-06,
+                7.4250e-06,
+                8.1000e-06,
+                8.7750e-06,
+                9.4500e-06,
+                1.0125e-05,
+                1.0800e-05,
+                1.1475e-05,
+                1.2150e-05,
+                1.2825e-05,
+                1.3500e-05,
+                1.4175e-05,
+                1.4850e-05,
+                1.5525e-05,
+                1.6200e-05,
+                1.6875e-05,
+                1.7550e-05,
+                1.8225e-05,
+                1.8900e-05,
+                1.9575e-05,
+                2.0250e-05,
+                2.0925e-05,
+                2.1600e-05,
+                2.2275e-05,
+                2.2950e-05,
+                2.3625e-05,
+                2.4300e-05,
+                2.4975e-05,
+                2.5650e-05,
+                2.6325e-05,
+                2.7000e-05,
+            ]
+        ),
+    ]
     return RunExperimentResults(data=data), sweep_points
 
 

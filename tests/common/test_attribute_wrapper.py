@@ -174,3 +174,18 @@ def test_key_is_attribute(handles: list[str], keys: str | None):
     else:
         with pytest.raises(ValueError, match=f"Handles {keys} aren't allowed names\\."):
             AttributeWrapper(d)
+
+
+def test_attribute_wrapper_handle_none():
+    """Test the AttributeWrapper class raises error when handle is None."""
+    data = {
+        "cal_trace/q0/g": 12345,
+        "cal_trace/q1/g": 2345,
+        None: 345,
+    }
+
+    with pytest.raises(ValueError) as err:
+        AttributeWrapper(data)
+    assert "The acquire handle cannot be None. Please check the handles: " in str(
+        err.value
+    )

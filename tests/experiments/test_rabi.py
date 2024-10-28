@@ -5,6 +5,7 @@ from collections.abc import Sequence
 import numpy as np
 import pytest
 
+from laboneq_applications.dsl import handles
 from laboneq_applications.experiments import amplitude_rabi
 from laboneq_applications.experiments.options import TuneupExperimentOptions
 
@@ -222,12 +223,18 @@ class TestWorkflow:
 
         exp_result = result.tasks["run_experiment"].output
         np.testing.assert_array_almost_equal(
-            exp_result.result.q0.axis,
+            exp_result[handles.result_handle(q0.uid)].axis,
             [np.linspace(0, 1, 21)],
         )
-        np.testing.assert_almost_equal(exp_result.cal_trace.q0.g.data, 4.2 + 2.1j)
-        np.testing.assert_almost_equal(exp_result.cal_trace.q0.e.data, 4.2 + 2.2j)
-        traces = exp_result.cal_trace.q0
+        np.testing.assert_almost_equal(
+            exp_result[handles.calibration_trace_handle(q0.uid, state="g")].data,
+            4.2 + 2.1j,
+        )
+        np.testing.assert_almost_equal(
+            exp_result[handles.calibration_trace_handle(q0.uid, state="e")].data,
+            4.2 + 2.2j,
+        )
+        traces = exp_result[handles.calibration_trace_handle(q0.uid)]
         assert len(traces) == 2
 
     def test_create_and_run_no_analysis(self, single_tunable_transmon_platform):
@@ -292,23 +299,35 @@ class TestWorkflow:
 
         exp_result = result.tasks["run_experiment"].output
         np.testing.assert_array_almost_equal(
-            exp_result.result.q0.axis,
+            exp_result[handles.result_handle(q0.uid)].axis,
             [np.linspace(0, 1, 21)],
         )
         np.testing.assert_array_almost_equal(
-            exp_result.result.q1.axis,
+            exp_result[handles.result_handle(q1.uid)].axis,
             [np.linspace(0, 0.5, 21)],
         )
-        np.testing.assert_almost_equal(exp_result.cal_trace.q0.g.data, 4.2 + 2.1j)
-        np.testing.assert_almost_equal(exp_result.cal_trace.q0.e.data, 4.2 + 2.2j)
+        np.testing.assert_almost_equal(
+            exp_result[handles.calibration_trace_handle(q0.uid, state="g")].data,
+            4.2 + 2.1j,
+        )
+        np.testing.assert_almost_equal(
+            exp_result[handles.calibration_trace_handle(q0.uid, state="e")].data,
+            4.2 + 2.2j,
+        )
 
-        np.testing.assert_almost_equal(exp_result.cal_trace.q1.g.data, 4.3 + 2.1j)
-        np.testing.assert_almost_equal(exp_result.cal_trace.q1.e.data, 4.3 + 2.2j)
+        np.testing.assert_almost_equal(
+            exp_result[handles.calibration_trace_handle(q1.uid, state="g")].data,
+            4.3 + 2.1j,
+        )
+        np.testing.assert_almost_equal(
+            exp_result[handles.calibration_trace_handle(q1.uid, state="e")].data,
+            4.3 + 2.2j,
+        )
 
-        traces = exp_result.cal_trace.q0
+        traces = exp_result[handles.calibration_trace_handle(q0.uid)]
         assert len(traces) == 2
 
-        traces = exp_result.cal_trace.q1
+        traces = exp_result[handles.calibration_trace_handle(q0.uid)]
         assert len(traces) == 2
 
 

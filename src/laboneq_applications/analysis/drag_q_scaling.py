@@ -18,7 +18,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import uncertainties as unc
 
-from laboneq_applications import workflow
+from laboneq_applications import dsl, workflow
 from laboneq_applications.analysis.calibration_traces_rotation import (
     calculate_population_1d,
 )
@@ -180,14 +180,15 @@ def calculate_qubit_population_for_pulse_ids(
         processed_data_dict[q.uid] = {}
         if opts.use_cal_traces:
             calibration_traces = [
-                result.cal_trace[q.uid][cs].data for cs in opts.cal_states
+                result[dsl.handles.calibration_trace_handle(q.uid, cs)].data
+                for cs in opts.cal_states
             ]
             do_pca = opts.do_pca
         else:
             calibration_traces = []
             do_pca = True
-        for pulse_id in result.result[q.uid]:
-            raw_data = result.result[q.uid][pulse_id].data
+        for pulse_id in result[dsl.handles.result_handle(q.uid)]:
+            raw_data = result[dsl.handles.result_handle(q.uid, suffix=pulse_id)].data
             data_dict = calculate_population_1d(
                 raw_data,
                 qscales,

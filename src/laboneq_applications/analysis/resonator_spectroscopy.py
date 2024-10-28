@@ -208,7 +208,7 @@ def calculate_signal_magnitude_and_phase(
         qubit, frequencies
     )
 
-    raw_data = result.result[qubit.uid].data
+    raw_data = result[dsl.handles.result_handle(qubit.uid)].data
     return {
         "sweep_points": frequencies,
         "data_raw": raw_data,
@@ -488,7 +488,7 @@ def plot_real_imaginary(
     validate_result(result)
     qubit = dsl.validation.validate_and_convert_single_qubit_sweeps(qubit)
 
-    raw_data = result.result[qubit.uid].data
+    raw_data = result[dsl.handles.result_handle(qubit.uid)].data
 
     fig, ax = plt.subplots()
     ax.set_title(timestamped_title(f"Real-Imaginary {qubit.uid}"))

@@ -22,7 +22,7 @@ from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
 from sklearn.inspection import DecisionBoundaryDisplay
 from sklearn.metrics import confusion_matrix
 
-from laboneq_applications import workflow
+from laboneq_applications import dsl, workflow
 from laboneq_applications.analysis.plotting_helpers import timestamped_title
 from laboneq_applications.core.validation import (
     validate_and_convert_qubits_sweeps,
@@ -199,7 +199,7 @@ def collect_shots(
         ideal_states = []
 
         for s in states:
-            shots[s] = result.result[q.uid][s].data
+            shots[s] = result[dsl.handles.result_handle(q.uid, suffix=s)].data
             shots_combined += [
                 np.concatenate(
                     [

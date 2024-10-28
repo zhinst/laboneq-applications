@@ -13,12 +13,12 @@ from typing import TYPE_CHECKING
 
 import numpy as np
 
+from laboneq_applications import dsl, workflow
 from laboneq_applications.core.validation import (
     validate_and_convert_qubits_sweeps,
     validate_result,
 )
 from laboneq_applications.experiments.options import TuneupAnalysisOptions
-from laboneq_applications.workflow import task
 
 if TYPE_CHECKING:
     from numpy.typing import ArrayLike, NDArray
@@ -245,7 +245,7 @@ def calculate_population_1d(
     }
 
 
-@task
+@workflow.task
 def calculate_qubit_population(
     qubits: Qubits,
     result: RunExperimentResults,
@@ -294,10 +294,11 @@ def calculate_qubit_population(
     qubits, sweep_points = validate_and_convert_qubits_sweeps(qubits, sweep_points)
     processed_data_dict = {}
     for q, swpts in zip(qubits, sweep_points):
-        raw_data = result.result[q.uid].data
+        raw_data = result[dsl.handles.result_handle(q.uid)].data
         if opts.use_cal_traces:
             calibration_traces = [
-                result.cal_trace[q.uid][cs].data for cs in opts.cal_states
+                result[dsl.handles.calibration_trace_handle(q.uid, cs)].data
+                for cs in opts.cal_states
             ]
             do_pca = opts.do_pca
         else:

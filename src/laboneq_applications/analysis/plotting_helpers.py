@@ -7,17 +7,18 @@ from typing import TYPE_CHECKING
 import matplotlib.pyplot as plt
 from laboneq.data.experiment_results import AcquiredResult as AcquiredResultLegacy
 
+from laboneq_applications import dsl, workflow
 from laboneq_applications.core.utils import local_timestamp
-from laboneq_applications.core.validation import validate_and_convert_qubits_sweeps
+from laboneq_applications.core.validation import (
+    validate_and_convert_qubits_sweeps,
+    validate_result,
+)
 from laboneq_applications.tasks.run_experiment import (
     AcquiredResult as AcquiredResultRunExp,
 )
 from laboneq_applications.workflow import (
-    execution_info,
     option_field,
     options,
-    save_artifact,
-    task,
 )
 from laboneq_applications.workflow.options import TaskOptions
 
@@ -85,14 +86,14 @@ def timestamped_title(title: str, dt: datetime | None = None) -> str:
         The title with a timestamp, formatted as "TIMESTAMP - TITLE".
     """
     if dt is None:
-        wf_info = execution_info()
+        wf_info = workflow.execution_info()
         if wf_info is not None:
             dt = wf_info.start_time
 
     return f"{local_timestamp(dt)} - {title}"
 
 
-@task
+@workflow.task
 def plot_raw_complex_data_1d(
     qubits: Qubits,
     result: RunExperimentResults | tuple[RunExperimentResults, Results],
@@ -123,6 +124,7 @@ def plot_raw_complex_data_1d(
         dict with qubit UIDs as keys and the figures for each qubit as keys.
     """
     opts = PlotRawDataOptions() if options is None else options
+    validate_result(result)
     qubits, sweep_points = validate_and_convert_qubits_sweeps(qubits, sweep_points)
     figures = {}
     for q, swpts in zip(qubits, sweep_points):
@@ -135,13 +137,15 @@ def plot_raw_complex_data_1d(
         axs[0].set_title(timestamped_title(f"Raw data {q.uid}"))
         axs[1].set_xlabel(xlabel)
 
+        res_handle = dsl.handles.result_handle(q.uid)
         if isinstance(
-            result.result[q.uid], (AcquiredResultLegacy, AcquiredResultRunExp)
+            result[res_handle],
+            (AcquiredResultLegacy, AcquiredResultRunExp),
         ):
-            raw_data_collection = [("raw data", result.result[q.uid])]
+            raw_data_collection = [("raw data", result[res_handle])]
         else:
             raw_data_collection = [
-                (k, result.result[q.uid][k]) for k in result.result[q.uid]
+                (k, result[res_handle][k]) for k in result[res_handle]
             ]
 
         for legend_name, acquired_results in raw_data_collection:
@@ -154,13 +158,17 @@ def plot_raw_complex_data_1d(
             axs[1].set_ylabel("Imaginary (arb.)")
 
         # plot lines at calibration traces
-        if opts.use_cal_traces and "cal_trace" in result:
+        if (
+            opts.use_cal_traces
+            and dsl.handles.calibration_trace_handle(q.uid) in result
+        ):
             for i, ax in enumerate(axs):
                 for j, cs in enumerate(opts.cal_states):
+                    ct_handle = dsl.handles.calibration_trace_handle(q.uid, cs)
                     cal_trace = (
-                        result.cal_trace[q.uid][cs].data.real
+                        result[ct_handle].data.real
                         if i == 0
-                        else result.cal_trace[q.uid][cs].data.imag
+                        else result[ct_handle].data.imag
                     )
                     xlims = ax.get_xlim()
                     ax.hlines(
@@ -190,7 +198,7 @@ def plot_raw_complex_data_1d(
         )
 
         if opts.save_figures:
-            save_artifact(f"Raw_data_{q.uid}", fig)
+            workflow.save_artifact(f"Raw_data_{q.uid}", fig)
 
         if opts.close_figures:
             plt.close(fig)

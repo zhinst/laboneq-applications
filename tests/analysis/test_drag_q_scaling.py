@@ -6,6 +6,7 @@ import numpy as np
 import pytest
 
 from laboneq_applications.analysis import drag_q_scaling
+from laboneq_applications.core.handles import calibration_trace_handle, result_handle
 from laboneq_applications.tasks.run_experiment import (
     AcquiredResult,
     RunExperimentResults,
@@ -22,7 +23,7 @@ def results_single_qubit():
     DRAG quadrature scaling factor (beta).
     """
     data = {}
-    data["result/q0/xy"] = AcquiredResult(
+    data[result_handle("q0", suffix="xy")] = AcquiredResult(
         data=np.array(
             [
                 -0.185234 - 0.03658602j,
@@ -37,11 +38,9 @@ def results_single_qubit():
                 -0.33419394 - 0.13268631j,
                 -0.35452839 - 0.14296266j,
             ]
-        ),
-        axis_name=["Quadrature Scaling, $\\beta$"],
-        axis=[],
+        )
     )
-    data["result/q0/xmy"] = AcquiredResult(
+    data[result_handle("q0", suffix="xmy")] = AcquiredResult(
         data=np.array(
             [
                 -0.35557612 - 0.14272263j,
@@ -56,11 +55,9 @@ def results_single_qubit():
                 -0.20401136 - 0.04885739j,
                 -0.18738762 - 0.03566131j,
             ]
-        ),
-        axis_name=["Quadrature Scaling, $\\beta$"],
-        axis=[],
+        )
     )
-    data["result/q0/xx"] = AcquiredResult(
+    data[result_handle("q0", suffix="xx")] = AcquiredResult(
         data=np.array(
             [
                 -0.27028461 - 0.09548818j,
@@ -75,16 +72,14 @@ def results_single_qubit():
                 -0.28568239 - 0.09430552j,
                 -0.2854309 - 0.09919256j,
             ]
-        ),
-        axis_name=["Quadrature Scaling, $\\beta$"],
-        axis=[],
+        )
     )
-    data["cal_trace/q0/g"] = AcquiredResult(
+    data[calibration_trace_handle("q0", "g")] = AcquiredResult(
         data=(-0.43671994930357777 - 0.196165214208241j),
         axis_name=[],
         axis=[],
     )
-    data["cal_trace/q0/e"] = AcquiredResult(
+    data[calibration_trace_handle("q0", "e")] = AcquiredResult(
         data=(-0.10701396376997645 + 0.01605024387665138j),
         axis_name=[],
         axis=[],
@@ -365,7 +360,7 @@ def results_two_qubit():
     """
     data = {}
     # q0
-    data["result/q0/xy"] = AcquiredResult(
+    data[result_handle("q0", suffix="xy")] = AcquiredResult(
         data=np.array(
             [
                 -0.185234 - 0.03658602j,
@@ -380,11 +375,9 @@ def results_two_qubit():
                 -0.33419394 - 0.13268631j,
                 -0.35452839 - 0.14296266j,
             ]
-        ),
-        axis_name=["Quadrature Scaling, $\\beta$"],
-        axis=[],
+        )
     )
-    data["result/q0/xmy"] = AcquiredResult(
+    data[result_handle("q0", suffix="xmy")] = AcquiredResult(
         data=np.array(
             [
                 -0.35557612 - 0.14272263j,
@@ -399,11 +392,9 @@ def results_two_qubit():
                 -0.20401136 - 0.04885739j,
                 -0.18738762 - 0.03566131j,
             ]
-        ),
-        axis_name=["Quadrature Scaling, $\\beta$"],
-        axis=[],
+        )
     )
-    data["result/q0/xx"] = AcquiredResult(
+    data[result_handle("q0", suffix="xx")] = AcquiredResult(
         data=np.array(
             [
                 -0.27028461 - 0.09548818j,
@@ -418,22 +409,20 @@ def results_two_qubit():
                 -0.28568239 - 0.09430552j,
                 -0.2854309 - 0.09919256j,
             ]
-        ),
-        axis_name=["Quadrature Scaling, $\\beta$"],
-        axis=[],
+        )
     )
-    data["cal_trace/q0/g"] = AcquiredResult(
+    data[calibration_trace_handle("q0", "g")] = AcquiredResult(
         data=(-0.43671994930357777 - 0.196165214208241j),
         axis_name=[],
         axis=[],
     )
-    data["cal_trace/q0/e"] = AcquiredResult(
+    data[calibration_trace_handle("q0", "e")] = AcquiredResult(
         data=(-0.10701396376997645 + 0.01605024387665138j),
         axis_name=[],
         axis=[],
     )
     # q1
-    data["result/q1/xy"] = AcquiredResult(
+    data[result_handle("q1", suffix="xy")] = AcquiredResult(
         data=np.array(
             [
                 -0.27916464 + 0.16131101j,
@@ -448,11 +437,9 @@ def results_two_qubit():
                 -0.26321846 + 0.0173421j,
                 -0.25374957 - 0.0026386j,
             ]
-        ),
-        axis_name=["Quadrature Scaling, $\\beta$"],
-        axis=[],
+        )
     )
-    data["result/q1/xmy"] = AcquiredResult(
+    data[result_handle("q1", suffix="xmy")] = AcquiredResult(
         data=np.array(
             [
                 -0.25472766 + 0.00399406j,
@@ -467,11 +454,9 @@ def results_two_qubit():
                 -0.2772246 + 0.14239275j,
                 -0.27713368 + 0.15997861j,
             ]
-        ),
-        axis_name=["Quadrature Scaling, $\\beta$"],
-        axis=[],
+        )
     )
-    data["result/q1/xx"] = AcquiredResult(
+    data[result_handle("q1", suffix="xx")] = AcquiredResult(
         data=np.array(
             [
                 -0.26896 + 0.08376001j,
@@ -486,16 +471,14 @@ def results_two_qubit():
                 -0.26800879 + 0.0670004j,
                 -0.26794289 + 0.06813104j,
             ]
-        ),
-        axis_name=["Quadrature Scaling, $\\beta$"],
-        axis=[],
+        )
     )
-    data["cal_trace/q1/g"] = AcquiredResult(
+    data[calibration_trace_handle("q1", "g")] = AcquiredResult(
         data=(-0.24472940477003619 - 0.08540858424191179j),
         axis_name=[],
         axis=[],
     )
-    data["cal_trace/q1/e"] = AcquiredResult(
+    data[calibration_trace_handle("q1", "e")] = AcquiredResult(
         data=(-0.2888925769156423 + 0.22843360534572796j),
         axis_name=[],
         axis=[],

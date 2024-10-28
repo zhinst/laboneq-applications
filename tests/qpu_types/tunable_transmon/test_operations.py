@@ -1887,7 +1887,7 @@ class TestTunableTransmonOperations:
                 ),
                 tsl.acquire_op(
                     signal="/logical_signal_groups/q0/acquire",
-                    handle="cal_trace/q0/g",
+                    handle="q0/cal_trace/g",
                     kernel=[
                         tsl.pulse(
                             function="const",
@@ -1945,7 +1945,7 @@ class TestTunableTransmonOperations:
                 ),
                 tsl.acquire_op(
                     signal="/logical_signal_groups/q0/acquire",
-                    handle="cal_trace/q0/e",
+                    handle="q0/cal_trace/e",
                     kernel=[
                         tsl.pulse(
                             function="const",
@@ -2016,7 +2016,7 @@ class TestTunableTransmonOperations:
                 ),
                 tsl.acquire_op(
                     signal="/logical_signal_groups/q0/acquire",
-                    handle="cal_trace/q0/e",
+                    handle="q0/cal_trace/e",
                     kernel=[
                         tsl.pulse(
                             function="const",
@@ -2090,7 +2090,7 @@ class TestTunableTransmonOperations:
                 ),
                 tsl.acquire_op(
                     signal="/logical_signal_groups/q0/acquire",
-                    handle="cal_trace/q0/f",
+                    handle="q0/cal_trace/f",
                     kernel=[
                         tsl.pulse(
                             function="const",

@@ -282,8 +282,12 @@ def validate_result(result: RunExperimentResults) -> None:
     Raises:
         TypeError: If result is not an instance of RunExperimentResults.
     """
-    if not isinstance(result, RunExperimentResults):
+    if not (
+        isinstance(result, RunExperimentResults)
+        or isinstance(result, Sequence)
+        and all(isinstance(item, RunExperimentResults) for item in result)
+    ):
         raise TypeError(
-            f"result has type {type(result)}, but only type RunExperimentResults "
-            f"is supported."
+            "The result must be either an instance of RunExperimentResults "
+            "or a sequence of RunExperimentResults."
         )

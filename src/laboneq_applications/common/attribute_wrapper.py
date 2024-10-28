@@ -69,6 +69,10 @@ def _check_attrs(keys: set[str], attrs: list[str], separator: str) -> None:
         ValueError: If a key is also an attribute of the class.
     """
     attrs_set = set(attrs)
+    if not all(key is not None for key in keys):
+        raise ValueError(
+            f"The acquire handle cannot be None. Please check the handles: {keys}."
+        )
     subkeys = {subkey for key in keys for subkey in key.split(separator)}
     if attrs_set & subkeys:
         raise ValueError(

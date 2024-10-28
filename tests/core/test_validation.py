@@ -439,6 +439,6 @@ class TestValidateResult:
             validate_result(result[1])
 
         assert str(err.value) == (
-            "result has type <class 'dict'>, but only type "
-            "RunExperimentResults is supported."
+            "The result must be either an instance of RunExperimentResults "
+            "or a sequence of RunExperimentResults."
         )

@@ -6,6 +6,7 @@ import numpy as np
 import pytest
 
 from laboneq_applications.analysis import dispersive_shift
+from laboneq_applications.core.handles import result_handle
 from laboneq_applications.tasks.run_experiment import (
     AcquiredResult,
     RunExperimentResults,
@@ -20,7 +21,7 @@ def results_single_qubit():
     signal. Sweep points correspond to the qubit readout-resonator frequency.
     """
     data = {}
-    data["result/q0/g"] = AcquiredResult(
+    data[result_handle("q0", suffix="g")] = AcquiredResult(
         data=np.array(
             [
                 -1.20330049e-05 - 1.96615942e-06j,
@@ -225,11 +226,9 @@ def results_single_qubit():
                 5.51993943e-05 + 4.34979004e-06j,
                 5.41498999e-05 - 1.06975777e-05j,
             ]
-        ),
-        axis_name=["Readout Frequency, $f_{RO}$ (GHz)"],
-        axis=[],
+        )
     )
-    data["result/q0/e"] = AcquiredResult(
+    data[result_handle("q0", suffix="e")] = AcquiredResult(
         data=np.array(
             [
                 -1.22152620e-05 - 1.74678078e-06j,
@@ -434,11 +433,9 @@ def results_single_qubit():
                 5.46487188e-05 + 5.35558734e-06j,
                 5.35851522e-05 - 1.11628539e-05j,
             ]
-        ),
-        axis_name=["Readout Frequency, $f_{RO}$ (GHz)"],
-        axis=[],
+        )
     )
-    data["result/q0/f"] = AcquiredResult(
+    data[result_handle("q0", suffix="f")] = AcquiredResult(
         data=np.array(
             [
                 -1.08358392e-05 - 2.27586127e-06j,
@@ -643,9 +640,7 @@ def results_single_qubit():
                 5.49793862e-05 + 3.51984524e-06j,
                 5.36154245e-05 - 1.18715973e-05j,
             ]
-        ),
-        axis_name=["Readout Frequency, $f_{RO}$ (GHz)"],
-        axis=[],
+        )
     )
 
     sweep_points = np.array(

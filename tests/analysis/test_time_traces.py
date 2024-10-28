@@ -15,6 +15,7 @@ from test_time_traces_data import (  # noqa: F401
 )
 
 from laboneq_applications.analysis import time_traces
+from laboneq_applications.core.handles import result_handle
 
 
 class TestTimeTracesAnalysisSingleQubitGE:
@@ -46,7 +47,7 @@ class TestTimeTracesAnalysisSingleQubitGE:
         task_names = [t.name for t in result.tasks]
         assert "filter_integration_kernels" not in task_names
         assert len(result.tasks["truncate_time_traces"].output["q0"]) == 2
-        data_e = results_single_qubit_ge["result/q0/e"].data
+        data_e = results_single_qubit_ge[result_handle("q0", suffix="e")].data
         assert len(result.tasks["truncate_time_traces"].output["q0"][0]) == len(
             data_e[: (len(data_e) // 16) * 16]
         )
@@ -282,7 +283,7 @@ class TestTimeTracesAnalysisSingleQubitGEF:
         task_names = [t.name for t in result.tasks]
         assert "filter_integration_kernels" not in task_names
         assert len(result.tasks["truncate_time_traces"].output["q0"]) == 3
-        data_g = results_single_qubit_gef["result/q0/g"].data
+        data_g = results_single_qubit_gef[result_handle("q0", suffix="g")].data
         assert len(result.tasks["truncate_time_traces"].output["q0"][0]) == len(
             data_g[: (len(data_g) // 16) * 16]
         )

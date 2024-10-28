@@ -12,7 +12,7 @@ def test_result_handle_formatting():
 
     qubit_name = "q/0"
     handle = result_handle(qubit_name, prefix="rabi/resultat")
-    assert handle == "rabi/resultat/q/0"
+    assert handle == "q/0/rabi/resultat"
 
 
 def test_result_handle_formatting_suffix():
@@ -20,22 +20,29 @@ def test_result_handle_formatting_suffix():
 
     qubit_name = "q/0"
     handle = result_handle(qubit_name, prefix="rabi/resultat", suffix="best")
-    assert handle == "rabi/resultat/q/0/best"
+    assert handle == "q/0/rabi/resultat/best"
 
 
 def test_calibration_trace_handle_formatting():
     """Test formatting the calibration trace handle."""
 
     qubit_name = "q/0"
+    handle = calibration_trace_handle(qubit_name, prefix="calib/trace")
+    assert handle == "q/0/calib/trace"
+
+
+def test_calibration_trace_handle_formatting_state():
+    """Test formatting the calibration trace handle."""
+
+    qubit_name = "q/0"
     state = "e"
     handle = calibration_trace_handle(qubit_name, state, prefix="calib/trace")
-    assert handle == "calib/trace/q/0/e"
+    assert handle == "q/0/calib/trace/e"
 
 
 def test_active_reset_handle_formatting():
     """Test the active_reset_handle function."""
 
     qubit_name = "q/0"
-    tag = "0"
-    handle = active_reset_handle(qubit_name, tag, prefix="active/reset")
-    assert handle == "active/reset/q/0/0"
+    handle = active_reset_handle(qubit_name, prefix="active/reset")
+    assert handle == f"q/0/active/reset/{result_handle(qubit_name)}"

@@ -17,7 +17,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import uncertainties as unc
 
-from laboneq_applications import workflow
+from laboneq_applications import dsl, workflow
 from laboneq_applications.analysis.fitting_helpers import lorentzian_fit
 from laboneq_applications.analysis.plotting_helpers import (
     plot_raw_complex_data_1d,
@@ -144,7 +144,7 @@ def calculate_signal_magnitude_and_phase(
     validate_result(result)
     proc_data_dict = {}
     for q, freqs in zip(qubits, frequencies):
-        raw_data = result.result[q.uid].data
+        raw_data = result[dsl.handles.result_handle(q.uid)].data
         proc_data_dict[q.uid] = {
             "sweep_points": freqs,
             "data_raw": raw_data,
