@@ -128,7 +128,11 @@ def experiment_workflow(
         with workflow.for_(states, lambda s: s) as state:
             exp = create_experiment(qpu, qubit, state)
             compiled_exp = tasks.compile_experiment(session, exp)
-            result = tasks.run_experiment(session, compiled_exp)
+            # Below, we disable saving for the inputs and outputs of the run_experiment
+            # task. The interface for doing this will be cleaned up later.
+            result = workflow.task(tasks.run_experiment, save=False)(
+                session, compiled_exp
+            )
             tasks.append_result(results, result)
     combined_results = tasks.combine_results(results)
     with workflow.if_(options.do_analysis):
@@ -207,7 +211,7 @@ def create_experiment(
     with dsl.acquire_loop_rt(
         count=opts.count,
         averaging_mode=opts.averaging_mode,
-        acquisition_type=opts.acquisition_type.RAW,
+        acquisition_type=opts.acquisition_type,
         repetition_mode=opts.repetition_mode,
         repetition_time=opts.repetition_time,
         reset_oscillator_phase=opts.reset_oscillator_phase,

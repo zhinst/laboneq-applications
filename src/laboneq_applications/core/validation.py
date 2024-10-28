@@ -79,7 +79,7 @@ def validate_and_convert_sweeps_to_arrays(
     return sweep_points
 
 
-@task
+@task(save=False)
 def validate_length_qubits_sweeps(
     qubits: QuantumElement | Sequence[QuantumElement],
     sweep_points: Sequence[float]
@@ -140,7 +140,7 @@ def validate_length_qubits_sweeps(
     return qubits, sweep_points
 
 
-@task
+@task(save=False)
 def convert_qubits_sweeps_to_lists(
     qubits: QuantumElement | Sequence[QuantumElement],
     sweep_points: Sequence[float]
@@ -195,7 +195,7 @@ def convert_qubits_sweeps_to_lists(
     return qubits, sweep_points
 
 
-@task
+@task(save=False)
 def validate_and_convert_qubits_sweeps(
     qubits: QuantumElement | Sequence[QuantumElement],
     sweep_points: Sequence[float]

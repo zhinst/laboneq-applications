@@ -111,7 +111,7 @@ class ResonatorSpectroscopyAnalysisWorkflowOptions(WorkflowOptions):
     )
 
 
-@workflow.workflow(name="resonator_spectroscopy_analysis")
+@workflow.workflow
 def analysis_workflow(
     result: RunExperimentResults,
     qubit: QuantumElement,

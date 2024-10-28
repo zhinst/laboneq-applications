@@ -89,7 +89,7 @@ class IQBlobAnalysisOptions(TaskOptions):
     )
 
 
-@workflow.workflow(name="iq_blobs_analysis")
+@workflow.workflow
 def analysis_workflow(
     result: RunExperimentResults,
     qubits: Qubits,

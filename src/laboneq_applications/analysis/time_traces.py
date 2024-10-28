@@ -119,7 +119,7 @@ class TimeTracesAnalysisOptions(TaskOptions):
     )
 
 
-@workflow.workflow(name="time_traces_analysis")
+@workflow.workflow
 def analysis_workflow(
     result: RunExperimentResults,
     qubits: Qubits,
@@ -488,12 +488,19 @@ def plot_time_traces(
         fig.align_ylabels()
         axs[0].set_title(timestamped_title(f"Time Traces {q.uid}"))
         axs[-1].set_xlabel("Samples, $N$")
+        ymax, ymin = 0, 0
         for i, s in enumerate(states):
             time_trace = truncated_time_traces[q.uid][i]
             axs[i].plot(np.real(time_trace), label=f"{s}: I")
             axs[i].plot(np.imag(time_trace), label=f"{s}: Q")
             axs[i].set_ylabel("Voltage, $V$ (a.u.)")
             axs[i].legend(frameon=False, loc="center left", bbox_to_anchor=(1, 0.5))
+            ymax = max(ymax, axs[i].get_ylim()[1])
+            ymin = min(ymin, axs[i].get_ylim()[0])
+
+        for ax in axs:
+            # all panels have the same y-axis range
+            ax.set_ylim(ymin, ymax)
 
         if opts.save_figures:
             workflow.save_artifact(f"Time_traces_{q.uid}", fig)
@@ -564,6 +571,7 @@ def plot_kernels_traces(
         axs[0].set_title(timestamped_title(f"Integration Kernels {q.uid}"))
         axs[-1].set_xlabel("Samples, $N$")
 
+        ymax, ymin = 0, 0
         for i, krns in enumerate(kernels_to_plot):
             for ii, krn_vals in enumerate(krns):
                 ax = axs[ii if len(kernels_to_plot) == 1 else i + 2 * ii]
@@ -587,6 +595,12 @@ def plot_kernels_traces(
                 )
                 ax.set_ylabel("Voltage, $V$ (a.u.)")
                 ax.legend(frameon=False, loc="center left", bbox_to_anchor=(1, 0.5))
+                ymax = max(ymax, ax.get_ylim()[1])
+                ymin = min(ymin, ax.get_ylim()[0])
+
+        for ax in axs:
+            # all panels have the same y-axis range
+            ax.set_ylim(ymin, ymax)
 
         if opts.save_figures:
             workflow.save_artifact(f"Integration_kernels_{q.uid}", fig)

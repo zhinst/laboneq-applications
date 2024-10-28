@@ -90,7 +90,7 @@ def validate_and_convert_detunings(
     return detunings
 
 
-@workflow.workflow(name="ramsey_analysis")
+@workflow.workflow
 def analysis_workflow(
     result: RunExperimentResults,
     qubits: Qubits,
@@ -437,7 +437,7 @@ def plot_population(
                     f"$\\pm$ {freq_fit_err / 1e6:.4f} MHz"
                 )
                 textstr += (
-                    f"\n$T_2^*$: {new_t2_star.nominal_value * 1e6:.4f} $\\pm$ "
+                    f"\n$T_2^*$: {new_t2_star.nominal_value * 1e6:.4f} $\\mu$s $\\pm$ "
                     f"{new_t2_star.std_dev * 1e6:.4f} $\\mu$s"
                 )
                 textstr += f"\nOld $T_2^*$: {old_t2_star * 1e6:.4f} $\\mu$s"

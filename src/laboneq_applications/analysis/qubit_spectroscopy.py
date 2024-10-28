@@ -41,7 +41,7 @@ if TYPE_CHECKING:
     from laboneq_applications.typing import Qubits, QubitSweepPoints
 
 
-@workflow.workflow(name="qubit_spectroscopy_analysis")
+@workflow.workflow
 def analysis_workflow(
     result: RunExperimentResults,
     qubits: Qubits,
