@@ -9,12 +9,8 @@ from typing import TYPE_CHECKING, Callable, Generic, cast, overload
 
 from typing_extensions import ParamSpec
 
+from laboneq_applications import logbook
 from laboneq_applications.core.utils import pygmentize
-from laboneq_applications.logbook import (
-    LogbookStore,
-    LoggingStore,
-    active_logbook_store,
-)
 from laboneq_applications.workflow import _utils, exceptions, executor, variable_tracker
 from laboneq_applications.workflow.blocks import (
     BlockBuilderContext,
@@ -114,14 +110,12 @@ class Workflow(Generic[Parameters]):
             options = self._root.options_type.from_dict(options)
         return cast(WorkflowOptions, options)
 
-    def _logstore(self, options_logstore: LogbookStore | None) -> LogbookStore:
-        """Return the appropriate logbook store."""
-        logstore = options_logstore
-        if logstore is None:
-            logstore = active_logbook_store()
-        if logstore is None:
-            logstore = LoggingStore()
-        return logstore
+    def _logstores(self) -> list[logbook.LogbookStore]:
+        """Return the appropriate logbook stores."""
+        opts = self._options().logstore
+        if opts is None:
+            opts = logbook.active_logbook_stores()
+        return opts
 
     def _reset(self) -> None:
         """Reset workflow execution state."""
@@ -214,13 +208,13 @@ class Workflow(Generic[Parameters]):
             raise exceptions.WorkflowError(msg)
         self._validate_run_params(until=until)
         self._reset()
-        options = self._options()
-        logstore = self._logstore(options.logstore)
         state = executor.ExecutorState(
             settings=executor.ExecutorSettings(run_until=until)
         )
-        logbook = logstore.create_logbook(self, start_time=state.start_time)
-        state.add_recorder(logbook)
+        for logstore in self._logstores():
+            state.add_recorder(
+                logstore.create_logbook(self, start_time=state.start_time)
+            )
         return self._execute(state)
 
     def _validate_input(self, **kwargs: object) -> None:

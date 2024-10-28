@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import pytest
 
+from laboneq_applications.logbook import LoggingStore
 from laboneq_applications.workflow import (
     TaskOptions,
     WorkflowOptions,
@@ -53,3 +54,18 @@ class TestWorkflowOptions:
                 "c": {"charlie": 3, "_task_options": {}},
             },
         }
+
+    def test_logstore(self):
+        obj = WorkflowOptions()
+        assert obj.logstore is None
+
+        obj = WorkflowOptions(logstore=[])
+        assert obj.logstore == []
+
+        store = LoggingStore()
+        obj = WorkflowOptions(logstore=store)
+        assert obj.logstore == [store]
+
+        stores = [LoggingStore(), LoggingStore()]
+        obj = WorkflowOptions(logstore=stores)
+        assert obj.logstore == stores

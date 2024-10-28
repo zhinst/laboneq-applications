@@ -39,13 +39,14 @@ class LogbookStore(abc.ABC):
 _active_logbook_stores = []
 
 
-def active_logbook_store() -> LogbookStore | None:
-    """Return the active logbook store."""
-    from laboneq_applications.logbook.combined_store import CombinedStore
+def active_logbook_stores() -> list[LogbookStore]:
+    """Returns a list of active logbook stores.
 
-    if not _active_logbook_stores:
-        return None
-    return CombinedStore(_active_logbook_stores)
+    Modifying the list does not affect the active logbooks. Use
+    `LogBookStore.activate()` or `LogBookStore.deactivate()` to activate
+    or deactivate individual logbook stores, respectively.
+    """
+    return _active_logbook_stores.copy()
 
 
 class Logbook(ExecutionRecorder):

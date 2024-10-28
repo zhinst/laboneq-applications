@@ -1,4 +1,4 @@
-"""Tests for laboneq_applications.logbook.combined_store."""
+"""Tests for multiple active logbook stores in workflow."""
 
 from __future__ import annotations
 
@@ -8,7 +8,6 @@ import logging
 import pytest
 from freezegun import freeze_time
 
-from laboneq_applications.logbook.combined_store import CombinedStore
 from laboneq_applications.logbook.logging_store import LoggingStore
 from laboneq_applications.workflow import (
     WorkflowOptions,
@@ -96,8 +95,7 @@ class TestCombinedStore:
             logger = logging.Logger(name)  # noqa: LOG001
             logger.addHandler(caplog.handler)
             stores.append(LoggingStore(logger, rich=False))
-
-        return CombinedStore(stores)
+        return stores
 
     def _messages(self, logger_name, caplog):
         return [r.getMessage() for r in caplog.records if r.name == logger_name]

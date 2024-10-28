@@ -5,7 +5,7 @@ __all__ = [
     "Logbook",
     "FolderStore",
     "LoggingStore",
-    "active_logbook_store",
+    "active_logbook_stores",
     "format_time",
     "DEFAULT_LOGGING_STORE",
 ]
@@ -14,7 +14,7 @@ __all__ = [
 from .core import (
     Logbook,
     LogbookStore,
-    active_logbook_store,
+    active_logbook_stores,
     format_time,
 )
 from .folder_store import FolderStore

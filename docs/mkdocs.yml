@@ -92,7 +92,6 @@ nav:
               - single_qubit_randomized_benchmarking: reference/contrib/analysis/single_qubit_randomized_benchmarking.md
       - logbook:
           - reference/logbook/index.md
-          - combined_store: reference/logbook/combined_store.md
           - core: reference/logbook/core.md
           - folder_store: reference/logbook/folder_store.md
           - logging_store: reference/logbook/logging_store.md
