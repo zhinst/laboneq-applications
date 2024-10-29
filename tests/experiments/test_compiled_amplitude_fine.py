@@ -33,14 +33,18 @@ def on_system_grid(time, system_grid=8):
 
 
 @pytest.mark.parametrize("transition, cal_states", [("ge", "ge"), ("ef", "ef")])
+@pytest.mark.parametrize("readout_lengths", [[1e-6, 1e-6], [100e-9, 200e-9]])
 class TestAmplitudeFine:
     """Test for fine-amplitude on a single/two qubit"""
 
     @pytest.fixture(autouse=True)
-    def _setup(self, two_tunable_transmon_platform):
+    def _setup(self, two_tunable_transmon_platform, readout_lengths):
         self.platform = two_tunable_transmon_platform
         self.qpu = self.platform.qpu
         self.qubits = self.platform.qpu.qubits
+        assert len(readout_lengths) == len(self.qubits)
+        for i, rl in enumerate(readout_lengths):
+            self.qubits[i].parameters.readout_length = rl
 
     @pytest.fixture(autouse=True)
     def _set_options(self, transition, cal_states):

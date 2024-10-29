@@ -242,7 +242,8 @@ class TunableTransmonOperations(dsl.QuantumOperations):
                 If not specified or `None`, the kernels specified in the
                 qubit's `readout_integration_kernels` are used.
         """
-        ro_params = q.readout_parameters()
+        measure_line, ro_params = q.readout_parameters()
+        acquire_line, ro_int_params = q.readout_integration_parameters()
         ro_pulse = dsl.create_pulse(
             ro_params["pulse"], readout_pulse, name="readout_pulse"
         )
@@ -250,14 +251,14 @@ class TunableTransmonOperations(dsl.QuantumOperations):
         kernels = q.get_integration_kernels(kernel_pulses)
 
         dsl.measure(
-            measure_signal=q.signals["measure"],
+            measure_signal=q.signals[measure_line],
             measure_pulse_amplitude=ro_params["amplitude"],
             measure_pulse_length=ro_params["length"],
             measure_pulse=ro_pulse,
             handle=handle,
-            acquire_signal=q.signals["acquire"],
+            acquire_signal=q.signals[acquire_line],
             integration_kernel=kernels,
-            integration_length=ro_params["integration_length"],
+            integration_length=ro_int_params["length"],
             reset_delay=None,
         )
 
@@ -294,14 +295,14 @@ class TunableTransmonOperations(dsl.QuantumOperations):
                 If not specified or `None`, the kernels specified in the
                 qubit's `readout_integration_kernels` are used.
         """
-        ro_params = q.readout_parameters()
+        acquire_line, ro_int_params = q.readout_integration_parameters()
         kernels = q.get_integration_kernels(kernel_pulses)
 
         dsl.acquire(
-            signal=q.signals["acquire"],
+            signal=q.signals[acquire_line],
             handle=handle,
             kernel=kernels,
-            length=ro_params["integration_length"],
+            length=ro_int_params["length"],
         )
 
     @dsl.quantum_operation

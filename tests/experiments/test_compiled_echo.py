@@ -28,11 +28,16 @@ def create_echo_verifier(
     transition,
     use_cal_traces,
     cal_states,
+    readout_lengths=None,
 ):
     """Create a CompiledExperimentVerifier for the echo experiment."""
     qubits = tunable_transmon_platform.qpu.qubits
     if len(qubits) == 1:
         qubits = qubits[0]
+    if readout_lengths is not None:
+        assert len(readout_lengths) == len(qubits)
+        for i, rl in enumerate(readout_lengths):
+            qubits[i].parameters.readout_length = rl
     session = tunable_transmon_platform.session(do_emulation=True)
     options = echo.experiment_workflow.options()
     options.count(count)
@@ -243,8 +248,8 @@ class TestEchoSingleQubit:
 
 
 @pytest.mark.parametrize(
-    "transition",
-    ["ge", "ef"],
+    ("transition", "readout_lengths"),
+    [("ge", [1e-6, 1e-6]), ("ef", [100e-9, 200e-9])],
 )
 @pytest.mark.parametrize(
     "use_cal_traces",
@@ -261,6 +266,7 @@ class TestEchoTwoQubits:
         transition,
         use_cal_traces,
         cal_states,
+        readout_lengths,
     ):
         """Test the number of drive pulses.
 
@@ -277,6 +283,7 @@ class TestEchoTwoQubits:
             transition,
             use_cal_traces,
             cal_states,
+            readout_lengths,
         )
 
         if transition == "ge":
@@ -366,6 +373,7 @@ class TestEchoTwoQubits:
         transition,
         use_cal_traces,
         cal_states,
+        readout_lengths,
     ):
         """Test the properties of drive pulses."""
 
@@ -381,6 +389,7 @@ class TestEchoTwoQubits:
             transition,
             use_cal_traces,
             cal_states,
+            readout_lengths,
         )
         if transition == "ge":
             verifier.assert_pulse(
@@ -461,6 +470,7 @@ class TestEchoTwoQubits:
         transition,
         use_cal_traces,
         cal_states,
+        readout_lengths,
     ):
         """Test the properties of measure pulses.
 
@@ -477,6 +487,7 @@ class TestEchoTwoQubits:
             transition,
             use_cal_traces,
             cal_states,
+            readout_lengths,
         )
 
         if transition == "ge":
@@ -487,7 +498,7 @@ class TestEchoTwoQubits:
                 signal="/logical_signal_groups/q0/measure",
                 index=0,
                 start=measure_start_time,
-                end=measure_start_time + 2e-6,
+                end=measure_start_time + readout_lengths[0],
                 tolerance=1e-9,
             )
             verifier.assert_pulse(
@@ -504,7 +515,7 @@ class TestEchoTwoQubits:
                 signal="/logical_signal_groups/q1/measure",
                 index=0,
                 start=measure_start_time,
-                end=measure_start_time + 2e-6,
+                end=measure_start_time + readout_lengths[1],
                 tolerance=1e-9,
             )
             verifier.assert_pulse(
@@ -524,7 +535,7 @@ class TestEchoTwoQubits:
                 signal="/logical_signal_groups/q0/measure",
                 index=0,
                 start=measure_start_time,
-                end=measure_start_time + 2e-6,
+                end=measure_start_time + readout_lengths[0],
             )
             verifier.assert_pulse(
                 signal="/logical_signal_groups/q0/acquire",
@@ -541,7 +552,7 @@ class TestEchoTwoQubits:
                 signal="/logical_signal_groups/q1/measure",
                 index=0,
                 start=measure_start_time,
-                end=measure_start_time + 2e-6,
+                end=measure_start_time + readout_lengths[1],
             )
             verifier.assert_pulse(
                 signal="/logical_signal_groups/q1/acquire",

@@ -28,11 +28,16 @@ def create_T1_verifier(  # noqa: N802
     transition,
     use_cal_traces,
     cal_states,
+    readout_lengths=None,
 ):
     """Create a CompiledExperimentVerifier for the lifetime_measurement experiment."""
     qubits = tunable_transmon_platform.qpu.qubits
     if len(qubits) == 1:
         qubits = qubits[0]
+    if readout_lengths is not None:
+        assert len(readout_lengths) == len(qubits)
+        for i, rl in enumerate(readout_lengths):
+            qubits[i].parameters.readout_length = rl
     session = tunable_transmon_platform.session(do_emulation=True)
     options = lifetime_measurement.experiment_workflow.options()
     options.count(count)
@@ -208,9 +213,16 @@ class TestT1SingleQubit:
 
 
 @pytest.mark.parametrize(
-    "delays",
+    ("delays", "readout_lengths"),
     [
-        [[56e-9, 112e-9, 224e-9, 448e-9], [58e-9, 112e-9, 224e-9, 448e-9]],
+        (
+            [[56e-9, 112e-9, 224e-9, 448e-9], [56e-9, 112e-9, 224e-9, 448e-9]],
+            [1e-6, 1e-6],
+        ),
+        (
+            [[56e-9, 112e-9, 224e-9, 448e-9], [58e-9, 112e-9, 224e-9, 448e-9]],
+            [100e-9, 200e-9],
+        ),
     ],
 )
 @pytest.mark.parametrize("transition", ["ge", "ef"], ids=["trans_ge", "trans_ef"])
@@ -227,6 +239,7 @@ class TestT1TwoQubits:
         transition,
         use_cal_traces,
         cal_states,
+        readout_lengths,
     ):
         """Test the number of pulses."""
         verifier = create_T1_verifier(
@@ -236,6 +249,7 @@ class TestT1TwoQubits:
             transition,
             use_cal_traces,
             cal_states,
+            readout_lengths,
         )
         expected_drive_count = _COUNT * (len(delays[0]) + int(use_cal_traces))
         verifier.assert_number_of_pulses(
@@ -295,6 +309,7 @@ class TestT1TwoQubits:
         transition,
         use_cal_traces,
         cal_states,
+        readout_lengths,
     ):
         """Test the properties of drive pulses."""
         verifier = create_T1_verifier(
@@ -304,6 +319,7 @@ class TestT1TwoQubits:
             transition,
             use_cal_traces,
             cal_states,
+            readout_lengths,
         )
         if transition == "ge":
             verifier.assert_pulse(
@@ -372,6 +388,7 @@ class TestT1TwoQubits:
         transition,
         use_cal_traces,
         cal_states,
+        readout_lengths,
     ):
         """Test the properties of measure pulses."""
         verifier = create_T1_verifier(
@@ -381,6 +398,7 @@ class TestT1TwoQubits:
             transition,
             use_cal_traces,
             cal_states,
+            readout_lengths,
         )
 
         if transition == "ge":
@@ -388,7 +406,7 @@ class TestT1TwoQubits:
             verifier.assert_pulse(
                 signal="/logical_signal_groups/q0/measure",
                 index=0,
-                length=_LENGTH_MEASURE,
+                length=readout_lengths[0],
             )
             verifier.assert_pulse(
                 signal="/logical_signal_groups/q0/acquire",
@@ -400,7 +418,7 @@ class TestT1TwoQubits:
             verifier.assert_pulse(
                 signal="/logical_signal_groups/q1/measure",
                 index=0,
-                length=_LENGTH_MEASURE,
+                length=readout_lengths[1],
             )
             verifier.assert_pulse(
                 signal="/logical_signal_groups/q1/acquire",

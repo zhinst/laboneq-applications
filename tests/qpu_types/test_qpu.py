@@ -112,3 +112,10 @@ class TestQPU:
         )
         assert qpu.qubits[0].parameters.resonance_frequency_ge == 6.5e9
         assert qpu.qubits[1].parameters.resonance_frequency_ge == 6.51e9
+
+    def test_measure_section_length(self):
+        setup = tunable_transmon_setup(4)
+        qubits = tunable_transmon_qubits(4, setup)
+        for i, q in enumerate(qubits):
+            q.parameters.readout_integration_length = 2e-6 - i * 0.1
+        assert QPU.measure_section_length(qubits) == 2e-6

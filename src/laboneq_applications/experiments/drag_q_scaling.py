@@ -218,6 +218,7 @@ def create_experiment(
             "outside the sweep."
         )
 
+    max_measure_section_length = qpu.measure_section_length(qubits)
     qop = qpu.quantum_operations
     pulse_ids = ["xx", "xy", "xmy"]
     ops_ids = ["x180", "y180", "y180"]
@@ -243,7 +244,13 @@ def create_experiment(
                     qop[op_id](
                         q, pulse={"beta": beta}, phase=phase, transition=opts.transition
                     )
-                    qop.measure(q, dsl.handles.result_handle(q.uid, suffix=pulse_id))
+                    sec = qop.measure(
+                        q, dsl.handles.result_handle(q.uid, suffix=pulse_id)
+                    )
+                    # we fix the length of the measure section to the longest section
+                    # among the qubits to allow the qubits to have different readout
+                    # and/or integration lengths.
+                    sec.length = max_measure_section_length
                     qop.passive_reset(q)
             if opts.use_cal_traces:
                 qop.calibration_traces(q, states=opts.cal_states)

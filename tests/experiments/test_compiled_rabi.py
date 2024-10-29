@@ -40,12 +40,17 @@ def create_rabi_verifier(
     count,
     transition,  # For new experiments: use if relevant, or remove
     use_cal_traces,  # For new experiments: use if relevant, or remove
+    readout_lengths=None,
     # For new experiments: add more arguments here if needed
 ):
     """Create a CompiledExperimentVerifier for the amplitude rabi experiment."""
     qubits = tunable_transmon_platform.qpu.qubits
     if len(qubits) == 1:
         qubits = qubits[0]
+    if readout_lengths is not None:
+        assert len(readout_lengths) == len(qubits)
+        for i, rl in enumerate(readout_lengths):
+            qubits[i].parameters.readout_length = rl
     session = tunable_transmon_platform.session(do_emulation=True)
     options = amplitude_rabi.experiment_workflow.options()
     options.count(count)
@@ -288,10 +293,10 @@ class TestAmplitudeRabiSingleQubit:
 # use pytest.mark.parametrize to generate test cases for
 # all combinations of the parameters.
 @pytest.mark.parametrize(  # For new experiments: replace with relevant name and values
-    "amplitudes",
+    ("amplitudes", "readout_lengths"),
     [
-        [[0.1, 0.2, 0.3], [0.2, 0.3, 0.4]],
-        [[0.1, 0.2, 0.3, 0.4], [0.2, 0.3, 0.4, 0.5]],
+        ([[0.1, 0.2, 0.3], [0.2, 0.3, 0.4]], [1e-6, 1e-6]),
+        ([[0.1, 0.2, 0.3, 0.4], [0.2, 0.3, 0.4, 0.5]], [100e-9, 200e-9]),
     ],
 )
 @pytest.mark.parametrize(
@@ -318,6 +323,7 @@ class TestAmplitudeRabiTwoQubits:
         count,
         transition,  # For new experiments: use if relevant, or remove
         use_cal_traces,  # For new experiments: use if relevant, or remove
+        readout_lengths,
         # For new experiments: add more arguments here if needed
     ):
         """Test the number of drive pulses.
@@ -334,6 +340,7 @@ class TestAmplitudeRabiTwoQubits:
             count,
             transition,  # For new experiments: use if relevant, or remove
             use_cal_traces,  # For new experiments: use if relevant, or remove
+            readout_lengths,
             # For new experiments: add more arguments here if needed
         )
 
@@ -381,6 +388,7 @@ class TestAmplitudeRabiTwoQubits:
         count,
         transition,  # For new experiments: use if relevant, or remove
         use_cal_traces,  # For new experiments: use if relevant, or remove
+        readout_lengths,
         # For new experiments: add more arguments here if needed
     ):
         """Test the number of measure and acquire pulses."""
@@ -391,6 +399,7 @@ class TestAmplitudeRabiTwoQubits:
             count,
             transition,  # For new experiments: use if relevant, or remove
             use_cal_traces,  # For new experiments: use if relevant, or remove
+            readout_lengths,
             # For new experiments: add more arguments here if needed
         )
         # Check for q0
@@ -427,6 +436,7 @@ class TestAmplitudeRabiTwoQubits:
         count,
         transition,  # For new experiments: use if relevant, or remove
         use_cal_traces,  # For new experiments: use if relevant, or remove
+        readout_lengths,
         # For new experiments: add more arguments here if needed
     ):
         """Test the properties of drive pulses."""
@@ -447,6 +457,7 @@ class TestAmplitudeRabiTwoQubits:
             count,
             transition,  # For new experiments: use if relevant, or remove
             use_cal_traces,  # For new experiments: use if relevant, or remove
+            readout_lengths,
             # For new experiments: add more arguments here if needed
         )
         if transition == "ge":
@@ -501,6 +512,7 @@ class TestAmplitudeRabiTwoQubits:
         count,
         transition,  # For new experiments: use if relevant, or remove
         use_cal_traces,  # For new experiments: use if relevant, or remove
+        readout_lengths,
         # For new experiments: add more arguments here if needed
     ):
         """Test the properties of measure pulses.
@@ -515,6 +527,7 @@ class TestAmplitudeRabiTwoQubits:
             count,
             transition,  # For new experiments: use if relevant, or remove
             use_cal_traces,  # For new experiments: use if relevant, or remove
+            readout_lengths,
             # For new experiments: add more arguments here if needed
         )
 
@@ -524,7 +537,10 @@ class TestAmplitudeRabiTwoQubits:
                 signal="/logical_signal_groups/q0/measure",
                 index=0,  # For new experiments: change this value as needed
                 start=56e-9,  # For new experiments: change this value as needed
-                end=56e-9 + 2e-6,  # For new experiments: change this value as needed
+                end=56e-9
+                + readout_lengths[
+                    0
+                ],  # For new experiments: change this value as needed
             )
             verifier.assert_pulse(
                 signal="/logical_signal_groups/q0/acquire",
@@ -538,7 +554,10 @@ class TestAmplitudeRabiTwoQubits:
                 signal="/logical_signal_groups/q1/measure",
                 index=0,  # For new experiments: change this value as needed
                 start=56e-9,  # For new experiments: change this value as needed
-                end=56e-9 + 2e-6,  # For new experiments: change this value as needed
+                end=56e-9
+                + readout_lengths[
+                    1
+                ],  # For new experiments: change this value as needed
             )
             verifier.assert_pulse(
                 signal="/logical_signal_groups/q1/acquire",
@@ -552,7 +571,10 @@ class TestAmplitudeRabiTwoQubits:
                 signal="/logical_signal_groups/q0/measure",
                 index=0,  # For new experiments: change this value as needed
                 start=112e-9,  # For new experiments: change this value as needed
-                end=112e-9 + 2e-6,  # For new experiments: change this value as needed
+                end=112e-9
+                + readout_lengths[
+                    0
+                ],  # For new experiments: change this value as needed
             )
             verifier.assert_pulse(
                 signal="/logical_signal_groups/q0/acquire",
@@ -565,7 +587,10 @@ class TestAmplitudeRabiTwoQubits:
                 signal="/logical_signal_groups/q1/measure",
                 index=0,  # For new experiments: change this value as needed
                 start=112e-9,  # For new experiments: change this value as needed
-                end=112e-9 + 2e-6,  # For new experiments: change this value as needed
+                end=112e-9
+                + readout_lengths[
+                    1
+                ],  # For new experiments: change this value as needed
             )
             verifier.assert_pulse(
                 signal="/logical_signal_groups/q1/acquire",

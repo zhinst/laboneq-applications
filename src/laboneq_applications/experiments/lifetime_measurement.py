@@ -197,6 +197,7 @@ def create_experiment(
             "outside the sweep."
         )
 
+    max_measure_section_length = qpu.measure_section_length(qubits)
     qop = qpu.quantum_operations
     if opts.transition == "ef":
         on_system_grid = True
@@ -228,6 +229,10 @@ def create_experiment(
                     sec_180 = qop.x180(q, transition=opts.transition)
                     qop.delay(q, time=delay)
                     sec_measure = qop.measure(q, dsl.handles.result_handle(q.uid))
+                    # we fix the length of the measure section to the longest section
+                    # among the qubits to allow the qubits to have different readout
+                    # and/or integration lengths.
+                    sec_measure.length = max_measure_section_length
                 # to remove the gaps between ef_drive and measure pulses
                 # introduced by system grid alignment.
                 qop.passive_reset(q)

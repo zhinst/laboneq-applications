@@ -189,6 +189,7 @@ def create_experiment(
     _, frequencies = validate_and_convert_qubits_sweeps(qubits, frequencies)
     qubits, amplitudes = validate_and_convert_qubits_sweeps(qubits, amplitudes)
 
+    max_measure_section_length = qpu.measure_section_length(qubits)
     qop = qpu.quantum_operations
     with dsl.acquire_loop_rt(
         count=opts.count,
@@ -209,5 +210,9 @@ def create_experiment(
                 ) as frequency:
                     qop.set_frequency(q, frequency)
                     qop.spectroscopy_drive(q, amplitude=amplitude)
-                    qop.measure(q, dsl.handles.result_handle(q.uid))
+                    sec = qop.measure(q, dsl.handles.result_handle(q.uid))
+                    # we fix the length of the measure section to the longest section
+                    # among the qubits to allow the qubits to have different readout
+                    # and/or integration lengths.
+                    sec.length = max_measure_section_length
                     qop.passive_reset(q)

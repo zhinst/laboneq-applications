@@ -264,15 +264,33 @@ class TunableTransmonQubit(Transmon):
 
         return line, params
 
-    def readout_parameters(self) -> dict:
-        """Return the readout parameters.
+    def readout_parameters(self) -> tuple[str, dict]:
+        """Return the measure line and the readout parameters.
 
         Returns:
+           line:
+               The measure line of the qubit.
            params:
                The readout parameters.
         """
-        param_keys = ["amplitude", "length", "pulse", "integration_length"]
-        return {k: getattr(self.parameters, f"readout_{k}") for k in param_keys}
+        param_keys = ["amplitude", "length", "pulse"]
+        params = {k: getattr(self.parameters, f"readout_{k}") for k in param_keys}
+        return "measure", params
+
+    def readout_integration_parameters(self) -> tuple[str, dict]:
+        """Return the acquire line and the readout integration parameters.
+
+        Returns:
+           line:
+               The acquire line of the qubit.
+           params:
+               The readout integration parameters.
+        """
+        param_keys = ["length", "kernels", "kernels_type", "discrimination_thresholds"]
+        params = {
+            k: getattr(self.parameters, f"readout_integration_{k}") for k in param_keys
+        }
+        return "acquire", params
 
     def default_integration_kernels(self) -> list[Pulse]:
         """Return a default list of integration kernels.

@@ -150,3 +150,20 @@ class QPU:
         for qid, params_dict in qubit_parameters.items():
             qubit = self._qubit_map[qid]
             qubit.update(params_dict)
+
+    @staticmethod
+    def measure_section_length(qubits: Qubits) -> float:
+        """Calculates the length of the measure section for multiplexed readout.
+
+        In order to allow the qubits to have different readout and/or integration
+        lengths, the measure section length needs to be fixed to the longest one
+        across the qubits used in the experiment.
+
+        Args:
+            qubits:
+                The qubits that are being measured.
+
+        Returns:
+            The length of the multiplexed-readout measure section.
+        """
+        return max([q.readout_integration_parameters()[1]["length"] for q in qubits])

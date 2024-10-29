@@ -14,11 +14,16 @@ def create_iq_blobs_verifier(
     tunable_transmon_platform,
     count,
     states,
+    readout_lengths=None,
 ):
     """Create a CompiledExperimentVerifier for the iq_blobs experiment."""
     qubits = tunable_transmon_platform.qpu.qubits
     if len(qubits) == 1:
         qubits = qubits[0]
+    if readout_lengths is not None:
+        assert len(readout_lengths) == len(qubits)
+        for i, rl in enumerate(readout_lengths):
+            qubits[i].parameters.readout_length = rl
     session = tunable_transmon_platform.session(do_emulation=True)
     options = iq_blobs.experiment_workflow.options()
     options.count(count)
@@ -193,10 +198,10 @@ class TestIQBlobsSingleQubit:
 # use pytest.mark.parametrize to generate test cases for
 # all combinations of the parameters.
 @pytest.mark.parametrize(
-    "states",
+    ("states", "readout_lengths"),
     [
-        "ge",
-        "gef",
+        ("ge", [1e-6, 1e-6]),
+        ("gef", [100e-9, 200e-9]),
     ],
 )
 @pytest.mark.parametrize(
@@ -209,6 +214,7 @@ class TestIQBlobsTwoQubit:
         two_tunable_transmon_platform,
         count,
         states,
+        readout_lengths,
     ):
         """Test the number of drive pulses.
 
@@ -222,6 +228,7 @@ class TestIQBlobsTwoQubit:
             two_tunable_transmon_platform,
             count,
             states,
+            readout_lengths,
         )
 
         # The signal names can be looked up in device_setup,
@@ -256,6 +263,7 @@ class TestIQBlobsTwoQubit:
         two_tunable_transmon_platform,
         count,
         states,
+        readout_lengths,
     ):
         """Test the number of measure and acquire pulses."""
 
@@ -263,6 +271,7 @@ class TestIQBlobsTwoQubit:
             two_tunable_transmon_platform,
             count,
             states,
+            readout_lengths,
         )
         # Note that with cal_state on, there are 2 additional measure pulses
         expected_measure_count = count * (
@@ -296,6 +305,7 @@ class TestIQBlobsTwoQubit:
         two_tunable_transmon_platform,
         count,
         states,
+        readout_lengths,
     ):
         """Test the properties of drive pulses."""
         # Here, we can assert the start, end, and the parameterization of the pulses.
@@ -312,6 +322,7 @@ class TestIQBlobsTwoQubit:
             two_tunable_transmon_platform,
             count,
             states,
+            readout_lengths,
         )
         if states == "ge":
             # ge pulses
@@ -353,6 +364,7 @@ class TestIQBlobsTwoQubit:
         two_tunable_transmon_platform,
         count,
         states,
+        readout_lengths,
     ):
         """Test the properties of measure pulses.
 
@@ -364,13 +376,14 @@ class TestIQBlobsTwoQubit:
             two_tunable_transmon_platform,
             count,
             states,
+            readout_lengths,
         )
 
         verifier.assert_pulse(
             signal="/logical_signal_groups/q0/measure",
             index=0,
             start=0e-9,
-            end=2e-6,
+            end=readout_lengths[0],
         )
         verifier.assert_pulse(
             signal="/logical_signal_groups/q0/acquire",
@@ -382,7 +395,7 @@ class TestIQBlobsTwoQubit:
             signal="/logical_signal_groups/q1/measure",
             index=0,
             start=0e-9,
-            end=2e-6,
+            end=readout_lengths[1],
         )
         verifier.assert_pulse(
             signal="/logical_signal_groups/q1/acquire",

@@ -10,12 +10,22 @@ from laboneq_applications.testing import CompiledExperimentVerifier
 
 
 def create_ramsey_verifier(
-    tunable_transmon_platform, delays, count, transition, use_cal_traces, detunings
+    tunable_transmon_platform,
+    delays,
+    count,
+    transition,
+    use_cal_traces,
+    detunings,
+    readout_lengths=None,
 ):
     """Create a CompiledExperimentVerifier for the ramsey experiment."""
     qubits = tunable_transmon_platform.qpu.qubits
     if len(qubits) == 1:
         qubits = qubits[0]
+    if readout_lengths is not None:
+        assert len(readout_lengths) == len(qubits)
+        for i, rl in enumerate(readout_lengths):
+            qubits[i].parameters.readout_length = rl
     session = tunable_transmon_platform.session(do_emulation=True)
     options = ramsey.experiment_workflow.options()
     options.count(count)
@@ -266,8 +276,8 @@ class TestRamseySingleQubit:
     ],
 )
 @pytest.mark.parametrize(
-    "count",
-    [2, 4],
+    ("count", "readout_lengths"),
+    [(2, [1e-6, 1e-6]), (4, [100e-9, 200e-9])],
 )
 @pytest.mark.parametrize(
     "transition",
@@ -290,6 +300,7 @@ class TestRamseyTwoQubits:
         transition,
         use_cal_traces,
         detunings,
+        readout_lengths,
     ):
         """Test the number of drive pulses."""
         verifier = create_ramsey_verifier(
@@ -299,6 +310,7 @@ class TestRamseyTwoQubits:
             transition,
             use_cal_traces,
             detunings,
+            readout_lengths,
         )
 
         # with cal_state on, there is 1 additional drive pulse
@@ -348,6 +360,7 @@ class TestRamseyTwoQubits:
         transition,
         use_cal_traces,
         detunings,
+        readout_lengths,
     ):
         """Test the number of measure and acquire pulses."""
         verifier = create_ramsey_verifier(
@@ -357,6 +370,7 @@ class TestRamseyTwoQubits:
             transition,
             use_cal_traces,
             detunings,
+            readout_lengths,
         )
         # with cal_state on, there are 2 additional measure pulses
         expected_measure_count = count * (len(delays[0]) + 2 * int(use_cal_traces))
@@ -390,6 +404,7 @@ class TestRamseyTwoQubits:
         transition,
         use_cal_traces,
         detunings,
+        readout_lengths,
     ):
         """Test the properties of drive pulses."""
         [q0, q1] = two_tunable_transmon_platform.qpu.qubits
@@ -405,6 +420,7 @@ class TestRamseyTwoQubits:
             transition,
             use_cal_traces,
             detunings,
+            readout_lengths,
         )
         if transition == "ge":
             # Offset at the beginning of experiment is not crucial.
@@ -475,6 +491,7 @@ class TestRamseyTwoQubits:
         transition,
         use_cal_traces,
         detunings,
+        readout_lengths,
     ):
         """Test the properties of measure pulses.
 
@@ -488,6 +505,7 @@ class TestRamseyTwoQubits:
             transition,
             use_cal_traces,
             detunings,
+            readout_lengths,
         )
 
         if transition == "ge":
@@ -498,7 +516,7 @@ class TestRamseyTwoQubits:
                 signal="/logical_signal_groups/q0/measure",
                 index=0,
                 start=start_measure,
-                end=start_measure + 2e-6,
+                end=start_measure + readout_lengths[0],
             )
             verifier.assert_pulse(
                 signal="/logical_signal_groups/q0/acquire",
@@ -511,7 +529,7 @@ class TestRamseyTwoQubits:
                 signal="/logical_signal_groups/q1/measure",
                 index=0,
                 start=start_measure,
-                end=start_measure + 2e-6,
+                end=start_measure + readout_lengths[1],
             )
             verifier.assert_pulse(
                 signal="/logical_signal_groups/q1/acquire",
@@ -525,7 +543,7 @@ class TestRamseyTwoQubits:
                 signal="/logical_signal_groups/q0/measure",
                 index=0,
                 start=start_measure,
-                end=start_measure + 2e-6,
+                end=start_measure + readout_lengths[0],
             )
             verifier.assert_pulse(
                 signal="/logical_signal_groups/q0/acquire",
@@ -537,7 +555,7 @@ class TestRamseyTwoQubits:
                 signal="/logical_signal_groups/q1/measure",
                 index=0,
                 start=start_measure,
-                end=start_measure + 2e-6,
+                end=start_measure + readout_lengths[1],
             )
             verifier.assert_pulse(
                 signal="/logical_signal_groups/q1/acquire",

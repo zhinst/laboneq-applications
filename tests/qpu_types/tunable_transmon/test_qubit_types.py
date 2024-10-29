@@ -27,6 +27,19 @@ class TestTunableTransmonQubit:
         q = TunableTransmonQubit()
         assert isinstance(q.parameters, TunableTransmonQubitParameters)
 
+    def test_readout_parameters(self, q0):
+        measure_line, params = q0.readout_parameters()
+        assert measure_line == "measure"
+        assert params["length"] == 2e-6
+        assert params["amplitude"] == 1.0
+
+    def test_readout_integration_parameters(self, q0):
+        acquire_line, params = q0.readout_integration_parameters()
+        assert acquire_line == "acquire"
+        assert params["length"] == 2e-6
+        assert params["kernels_type"] == "default"
+        assert params["discrimination_thresholds"] is None
+
     def test_transition_parameters_default(self, q0):
         drive_line, params = q0.transition_parameters()
         assert drive_line == "drive"
