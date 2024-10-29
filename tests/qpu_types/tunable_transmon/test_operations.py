@@ -24,11 +24,6 @@ def qops():
     return TunableTransmonOperations()
 
 
-@pytest.fixture()
-def q0(single_tunable_transmon_platform):
-    return single_tunable_transmon_platform.qpu.qubits[0]
-
-
 class TestTunableTransmonOperations:
     def check_op_builds_and_compiles(self, section, platform, sweep=None):
         """Check that an operation can be built and compiled successfully."""
@@ -1390,6 +1385,36 @@ class TestTunableTransmonOperations:
             sweep=sweep,
         )
 
+    def test_ry_broadcast(self, qops, two_tunable_transmon_platform):
+        [q0, q1] = two_tunable_transmon_platform.qpu.qubits
+
+        with dsl.section(name="ry_broadcast") as section:
+            qops.ry([q0, q1], [np.pi / 2, np.pi / 4])
+
+        assert section == tsl.section(uid="__ry_broadcast_0").children(
+            tsl.section(uid="__ry_q0_0").children(
+                self.reserve_ops(q0),
+                tsl.play_pulse_op(
+                    signal="/logical_signal_groups/q0/drive",
+                    amplitude=0.4,
+                    pulse=tsl.pulse(),
+                ),
+            ),
+            tsl.section(uid="__ry_q1_0").children(
+                self.reserve_ops(q1),
+                tsl.play_pulse_op(
+                    signal="/logical_signal_groups/q1/drive",
+                    amplitude=0.2025,
+                    pulse=tsl.pulse(),
+                ),
+            ),
+        )
+
+        self.check_op_builds_and_compiles(
+            section,
+            two_tunable_transmon_platform,
+        )
+
     def test_y90(self, qops, single_tunable_transmon_platform):
         [q0] = single_tunable_transmon_platform.qpu.qubits
         section = qops.y90(q0)
@@ -1572,6 +1597,34 @@ class TestTunableTransmonOperations:
         )
 
         self.check_op_builds_and_compiles(section, single_tunable_transmon_platform)
+
+    def test_rz_broadcast(self, qops, two_tunable_transmon_platform):
+        [q0, q1] = two_tunable_transmon_platform.qpu.qubits
+
+        with dsl.section(name="rz_broadcast") as section:
+            qops.rz([q0, q1], [np.pi / 2, np.pi / 4])
+
+        assert section == tsl.section(uid="__rz_broadcast_0").children(
+            tsl.section(uid="__rz_q0_0").children(
+                self.reserve_ops(q0),
+                tsl.play_pulse_op(
+                    signal="/logical_signal_groups/q0/drive",
+                    increment_oscillator_phase=np.pi / 2,
+                ),
+            ),
+            tsl.section(uid="__rz_q1_0").children(
+                self.reserve_ops(q1),
+                tsl.play_pulse_op(
+                    signal="/logical_signal_groups/q1/drive",
+                    increment_oscillator_phase=np.pi / 4,
+                ),
+            ),
+        )
+
+        self.check_op_builds_and_compiles(
+            section,
+            two_tunable_transmon_platform,
+        )
 
     def test_z90(self, qops, single_tunable_transmon_platform):
         [q0] = single_tunable_transmon_platform.qpu.qubits

@@ -41,6 +41,13 @@ class DummyOperations(QuantumOperations):
         """A dummy neartime quantum operation."""
         dsl.call("set_dc_bias", q_uid=q.uid, dc_bias=dc_bias)
 
+    @quantum_operation(broadcast=False)
+    def multi_x(self, qubits, amplitude):
+        """A dummy quantum operation."""
+        pulse = dsl.pulse_library.const()
+        for q in qubits:
+            dsl.play(q.signals["drive"], pulse, amplitude=amplitude)
+
 
 class DummyCoupler(Transmon):
     """Dummy coupler qubit for testing."""
@@ -82,6 +89,21 @@ def dummy_q():
             "acquire": "/lsg/q0/acquire",
         },
     )
+
+
+@pytest.fixture()
+def dummy_3q():
+    return [
+        Transmon(
+            uid=f"q{i}",
+            signals={
+                "drive": f"/lsg/q{i}/drive",
+                "measure": f"/lsg/q{i}/measure",
+                "acquire": f"/lsg/q{i}/acquire",
+            },
+        )
+        for i in range(3)
+    ]
 
 
 @pytest.fixture()
@@ -394,15 +416,16 @@ class TestQuantumOperations:
             "BASE_OPS",
             "QUBIT_TYPES",
             "keys",
+            "multi_x",
             "near",
             "register",
             "x",
         ]
 
     def test_keys(self, dummy_ops):
-        assert dummy_ops.keys() == ["near", "x"]
+        assert dummy_ops.keys() == ["multi_x", "near", "x"]
         dummy_ops.register(dummy_ops.x, "a")
-        assert dummy_ops.keys() == ["a", "near", "x"]
+        assert dummy_ops.keys() == ["a", "multi_x", "near", "x"]
 
     def test_register(self, dummy_ops):
         def y(q):
@@ -585,6 +608,123 @@ class TestOperation:
             " DummyCoupler, Transmon."
         )
 
+    def test_call_with_duplicate_qubits(self, dummy_multi_type_ops, dummy_q):
+        with pytest.raises(ValueError) as err:
+            dummy_multi_type_ops.cz(dummy_q, dummy_q)
+        assert str(err.value) == (
+            "Quantum operation 'cz' was given the following non-unique"
+            " qubits as arguments: q0"
+        )
+
+    def test_broadcast(self, dummy_ops, dummy_3q):
+        [section_q0, section_q1, section_q2] = dummy_ops.x(dummy_3q, amplitude=2.0)
+
+        assert section_q0 == tsl.section(uid="__x_q0_0", execution_type=None).children(
+            tsl.reserve_op(signal="/lsg/q0/drive"),
+            tsl.reserve_op(signal="/lsg/q0/measure"),
+            tsl.reserve_op(signal="/lsg/q0/acquire"),
+            tsl.play_pulse_op(signal="/lsg/q0/drive", amplitude=2.0),
+        )
+        assert section_q1 == tsl.section(uid="__x_q1_0", execution_type=None).children(
+            tsl.reserve_op(signal="/lsg/q1/drive"),
+            tsl.reserve_op(signal="/lsg/q1/measure"),
+            tsl.reserve_op(signal="/lsg/q1/acquire"),
+            tsl.play_pulse_op(signal="/lsg/q1/drive", amplitude=2.0),
+        )
+        assert section_q2 == tsl.section(uid="__x_q2_0", execution_type=None).children(
+            tsl.reserve_op(signal="/lsg/q2/drive"),
+            tsl.reserve_op(signal="/lsg/q2/measure"),
+            tsl.reserve_op(signal="/lsg/q2/acquire"),
+            tsl.play_pulse_op(signal="/lsg/q2/drive", amplitude=2.0),
+        )
+
+    def test_broadcast_with_args_and_kws_broadcast(self, dummy_ops, dummy_3q):
+        [section_q0, section_q1, section_q2] = dummy_ops.x(
+            dummy_3q, amplitude=[0.1, 0.2, 0.3]
+        )
+
+        assert section_q0 == tsl.section(uid="__x_q0_0", execution_type=None).children(
+            tsl.reserve_op(signal="/lsg/q0/drive"),
+            tsl.reserve_op(signal="/lsg/q0/measure"),
+            tsl.reserve_op(signal="/lsg/q0/acquire"),
+            tsl.play_pulse_op(signal="/lsg/q0/drive", amplitude=0.1),
+        )
+        assert section_q1 == tsl.section(uid="__x_q1_0", execution_type=None).children(
+            tsl.reserve_op(signal="/lsg/q1/drive"),
+            tsl.reserve_op(signal="/lsg/q1/measure"),
+            tsl.reserve_op(signal="/lsg/q1/acquire"),
+            tsl.play_pulse_op(signal="/lsg/q1/drive", amplitude=0.2),
+        )
+        assert section_q2 == tsl.section(uid="__x_q2_0", execution_type=None).children(
+            tsl.reserve_op(signal="/lsg/q2/drive"),
+            tsl.reserve_op(signal="/lsg/q2/measure"),
+            tsl.reserve_op(signal="/lsg/q2/acquire"),
+            tsl.play_pulse_op(signal="/lsg/q2/drive", amplitude=0.3),
+        )
+
+    def test_broadcast_with_multiple_args_broadcast(self, dummy_ops, dummy_3q):
+        [section_q0, section_q1, section_q2] = dummy_ops.x(dummy_3q, [0.1, 0.2, 0.3])
+
+        assert section_q0 == tsl.section(uid="__x_q0_0", execution_type=None).children(
+            tsl.reserve_op(signal="/lsg/q0/drive"),
+            tsl.reserve_op(signal="/lsg/q0/measure"),
+            tsl.reserve_op(signal="/lsg/q0/acquire"),
+            tsl.play_pulse_op(signal="/lsg/q0/drive", amplitude=0.1),
+        )
+        assert section_q1 == tsl.section(uid="__x_q1_0", execution_type=None).children(
+            tsl.reserve_op(signal="/lsg/q1/drive"),
+            tsl.reserve_op(signal="/lsg/q1/measure"),
+            tsl.reserve_op(signal="/lsg/q1/acquire"),
+            tsl.play_pulse_op(signal="/lsg/q1/drive", amplitude=0.2),
+        )
+        assert section_q2 == tsl.section(uid="__x_q2_0", execution_type=None).children(
+            tsl.reserve_op(signal="/lsg/q2/drive"),
+            tsl.reserve_op(signal="/lsg/q2/measure"),
+            tsl.reserve_op(signal="/lsg/q2/acquire"),
+            tsl.play_pulse_op(signal="/lsg/q2/drive", amplitude=0.3),
+        )
+
+    def test_broadcast_with_duplicate_qubits(self, dummy_ops, dummy_3q):
+        with pytest.raises(ValueError) as err:
+            dummy_ops.x([*dummy_3q, dummy_3q[1]], amplitude=2.0)
+        assert str(err.value) == (
+            "Quantum operation 'x' was given the following non-unique"
+            " qubits as arguments when being broadcast: q1"
+        )
+
+    def test_broadcast_with_different_arg_lengths(self, dummy_ops, dummy_3q):
+        with pytest.raises(ValueError) as err:
+            dummy_ops.x(dummy_3q, [1.0, 2.0])
+        assert str(err.value) == (
+            "Quantum operation 'x' was being broadcast with length 3 but the"
+            " following positional arguments have different lengths:"
+            " arg[1] has length 2"
+        )
+
+    def test_broadcast_with_different_kw_lengths(self, dummy_ops, dummy_3q):
+        with pytest.raises(ValueError) as err:
+            dummy_ops.x(dummy_3q, amplitude=[1.0, 2.0])
+        assert str(err.value) == (
+            "Quantum operation 'x' was being broadcast with length 3 but the"
+            " following keyword arguments have different lengths:"
+            " kw['amplitude'] has length 2"
+        )
+
+    def test_broadcast_internals_broadcast_not_supported(self, dummy_ops, dummy_q):
+        with pytest.raises(ValueError) as err:
+            dummy_ops.multi_x._broadcast_call([dummy_q], {"amplitude": 2.0})
+        assert str(err.value) == (
+            "Quantum operation 'multi_x' does not support broadcasting."
+        )
+
+    def test_broadcast_internals_nothing_to_broadcast(self, dummy_ops, dummy_q):
+        with pytest.raises(ValueError) as err:
+            dummy_ops.x._broadcast_call([dummy_q], {"amplitude": 2.0})
+        assert str(err.value) == (
+            "Quantum operation 'x' was being broadcast but no lists or tuples"
+            " were found to broadcast over."
+        )
+
     def test_functools_partial(self, dummy_ops, dummy_q):
         x_with_amp = functools.partial(dummy_ops.x, amplitude=1.5)
 
@@ -633,8 +773,22 @@ class TestOperation:
             tsl.call_op(func_name="set_dc_bias", args={"q_uid": "q0", "dc_bias": 0.3}),
         )
 
+    def test_repr(self, dummy_ops):
+        assert repr(dummy_ops.x) == (
+            f"Operation(op={dummy_ops.x.op!r}, op_name=x,"
+            " neartime=False, supports_broadcast=True)"
+        )
+
     def test_op(self, dummy_ops):
         assert dummy_ops.x.op is DummyOperations.BASE_OPS["x"]
+
+    def test_neartime_property(self, dummy_ops):
+        assert dummy_ops.near.neartime is True
+        assert dummy_ops.x.neartime is False
+
+    def test_supports_broadcast(self, dummy_ops):
+        assert dummy_ops.x.supports_broadcast is True
+        assert dummy_ops.multi_x.supports_broadcast is False
 
     def test_src(self, dummy_ops):
         assert dummy_ops.x.src == "\n".join(

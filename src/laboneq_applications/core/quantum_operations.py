@@ -25,13 +25,9 @@ if TYPE_CHECKING:
     )
 
 
-# TODO: add support for broadcasting operations over lists of qubits
-#   - broadcast over qubits
-#   - check qubits are unique
-#   - document that operations accept multiple qubits
-
-
-def quantum_operation(f: Callable | None = None, *, neartime: bool = False) -> Callable:
+def quantum_operation(
+    f: Callable | None = None, *, broadcast: bool = True, neartime: bool = False
+) -> Callable:
     """Decorator that marks an method as a quantum operation.
 
     Methods marked as quantum operations are moved into the `BASE_OPS` dictionary
@@ -46,6 +42,10 @@ def quantum_operation(f: Callable | None = None, *, neartime: bool = False) -> C
             The method to decorate. `f` should take as positional arguments the
             qubits to operate on. It may take additional arguments that
             specify other parameters of the operation.
+        broadcast:
+            If true, the operation may be broadcast across multiple qubits
+            using `.broadcast`. Broadcasting requires that all operation
+            arguments do not accept sequences of values (when not broadcasting).
         neartime:
             If true, the operation is marked as a near-time operation. Its
             section is set to near-time and no qubit signals are reserved.
@@ -56,8 +56,10 @@ def quantum_operation(f: Callable | None = None, *, neartime: bool = False) -> C
         the other arguments set.
     """
     if f is None:
-        return functools.partial(quantum_operation, neartime=neartime)
-    f._quantum_op = _QuantumOperationMarker(neartime=neartime)
+        return functools.partial(
+            quantum_operation, broadcast=broadcast, neartime=neartime
+        )
+    f._quantum_op = _QuantumOperationMarker(broadcast=broadcast, neartime=neartime)
     return f
 
 
@@ -65,12 +67,17 @@ class _QuantumOperationMarker:
     """A marker indicating that a function is a quantum operation.
 
     Arguments:
+        broadcast:
+            If true, the operation may be broadcast across multiple qubits
+            using `.broadcast`. Broadcasting requires that all operation
+            arguments do not accept sequences of values (when not broadcasting).
         neartime:
             If true, the operation is marked as a near-time operation. Its
             section is set to near-time and no qubit signals are reserved.
     """
 
-    def __init__(self, *, neartime: bool = False):
+    def __init__(self, *, broadcast: bool = True, neartime: bool = False):
+        self.broadcast = broadcast
         self.neartime = neartime
 
 
@@ -350,7 +357,7 @@ class Operation:
         self._quantum_ops = quantum_ops
         self.__doc__ = self._op.__doc__
 
-    def __call__(self, *args, **kw) -> Section:
+    def __call__(self, *args, **kw) -> Section | list[Section]:
         """Build a section using the operation.
 
         The operation is called in the context of a pre-built
@@ -359,6 +366,11 @@ class Operation:
         The UID of the section is generated with the name of the operation
         as a prefix and a unique count as a suffix.
 
+        If the operation can be broadcast and any of the positional arguments
+        are lists or tuples, then the operation will be broadcast.
+
+        Broadcasting is currently an experimental feature.
+
         Arguments:
             *args:
                 Positional arguments for the operation.
@@ -366,11 +378,19 @@ class Operation:
                 Keyword parameters for the operation.
 
         Returns:
-            A LabOne Q section built by the operation.
+            A LabOne Q section built by the operation, or a list of
+            LabOne Q sections if the operation is broadcast.
         """
         return self._call(args, kw)
 
-    def omit_section(self, *args: object, **kw: object) -> None:
+    def __repr__(self) -> str:
+        return (
+            f"Operation(op={self._op}, op_name={self._op_name},"
+            f" neartime={self._op_marker.neartime!r},"
+            f" supports_broadcast={self._op_marker.broadcast!r})"
+        )
+
+    def omit_section(self, *args: object, **kw: object) -> None | list[None]:
         """Calls the operation but *without* building a new section.
 
         Omitting the section causes the contents of the operation to be added directly
@@ -379,6 +399,12 @@ class Operation:
         This is intended to reduce the number of sections created when one operation
         consists entirely of calling another operation. In other cases it should be used
         with care since omitting a section may affect the generated signals.
+
+        Broadcasting an operation while omitting sections is supported but not advised
+        without extreme care. Such a broadcast will omit the section of each contained
+        operation and return a list consisting of a number `None` values equal to the
+        size of the broadcast. The contents of all the individual operations will be
+        added directly to the existing section context.
 
         Arguments:
             *args:
@@ -395,13 +421,16 @@ class Operation:
         """
         self._call(args, kw, omit_section=True)
 
-    def omit_reserves(self, *args: object, **kw: object) -> Section:
+    def omit_reserves(self, *args: object, **kw: object) -> Section | list[Section]:
         """Calls the operation but *without* reserving the qubit signals.
 
         This should be used with care. Reserving the signals ensures that operations on
         the same qubit do not overlap. When the reserves are omitted, the caller must
         take care themselves that any overlaps of operations on the same qubit are
         avoided or intended.
+
+        Broadcasting an operation while omitting reserves is supported. Each operation
+        in the broadcast will omit its reserves.
 
         Arguments:
             *args:
@@ -414,7 +443,122 @@ class Operation:
         """
         return self._call(args, kw, omit_reserves=True)
 
-    def _call(
+    def _duplicate_qubits(self, qubits: list[QuantumElement]) -> list[QuantumElement]:
+        """Return a list of duplicate qubits sorted by uid."""
+        seen_uids = set()
+        duplicate_qubits = set()
+        for q in qubits:
+            if q.uid in seen_uids:
+                duplicate_qubits.add(q)
+            else:
+                seen_uids.add(q.uid)
+        return sorted(duplicate_qubits, key=lambda q: q.uid)
+
+    def _broadcast_call(
+        self,
+        args: tuple,
+        kw: dict,
+        *,
+        omit_section: bool = False,
+        omit_reserves: bool = False,
+    ) -> list[Section] | list[None]:
+        """Broadcast the operation with the supplied parameters and additional options.
+
+        Arguments:
+            args:
+                Positional arguments to the operation.
+            kw:
+                Keyword parameters for the operation.
+            omit_section:
+                The `omit_section` flag is passed to each individual operation
+                within the broadcast.
+            omit_reserves:
+                The `omit_reserves` flag is passed to each individual operation
+                within the broadcast.
+
+        Returns:
+            If omit_section is false, a list of LabOne Q sections for each of the
+            broadcast operations.
+            If omit_section is true, a list of `None`s for each of the broadcast
+            operations.
+        """
+        # Broadcasting requires that all operation arguments do not accept lists
+        # or tuples of values (when not broadcasting), so we find all such lists
+        # or tuples in args and kwargs and treat those as broadcast.
+
+        if not self._op_marker.broadcast:
+            raise ValueError(
+                f"Quantum operation {self._op_name!r} does not support broadcasting."
+            )
+
+        args_map = {
+            i: arg for i, arg in enumerate(args) if isinstance(arg, (tuple, list))
+        }
+
+        if not args_map:
+            raise ValueError(
+                f"Quantum operation {self._op_name!r} was being broadcast but"
+                f" no lists or tuples were found to broadcast over."
+            )
+
+        first_arg = next(iter(args_map))
+        broadcast_length = len(args_map[first_arg])
+
+        kw_map = {k: v for k, v in kw.items() if isinstance(v, (tuple, list))}
+
+        invalid_args = [
+            (i, v) for i, v in args_map.items() if len(v) != broadcast_length
+        ]
+        if invalid_args:
+            summary = ", ".join(
+                f"arg[{i}] has length {len(v)}" for i, v in invalid_args
+            )
+            raise ValueError(
+                f"Quantum operation {self._op_name!r} was being broadcast with length"
+                f" {broadcast_length} but the following positional arguments have"
+                f" different lengths: {summary}"
+            )
+
+        invalid_kw = [k for k, v in kw_map.items() if len(v) != broadcast_length]
+        if invalid_kw:
+            summary = ", ".join(
+                f"kw[{k!r}] has length {len(kw_map[k])}" for k in invalid_kw
+            )
+            raise ValueError(
+                f"Quantum operation {self._op_name!r} was being broadcast with length"
+                f" {broadcast_length} but the following keyword arguments have"
+                f" different lengths: {summary}"
+            )
+
+        qubits = _qubits_from_args(args)
+        duplicate_qubits = self._duplicate_qubits(qubits)
+        if duplicate_qubits:
+            duplicate_uids = ", ".join(q.uid for q in duplicate_qubits)
+            raise ValueError(
+                f"Quantum operation {self._op_name!r} was given the following"
+                f" non-unique qubits as arguments when being broadcast:"
+                f" {duplicate_uids}"
+            )
+
+        op_sections = []
+
+        for i in range(broadcast_length):
+            call_args = [
+                args_map[j][i] if j in args_map else args[j] for j in range(len(args))
+            ]
+            call_kw = {k: kw_map[k][i] if k in kw_map else kw[k] for k in kw}
+            op_sections.append(
+                self._single_call(
+                    call_args,
+                    call_kw,
+                    omit_section=omit_section,
+                    omit_reserves=omit_reserves,
+                )
+            )
+
+        return op_sections
+
+    def _single_call(
         self,
         args: tuple,
         kw: dict,
@@ -440,6 +584,8 @@ class Operation:
             If omit_section is false, a LabOne Q section containing the operation.
             If omit_section is true, no section is returned and the operation is
             added to the existing section context.
+            If broadcasting, a list of created sections or a list of `None` values
+            is returned.
         """
         qubits = _qubits_from_args(args)
         qubits_with_incorrect_type = [
@@ -458,6 +604,14 @@ class Operation:
                 f"Quantum operation {self._op_name!r} was passed the following"
                 f" qubits that are not of a supported qubit type: {unsupported_qubits}."
                 f" The supported qubit types are: {supported_qubit_types}.",
+            )
+
+        duplicate_qubits = self._duplicate_qubits(qubits)
+        if duplicate_qubits:
+            duplicate_uids = ", ".join(q.uid for q in duplicate_qubits)
+            raise ValueError(
+                f"Quantum operation {self._op_name!r} was given the following"
+                f" non-unique qubits as arguments: {duplicate_uids}"
             )
 
         section_name = "_".join([self._op_name] + [q.uid for q in qubits])
@@ -481,6 +635,51 @@ class Operation:
 
         return op_section
 
+    def _call(
+        self,
+        args: tuple,
+        kw: dict,
+        *,
+        omit_section: bool = False,
+        omit_reserves: bool = False,
+    ) -> Section | None | list[Section] | list[None]:
+        """Calls the operation with the supplied parameters and additional options.
+
+        If the operation can be broadcast and any of the positional arguments
+        are lists or tuples, then the operation will be broadcast.
+
+        Arguments:
+            args:
+                Positional arguments to the operation.
+            kw:
+                Keyword parameters for the operation.
+            omit_section:
+                If omit_section is true, the operation is added to the existing
+                section context and no new section is created.
+                If the operation is being broadcast, this flag is passed on to
+                the call to each individual operation.
+            omit_reserves:
+                If omit_reserves is true, the qubit signal lines are not
+                reserved.
+                If the operation is being broadcast, this flag is passed on to
+                the call to each individual operation.
+
+        Returns:
+            If omit_section is false, a LabOne Q section containing the operation.
+            If omit_section is true, no section is returned and the operation is
+            added to the existing section context.
+        """
+        if self._op_marker.broadcast and any(
+            isinstance(arg, (list, tuple)) for arg in args
+        ):
+            return self._broadcast_call(
+                args, kw, omit_section=omit_section, omit_reserves=omit_reserves
+            )
+
+        return self._single_call(
+            args, kw, omit_section=omit_section, omit_reserves=omit_reserves
+        )
+
     def _reserve_signals(self, qubits: list[QuantumElement]) -> None:
         """Reserve all the signals of a list of qubits."""
         for q in qubits:
@@ -495,6 +694,24 @@ class Operation:
             The function implementing the operation.
         """
         return self._op
+
+    @property
+    def neartime(self) -> bool:
+        """Return whether the operation is neartime or not.
+
+        Returns:
+            True if the operation is neartime. False otherwise.
+        """
+        return self._op_marker.neartime
+
+    @property
+    def supports_broadcast(self) -> bool:
+        """Return whether the operation supports broadcasting over qubits.
+
+        Returns:
+            True if the operation can be broadcast over qubits. False otherwise.
+        """
+        return self._op_marker.broadcast
 
     @property
     @pygmentize
