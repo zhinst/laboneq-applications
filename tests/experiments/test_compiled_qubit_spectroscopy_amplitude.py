@@ -40,11 +40,6 @@ def create_qubitspec_verifier(
     return CompiledExperimentVerifier(res.tasks["compile_experiment"].output)
 
 
-### Single-Qubit Tests ###
-
-
-# use pytest.mark.parametrize to generate test cases for
-# all combinations of the parameters.
 @pytest.mark.parametrize(
     "amplitudes",
     [
@@ -72,13 +67,7 @@ class TestQubitSpectroscopySingleQubit:
         amplitudes,
         count,
     ):
-        """Test the number of drive pulses.
-
-        `single_tunable_transmon` is a pytest fixture that is automatically
-        imported into the test function.
-
-        """
-        # create a verifier for the experiment
+        """Test the number of drive pulses."""
         verifier = create_qubitspec_verifier(
             single_tunable_transmon_platform,
             frequencies,
@@ -129,12 +118,7 @@ class TestQubitSpectroscopySingleQubit:
         amplitudes,
         count,
     ):
-        """Test the properties of drive pulses.
-
-        In this test, all the qubit ge drive pulses have lengths of 51ns,
-        and all the ef pulses have lengths of 52ns.
-
-        """
+        """Test the properties of drive pulses."""
 
         verifier = create_qubitspec_verifier(
             single_tunable_transmon_platform,
@@ -158,11 +142,7 @@ class TestQubitSpectroscopySingleQubit:
         amplitudes,
         count,
     ):
-        """Test the properties of measure pulses.
-
-        Here, we assert the start, end, and the parameterization of the pulses.
-
-        """
+        """Test the properties of measure pulses."""
 
         verifier = create_qubitspec_verifier(
             single_tunable_transmon_platform,
@@ -185,8 +165,6 @@ class TestQubitSpectroscopySingleQubit:
         )
 
 
-# use pytest.mark.parametrize to generate test cases for
-# all combinations of the parameters.
 @pytest.mark.parametrize(
     # Note that the lengths of the nested arrays should be the same.
     # E.g. [None,[]], [None, [0.1]], and [[0.1],[0.1,0.2]] are not allowed.
@@ -222,12 +200,7 @@ class TestQubitSpectroscopyTwoQubits:
         count,
         readout_lengths,
     ):
-        """Test the number of drive pulses.
-
-        `two_tunable_transmon` is a pytest fixture that is automatically
-        imported into the test function.
-
-        """
+        """Test the number of drive pulses."""
         # create a verifier for the experiment
         verifier = create_qubitspec_verifier(
             two_tunable_transmon_platform,
@@ -305,12 +278,7 @@ class TestQubitSpectroscopyTwoQubits:
         count,
         readout_lengths,
     ):
-        """Test the properties of drive pulses.
-
-        In this test, all the qubit ge drive pulses have lengths of 51ns,
-        and all the ef pulses have lengths of 52ns.
-
-        """
+        """Test the properties of drive pulses."""
 
         verifier = create_qubitspec_verifier(
             two_tunable_transmon_platform,
@@ -344,11 +312,7 @@ class TestQubitSpectroscopyTwoQubits:
         count,
         readout_lengths,
     ):
-        """Test the properties of measure pulses.
-
-        Here, we can assert the start, end, and the parameterization of the pulses.
-
-        """
+        """Test the properties of measure pulses."""
 
         verifier = create_qubitspec_verifier(
             two_tunable_transmon_platform,

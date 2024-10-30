@@ -2,6 +2,8 @@
 using the testing utilities provided by the LabOne Q Applications Library.
 """
 
+from typing import ClassVar
+
 import pytest
 
 from laboneq_applications.experiments import (
@@ -38,17 +40,6 @@ def create_res_spectroscopy_amp_verifier(
     return CompiledExperimentVerifier(res.tasks["compile_experiment"].output)
 
 
-### Single-Qubit Tests ###
-
-
-# use pytest.mark.parametrize to generate test cases for
-# all combinations of the parameters.
-@pytest.mark.parametrize(
-    "amplitudes",
-    [
-        [0.1, 0.5, 0.9],
-    ],
-)
 @pytest.mark.parametrize(
     "frequencies",
     [
@@ -69,11 +60,12 @@ def create_res_spectroscopy_amp_verifier(
     [3e-6, 100e-6],
 )
 class TestResonatorSpectroscopySingleQubit:
+    _AMPLITUDES: ClassVar = [0.1, 0.5, 0.9]
+
     def test_pulse_count_measure_acquire(
         self,
         single_tunable_transmon_platform,
         frequencies,
-        amplitudes,
         count,
         use_cw,
         spectroscopy_reset_delay,
@@ -82,7 +74,7 @@ class TestResonatorSpectroscopySingleQubit:
         verifier = create_res_spectroscopy_amp_verifier(
             single_tunable_transmon_platform,
             frequencies,
-            amplitudes,
+            self._AMPLITUDES,
             count,
             use_cw,
             spectroscopy_reset_delay,
@@ -109,7 +101,6 @@ class TestResonatorSpectroscopySingleQubit:
         self,
         single_tunable_transmon_platform,
         frequencies,
-        amplitudes,
         count,
         use_cw,
         spectroscopy_reset_delay,
@@ -122,7 +113,7 @@ class TestResonatorSpectroscopySingleQubit:
         verifier = create_res_spectroscopy_amp_verifier(
             single_tunable_transmon_platform,
             frequencies,
-            amplitudes,
+            self._AMPLITUDES,
             count,
             use_cw,
             spectroscopy_reset_delay,

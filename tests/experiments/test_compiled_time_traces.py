@@ -53,18 +53,13 @@ def create_time_traces_verifier(
     [2, 4],
 )
 class TestTimeTracesSingleQubit:
-    def test_pulse_count_drive(
+    def test_pulse_count(
         self,
         single_tunable_transmon_platform,
         states,
         count,
     ):
-        """Test the number of drive pulses.
-
-        `single_tunable_transmon` is a pytest fixture that is automatically
-        imported into the test function.
-
-        """
+        """Test the number of pulses."""
         # create a verifier for the experiment
         verifier = create_time_traces_verifier(
             single_tunable_transmon_platform,
@@ -87,18 +82,6 @@ class TestTimeTracesSingleQubit:
             expected_ef_drive_count,
         )
 
-    def test_pulse_count_measure_acquire(
-        self,
-        single_tunable_transmon_platform,
-        states,
-        count,
-    ):
-        """Test the number of measure and acquire pulses."""
-        verifier = create_time_traces_verifier(
-            single_tunable_transmon_platform,
-            states,
-            count,
-        )
         expected_measure_count = count * len(states)
         verifier.assert_number_of_pulses(
             "/logical_signal_groups/q0/measure",
@@ -117,15 +100,6 @@ class TestTimeTracesSingleQubit:
         count,
     ):
         """Test the properties of drive pulses."""
-        # Here, we can assert the start, end, and the parameterization of the pulses.
-        # In the function `assert_pulse` below, index is the index of the pulse in the
-        # pulse sequence, and `parameterized_with` is the list of SweepParameter names
-        # used for that pulse. The name of the parameter should
-        # match with the uid of SweepParameter in the experiment.
-        # If none of the pulse parameters are swept, the list should be empty.
-
-        # In this test, all the qubit ge drive pulses have lengths of 51ns,
-        # and all the ef pulses have lengths of 52ns.
 
         verifier = create_time_traces_verifier(
             single_tunable_transmon_platform,
@@ -162,11 +136,7 @@ class TestTimeTracesSingleQubit:
         states,
         count,
     ):
-        """Test the properties of measure pulses.
-
-        Here, we assert the start, end, and the parameterization of the pulses.
-
-        """
+        """Test the properties of measure pulses."""
         verifier = create_time_traces_verifier(
             single_tunable_transmon_platform,
             states,

@@ -101,7 +101,7 @@ def create_rabi_verifier(
 # For new experiments: change AmplitudeRabi in the class name below to the name of
 # your experiment
 class TestAmplitudeRabiSingleQubit:
-    def test_pulse_count_drive(
+    def test_pulse_count(
         self,
         single_tunable_transmon_platform,
         amplitudes,
@@ -146,25 +146,6 @@ class TestAmplitudeRabiSingleQubit:
                 expected_drive_count,
             )
 
-    def test_pulse_count_measure_acquire(
-        self,
-        single_tunable_transmon_platform,
-        amplitudes,
-        count,
-        transition,  # For new experiments: use if relevant, or remove
-        use_cal_traces,  # For new experiments: use if relevant, or remove
-        # For new experiments: add more arguments here if needed
-    ):
-        """Test the number of measure and acquire pulses."""
-        # For new experiments: replace rabi with the name of your experiment
-        verifier = create_rabi_verifier(
-            single_tunable_transmon_platform,
-            amplitudes,
-            count,
-            transition,  # For new experiments: use if relevant, or remove
-            use_cal_traces,  # For new experiments: use if relevant, or remove
-            # For new experiments: add more arguments here if needed
-        )
         # Note that with cal_state on, there are 2 additional measure pulses
         expected_measure_count = count * (len(amplitudes) + 2 * int(use_cal_traces))
         # For new experiments: change the line above as needed
@@ -316,7 +297,7 @@ class TestAmplitudeRabiSingleQubit:
 # For new experiments: change AmplitudeRabi in the class name below to the name of
 # your experiment
 class TestAmplitudeRabiTwoQubits:
-    def test_pulse_count_drive(
+    def test_pulse_count(
         self,
         two_tunable_transmon_platform,
         amplitudes,
@@ -326,7 +307,7 @@ class TestAmplitudeRabiTwoQubits:
         readout_lengths,
         # For new experiments: add more arguments here if needed
     ):
-        """Test the number of drive pulses.
+        """Test the number of pulses.
 
         `two_tunable_transmon` is a pytest fixture that is automatically
         imported into the test function.
@@ -381,27 +362,6 @@ class TestAmplitudeRabiTwoQubits:
                 expected_drive_count,
             )
 
-    def test_pulse_count_measure_acquire(
-        self,
-        two_tunable_transmon_platform,
-        amplitudes,
-        count,
-        transition,  # For new experiments: use if relevant, or remove
-        use_cal_traces,  # For new experiments: use if relevant, or remove
-        readout_lengths,
-        # For new experiments: add more arguments here if needed
-    ):
-        """Test the number of measure and acquire pulses."""
-        # For new experiments: replace rabi with the name of your experiment
-        verifier = create_rabi_verifier(
-            two_tunable_transmon_platform,
-            amplitudes,
-            count,
-            transition,  # For new experiments: use if relevant, or remove
-            use_cal_traces,  # For new experiments: use if relevant, or remove
-            readout_lengths,
-            # For new experiments: add more arguments here if needed
-        )
         # Check for q0
         # Note that with cal_state on, there are 2 additional measure pulses
         expected_measure_count = count * (len(amplitudes[0]) + 2 * int(use_cal_traces))

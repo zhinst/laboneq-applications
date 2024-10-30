@@ -7,6 +7,8 @@ and measure are most critical and should be verified to be
 equal to `delays`.
 """
 
+from typing import ClassVar
+
 import numpy as np
 import pytest
 
@@ -57,12 +59,6 @@ def create_T1_verifier(  # noqa: N802
     return CompiledExperimentVerifier(res.tasks["compile_experiment"].output)
 
 
-@pytest.mark.parametrize(
-    "delays",
-    [
-        [56e-9, 112e-9, 224e-9, 448e-9],
-    ],
-)
 @pytest.mark.parametrize("transition", ["ge", "ef"], ids=["trans_ge", "trans_ef"])
 @pytest.mark.parametrize(
     ["use_cal_traces", "cal_states"],
@@ -70,10 +66,11 @@ def create_T1_verifier(  # noqa: N802
     ids=["use_cal_traces_ge", "no_cal_traces_ge"],
 )
 class TestT1SingleQubit:
+    _DELAYS: ClassVar = [56e-9, 112e-9, 224e-9, 448e-9]
+
     def test_pulse_count(
         self,
         single_tunable_transmon_platform,
-        delays,
         transition,
         use_cal_traces,
         cal_states,
@@ -81,21 +78,21 @@ class TestT1SingleQubit:
         """Test the number of drive pulses."""
         verifier = create_T1_verifier(
             single_tunable_transmon_platform,
-            delays,
+            self._DELAYS,
             _COUNT,
             transition,
             use_cal_traces,
             cal_states,
         )
 
-        expected_drive_count = _COUNT * (len(delays) + int(use_cal_traces))
+        expected_drive_count = _COUNT * (len(self._DELAYS) + int(use_cal_traces))
         verifier.assert_number_of_pulses(
             "/logical_signal_groups/q0/drive",
             expected_drive_count,
         )
 
         if transition == "ef":
-            expected_drive_count = _COUNT * len(delays)
+            expected_drive_count = _COUNT * len(self._DELAYS)
             verifier.assert_number_of_pulses(
                 "/logical_signal_groups/q0/drive_ef",
                 expected_drive_count,
@@ -103,14 +100,14 @@ class TestT1SingleQubit:
 
         verifier = create_T1_verifier(
             single_tunable_transmon_platform,
-            delays,
+            self._DELAYS,
             _COUNT,
             transition,
             use_cal_traces,
             cal_states,
         )
         # Note that with cal_state on, there are 2 additional measure pulses
-        expected_measure_count = _COUNT * (len(delays) + 2 * int(use_cal_traces))
+        expected_measure_count = _COUNT * (len(self._DELAYS) + 2 * int(use_cal_traces))
         verifier.assert_number_of_pulses(
             "/logical_signal_groups/q0/measure",
             expected_measure_count,
@@ -125,7 +122,6 @@ class TestT1SingleQubit:
     def test_pulse_drive(
         self,
         single_tunable_transmon_platform,
-        delays,
         transition,
         use_cal_traces,
         cal_states,
@@ -134,7 +130,7 @@ class TestT1SingleQubit:
 
         verifier = create_T1_verifier(
             single_tunable_transmon_platform,
-            delays,
+            self._DELAYS,
             _COUNT,
             transition,
             use_cal_traces,
@@ -155,7 +151,7 @@ class TestT1SingleQubit:
                     "/logical_signal_groups/q0/measure",
                 ],
                 indices=[0, 0],
-                distance=delays[0],
+                distance=self._DELAYS[0],
             )
         elif transition == "ef":
             verifier.assert_pulse(
@@ -169,13 +165,12 @@ class TestT1SingleQubit:
                     "/logical_signal_groups/q0/measure",
                 ],
                 indices=[0, 0],
-                distance=delays[0],
+                distance=self._DELAYS[0],
             )
 
     def test_pulse_measure(
         self,
         single_tunable_transmon_platform,
-        delays,
         transition,
         use_cal_traces,
         cal_states,
@@ -184,7 +179,7 @@ class TestT1SingleQubit:
 
         verifier = create_T1_verifier(
             single_tunable_transmon_platform,
-            delays,
+            self._DELAYS,
             _COUNT,
             transition,
             use_cal_traces,
@@ -213,16 +208,10 @@ class TestT1SingleQubit:
 
 
 @pytest.mark.parametrize(
-    ("delays", "readout_lengths"),
+    "readout_lengths",
     [
-        (
-            [[56e-9, 112e-9, 224e-9, 448e-9], [56e-9, 112e-9, 224e-9, 448e-9]],
-            [1e-6, 1e-6],
-        ),
-        (
-            [[56e-9, 112e-9, 224e-9, 448e-9], [58e-9, 112e-9, 224e-9, 448e-9]],
-            [100e-9, 200e-9],
-        ),
+        [1e-6, 1e-6],
+        [100e-9, 200e-9],
     ],
 )
 @pytest.mark.parametrize("transition", ["ge", "ef"], ids=["trans_ge", "trans_ef"])
@@ -232,10 +221,14 @@ class TestT1SingleQubit:
     ids=["use_cal_traces_ge", "no_cal_traces_ge"],
 )
 class TestT1TwoQubits:
+    _DELAYS: ClassVar = [
+        [56e-9, 112e-9, 224e-9, 448e-9],
+        [56e-9, 112e-9, 224e-9, 448e-9],
+    ]
+
     def test_pulse_count(
         self,
         two_tunable_transmon_platform,
-        delays,
         transition,
         use_cal_traces,
         cal_states,
@@ -244,34 +237,34 @@ class TestT1TwoQubits:
         """Test the number of pulses."""
         verifier = create_T1_verifier(
             two_tunable_transmon_platform,
-            delays,
+            self._DELAYS,
             _COUNT,
             transition,
             use_cal_traces,
             cal_states,
             readout_lengths,
         )
-        expected_drive_count = _COUNT * (len(delays[0]) + int(use_cal_traces))
+        expected_drive_count = _COUNT * (len(self._DELAYS[0]) + int(use_cal_traces))
         verifier.assert_number_of_pulses(
             "/logical_signal_groups/q0/drive",
             expected_drive_count,
         )
 
-        expected_drive_count = _COUNT * (len(delays[1]) + int(use_cal_traces))
+        expected_drive_count = _COUNT * (len(self._DELAYS[1]) + int(use_cal_traces))
         verifier.assert_number_of_pulses(
             "/logical_signal_groups/q1/drive",
             expected_drive_count,
         )
 
         if transition == "ef":
-            expected_drive_count = _COUNT * len(delays[0])
+            expected_drive_count = _COUNT * len(self._DELAYS[0])
 
             verifier.assert_number_of_pulses(
                 "/logical_signal_groups/q0/drive_ef",
                 expected_drive_count,
             )
 
-            expected_drive_count = _COUNT * len(delays[1])
+            expected_drive_count = _COUNT * len(self._DELAYS[1])
 
             verifier.assert_number_of_pulses(
                 "/logical_signal_groups/q1/drive_ef",
@@ -279,7 +272,9 @@ class TestT1TwoQubits:
             )
 
         # Note that with cal_state on, there are 2 additional measure pulses
-        expected_measure_count = _COUNT * (len(delays[0]) + 2 * int(use_cal_traces))
+        expected_measure_count = _COUNT * (
+            len(self._DELAYS[0]) + 2 * int(use_cal_traces)
+        )
 
         verifier.assert_number_of_pulses(
             "/logical_signal_groups/q0/measure",
@@ -305,7 +300,6 @@ class TestT1TwoQubits:
     def test_pulse_drive(
         self,
         two_tunable_transmon_platform,
-        delays,
         transition,
         use_cal_traces,
         cal_states,
@@ -314,7 +308,7 @@ class TestT1TwoQubits:
         """Test the properties of drive pulses."""
         verifier = create_T1_verifier(
             two_tunable_transmon_platform,
-            delays,
+            self._DELAYS,
             _COUNT,
             transition,
             use_cal_traces,
@@ -340,7 +334,7 @@ class TestT1TwoQubits:
                     "/logical_signal_groups/q0/measure",
                 ],
                 indices=[0, 0],
-                distance=delays[0][0],
+                distance=self._DELAYS[0][0],
             )
             verifier.assert_pulse_pair(
                 signals=[
@@ -348,7 +342,7 @@ class TestT1TwoQubits:
                     "/logical_signal_groups/q1/measure",
                 ],
                 indices=[0, 0],
-                distance=delays[1][0],
+                distance=self._DELAYS[1][0],
             )
 
         elif transition == "ef":
@@ -370,7 +364,7 @@ class TestT1TwoQubits:
                     "/logical_signal_groups/q0/measure",
                 ],
                 indices=[0, 0],
-                distance=delays[0][0],
+                distance=self._DELAYS[0][0],
             )
             verifier.assert_pulse_pair(
                 signals=[
@@ -378,13 +372,12 @@ class TestT1TwoQubits:
                     "/logical_signal_groups/q1/measure",
                 ],
                 indices=[0, 0],
-                distance=delays[1][0],
+                distance=self._DELAYS[1][0],
             )
 
     def test_pulse_measure(
         self,
         two_tunable_transmon_platform,
-        delays,
         transition,
         use_cal_traces,
         cal_states,
@@ -393,7 +386,7 @@ class TestT1TwoQubits:
         """Test the properties of measure pulses."""
         verifier = create_T1_verifier(
             two_tunable_transmon_platform,
-            delays,
+            self._DELAYS,
             _COUNT,
             transition,
             use_cal_traces,

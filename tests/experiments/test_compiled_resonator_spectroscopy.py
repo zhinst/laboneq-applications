@@ -37,11 +37,6 @@ def create_res_spectroscopy_verifier(
     return CompiledExperimentVerifier(res.tasks["compile_experiment"].output)
 
 
-### Single-Qubit Tests ###
-
-
-# use pytest.mark.parametrize to generate test cases for
-# all combinations of the parameters.
 @pytest.mark.parametrize(
     "frequencies",
     [

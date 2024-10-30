@@ -17,7 +17,7 @@ def create_qubitspec_verifier(
     count,
     readout_lengths=None,
 ):
-    """Create a CompiledExperimentVerifier for the amplitude rabi experiment."""
+    """Create a CompiledExperimentVerifier."""
     qubits = tunable_transmon_platform.qpu.qubits
     if len(qubits) == 1:
         qubits = qubits[0]
@@ -30,7 +30,6 @@ def create_qubitspec_verifier(
     options.count(count)
     options.do_analysis(False)  # TODO: fix tests to work with do_analysis=True
 
-    # Run the experiment workflow
     res = qubit_spectroscopy.experiment_workflow(
         session=session,
         qubits=qubits,
@@ -41,11 +40,6 @@ def create_qubitspec_verifier(
     return CompiledExperimentVerifier(res.tasks["compile_experiment"].output)
 
 
-### Single-Qubit Tests ###
-
-
-# use pytest.mark.parametrize to generate test cases for
-# all combinations of the parameters.
 @pytest.mark.parametrize(
     "frequencies",
     [
@@ -65,13 +59,7 @@ class TestQubitSpectroscopySingleQubit:
         frequencies,
         count,
     ):
-        """Test the number of drive pulses.
-
-        `single_tunable_transmon` is a pytest fixture that is automatically
-        imported into the test function.
-
-        """
-        # create a verifier for the experiment
+        """Test the number of drive pulses."""
         verifier = create_qubitspec_verifier(
             single_tunable_transmon_platform,
             frequencies,
@@ -116,12 +104,7 @@ class TestQubitSpectroscopySingleQubit:
         frequencies,
         count,
     ):
-        """Test the properties of drive pulses.
-
-        In this test, all the qubit ge drive pulses have lengths of 51ns,
-        and all the ef pulses have lengths of 52ns.
-
-        """
+        """Test the properties of drive pulses."""
 
         verifier = create_qubitspec_verifier(
             single_tunable_transmon_platform,
@@ -142,11 +125,7 @@ class TestQubitSpectroscopySingleQubit:
         frequencies,
         count,
     ):
-        """Test the properties of measure pulses.
-
-        Here, we assert the start, end, and the parameterization of the pulses.
-
-        """
+        """Test the properties of measure pulses."""
         verifier = create_qubitspec_verifier(
             single_tunable_transmon_platform,
             frequencies,
@@ -167,8 +146,6 @@ class TestQubitSpectroscopySingleQubit:
         )
 
 
-# use pytest.mark.parametrize to generate test cases for
-# all combinations of the parameters.
 @pytest.mark.parametrize(
     ("frequencies", "readout_lengths"),
     [
@@ -191,13 +168,7 @@ class TestQubitSpectroscopyTwoQubits:
         count,
         readout_lengths,
     ):
-        """Test the number of drive pulses.
-
-        `two_tunable_transmon` is a pytest fixture that is automatically
-        imported into the test function.
-
-        """
-        # create a verifier for the experiment
+        """Test the number of drive pulses."""
 
         verifier = create_qubitspec_verifier(
             two_tunable_transmon_platform, frequencies, count, readout_lengths
@@ -252,11 +223,7 @@ class TestQubitSpectroscopyTwoQubits:
     def test_pulse_drive(
         self, two_tunable_transmon_platform, frequencies, count, readout_lengths
     ):
-        """Test the properties of drive pulses.
-
-        In this test, all the qubit ge drive pulses have lengths of 51ns,
-        and all the ef pulses have lengths of 52ns.
-        """
+        """Test the properties of drive pulses."""
 
         verifier = create_qubitspec_verifier(
             two_tunable_transmon_platform, frequencies, count, readout_lengths
@@ -281,15 +248,10 @@ class TestQubitSpectroscopyTwoQubits:
     def test_pulse_measure(
         self, two_tunable_transmon_platform, frequencies, count, readout_lengths
     ):
-        """Test the properties of measure pulses.
-
-        Here, we can assert the start, end, and the parameterization of the pulses.
-
-        """
+        """Test the properties of measure pulses."""
         verifier = create_qubitspec_verifier(
             two_tunable_transmon_platform, frequencies, count, readout_lengths
         )
-        # Check for q0
         verifier.assert_pulse(
             signal="/logical_signal_groups/q0/measure",
             index=0,
@@ -303,7 +265,6 @@ class TestQubitSpectroscopyTwoQubits:
             end=88e-9 + 5e-6 + 2e-6,
         )
 
-        # Check for q1
         verifier.assert_pulse(
             signal="/logical_signal_groups/q1/measure",
             index=0,

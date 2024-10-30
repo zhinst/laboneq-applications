@@ -2,6 +2,8 @@
 provided by the LabOne Q Applications Library.
 """
 
+from typing import ClassVar
+
 import numpy as np
 import pytest
 
@@ -15,7 +17,6 @@ def create_ramsey_verifier(
     count,
     transition,
     use_cal_traces,
-    detunings,
     readout_lengths=None,
 ):
     """Create a CompiledExperimentVerifier for the ramsey experiment."""
@@ -37,18 +38,11 @@ def create_ramsey_verifier(
         qubits=qubits,
         qpu=tunable_transmon_platform.qpu,
         delays=delays,
-        detunings=detunings,
         options=options,
     ).run()
     return CompiledExperimentVerifier(res.tasks["compile_experiment"].output)
 
 
-@pytest.mark.parametrize(
-    "delays",
-    [
-        [0.1e-6, 0.2e-6, 0.3e-6, 0.4e-6, 0.5e-6, 0.6e-6, 0.7e-6, 0.8e-6, 0.9e-6, 1e-6],
-    ],
-)
 @pytest.mark.parametrize(
     "count",
     [2, 4],
@@ -61,45 +55,35 @@ def create_ramsey_verifier(
     "use_cal_traces",
     [True, False],
 )
-@pytest.mark.parametrize(
-    "detunings",
-    [None],
-)
 class TestRamseySingleQubit:
+    _DELAYS = tuple(0.1e-6 * i for i in range(1, 11))
+
     def test_pulse_count_drive(
         self,
         single_tunable_transmon_platform,
-        delays,
         count,
         transition,
         use_cal_traces,
-        detunings,
     ):
-        """Test the number of drive pulses.
-
-        `single_tunable_transmon_platform` is a pytest fixture and automatically
-        imported into the test function.
-
-        """
+        """Test the number of drive pulses.`"""
         verifier = create_ramsey_verifier(
             single_tunable_transmon_platform,
-            delays,
+            self._DELAYS,
             count,
             transition,
             use_cal_traces,
-            detunings,
         )
 
         # with cal_state on, there is 1 additional drive pulse
         if transition == "ge":
-            expected_drive_count = count * (2 * len(delays) + int(use_cal_traces))
+            expected_drive_count = count * (2 * len(self._DELAYS) + int(use_cal_traces))
             verifier.assert_number_of_pulses(
                 "/logical_signal_groups/q0/drive",
                 expected_drive_count,
             )
 
         if transition == "ef":
-            expected_drive_count = count * 2 * len(delays)
+            expected_drive_count = count * 2 * len(self._DELAYS)
             verifier.assert_number_of_pulses(
                 "/logical_signal_groups/q0/drive_ef",
                 expected_drive_count,
@@ -108,23 +92,20 @@ class TestRamseySingleQubit:
     def test_pulse_count_measure_acquire(
         self,
         single_tunable_transmon_platform,
-        delays,
         count,
         transition,
         use_cal_traces,
-        detunings,
     ):
         """Test the number of measure and acquire pulses."""
         verifier = create_ramsey_verifier(
             single_tunable_transmon_platform,
-            delays,
+            self._DELAYS,
             count,
             transition,
             use_cal_traces,
-            detunings,
         )
         # with cal_state on, there are 2 additional measure pulses
-        expected_measure_count = count * (len(delays) + 2 * int(use_cal_traces))
+        expected_measure_count = count * (len(self._DELAYS) + 2 * int(use_cal_traces))
         verifier.assert_number_of_pulses(
             "/logical_signal_groups/q0/measure",
             expected_measure_count,
@@ -139,11 +120,9 @@ class TestRamseySingleQubit:
     def test_pulse_drive(
         self,
         single_tunable_transmon_platform,
-        delays,
         count,
         transition,
         use_cal_traces,
-        detunings,
     ):
         """Test the properties of drive pulses."""
         [q0] = single_tunable_transmon_platform.qpu.qubits
@@ -151,11 +130,10 @@ class TestRamseySingleQubit:
         q0_pulse_length_ef = q0.parameters.ef_drive_length
         verifier = create_ramsey_verifier(
             single_tunable_transmon_platform,
-            delays,
+            self._DELAYS,
             count,
             transition,
             use_cal_traces,
-            detunings,
         )
         if transition == "ge":
             offset = 6e-9
@@ -169,8 +147,8 @@ class TestRamseySingleQubit:
             verifier.assert_pulse(
                 signal="/logical_signal_groups/q0/drive",
                 index=1,
-                start=offset + q0_pulse_length_ge + delays[0],
-                end=offset + 2 * q0_pulse_length_ge + delays[0],
+                start=offset + q0_pulse_length_ge + self._DELAYS[0],
+                end=offset + 2 * q0_pulse_length_ge + self._DELAYS[0],
                 parameterized_with=["x90_phases_q0"],
             )
         elif transition == "ef":
@@ -186,28 +164,25 @@ class TestRamseySingleQubit:
             verifier.assert_pulse(
                 signal="/logical_signal_groups/q0/drive_ef",
                 index=1,
-                start=start_ef + q0_pulse_length_ef + delays[0],
-                end=start_ef + 2 * q0_pulse_length_ef + delays[0],
+                start=start_ef + q0_pulse_length_ef + self._DELAYS[0],
+                end=start_ef + 2 * q0_pulse_length_ef + self._DELAYS[0],
                 parameterized_with=["x90_phases_q0"],
             )
 
     def test_pulse_measure(
         self,
         single_tunable_transmon_platform,
-        delays,
         count,
         transition,
         use_cal_traces,
-        detunings,
     ):
         """Test the properties of measure pulses."""
         verifier = create_ramsey_verifier(
             single_tunable_transmon_platform,
-            delays,
+            self._DELAYS,
             count,
             transition,
             use_cal_traces,
-            detunings,
         )
         # The starting of measure pulses depends
         # on subsequent drive pulses and "jumps"
@@ -245,37 +220,6 @@ class TestRamseySingleQubit:
 
 
 @pytest.mark.parametrize(
-    "delays",
-    [
-        [
-            [
-                0.1e-6,
-                0.2e-6,
-                0.3e-6,
-                0.4e-6,
-                0.5e-6,
-                0.6e-6,
-                0.7e-6,
-                0.8e-6,
-                0.9e-6,
-                1e-6,
-            ],
-            [
-                0.1e-6,
-                0.2e-6,
-                0.3e-6,
-                0.4e-6,
-                0.5e-6,
-                0.6e-6,
-                0.7e-6,
-                0.8e-6,
-                0.9e-6,
-                1e-6,
-            ],
-        ],
-    ],
-)
-@pytest.mark.parametrize(
     ("count", "readout_lengths"),
     [(2, [1e-6, 1e-6]), (4, [100e-9, 200e-9])],
 )
@@ -287,93 +231,77 @@ class TestRamseySingleQubit:
     "use_cal_traces",
     [True, False],
 )
-@pytest.mark.parametrize(
-    "detunings",
-    [None],
-)
 class TestRamseyTwoQubits:
-    def test_pulse_count_drive(
+    _DELAYS: ClassVar = [
+        [0.1e-6 * i for i in range(1, 11)],
+        [0.1e-6 * i for i in range(1, 11)],
+    ]  # validate_and_convert_sweeps_to_arrays requires a list
+
+    def test_pulse_count(
         self,
         two_tunable_transmon_platform,
-        delays,
         count,
         transition,
         use_cal_traces,
-        detunings,
         readout_lengths,
     ):
-        """Test the number of drive pulses."""
+        """Test the number of pulses."""
         verifier = create_ramsey_verifier(
             two_tunable_transmon_platform,
-            delays,
+            self._DELAYS,
             count,
             transition,
             use_cal_traces,
-            detunings,
             readout_lengths,
         )
 
         # with cal_state on, there is 1 additional drive pulse
         if transition == "ge":
-            expected_drive_count = count * (2 * len(delays[0]) + int(use_cal_traces))
+            expected_drive_count = count * (
+                2 * len(self._DELAYS[0]) + int(use_cal_traces)
+            )
             verifier.assert_number_of_pulses(
                 "/logical_signal_groups/q0/drive",
                 expected_drive_count,
             )
 
-            expected_drive_count = count * (2 * len(delays[1]) + int(use_cal_traces))
+            expected_drive_count = count * (
+                2 * len(self._DELAYS[1]) + int(use_cal_traces)
+            )
             verifier.assert_number_of_pulses(
                 "/logical_signal_groups/q1/drive",
                 expected_drive_count,
             )
 
         if transition == "ef":
-            expected_drive_count = count * (len(delays[0]) + int(use_cal_traces))
+            expected_drive_count = count * (len(self._DELAYS[0]) + int(use_cal_traces))
             verifier.assert_number_of_pulses(
                 "/logical_signal_groups/q0/drive",
                 expected_drive_count,
             )
 
-            expected_drive_count = count * (len(delays[1]) + int(use_cal_traces))
+            expected_drive_count = count * (len(self._DELAYS[1]) + int(use_cal_traces))
             verifier.assert_number_of_pulses(
                 "/logical_signal_groups/q1/drive",
                 expected_drive_count,
             )
 
-            expected_drive_count = count * (2 * len(delays[0]))
+            expected_drive_count = count * (2 * len(self._DELAYS[0]))
             verifier.assert_number_of_pulses(
                 "/logical_signal_groups/q0/drive_ef",
                 expected_drive_count,
             )
 
-            expected_drive_count = count * (2 * len(delays[1]))
+            expected_drive_count = count * (2 * len(self._DELAYS[1]))
             verifier.assert_number_of_pulses(
                 "/logical_signal_groups/q1/drive_ef",
                 expected_drive_count,
             )
 
-    def test_pulse_count_measure_acquire(
-        self,
-        two_tunable_transmon_platform,
-        delays,
-        count,
-        transition,
-        use_cal_traces,
-        detunings,
-        readout_lengths,
-    ):
-        """Test the number of measure and acquire pulses."""
-        verifier = create_ramsey_verifier(
-            two_tunable_transmon_platform,
-            delays,
-            count,
-            transition,
-            use_cal_traces,
-            detunings,
-            readout_lengths,
-        )
         # with cal_state on, there are 2 additional measure pulses
-        expected_measure_count = count * (len(delays[0]) + 2 * int(use_cal_traces))
+        expected_measure_count = count * (
+            len(self._DELAYS[0]) + 2 * int(use_cal_traces)
+        )
         verifier.assert_number_of_pulses(
             "/logical_signal_groups/q0/measure",
             expected_measure_count,
@@ -399,11 +327,9 @@ class TestRamseyTwoQubits:
     def test_pulse_drive(
         self,
         two_tunable_transmon_platform,
-        delays,
         count,
         transition,
         use_cal_traces,
-        detunings,
         readout_lengths,
     ):
         """Test the properties of drive pulses."""
@@ -415,11 +341,10 @@ class TestRamseyTwoQubits:
 
         verifier = create_ramsey_verifier(
             two_tunable_transmon_platform,
-            delays,
+            self._DELAYS,
             count,
             transition,
             use_cal_traces,
-            detunings,
             readout_lengths,
         )
         if transition == "ge":
@@ -434,8 +359,8 @@ class TestRamseyTwoQubits:
             verifier.assert_pulse(
                 signal="/logical_signal_groups/q0/drive",
                 index=1,
-                start=offset + q0_pulse_length_ge + delays[0][0],
-                end=offset + 2 * q0_pulse_length_ge + delays[0][0],
+                start=offset + q0_pulse_length_ge + self._DELAYS[0][0],
+                end=offset + 2 * q0_pulse_length_ge + self._DELAYS[0][0],
                 parameterized_with=["x90_phases_q0"],
             )
             verifier.assert_pulse(
@@ -447,8 +372,8 @@ class TestRamseyTwoQubits:
             verifier.assert_pulse(
                 signal="/logical_signal_groups/q1/drive",
                 index=1,
-                start=offset + q1_pulse_length_ge + delays[0][0],
-                end=offset + 2 * q1_pulse_length_ge + delays[0][0],
+                start=offset + q1_pulse_length_ge + self._DELAYS[0][0],
+                end=offset + 2 * q1_pulse_length_ge + self._DELAYS[0][0],
                 parameterized_with=["x90_phases_q1"],
             )
         elif transition == "ef":
@@ -464,8 +389,8 @@ class TestRamseyTwoQubits:
             verifier.assert_pulse(
                 signal="/logical_signal_groups/q0/drive_ef",
                 index=1,
-                start=start_ef_q0 + q0_pulse_length_ef + delays[0][0],
-                end=start_ef_q0 + 2 * q0_pulse_length_ef + delays[0][0],
+                start=start_ef_q0 + q0_pulse_length_ef + self._DELAYS[0][0],
+                end=start_ef_q0 + 2 * q0_pulse_length_ef + self._DELAYS[0][0],
                 parameterized_with=["x90_phases_q0"],
             )
             verifier.assert_pulse(
@@ -478,33 +403,26 @@ class TestRamseyTwoQubits:
             verifier.assert_pulse(
                 signal="/logical_signal_groups/q1/drive_ef",
                 index=1,
-                start=start_ef_q1 + q1_pulse_length_ef + delays[1][0],
-                end=start_ef_q1 + 2 * q1_pulse_length_ef + delays[0][0],
+                start=start_ef_q1 + q1_pulse_length_ef + self._DELAYS[1][0],
+                end=start_ef_q1 + 2 * q1_pulse_length_ef + self._DELAYS[0][0],
                 parameterized_with=["x90_phases_q1"],
             )
 
     def test_pulse_measure(
         self,
         two_tunable_transmon_platform,
-        delays,
         count,
         transition,
         use_cal_traces,
-        detunings,
         readout_lengths,
     ):
-        """Test the properties of measure pulses.
-
-        Here, we can assert the start, end, and the parameterization of the pulses.
-
-        """
+        """Test the properties of measure pulses."""
         verifier = create_ramsey_verifier(
             two_tunable_transmon_platform,
-            delays,
+            self._DELAYS,
             count,
             transition,
             use_cal_traces,
-            detunings,
             readout_lengths,
         )
 
