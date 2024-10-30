@@ -9,17 +9,17 @@ nav:
   - Home: index.md
   - How-to Guides:
       - how-to-guides/index.md
-      - Amplitude Rabi: how-to-guides/sources/amplitude_rabi.ipynb
-      - Ramsey interferometry: how-to-guides/sources/ramsey.ipynb
-      - Amplitude Fine: how-to-guides/sources/amplitude_fine.ipynb
-      - Dispersive Shift: how-to-guides/sources/dispersive_shift.ipynb
-      - Echo: how-to-guides/sources/echo.ipynb
-      - IQ blobs: how-to-guides/sources/iq_blobs.ipynb
-      - Lifetime measurement: how-to-guides/sources/lifetime_measurement.ipynb
-      - Qubit spectroscopy: how-to-guides/sources/qubit_spectroscopy.ipynb
-      - Resonator Spectroscopy: how-to-guides/sources/resonator_spectroscopy.ipynb
-      - Resonator Spectroscopy DC bias: how-to-guides/sources/resonator_spectroscopy_dcbias.ipynb
-      - Raw Time Traces for Optimal Readout Weights: how-to-guides/sources/time_traces.ipynb
+      - Amplitude Rabi: how-to-guides/sources/01_superconducting_qubits/01_workflows/amplitude_rabi.ipynb
+      - Ramsey interferometry: how-to-guides/sources/01_superconducting_qubits/01_workflows/ramsey.ipynb
+      - Amplitude Fine: how-to-guides/sources/01_superconducting_qubits/01_workflows/amplitude_fine.ipynb
+      - Dispersive Shift: how-to-guides/sources/01_superconducting_qubits/01_workflows/dispersive_shift.ipynb
+      - Echo: how-to-guides/sources/01_superconducting_qubits/01_workflows/echo.ipynb
+      - IQ blobs: how-to-guides/sources/01_superconducting_qubits/01_workflows/iq_blobs.ipynb
+      - Lifetime measurement: how-to-guides/sources/01_superconducting_qubits/01_workflows/lifetime_measurement.ipynb
+      - Qubit spectroscopy: how-to-guides/sources/01_superconducting_qubits/01_workflows/qubit_spectroscopy.ipynb
+      - Resonator Spectroscopy: how-to-guides/sources/01_superconducting_qubits/01_workflows/resonator_spectroscopy.ipynb
+      - Resonator Spectroscopy DC bias: how-to-guides/sources/01_superconducting_qubits/01_workflows/resonator_spectroscopy_dcbias.ipynb
+      - Raw Time Traces for Optimal Readout Weights: how-to-guides/sources/01_superconducting_qubits/01_workflows/time_traces.ipynb
   - Tutorials:
       - tutorials/index.md
       - Experiment Workflows: tutorials/sources/experiment_workflows.ipynb

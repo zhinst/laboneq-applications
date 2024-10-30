@@ -168,6 +168,22 @@ lint.ignore = [
   "PLR2004",
   # Print statements can be useful in notebooks
   "T201",
+  # Ignore line length
+  "E501",
+  # Ignore forced list comprehension
+  "PERF401",
+  # Ignore CamelCase acronym import error
+  "N817",
+  # Ignore legacy randint
+  "NPY002",
+  # Ignore logging f-string error
+  "G004",
+  # Allow unnecessary assignment before return
+  "RET504",
+  # Allow unnecessary else after return
+  "RET505",
+  # Allow more than 10 arguments in function definition
+  "PLR0913",
 ]
 
 [tool.ruff.lint.isort]
