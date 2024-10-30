@@ -185,3 +185,4 @@ experiment_store
 
 # MacOS related stuffs
 .DS_Store
+docs/sources/how-to-guides/sources/01_superconducting_qubits/02_pulse_sequences/01_tuneup/Results
