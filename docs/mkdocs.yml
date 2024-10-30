@@ -20,6 +20,9 @@ nav:
       - Resonator Spectroscopy: how-to-guides/sources/01_superconducting_qubits/01_workflows/resonator_spectroscopy.ipynb
       - Resonator Spectroscopy DC bias: how-to-guides/sources/01_superconducting_qubits/01_workflows/resonator_spectroscopy_dcbias.ipynb
       - Raw Time Traces for Optimal Readout Weights: how-to-guides/sources/01_superconducting_qubits/01_workflows/time_traces.ipynb
+      - OpenQASM:
+        - how-to-guides/sources/04_qasm/01_VQE_Qiskit.ipynb
+        - how-to-guides/sources/04_qasm/02_RandomizedBenchmarking_from_Qiskit.ipynb
   - Tutorials:
       - tutorials/index.md
       - Experiment Workflows: tutorials/sources/experiment_workflows.ipynb
