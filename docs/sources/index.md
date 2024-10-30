@@ -26,21 +26,21 @@ such as [TunableTransmonQubit][laboneq_applications.qpu_types.tunable_transmon.T
 [QuantumPlatform][laboneq_applications.qpu_types.QuantumPlatform]
 and [QPU][laboneq_applications.qpu_types.QPU] to be used in experiment workflows.
 
-- `laboneq_applications.logbook`
+- `laboneq.workflow.logbook`
 
 Logbooks for recording the execution of experiment workflows.
-Objects such as [LogbookStore][laboneq_applications.logbook.LogbookStore] to create logbooks, 
-[FolderStore][laboneq_applications.logbook.FolderStore] for saving the 
-experiment data and [LoggingStore][laboneq_applications.logbook.LoggingStore] for logging the execution of an experiment.
+Objects such as [LogbookStore][laboneq.workflow.logbook.LogbookStore] to create logbooks, 
+[FolderStore][laboneq.workflow.logbook.FolderStore] for saving the 
+experiment data and [LoggingStore][laboneq.workflow.logbook.LoggingStore] for logging the execution of an experiment.
 
 ### Creating experiment workflows
 
-- `laboneq_applications.workflow`
+- `laboneq.workflow`
 
 A module that exposes building blocks for creating experiment workflows,
-such as [@task][laboneq_applications.workflow.task] and [@workflow][laboneq_applications.workflow.workflow] decorators, 
+such as [@task][laboneq.workflow.task] and [@workflow][laboneq.workflow.workflow] decorators, 
 which turn Python functions into task and workflow objects respectively, or 
-[WorkflowOptions][laboneq_applications.workflow.WorkflowOptions] and [TaskOptions][laboneq_applications.workflow.TaskOptions] 
+[WorkflowOptions][laboneq.workflow.WorkflowOptions] and [TaskOptions][laboneq.workflow.TaskOptions] 
 used to parametrize the control of a workflow.
 
 - `laboneq_applications.tasks`

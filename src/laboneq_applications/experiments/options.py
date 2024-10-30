@@ -5,9 +5,8 @@ from __future__ import annotations
 from typing import Literal, TypeVar
 
 from laboneq.simple import AcquisitionType, AveragingMode, RepetitionMode
-
-from laboneq_applications.workflow import option_field, options
-from laboneq_applications.workflow.options import TaskOptions, WorkflowOptions
+from laboneq.workflow import option_field, options
+from laboneq.workflow.options import TaskOptions, WorkflowOptions
 
 T = TypeVar("T")
 

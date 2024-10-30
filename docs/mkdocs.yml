@@ -43,7 +43,6 @@ nav:
           - quantum_operations: reference/core/quantum_operations.md
           - handles: reference/core/handles.md
           - validation: reference/core/validation.md
-          - utils: reference/core/utils.md
       - experiments:
           - reference/experiments/index.md
           - resonator_spectroscopy: reference/experiments/resonator_spectroscopy.md
@@ -93,12 +92,6 @@ nav:
               - time_rabi_chevron: reference/contrib/analysis/time_rabi_chevron.md
               - signal_propagation_delay: reference/contrib/analysis/signal_propagation_delay.md
               - single_qubit_randomized_benchmarking: reference/contrib/analysis/single_qubit_randomized_benchmarking.md
-      - logbook:
-          - reference/logbook/index.md
-          - core: reference/logbook/core.md
-          - folder_store: reference/logbook/folder_store.md
-          - logging_store: reference/logbook/logging_store.md
-          - serializer: reference/logbook/serializer.md
       - qpu_types:
           - reference/qpu_types/index.md
           - qpu: reference/qpu_types/qpu.md
@@ -110,17 +103,6 @@ nav:
           - run_experiment: reference/tasks/run_experiment.md
       - testing: reference/testing.md
       - typing: reference/typing.md
-      - workflow:
-          - reference/workflow/index.md
-          - core: reference/workflow/core.md
-          - task: reference/workflow/task.md
-          - result: reference/workflow/result.md
-          - taskview: reference/workflow/taskview.md
-          - options: reference/workflow/options.md
-          - reference: reference/workflow/reference.md
-          - graph: reference/workflow/graph.md
-          - exceptions: reference/workflow/exceptions.md
-          - blocks: reference/workflow/blocks.md
       - dsl: reference/dsl.md
 
 plugins:
@@ -128,7 +110,11 @@ plugins:
     enabled: !ENV [ENABLE_MKDOCSTRINGS, false]
     handlers:
       python:
-        import: ["https://docs.zhinst.com/labone_q_user_manual/objects.inv"]
+        # TODO: The commented out link below is for the public release.
+        #       Do we still need it? Or does the release via the documentation
+        #       hub make it obsolete?
+        # import: ["https://docs.zhinst.com/labone_q_user_manual/objects.inv"]
+        import: ["http://qccs.pages.zhinst.com/qccs/manual/objects.inv"]
   mkdocs-jupyter:
     execute: true
   spellcheck:

@@ -3,7 +3,9 @@
 The package provides tools and building blocks to define workflows.
 """
 
-from laboneq_applications.workflow.blocks import (
+# TODO: Remove and fix imports elsewhere
+
+from laboneq.workflow.blocks import (
     break_,
     elif_,
     else_,
@@ -11,22 +13,22 @@ from laboneq_applications.workflow.blocks import (
     if_,
     return_,
 )
-from laboneq_applications.workflow.core import (
+from laboneq.workflow.core import (
     Workflow,
     workflow,
 )
-from laboneq_applications.workflow.exceptions import WorkflowError
-from laboneq_applications.workflow.executor import execution_info
-from laboneq_applications.workflow.options import TaskOptions, WorkflowOptions
-from laboneq_applications.workflow.options_base import option_field, options
-from laboneq_applications.workflow.options_builder import show_fields
-from laboneq_applications.workflow.recorder import (
+from laboneq.workflow.exceptions import WorkflowError
+from laboneq.workflow.executor import execution_info
+from laboneq.workflow.options import TaskOptions, WorkflowOptions
+from laboneq.workflow.options_base import option_field, options
+from laboneq.workflow.options_builder import show_fields
+from laboneq.workflow.recorder import (
     comment,
     log,
     save_artifact,
 )
-from laboneq_applications.workflow.result import TaskResult, WorkflowResult
-from laboneq_applications.workflow.task_wrapper import task
+from laboneq.workflow.result import TaskResult, WorkflowResult
+from laboneq.workflow.task_wrapper import task
 
 __all__ = [
     # Decorators

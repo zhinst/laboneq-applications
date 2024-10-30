@@ -11,15 +11,12 @@ __all__ = [
 ]
 
 
-from .core import (
+from laboneq.workflow.logbook.core import (
+    DEFAULT_LOGGING_STORE,
     Logbook,
     LogbookStore,
     active_logbook_stores,
     format_time,
 )
-from .folder_store import FolderStore
-from .logging_store import LoggingStore
-
-# Add the default logging store:
-DEFAULT_LOGGING_STORE = LoggingStore()
-DEFAULT_LOGGING_STORE.activate()
+from laboneq.workflow.logbook.folder_store import FolderStore
+from laboneq.workflow.logbook.logging_store import LoggingStore

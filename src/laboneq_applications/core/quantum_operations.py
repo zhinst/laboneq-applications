@@ -13,9 +13,9 @@ import numpy as np
 from laboneq.dsl.experiment import builtins, pulse_library
 from laboneq.dsl.parameter import Parameter
 from laboneq.simple import ExecutionType
+from laboneq.workflow.highlight import pygmentize
 
 from laboneq_applications.core.build_experiment import _qubits_from_args
-from laboneq_applications.core.utils import pygmentize
 
 if TYPE_CHECKING:
     from laboneq.dsl.experiment.pulse import Pulse

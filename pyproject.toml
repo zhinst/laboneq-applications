@@ -41,7 +41,6 @@ dependencies = [
     "lmfit",
     "pygments",
     "scikit-learn~=1.5.2",
-    "attrs>=20.1.0",
     "rich"
 ]
 

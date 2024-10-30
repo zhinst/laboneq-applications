@@ -5,10 +5,16 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 import matplotlib.pyplot as plt
+from laboneq import workflow
 from laboneq.data.experiment_results import AcquiredResult as AcquiredResultLegacy
+from laboneq.workflow import (
+    option_field,
+    options,
+)
+from laboneq.workflow.options import TaskOptions
+from laboneq.workflow.timestamps import local_timestamp
 
-from laboneq_applications import dsl, workflow
-from laboneq_applications.core.utils import local_timestamp
+from laboneq_applications import dsl
 from laboneq_applications.core.validation import (
     validate_and_convert_qubits_sweeps,
     validate_result,
@@ -16,11 +22,6 @@ from laboneq_applications.core.validation import (
 from laboneq_applications.tasks.run_experiment import (
     AcquiredResult as AcquiredResultRunExp,
 )
-from laboneq_applications.workflow import (
-    option_field,
-    options,
-)
-from laboneq_applications.workflow.options import TaskOptions
 
 if TYPE_CHECKING:
     from datetime import datetime
