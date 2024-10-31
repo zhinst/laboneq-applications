@@ -183,6 +183,8 @@ lint.ignore = [
   "RET505",
   # Allow more than 10 arguments in function definition
   "PLR0913",
+  # Allow unnecessary list comprehension
+  "C416",
 ]
 
 [tool.ruff.lint.isort]
