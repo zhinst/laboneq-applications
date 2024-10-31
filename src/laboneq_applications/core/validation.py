@@ -6,10 +6,10 @@ from collections.abc import Sequence
 
 import numpy as np
 from laboneq.dsl.quantum.quantum_element import QuantumElement
+from laboneq.workflow import task
 from numpy import ndarray
 
 from laboneq_applications.tasks.run_experiment import RunExperimentResults
-from laboneq_applications.workflow import task
 
 
 def _is_sequence_of_numbers_or_nparray(obj: object) -> bool:

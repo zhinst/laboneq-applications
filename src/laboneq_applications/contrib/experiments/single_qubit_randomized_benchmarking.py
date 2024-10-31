@@ -21,6 +21,11 @@ from typing import TYPE_CHECKING
 from laboneq.openqasm3.gate_store import GateStore
 from laboneq.openqasm3.openqasm3_importer import OpenQasm3Importer
 from laboneq.simple import Experiment, SweepParameter
+from laboneq.workflow import (
+    if_,
+    task,
+    workflow,
+)
 from qiskit import qasm3, transpile
 from qiskit_experiments.library import randomized_benchmarking
 
@@ -36,11 +41,6 @@ from laboneq_applications.experiments.options import (
     TuneUpWorkflowOptions,
 )
 from laboneq_applications.tasks import compile_experiment, run_experiment
-from laboneq_applications.workflow import (
-    if_,
-    task,
-    workflow,
-)
 
 if TYPE_CHECKING:
     from laboneq.dsl.session import Session

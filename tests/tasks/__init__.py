@@ -1,1 +1,1 @@
-"""A collection of tasks for laboneq_applications workflows."""
+"""A collection of tasks for laboneq.workflows."""

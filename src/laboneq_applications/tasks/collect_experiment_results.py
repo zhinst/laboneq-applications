@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
-from laboneq_applications import dsl, workflow
+from laboneq import workflow
+
+from laboneq_applications import dsl
 from laboneq_applications.tasks.run_experiment import RunExperimentResults
 
 

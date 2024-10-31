@@ -7,6 +7,7 @@ from textwrap import dedent
 import pytest
 from laboneq.dsl.experiment import Experiment, ExperimentSignal, pulse_library
 from laboneq.dsl.result.results import Results
+from laboneq.workflow import workflow
 
 from laboneq_applications.common.attribute_wrapper import AttributeWrapper
 from laboneq_applications.tasks import (
@@ -14,7 +15,6 @@ from laboneq_applications.tasks import (
     RunExperimentResults,
     run_experiment,
 )
-from laboneq_applications.workflow import workflow
 
 
 @pytest.fixture()

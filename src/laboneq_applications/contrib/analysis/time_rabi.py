@@ -15,6 +15,13 @@ from typing import TYPE_CHECKING
 import matplotlib.pyplot as plt
 import numpy as np
 import uncertainties as unc
+from laboneq.workflow import (
+    comment,
+    if_,
+    save_artifact,
+    task,
+    workflow,
+)
 
 from laboneq_applications.analysis.amplitude_rabi import (
     fit_data,
@@ -30,13 +37,6 @@ from laboneq_applications.core.validation import validate_and_convert_qubits_swe
 from laboneq_applications.experiments.options import (
     TuneupAnalysisOptions,
     TuneUpAnalysisWorkflowOptions,
-)
-from laboneq_applications.workflow import (
-    comment,
-    if_,
-    save_artifact,
-    task,
-    workflow,
 )
 
 if TYPE_CHECKING:

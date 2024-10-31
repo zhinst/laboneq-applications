@@ -15,9 +15,10 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from laboneq import workflow
 from laboneq.simple import AveragingMode, Experiment, SweepParameter
 
-from laboneq_applications import dsl, workflow
+from laboneq_applications import dsl
 from laboneq_applications.analysis.amplitude_rabi import analysis_workflow
 from laboneq_applications.experiments.options import (
     TuneupExperimentOptions,

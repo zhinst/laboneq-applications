@@ -17,8 +17,9 @@ from typing import TYPE_CHECKING
 import matplotlib.pyplot as plt
 import numpy as np
 import uncertainties as unc
+from laboneq import workflow
 
-from laboneq_applications import dsl, workflow
+from laboneq_applications import dsl
 from laboneq_applications.analysis.calibration_traces_rotation import (
     calculate_population_1d,
 )

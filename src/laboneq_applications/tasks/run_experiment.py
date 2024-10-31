@@ -5,9 +5,9 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any
 
+from laboneq import workflow
 from typing_extensions import TypeAlias
 
-from laboneq_applications import workflow
 from laboneq_applications.common.attribute_wrapper import AttributeWrapper
 from laboneq_applications.common.classformatter import classformatter
 

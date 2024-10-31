@@ -13,6 +13,12 @@ from typing import TYPE_CHECKING
 
 import matplotlib.pyplot as plt
 import numpy as np
+from laboneq.workflow import (
+    if_,
+    save_artifact,
+    task,
+    workflow,
+)
 
 from laboneq_applications.contrib.analysis.amplitude_rabi_chevron import (
     calculate_qubit_population_2d,
@@ -21,12 +27,6 @@ from laboneq_applications.core.validation import validate_and_convert_qubits_swe
 from laboneq_applications.experiments.options import (
     TuneupAnalysisOptions,
     TuneUpAnalysisWorkflowOptions,
-)
-from laboneq_applications.workflow import (
-    if_,
-    save_artifact,
-    task,
-    workflow,
 )
 
 if TYPE_CHECKING:

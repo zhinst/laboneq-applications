@@ -16,9 +16,11 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Literal
 
+from laboneq import workflow
 from laboneq.simple import AcquisitionType, Experiment
+from laboneq.workflow import option_field, options
 
-from laboneq_applications import dsl, tasks, workflow
+from laboneq_applications import dsl, tasks
 from laboneq_applications.analysis.time_traces import analysis_workflow
 from laboneq_applications.core.build_experiment import qubit_experiment
 from laboneq_applications.experiments.options import (
@@ -26,7 +28,6 @@ from laboneq_applications.experiments.options import (
     TuneUpWorkflowOptions,
 )
 from laboneq_applications.tasks.parameter_updating import temporary_modify
-from laboneq_applications.workflow import option_field, options
 
 if TYPE_CHECKING:
     from collections.abc import Sequence

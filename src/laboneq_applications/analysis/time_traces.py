@@ -17,13 +17,14 @@ from typing import TYPE_CHECKING, Literal
 import matplotlib.pyplot as plt
 import numpy as np
 import scipy as sp
+from laboneq import workflow
 from laboneq.analysis import calculate_integration_kernels_thresholds
+from laboneq.workflow import option_field, options
 
-from laboneq_applications import dsl, workflow
+from laboneq_applications import dsl
 from laboneq_applications.analysis.plotting_helpers import timestamped_title
 from laboneq_applications.core.validation import validate_and_convert_qubits_sweeps
 from laboneq_applications.experiments.options import TaskOptions, WorkflowOptions
-from laboneq_applications.workflow import option_field, options
 
 if TYPE_CHECKING:
     from collections.abc import Sequence

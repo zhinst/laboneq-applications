@@ -18,18 +18,19 @@ from typing import TYPE_CHECKING
 import matplotlib.colors as mc
 import matplotlib.pyplot as plt
 import numpy as np
+from laboneq import workflow
+from laboneq.workflow import option_field, options
 from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
 from sklearn.inspection import DecisionBoundaryDisplay
 from sklearn.metrics import confusion_matrix
 
-from laboneq_applications import dsl, workflow
+from laboneq_applications import dsl
 from laboneq_applications.analysis.plotting_helpers import timestamped_title
 from laboneq_applications.core.validation import (
     validate_and_convert_qubits_sweeps,
     validate_result,
 )
 from laboneq_applications.experiments.options import TaskOptions, WorkflowOptions
-from laboneq_applications.workflow import option_field, options
 
 if TYPE_CHECKING:
     from collections.abc import Sequence

@@ -17,8 +17,8 @@ from typing import TYPE_CHECKING
 import matplotlib.pyplot as plt
 import numpy as np
 import uncertainties as unc
+from laboneq import workflow
 
-from laboneq_applications import workflow
 from laboneq_applications.analysis.calibration_traces_rotation import (
     calculate_qubit_population,
 )

@@ -20,9 +20,10 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 import numpy as np
+from laboneq import workflow
 from laboneq.simple import AveragingMode, Experiment, SectionAlignment, SweepParameter
 
-from laboneq_applications import dsl, workflow
+from laboneq_applications import dsl
 from laboneq_applications.analysis.ramsey import (
     analysis_workflow,
     validate_and_convert_detunings,

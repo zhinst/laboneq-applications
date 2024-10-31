@@ -1,4 +1,4 @@
-"""A collection of tasks for laboneq_applications workflows."""
+"""A collection of tasks for laboneq.workflows."""
 
 from __future__ import annotations
 

@@ -17,8 +17,10 @@ from typing import TYPE_CHECKING
 import matplotlib.pyplot as plt
 import numpy as np
 import uncertainties as unc
+from laboneq import workflow
+from laboneq.workflow import option_field, options
 
-from laboneq_applications import dsl, workflow
+from laboneq_applications import dsl
 from laboneq_applications.analysis.fitting_helpers import lorentzian_fit
 from laboneq_applications.analysis.plotting_helpers import (
     plot_raw_complex_data_1d,
@@ -29,7 +31,6 @@ from laboneq_applications.experiments.options import (
     ResonatorSpectroscopyExperimentOptions,
     WorkflowOptions,
 )
-from laboneq_applications.workflow import option_field, options
 
 if TYPE_CHECKING:
     import lmfit

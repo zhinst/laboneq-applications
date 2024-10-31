@@ -6,8 +6,7 @@ from dataclasses import asdict
 from typing import TYPE_CHECKING
 
 from laboneq.dsl.quantum import TransmonParameters
-
-from laboneq_applications.workflow import (
+from laboneq.workflow import (
     comment,
     task,
 )

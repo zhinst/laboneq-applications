@@ -12,16 +12,16 @@ from typing import TYPE_CHECKING
 
 import matplotlib.pyplot as plt
 import numpy as np
-
-from laboneq_applications.experiments.options import (
-    TuneupAnalysisOptions,
-    TuneUpAnalysisWorkflowOptions,
-)
-from laboneq_applications.workflow import (
+from laboneq.workflow import (
     if_,
     save_artifact,
     task,
     workflow,
+)
+
+from laboneq_applications.experiments.options import (
+    TuneupAnalysisOptions,
+    TuneUpAnalysisWorkflowOptions,
 )
 
 if TYPE_CHECKING:

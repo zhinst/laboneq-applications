@@ -1,9 +1,9 @@
 from copy import deepcopy
 
 import pytest
+from laboneq.workflow import task, workflow
 
 from laboneq_applications.tasks import temporary_modify
-from laboneq_applications.workflow import task, workflow
 
 
 @pytest.fixture()

@@ -21,9 +21,10 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 import numpy as np
+from laboneq import workflow
 from laboneq.simple import AveragingMode, Experiment, SweepParameter
 
-from laboneq_applications import dsl, workflow
+from laboneq_applications import dsl
 from laboneq_applications.analysis.amplitude_fine import analysis_workflow
 from laboneq_applications.core.validation import validate_and_convert_qubits_sweeps
 from laboneq_applications.experiments.options import (

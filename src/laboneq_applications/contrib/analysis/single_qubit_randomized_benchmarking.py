@@ -17,6 +17,13 @@ import matplotlib.pyplot as plt
 import numpy as np
 import uncertainties as unc
 from laboneq.analysis import fitting as fit_mods
+from laboneq.workflow import (
+    comment,
+    if_,
+    save_artifact,
+    task,
+    workflow,
+)
 from uncertainties.umath import exp
 
 from laboneq_applications.analysis.calibration_traces_rotation import (
@@ -32,13 +39,6 @@ from laboneq_applications.core.validation import (
 from laboneq_applications.experiments.options import (
     TuneupAnalysisOptions,
     TuneUpAnalysisWorkflowOptions,
-)
-from laboneq_applications.workflow import (
-    comment,
-    if_,
-    save_artifact,
-    task,
-    workflow,
 )
 
 if TYPE_CHECKING:

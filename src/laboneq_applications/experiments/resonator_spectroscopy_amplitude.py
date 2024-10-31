@@ -16,10 +16,11 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from laboneq import workflow
 from laboneq.dsl.enums import AcquisitionType
 from laboneq.simple import Experiment, SweepParameter
 
-from laboneq_applications import dsl, workflow
+from laboneq_applications import dsl
 from laboneq_applications.experiments.options import (
     ResonatorSpectroscopyExperimentOptions,
     TuneUpWorkflowOptions,

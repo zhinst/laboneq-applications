@@ -17,6 +17,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from laboneq.simple import Experiment, SweepParameter
+from laboneq.workflow import if_, task, workflow
 
 from laboneq_applications import dsl
 from laboneq_applications.contrib.analysis.time_rabi_chevron import (
@@ -28,7 +29,6 @@ from laboneq_applications.experiments.options import (
     TuneUpWorkflowOptions,
 )
 from laboneq_applications.tasks import compile_experiment, run_experiment
-from laboneq_applications.workflow import if_, task, workflow
 
 if TYPE_CHECKING:
     from laboneq.dsl.session import Session
