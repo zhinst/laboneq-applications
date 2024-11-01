@@ -3,21 +3,21 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pytest
 from freezegun import freeze_time
-from numpy.testing import assert_almost_equal, assert_array_almost_equal
-
-from laboneq_applications.analysis import amplitude_rabi
-from laboneq_applications.core.handles import calibration_trace_handle, result_handle
-from laboneq_applications.tasks.run_experiment import (
+from laboneq.workflow.tasks import handles
+from laboneq.workflow.tasks.run_experiment import (
     AcquiredResult,
     RunExperimentResults,
 )
+from numpy.testing import assert_almost_equal, assert_array_almost_equal
+
+from laboneq_applications.analysis import amplitude_rabi
 
 
 @pytest.fixture()
 def results_single_qubit():
     """Results from AmplitudeRabi experiment."""
     data = {}
-    data[result_handle("q0")] = AcquiredResult(
+    data[handles.result_handle("q0")] = AcquiredResult(
         data=np.array(
             [
                 0.05290302 - 0.13215136j,
@@ -44,12 +44,12 @@ def results_single_qubit():
             ]
         ),
     )
-    data[calibration_trace_handle("q0", "g")] = AcquiredResult(
+    data[handles.calibration_trace_handle("q0", "g")] = AcquiredResult(
         data=(0.05745863888207082 - 0.13026141779382786j),
         axis_name=[],
         axis=[],
     )
-    data[calibration_trace_handle("q0", "e")] = AcquiredResult(
+    data[handles.calibration_trace_handle("q0", "e")] = AcquiredResult(
         data=(0.1770431406621688 + 0.91612948998106j),
         axis_name=[],
         axis=[],
@@ -306,7 +306,7 @@ class TestRabiAnalysisSingleQubit:
 def results_two_qubit():
     """Results from AmplitudeRabi experiment."""
     data = {}
-    data[result_handle("q0")] = AcquiredResult(
+    data[handles.result_handle("q0")] = AcquiredResult(
         data=np.array(
             [
                 0.05290302 - 0.13215136j,
@@ -333,7 +333,7 @@ def results_two_qubit():
             ]
         ),
     )
-    data[result_handle("q1")] = AcquiredResult(
+    data[handles.result_handle("q1")] = AcquiredResult(
         np.array(
             [
                 -0.00223629 + 2.51237327j,
@@ -360,22 +360,22 @@ def results_two_qubit():
             ]
         ),
     )
-    data[calibration_trace_handle("q0", "g")] = AcquiredResult(
+    data[handles.calibration_trace_handle("q0", "g")] = AcquiredResult(
         data=(0.05745863888207082 - 0.13026141779382786j),
         axis_name=[],
         axis=[],
     )
-    data[calibration_trace_handle("q0", "e")] = AcquiredResult(
+    data[handles.calibration_trace_handle("q0", "e")] = AcquiredResult(
         data=(0.1770431406621688 + 0.91612948998106j),
         axis_name=[],
         axis=[],
     )
-    data[calibration_trace_handle("q1", "g")] = AcquiredResult(
+    data[handles.calibration_trace_handle("q1", "g")] = AcquiredResult(
         data=(0.0033944563323902097 + 2.509301287477822j),
         axis_name=[],
         axis=[],
     )
-    data[calibration_trace_handle("q1", "e")] = AcquiredResult(
+    data[handles.calibration_trace_handle("q1", "e")] = AcquiredResult(
         data=(0.3364214235541073 + 0.4244829181581308j),
         axis_name=[],
         axis=[],

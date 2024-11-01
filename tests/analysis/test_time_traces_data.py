@@ -6,9 +6,8 @@ raw acquisition mode for each prepared qubit state.
 
 import numpy as np
 import pytest
-
-from laboneq_applications.core.handles import result_handle
-from laboneq_applications.tasks.run_experiment import (
+from laboneq.workflow.tasks import handles
+from laboneq.workflow.tasks.run_experiment import (
     AcquiredResult,
     RunExperimentResults,
 )
@@ -638,8 +637,8 @@ def raw_data():
 def results_single_qubit_ge(raw_data):
     return RunExperimentResults(
         data={
-            result_handle("q0", suffix="g"): AcquiredResult(data=raw_data["g"]),
-            result_handle("q0", suffix="e"): AcquiredResult(data=raw_data["e"]),
+            handles.result_handle("q0", suffix="g"): AcquiredResult(data=raw_data["g"]),
+            handles.result_handle("q0", suffix="e"): AcquiredResult(data=raw_data["e"]),
         }
     )
 
@@ -648,9 +647,9 @@ def results_single_qubit_ge(raw_data):
 def results_single_qubit_gef(raw_data):
     return RunExperimentResults(
         data={
-            result_handle("q0", suffix="g"): AcquiredResult(data=raw_data["g"]),
-            result_handle("q0", suffix="e"): AcquiredResult(data=raw_data["e"]),
-            result_handle("q0", suffix="f"): AcquiredResult(data=raw_data["f"]),
+            handles.result_handle("q0", suffix="g"): AcquiredResult(data=raw_data["g"]),
+            handles.result_handle("q0", suffix="e"): AcquiredResult(data=raw_data["e"]),
+            handles.result_handle("q0", suffix="f"): AcquiredResult(data=raw_data["f"]),
         }
     )
 

@@ -1,19 +1,19 @@
 import numpy as np
 import pytest
-
-from laboneq_applications.analysis import amplitude_fine
-from laboneq_applications.core.handles import calibration_trace_handle, result_handle
-from laboneq_applications.tasks.run_experiment import (
+from laboneq.workflow.tasks import handles
+from laboneq.workflow.tasks.run_experiment import (
     AcquiredResult,
     RunExperimentResults,
 )
+
+from laboneq_applications.analysis import amplitude_fine
 
 
 @pytest.fixture()
 def results_single_qubit():
     """Results from an amplitude-fine experiment."""
     data = {}
-    data[result_handle("q0")] = AcquiredResult(
+    data[handles.result_handle("q0")] = AcquiredResult(
         data=np.array(
             [
                 0.04101562 + 0.0j,
@@ -42,12 +42,12 @@ def results_single_qubit():
         axis_name=["Repetitions"],
         axis=[],
     )
-    data[calibration_trace_handle("q0", "g")] = AcquiredResult(
+    data[handles.calibration_trace_handle("q0", "g")] = AcquiredResult(
         data=(0.041015625 + 0.0205078125j),
         axis_name=[],
         axis=[],
     )
-    data[calibration_trace_handle("q0", "e")] = AcquiredResult(
+    data[handles.calibration_trace_handle("q0", "e")] = AcquiredResult(
         data=(0.041015625 + 0.021484375j),
         axis_name=[],
         axis=[],
@@ -120,7 +120,7 @@ class TestAmplitudeFineAnalysisSingleQubit:
 def results_two_qubit():
     """Results from an amplitude-fine experiment."""
     data = {}
-    data[result_handle("q0")] = AcquiredResult(
+    data[handles.result_handle("q0")] = AcquiredResult(
         data=np.array(
             [
                 0.04101562 + 0.0j,
@@ -147,7 +147,7 @@ def results_two_qubit():
             ]
         ),
     )
-    data[result_handle("q1")] = AcquiredResult(
+    data[handles.result_handle("q1")] = AcquiredResult(
         np.array(
             [
                 0.04199219 + 0.0j,
@@ -174,22 +174,22 @@ def results_two_qubit():
             ]
         ),
     )
-    data[calibration_trace_handle("q0", "g")] = AcquiredResult(
+    data[handles.calibration_trace_handle("q0", "g")] = AcquiredResult(
         data=(0.041015625 + 0.0205078125j),
         axis_name=[],
         axis=[],
     )
-    data[calibration_trace_handle("q0", "e")] = AcquiredResult(
+    data[handles.calibration_trace_handle("q0", "e")] = AcquiredResult(
         data=(0.041015625 + 0.021484375j),
         axis_name=[],
         axis=[],
     )
-    data[calibration_trace_handle("q1", "g")] = AcquiredResult(
+    data[handles.calibration_trace_handle("q1", "g")] = AcquiredResult(
         data=(0.0419921875 + 0.0205078125j),
         axis_name=[],
         axis=[],
     )
-    data[calibration_trace_handle("q1", "e")] = AcquiredResult(
+    data[handles.calibration_trace_handle("q1", "e")] = AcquiredResult(
         data=(0.0419921875 + 0.021484375j),
         axis_name=[],
         axis=[],

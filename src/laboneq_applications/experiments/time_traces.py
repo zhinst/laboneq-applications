@@ -19,15 +19,24 @@ from typing import TYPE_CHECKING, Literal
 from laboneq import workflow
 from laboneq.simple import AcquisitionType, Experiment
 from laboneq.workflow import option_field, options
+from laboneq.workflow.tasks import (
+    append_result,
+    combine_results,
+    compile_experiment,
+    run_experiment,
+)
 
-from laboneq_applications import dsl, tasks
+from laboneq_applications import dsl
 from laboneq_applications.analysis.time_traces import analysis_workflow
 from laboneq_applications.core.build_experiment import qubit_experiment
 from laboneq_applications.experiments.options import (
     BaseExperimentOptions,
     TuneUpWorkflowOptions,
 )
-from laboneq_applications.tasks.parameter_updating import temporary_modify
+from laboneq_applications.tasks.parameter_updating import (
+    temporary_modify,
+    update_qubits,
+)
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
@@ -128,19 +137,17 @@ def experiment_workflow(
     with workflow.for_(qubits, lambda q: q.uid) as qubit:
         with workflow.for_(states, lambda s: s) as state:
             exp = create_experiment(qpu, qubit, state)
-            compiled_exp = tasks.compile_experiment(session, exp)
+            compiled_exp = compile_experiment(session, exp)
             # Below, we disable saving for the inputs and outputs of the run_experiment
             # task. The interface for doing this will be cleaned up later.
-            result = workflow.task(tasks.run_experiment, save=False)(
-                session, compiled_exp
-            )
-            tasks.append_result(results, result)
-    combined_results = tasks.combine_results(results)
+            result = workflow.task(run_experiment, save=False)(session, compiled_exp)
+            append_result(results, result)
+    combined_results = combine_results(results)
     with workflow.if_(options.do_analysis):
         analysis_results = analysis_workflow(combined_results, qubits, states)
         qubit_parameters = analysis_results.output
         with workflow.if_(options.update):
-            tasks.update_qubits(qpu, qubit_parameters["new_parameter_values"])
+            update_qubits(qpu, qubit_parameters["new_parameter_values"])
     workflow.return_(combined_results)
 
 

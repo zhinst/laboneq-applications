@@ -25,6 +25,10 @@ from laboneq import workflow
 from laboneq.dsl.enums import AcquisitionType
 from laboneq.simple import Experiment, SweepParameter
 from laboneq.workflow import option_field, options
+from laboneq.workflow.tasks import (
+    compile_experiment,
+    run_experiment,
+)
 
 from laboneq_applications import dsl
 from laboneq_applications.analysis.dispersive_shift import analysis_workflow
@@ -32,8 +36,10 @@ from laboneq_applications.experiments.options import (
     BaseExperimentOptions,
     TuneUpWorkflowOptions,
 )
-from laboneq_applications.tasks import compile_experiment, run_experiment, update_qubits
-from laboneq_applications.tasks.parameter_updating import temporary_modify
+from laboneq_applications.tasks.parameter_updating import (
+    temporary_modify,
+    update_qubits,
+)
 
 if TYPE_CHECKING:
     from collections.abc import Sequence

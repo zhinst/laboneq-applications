@@ -36,9 +36,9 @@ from laboneq_applications.experiments.options import (
 if TYPE_CHECKING:
     import lmfit
     import matplotlib as mpl
+    from laboneq.workflow.tasks.run_experiment import RunExperimentResults
     from numpy.typing import ArrayLike
 
-    from laboneq_applications.tasks.run_experiment import RunExperimentResults
     from laboneq_applications.typing import Qubits, QubitSweepPoints
 
 

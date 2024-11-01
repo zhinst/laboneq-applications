@@ -4,13 +4,13 @@ import matplotlib as mpl
 import matplotlib.pyplot as plt
 import numpy as np
 import pytest
-
-from laboneq_applications.analysis import qubit_spectroscopy
-from laboneq_applications.core.handles import result_handle
-from laboneq_applications.tasks.run_experiment import (
+from laboneq.workflow.tasks import handles
+from laboneq.workflow.tasks.run_experiment import (
     AcquiredResult,
     RunExperimentResults,
 )
+
+from laboneq_applications.analysis import qubit_spectroscopy
 
 
 @pytest.fixture()
@@ -23,7 +23,7 @@ def results_single_qubit():
     dip.
     """
     data = {}
-    data[result_handle("q0")] = AcquiredResult(
+    data[handles.result_handle("q0")] = AcquiredResult(
         data=np.array(
             [
                 -0.58256794 - 1.87263017j,
@@ -956,7 +956,7 @@ def results_two_qubit():
     Lorentzian line-shape.
     """
     data = {}
-    data[result_handle("q0")] = AcquiredResult(
+    data[handles.result_handle("q0")] = AcquiredResult(
         data=np.array(
             [
                 -0.58256794 - 1.87263017j,
@@ -1163,7 +1163,7 @@ def results_two_qubit():
             ]
         )
     )
-    data[result_handle("q1")] = AcquiredResult(
+    data[handles.result_handle("q1")] = AcquiredResult(
         data=np.array(
             [
                 0.14757315 - 0.09331405j,

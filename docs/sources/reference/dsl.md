@@ -27,7 +27,6 @@ A simple namespace for commonly used objects.
 
 ### Validation etc.
 
-* [handles](./core/handles.md)
 * [validation](./core/validation.md)
 
 ## Creating quantum operations

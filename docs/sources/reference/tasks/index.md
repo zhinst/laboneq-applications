@@ -6,6 +6,4 @@ This sub-package describes predefined tasks that are available in the workflow s
 
 # Contents
 
-* [compile_experiment](compile_experiment.md)
-* [run_experiment](run_experiment.md)
 * [parameter_updating](parameter_updating.md)

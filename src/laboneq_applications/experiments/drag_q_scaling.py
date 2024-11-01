@@ -35,6 +35,10 @@ from typing import TYPE_CHECKING
 import numpy as np
 from laboneq import workflow
 from laboneq.simple import AveragingMode, Experiment, SweepParameter
+from laboneq.workflow.tasks import (
+    compile_experiment,
+    run_experiment,
+)
 
 from laboneq_applications import dsl
 from laboneq_applications.analysis.drag_q_scaling import analysis_workflow
@@ -42,8 +46,10 @@ from laboneq_applications.experiments.options import (
     TuneupExperimentOptions,
     TuneUpWorkflowOptions,
 )
-from laboneq_applications.tasks import compile_experiment, run_experiment, update_qubits
-from laboneq_applications.tasks.parameter_updating import temporary_modify
+from laboneq_applications.tasks.parameter_updating import (
+    temporary_modify,
+    update_qubits,
+)
 
 if TYPE_CHECKING:
     from laboneq.dsl.quantum import (

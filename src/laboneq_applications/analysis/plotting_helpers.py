@@ -12,6 +12,9 @@ from laboneq.workflow import (
     options,
 )
 from laboneq.workflow.options import TaskOptions
+from laboneq.workflow.tasks.run_experiment import (
+    AcquiredResult as AcquiredResultRunExp,
+)
 from laboneq.workflow.timestamps import local_timestamp
 
 from laboneq_applications import dsl
@@ -19,17 +22,14 @@ from laboneq_applications.core.validation import (
     validate_and_convert_qubits_sweeps,
     validate_result,
 )
-from laboneq_applications.tasks.run_experiment import (
-    AcquiredResult as AcquiredResultRunExp,
-)
 
 if TYPE_CHECKING:
     from datetime import datetime
 
     from laboneq.simple import Results
+    from laboneq.workflow.tasks.run_experiment import RunExperimentResults
     from numpy.typing import ArrayLike
 
-    from laboneq_applications.tasks.run_experiment import RunExperimentResults
     from laboneq_applications.typing import Qubits, QubitSweepPoints
 
 

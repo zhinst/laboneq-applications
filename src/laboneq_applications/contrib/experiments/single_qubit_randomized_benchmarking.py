@@ -26,6 +26,10 @@ from laboneq.workflow import (
     task,
     workflow,
 )
+from laboneq.workflow.tasks import (
+    compile_experiment,
+    run_experiment,
+)
 from qiskit import qasm3, transpile
 from qiskit_experiments.library import randomized_benchmarking
 
@@ -40,7 +44,6 @@ from laboneq_applications.experiments.options import (
     TuneupExperimentOptions,
     TuneUpWorkflowOptions,
 )
-from laboneq_applications.tasks import compile_experiment, run_experiment
 
 if TYPE_CHECKING:
     from laboneq.dsl.session import Session

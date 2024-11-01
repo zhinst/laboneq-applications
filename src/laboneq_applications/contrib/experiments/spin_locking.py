@@ -17,12 +17,15 @@ from typing import TYPE_CHECKING
 import numpy as np
 from laboneq.simple import Experiment, SweepParameter
 from laboneq.workflow import WorkflowOptions, task, workflow
+from laboneq.workflow.tasks import (
+    compile_experiment,
+    run_experiment,
+)
 
 from laboneq_applications import dsl
 from laboneq_applications.experiments.options import (
     TuneupExperimentOptions,
 )
-from laboneq_applications.tasks import compile_experiment, run_experiment
 
 if TYPE_CHECKING:
     from laboneq.dsl.session import Session

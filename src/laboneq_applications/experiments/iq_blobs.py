@@ -16,6 +16,10 @@ from typing import TYPE_CHECKING
 from laboneq import workflow
 from laboneq.simple import AveragingMode, Experiment
 from laboneq.workflow import option_field, options
+from laboneq.workflow.tasks import (
+    compile_experiment,
+    run_experiment,
+)
 
 from laboneq_applications import dsl
 from laboneq_applications.analysis.iq_blobs import analysis_workflow
@@ -23,7 +27,6 @@ from laboneq_applications.experiments.options import (
     BaseExperimentOptions,
     WorkflowOptions,
 )
-from laboneq_applications.tasks import compile_experiment, run_experiment
 from laboneq_applications.tasks.parameter_updating import temporary_modify
 
 if TYPE_CHECKING:

@@ -23,6 +23,7 @@ from typing import TYPE_CHECKING
 import numpy as np
 from laboneq import workflow
 from laboneq.simple import AveragingMode, Experiment, SweepParameter
+from laboneq.workflow.tasks import compile_experiment, run_experiment
 
 from laboneq_applications import dsl
 from laboneq_applications.analysis.amplitude_fine import analysis_workflow
@@ -32,8 +33,6 @@ from laboneq_applications.experiments.options import (
     TuneUpWorkflowOptions,
 )
 from laboneq_applications.tasks import (
-    compile_experiment,
-    run_experiment,
     temporary_modify,
     update_qubits,
 )

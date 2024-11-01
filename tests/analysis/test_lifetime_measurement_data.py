@@ -2,9 +2,8 @@
 
 import numpy as np
 import pytest
-
-from laboneq_applications.core.handles import calibration_trace_handle, result_handle
-from laboneq_applications.tasks.run_experiment import (
+from laboneq.workflow.tasks import handles
+from laboneq.workflow.tasks.run_experiment import (
     AcquiredResult,
     RunExperimentResults,
 )
@@ -19,7 +18,7 @@ def raw_data_ge():
     result obtained in integrated-average mode.
     """
     data_q0 = {}
-    data_q0[result_handle("q0")] = AcquiredResult(
+    data_q0[handles.result_handle("q0")] = AcquiredResult(
         data=np.array(
             [
                 -0.54653355 - 1.17900678j,
@@ -56,12 +55,12 @@ def raw_data_ge():
             ]
         )
     )
-    data_q0[calibration_trace_handle("q0", "g")] = AcquiredResult(
+    data_q0[handles.calibration_trace_handle("q0", "g")] = AcquiredResult(
         data=(-0.03565303063567659 + 0.013210466140904797j),
         axis_name=[],
         axis=[],
     )
-    data_q0[calibration_trace_handle("q0", "e")] = AcquiredResult(
+    data_q0[handles.calibration_trace_handle("q0", "e")] = AcquiredResult(
         data=(-0.5430036272699941 - 1.1694973614508577j),
         axis_name=[],
         axis=[],
@@ -104,7 +103,7 @@ def raw_data_ge():
     )
 
     data_q1 = {}
-    data_q1[result_handle("q1")] = AcquiredResult(
+    data_q1[handles.result_handle("q1")] = AcquiredResult(
         data=np.array(
             [
                 1.3490129 - 1.56692922j,
@@ -141,12 +140,12 @@ def raw_data_ge():
             ]
         )
     )
-    data_q1[calibration_trace_handle("q1", "g")] = AcquiredResult(
+    data_q1[handles.calibration_trace_handle("q1", "g")] = AcquiredResult(
         data=(1.0407949643102572 + 0.31812771722279526j),
         axis_name=[],
         axis=[],
     )
-    data_q1[calibration_trace_handle("q1", "e")] = AcquiredResult(
+    data_q1[handles.calibration_trace_handle("q1", "e")] = AcquiredResult(
         data=(1.3433557761058659 - 1.5500701510144579j),
         axis_name=[],
         axis=[],

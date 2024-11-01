@@ -30,9 +30,9 @@ if TYPE_CHECKING:
     from collections.abc import Sequence
 
     import matplotlib as mpl
+    from laboneq.workflow.tasks.run_experiment import RunExperimentResults
     from numpy.typing import ArrayLike, NDArray
 
-    from laboneq_applications.tasks.run_experiment import RunExperimentResults
     from laboneq_applications.typing import Qubits
 
 

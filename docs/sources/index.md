@@ -46,7 +46,7 @@ used to parametrize the control of a workflow.
 - `laboneq_applications.tasks`
 
 A module containing common tasks that may be used within experiment workflows such
-as [compile_experiment][laboneq_applications.tasks.compile_experiment], [run_experiment][laboneq_applications.tasks.run_experiment] 
+as [compile_experiment][laboneq.workflow.tasks.compile_experiment], [run_experiment][laboneq.workflow.tasks.run_experiment] 
 and [update_qubits][laboneq_applications.tasks.parameter_updating.update_qubits].
 
 - `laboneq_applications.dsl`

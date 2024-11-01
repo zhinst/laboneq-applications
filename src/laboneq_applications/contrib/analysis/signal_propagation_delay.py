@@ -26,8 +26,8 @@ from laboneq_applications.experiments.options import (
 
 if TYPE_CHECKING:
     import matplotlib as mpl
+    from laboneq.workflow.tasks.run_experiment import RunExperimentResults
 
-    from laboneq_applications.tasks.run_experiment import RunExperimentResults
     from laboneq_applications.typing import Qubit, QubitSweepPoints
 
 

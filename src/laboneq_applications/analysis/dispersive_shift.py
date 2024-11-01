@@ -34,9 +34,8 @@ if TYPE_CHECKING:
 
     import matplotlib as mpl
     from laboneq.dsl.quantum.quantum_element import QuantumElement
+    from laboneq.workflow.tasks.run_experiment import RunExperimentResults
     from numpy.typing import ArrayLike
-
-    from laboneq_applications.tasks.run_experiment import RunExperimentResults
 
 
 @options

@@ -4,13 +4,13 @@ import matplotlib as mpl
 import matplotlib.pyplot as plt
 import numpy as np
 import pytest
-
-from laboneq_applications.analysis import dispersive_shift
-from laboneq_applications.core.handles import result_handle
-from laboneq_applications.tasks.run_experiment import (
+from laboneq.workflow.tasks import handles
+from laboneq.workflow.tasks.run_experiment import (
     AcquiredResult,
     RunExperimentResults,
 )
+
+from laboneq_applications.analysis import dispersive_shift
 
 
 @pytest.fixture()
@@ -21,7 +21,7 @@ def results_single_qubit():
     signal. Sweep points correspond to the qubit readout-resonator frequency.
     """
     data = {}
-    data[result_handle("q0", suffix="g")] = AcquiredResult(
+    data[handles.result_handle("q0", suffix="g")] = AcquiredResult(
         data=np.array(
             [
                 -1.20330049e-05 - 1.96615942e-06j,
@@ -228,7 +228,7 @@ def results_single_qubit():
             ]
         )
     )
-    data[result_handle("q0", suffix="e")] = AcquiredResult(
+    data[handles.result_handle("q0", suffix="e")] = AcquiredResult(
         data=np.array(
             [
                 -1.22152620e-05 - 1.74678078e-06j,
@@ -435,7 +435,7 @@ def results_single_qubit():
             ]
         )
     )
-    data[result_handle("q0", suffix="f")] = AcquiredResult(
+    data[handles.result_handle("q0", suffix="f")] = AcquiredResult(
         data=np.array(
             [
                 -1.08358392e-05 - 2.27586127e-06j,

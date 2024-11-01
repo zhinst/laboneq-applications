@@ -3,6 +3,7 @@
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 import numpy as np
+from laboneq.workflow.tasks import handles
 from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
 from test_iq_blobs_data import (  # noqa: F401
     results_single_qubit_gef,
@@ -10,7 +11,6 @@ from test_iq_blobs_data import (  # noqa: F401
 )
 
 from laboneq_applications.analysis import iq_blobs
-from laboneq_applications.core.handles import result_handle
 
 
 class TestIQBlobsAnalysisSingleQubitGEF:
@@ -36,7 +36,8 @@ class TestIQBlobsAnalysisSingleQubitGEF:
         assert list(proc_data_dict["q0"]["shots_per_state"]) == states
         len_sps = [len(sps) for sps in proc_data_dict["q0"]["shots_per_state"].values()]
         len_raw_data = [
-            len(results_single_qubit_gef[result_handle("q0", suffix=s)]) for s in states
+            len(results_single_qubit_gef[handles.result_handle("q0", suffix=s)])
+            for s in states
         ]
         assert len_sps == len_raw_data
         assert proc_data_dict["q0"]["shots_combined"].shape == (sum(len_raw_data), 2)
@@ -179,7 +180,8 @@ class TestIQBlobsAnalysisTwoQubitGE:
                 len(sps) for sps in proc_data_dict[qid]["shots_per_state"].values()
             ]
             len_raw_data = [
-                len(results_two_qubit_ge[result_handle(qid, suffix=s)]) for s in states
+                len(results_two_qubit_ge[handles.result_handle(qid, suffix=s)])
+                for s in states
             ]
             assert len_sps == len_raw_data
             assert proc_data_dict[qid]["shots_combined"].shape == (

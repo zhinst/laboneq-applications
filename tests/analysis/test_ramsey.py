@@ -4,13 +4,13 @@ import matplotlib as mpl
 import matplotlib.pyplot as plt
 import numpy as np
 import pytest
-
-from laboneq_applications.analysis import ramsey
-from laboneq_applications.core.handles import calibration_trace_handle, result_handle
-from laboneq_applications.tasks.run_experiment import (
+from laboneq.workflow.tasks import handles
+from laboneq.workflow.tasks.run_experiment import (
     AcquiredResult,
     RunExperimentResults,
 )
+
+from laboneq_applications.analysis import ramsey
 
 
 @pytest.fixture()
@@ -22,7 +22,7 @@ def results_single_qubit():
     result obtained in integrated-average mode.
     """
     data = {}
-    data[result_handle("q0")] = AcquiredResult(
+    data[handles.result_handle("q0")] = AcquiredResult(
         data=np.array(
             [
                 -0.41226907 - 0.23724557j,
@@ -69,12 +69,12 @@ def results_single_qubit():
             ]
         )
     )
-    data[calibration_trace_handle("q0", "g")] = AcquiredResult(
+    data[handles.calibration_trace_handle("q0", "g")] = AcquiredResult(
         data=(-0.772875386725562 - 1.9347566625390387j),
         axis_name=[],
         axis=[],
     )
-    data[calibration_trace_handle("q0", "e")] = AcquiredResult(
+    data[handles.calibration_trace_handle("q0", "e")] = AcquiredResult(
         data=(-0.4094606327325466 - 0.24116128694103414j),
         axis_name=[],
         axis=[],
@@ -419,7 +419,7 @@ def results_two_qubit():
     """
     data = {}
     # q0
-    data[result_handle("q0")] = AcquiredResult(
+    data[handles.result_handle("q0")] = AcquiredResult(
         data=np.array(
             [
                 -0.41226907 - 0.23724557j,
@@ -466,18 +466,18 @@ def results_two_qubit():
             ]
         )
     )
-    data[calibration_trace_handle("q0", "g")] = AcquiredResult(
+    data[handles.calibration_trace_handle("q0", "g")] = AcquiredResult(
         data=(-0.772875386725562 - 1.9347566625390387j),
         axis_name=[],
         axis=[],
     )
-    data[calibration_trace_handle("q0", "e")] = AcquiredResult(
+    data[handles.calibration_trace_handle("q0", "e")] = AcquiredResult(
         data=(-0.4094606327325466 - 0.24116128694103414j),
         axis_name=[],
         axis=[],
     )
     # q1
-    data[result_handle("q1")] = AcquiredResult(
+    data[handles.result_handle("q1")] = AcquiredResult(
         data=np.array(
             [
                 -0.5869649 - 1.27564237j,
@@ -524,12 +524,12 @@ def results_two_qubit():
             ]
         )
     )
-    data[calibration_trace_handle("q1", "g")] = AcquiredResult(
+    data[handles.calibration_trace_handle("q1", "g")] = AcquiredResult(
         data=(-0.047990956067688245 + 0.01885716311907388j),
         axis_name=[],
         axis=[],
     )
-    data[calibration_trace_handle("q1", "e")] = AcquiredResult(
+    data[handles.calibration_trace_handle("q1", "e")] = AcquiredResult(
         data=(-0.5862257200659212 - 1.2763478584265495j),
         axis_name=[],
         axis=[],

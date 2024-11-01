@@ -2,6 +2,10 @@
 
 import numpy as np
 import pytest
+from laboneq.workflow.tasks.run_experiment import (
+    AcquiredResult,
+    RunExperimentResults,
+)
 
 from laboneq_applications.core.validation import (
     convert_qubits_sweeps_to_lists,
@@ -10,10 +14,6 @@ from laboneq_applications.core.validation import (
     validate_and_convert_sweeps_to_arrays,
     validate_length_qubits_sweeps,
     validate_result,
-)
-from laboneq_applications.tasks.run_experiment import (
-    AcquiredResult,
-    RunExperimentResults,
 )
 
 

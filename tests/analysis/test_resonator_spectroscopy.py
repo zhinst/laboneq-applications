@@ -4,13 +4,13 @@ import matplotlib as mpl
 import matplotlib.pyplot as plt
 import numpy as np
 import pytest
-
-from laboneq_applications.analysis import resonator_spectroscopy
-from laboneq_applications.core.handles import result_handle
-from laboneq_applications.tasks.run_experiment import (
+from laboneq.workflow.tasks import handles
+from laboneq.workflow.tasks.run_experiment import (
     AcquiredResult,
     RunExperimentResults,
 )
+
+from laboneq_applications.analysis import resonator_spectroscopy
 
 
 @pytest.fixture()
@@ -22,7 +22,7 @@ def results_single_qubit():
     a double-dipped Fano line-shape.
     """
     data = {}
-    data[result_handle("q0")] = AcquiredResult(
+    data[handles.result_handle("q0")] = AcquiredResult(
         data=np.array(
             [
                 -1.03017225e-04 + 2.16266844e-05j,

@@ -1,20 +1,20 @@
 import numpy as np
 import pytest
-
-from laboneq_applications.analysis import plotting_helpers as plt_hlp
-from laboneq_applications.core.handles import calibration_trace_handle, result_handle
-from laboneq_applications.experiments.options import TuneupAnalysisOptions
-from laboneq_applications.tasks.run_experiment import (
+from laboneq.workflow.tasks import handles
+from laboneq.workflow.tasks.run_experiment import (
     AcquiredResult,
     RunExperimentResults,
 )
+
+from laboneq_applications.analysis import plotting_helpers as plt_hlp
+from laboneq_applications.experiments.options import TuneupAnalysisOptions
 
 
 @pytest.fixture()
 def result():
     """Results from an AmplitudeRabi experiment."""
     data = {}
-    data[result_handle("q0")] = AcquiredResult(
+    data[handles.result_handle("q0")] = AcquiredResult(
         data=np.array(
             [
                 0.05290302 - 0.13215136j,
@@ -41,12 +41,12 @@ def result():
             ]
         )
     )
-    data[calibration_trace_handle("q0", "g")] = AcquiredResult(
+    data[handles.calibration_trace_handle("q0", "g")] = AcquiredResult(
         data=(0.05745863888207082 - 0.13026141779382786j),
         axis_name=[],
         axis=[],
     )
-    data[calibration_trace_handle("q0", "e")] = AcquiredResult(
+    data[handles.calibration_trace_handle("q0", "e")] = AcquiredResult(
         data=(0.1770431406621688 + 0.91612948998106j),
         axis_name=[],
         axis=[],
@@ -87,7 +87,7 @@ def result_nested_two_qubits():
     The same data and sweep points are used for both qubits.
     """
     data = {}
-    data[result_handle("q0", suffix="nest")] = AcquiredResult(
+    data[handles.result_handle("q0", suffix="nest")] = AcquiredResult(
         data=np.array(
             [
                 0.05290302 - 0.13215136j,
@@ -114,7 +114,9 @@ def result_nested_two_qubits():
             ]
         )
     )
-    data[result_handle("q1", suffix="nest")] = data[result_handle("q0", suffix="nest")]
+    data[handles.result_handle("q1", suffix="nest")] = data[
+        handles.result_handle("q0", suffix="nest")
+    ]
 
     sweep_points = np.array(
         [

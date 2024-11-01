@@ -19,13 +19,16 @@ from typing import TYPE_CHECKING
 from laboneq import workflow
 from laboneq.dsl.enums import AcquisitionType
 from laboneq.simple import Experiment, SweepParameter
+from laboneq.workflow.tasks import (
+    compile_experiment,
+    run_experiment,
+)
 
 from laboneq_applications import dsl
 from laboneq_applications.experiments.options import (
     ResonatorSpectroscopyExperimentOptions,
     TuneUpWorkflowOptions,
 )
-from laboneq_applications.tasks import compile_experiment, run_experiment
 from laboneq_applications.tasks.parameter_updating import temporary_modify
 
 if TYPE_CHECKING:

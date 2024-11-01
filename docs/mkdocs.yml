@@ -41,7 +41,6 @@ nav:
           - reference/core/index.md
           - build_experiment: reference/core/build_experiment.md
           - quantum_operations: reference/core/quantum_operations.md
-          - handles: reference/core/handles.md
           - validation: reference/core/validation.md
       - experiments:
           - reference/experiments/index.md
@@ -98,9 +97,7 @@ nav:
           - tunable_transmon: reference/qpu_types/tunable_transmon.md
       - tasks:
           - reference/tasks/index.md
-          - compile_experiment: reference/tasks/compile_experiment.md
           - parameter_updating: reference/tasks/parameter_updating.md
-          - run_experiment: reference/tasks/run_experiment.md
       - testing: reference/testing.md
       - typing: reference/typing.md
       - dsl: reference/dsl.md
