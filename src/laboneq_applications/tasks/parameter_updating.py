@@ -88,8 +88,10 @@ def temporary_modify(
     """
     if not temporary_parameters:
         return qubits
+    _single_qubit = False
     if not isinstance(qubits, list):
         qubits = [qubits]
+        _single_qubit = True
 
     new_qubits = []
     for q in qubits:
@@ -101,6 +103,6 @@ def temporary_modify(
             new_qubits.append(new_q)
         else:
             new_qubits.append(q)
-    if len(new_qubits) == 1:
+    if _single_qubit:
         return new_qubits[0]
     return new_qubits

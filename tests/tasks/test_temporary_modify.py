@@ -49,6 +49,11 @@ class TestTemporaryModify:
         assert new_q0.parameters.ge_drive_amplitude_pi == 0.55
         assert new_q0.parameters.ge_drive_amplitude_pi2 == 0.255
 
+        new_q0 = temporary_modify([q0], qubit_parameters)
+        assert len(new_q0) == 1
+        assert new_q0[0].parameters.ge_drive_amplitude_pi == 0.55
+        assert new_q0[0].parameters.ge_drive_amplitude_pi2 == 0.255
+
     def test_partial_modify(self, two_tunable_transmon_platform, qubit_parameters):
         [q0, q1] = two_tunable_transmon_platform.qpu.qubits
 
