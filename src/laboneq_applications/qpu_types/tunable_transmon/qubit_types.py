@@ -7,12 +7,14 @@ from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, Literal
 
 from laboneq.core.utilities.dsl_dataclass_decorator import classformatter
-from laboneq.dsl.calibration import Calibration, Oscillator
+from laboneq.dsl.calibration import Calibration, Oscillator, SignalCalibration
+from laboneq.dsl.device.io_units import LogicalSignal
 from laboneq.dsl.enums import ModulationType
 from laboneq.dsl.quantum import (
-    Transmon,
+    QuantumElement,
     TransmonParameters,
 )
+from laboneq.dsl.quantum.quantum_element import SignalType
 
 from laboneq_applications.dsl import (
     create_pulse,
@@ -21,6 +23,7 @@ from laboneq_applications.dsl import (
 if TYPE_CHECKING:
     from collections.abc import Sequence
 
+    from laboneq.dsl.device import LogicalSignalGroup
     from laboneq.dsl.device.io_units import LogicalSignal
     from laboneq.dsl.experiment.pulse import Pulse
 
@@ -196,7 +199,7 @@ class TunableTransmonQubitParameters(TransmonParameters):
 
 @classformatter
 @dataclass(init=False, repr=True, eq=False)
-class TunableTransmonQubit(Transmon):
+class TunableTransmonQubit(QuantumElement):
     """A class for a superconducting, flux-tuneable Transmon Qubit."""
 
     TRANSITIONS = ("ge", "ef")
@@ -224,12 +227,12 @@ class TunableTransmonQubit(Transmon):
                 `calibration()` and `experiment_signals()`.
         """
         if parameters is None:
-            parameters = TunableTransmonQubitParameters()
+            self.parameters = TunableTransmonQubitParameters()
         elif isinstance(parameters, dict):
-            parameters = TunableTransmonQubitParameters(**parameters)
+            self.parameters = TunableTransmonQubitParameters(**parameters)
         else:
             self.parameters = parameters
-        super().__init__(uid=uid, signals=signals, parameters=parameters)
+        super().__init__(uid=uid, signals=signals)
 
     def transition_parameters(self, transition: str | None = None) -> tuple[str, dict]:
         """Return the transition drive signal line and parameters.
@@ -369,6 +372,134 @@ class TunableTransmonQubit(Transmon):
 
         return integration_kernels
 
+    @classmethod
+    def from_logical_signal_group(
+        cls,
+        uid: str,
+        lsg: LogicalSignalGroup,
+        parameters: TransmonParameters | dict[str, Any] | None = None,
+    ) -> TunableTransmonQubit:
+        """TunableTransmonQubit from logical signal group.
+
+        Args:
+            uid: A unique identifier.
+            lsg: Logical signal group.
+                TunableTransmonQubit understands the following signal line names:
+
+                    - drive: 'drive', 'drive_line'
+                    - drive_ef: 'drive_ef', 'drive_line_ef'
+                    - measure: 'measure', 'measure_line'
+                    - acquire: 'acquire', 'acquire_line'
+                    - flux: 'flux', 'flux_line'
+
+                This is so that the Qubit parameters are applied to correct
+                signal lines in calibration.
+            parameters: Parameters associated with the qubit.
+        """
+        signal_type_map = {
+            SignalType.DRIVE: ["drive", "drive_line"],
+            SignalType.DRIVE_EF: ["drive_ef", "drive_line_ef"],
+            SignalType.MEASURE: ["measure", "measure_line"],
+            SignalType.ACQUIRE: ["acquire", "acquire_line"],
+            SignalType.FLUX: ["flux", "flux_line"],
+        }
+        if parameters is None:
+            parameters = TransmonParameters()
+        elif isinstance(parameters, dict):
+            parameters = TransmonParameters(**parameters)
+        return cls._from_logical_signal_group(
+            uid=uid,
+            lsg=lsg,
+            parameters=parameters,
+            signal_type_map=signal_type_map,
+        )
+
+    def calibration(self, set_local_oscillators: bool = True) -> Calibration:  # noqa: FBT001, FBT002, C901, PLR0912
+        """Generate calibration from the parameters and attached signal lines.
+
+        Set the readout_integration_discrimination_thresholds and disable the modulation
+        of the acquire oscillator if optimal weights are used
+        (readout_integration_kernels_type == "optimal")
+
+        Args:
+            set_local_oscillators (bool):
+                If True, adds local oscillator settings to the calibration.
+
+        Returns:
+            calibration:
+                Prefilled calibration object from Qubit parameters.
+        """
+        drive_lo = None
+        readout_lo = None
+        if set_local_oscillators:
+            if self.parameters.drive_lo_frequency is not None:
+                drive_lo = Oscillator(
+                    uid=f"{self.uid}_drive_local_osc",
+                    frequency=self.parameters.drive_lo_frequency,
+                )
+            if self.parameters.readout_lo_frequency is not None:
+                readout_lo = Oscillator(
+                    uid=f"{self.uid}_readout_local_osc",
+                    frequency=self.parameters.readout_lo_frequency,
+                )
+        if self.parameters.readout_frequency is not None:
+            readout_oscillator = Oscillator(
+                uid=f"{self.uid}_readout_acquire_osc",
+                frequency=self.parameters.readout_frequency,
+                modulation_type=ModulationType.AUTO,
+            )
+
+        calibration_items = {}
+        if "drive" in self.signals:
+            sig_cal = SignalCalibration()
+            if self.parameters.drive_frequency_ge is not None:
+                sig_cal.oscillator = Oscillator(
+                    uid=f"{self.uid}_drive_ge_osc",
+                    frequency=self.parameters.drive_frequency_ge,
+                    modulation_type=ModulationType.AUTO,
+                )
+            sig_cal.local_oscillator = drive_lo
+            sig_cal.range = self.parameters.drive_range
+            calibration_items[self.signals["drive"]] = sig_cal
+        if "drive_ef" in self.signals:
+            sig_cal = SignalCalibration()
+            if self.parameters.drive_frequency_ef is not None:
+                sig_cal.oscillator = Oscillator(
+                    uid=f"{self.uid}_drive_ef_osc",
+                    frequency=self.parameters.drive_frequency_ef,
+                    modulation_type=ModulationType.AUTO,
+                )
+            sig_cal.local_oscillator = drive_lo
+            sig_cal.range = self.parameters.drive_range
+            calibration_items[self.signals["drive_ef"]] = sig_cal
+        if "measure" in self.signals:
+            sig_cal = SignalCalibration()
+            if self.parameters.readout_frequency is not None:
+                sig_cal.oscillator = readout_oscillator
+            sig_cal.local_oscillator = readout_lo
+            sig_cal.range = self.parameters.readout_range_out
+            calibration_items[self.signals["measure"]] = sig_cal
+        if "acquire" in self.signals:
+            sig_cal = SignalCalibration()
+            if self.parameters.readout_frequency is not None:
+                sig_cal.oscillator = readout_oscillator
+            sig_cal.local_oscillator = readout_lo
+            sig_cal.range = self.parameters.readout_range_in
+            sig_cal.port_delay = self.parameters.readout_integration_delay
+            sig_cal.threshold = (
+                self.parameters.readout_integration_discrimination_thresholds
+            )
+            if self.parameters.readout_integration_kernels_type == "optimal":
+                sig_cal.oscillator = Oscillator(
+                    frequency=0, modulation_type=ModulationType.SOFTWARE
+                )
+            calibration_items[self.signals["acquire"]] = sig_cal
+        if "flux" in self.signals:
+            calibration_items[self.signals["flux"]] = SignalCalibration(
+                voltage_offset=self.parameters.flux_offset_voltage,
+            )
+        return Calibration(calibration_items)
+
     def replace(
         self,
         parameters: dict,
@@ -432,24 +563,3 @@ class TunableTransmonQubit(Transmon):
             self.parameters._override(parameters)
         except ValueError as err:
             raise ValueError(f"Cannot update {self.uid}: {err}.") from err
-
-    def calibration(self, set_local_oscillators: bool = True) -> Calibration:  # noqa: FBT001, FBT002
-        """Generate calibration from the parameters and attached signal lines.
-
-        Overloads the method with the same name from the base class [Transmon] in
-        order to set the readout_integration_discrimination_thresholds and to
-        disable the modulation of the acquire oscillator if optimal weights are used
-        (readout_integration_kernels_type == "optimal").
-        """
-        qubit_calib = super().calibration(set_local_oscillators=set_local_oscillators)
-        if "acquire" in self.signals:
-            acq_sig_calib = qubit_calib[self.signals["acquire"]]
-            acq_sig_calib.threshold = (
-                self.parameters.readout_integration_discrimination_thresholds
-            )
-
-            if self.parameters.readout_integration_kernels_type == "optimal":
-                acq_sig_calib.oscillator = Oscillator(
-                    frequency=0, modulation_type=ModulationType.SOFTWARE
-                )
-        return qubit_calib
