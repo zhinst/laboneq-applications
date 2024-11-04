@@ -39,9 +39,7 @@ dependencies = [
     "scipy",
     "matplotlib",
     "lmfit",
-    "pygments",
     "scikit-learn~=1.5.2",
-    "rich"
 ]
 
 [tool.setuptools.packages.find]
