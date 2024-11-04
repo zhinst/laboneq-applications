@@ -39,8 +39,6 @@ nav:
       - reference/index.md
       - core:
           - reference/core/index.md
-          - build_experiment: reference/core/build_experiment.md
-          - quantum_operations: reference/core/quantum_operations.md
           - validation: reference/core/validation.md
       - experiments:
           - reference/experiments/index.md
@@ -93,14 +91,12 @@ nav:
               - single_qubit_randomized_benchmarking: reference/contrib/analysis/single_qubit_randomized_benchmarking.md
       - qpu_types:
           - reference/qpu_types/index.md
-          - qpu: reference/qpu_types/qpu.md
           - tunable_transmon: reference/qpu_types/tunable_transmon.md
       - tasks:
           - reference/tasks/index.md
           - parameter_updating: reference/tasks/parameter_updating.md
       - testing: reference/testing.md
       - typing: reference/typing.md
-      - dsl: reference/dsl.md
 
 plugins:
   mkdocstrings:

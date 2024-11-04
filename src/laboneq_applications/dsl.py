@@ -35,31 +35,35 @@ __all__ = [
     "create_pulse",
 ]
 
-from laboneq.dsl.experiment.builtins import (
+from laboneq.dsl.experiment.builtins_dsl import (
+    # core quantum:
+    QuantumOperations,
+    # builtins:
     acquire,
     acquire_loop_rt,
+    # section_context:
+    active_section,
     add,
     call,
     case,
+    create_pulse,
     delay,
     experiment,
     experiment_calibration,
+    # handles:
+    handles,
     match,
     measure,
     play,
+    # pulse_library:
+    pulse_library,
+    quantum_operation,
+    # qubit_experiment:
+    qubit_experiment,
     reserve,
     section,
     sweep,
     uid,
 )
-from laboneq.dsl.experiment.section_context import active_section
-from laboneq.simple import pulse_library
-from laboneq.workflow.tasks import handles
 
 from laboneq_applications.core import validation
-from laboneq_applications.core.build_experiment import qubit_experiment
-from laboneq_applications.core.quantum_operations import (
-    QuantumOperations,
-    create_pulse,
-    quantum_operation,
-)

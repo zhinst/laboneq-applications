@@ -4,8 +4,7 @@ from laboneq.dsl.calibration import Oscillator, SignalCalibration
 from laboneq.dsl.device import DeviceSetup, create_connection
 from laboneq.dsl.device.instruments import HDAWG, PQSC, SHFQC
 from laboneq.dsl.enums import ModulationType
-
-from laboneq_applications.qpu_types import QPU, QuantumPlatform
+from laboneq.dsl.quantum.qpu import QPU, QuantumPlatform
 
 from .operations import TunableTransmonOperations
 from .qubit_types import (

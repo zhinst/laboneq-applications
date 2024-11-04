@@ -1,8 +1,8 @@
 """Device setups for tests."""
 
 import pytest
+from laboneq.dsl.quantum.qpu import QuantumPlatform
 
-from laboneq_applications.qpu_types.qpu import QuantumPlatform
 from laboneq_applications.qpu_types.tunable_transmon import demo_platform
 
 

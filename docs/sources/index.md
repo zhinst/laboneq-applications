@@ -23,8 +23,8 @@ Ramsey ([ramsey][laboneq_applications.experiments.ramsey]) and many more.
 Definitions for the units of quantum-computing experiment quantum platforms, 
 such as [TunableTransmonQubit][laboneq_applications.qpu_types.tunable_transmon.TunableTransmonQubit],
 [TunableTransmonOperations][laboneq_applications.qpu_types.tunable_transmon.TunableTransmonOperations],
-[QuantumPlatform][laboneq_applications.qpu_types.QuantumPlatform]
-and [QPU][laboneq_applications.qpu_types.QPU] to be used in experiment workflows.
+[QuantumPlatform][laboneq.dsl.quantum.qpu.QuantumPlatform]
+and [QPU][laboneq.dsl.quantum.qpu.QPU] to be used in experiment workflows.
 
 - `laboneq.workflow.logbook`
 
@@ -52,7 +52,7 @@ and [update_qubits][laboneq_applications.tasks.parameter_updating.update_qubits]
 - `laboneq_applications.dsl`
 
 A namespace that exposes commonly used objects and extensions for building an LabOne Q `Experiment`, such
-as the decorator [@qubit_experiment][laboneq_applications.core.build_experiment.qubit_experiment], 
+as the decorator [@qubit_experiment][laboneq.dsl.experiment.build_experiment.qubit_experiment],
 alongside common quantum operations such as `play()`, `measure()`, etc.
 
 - `laboneq_applications.analysis`

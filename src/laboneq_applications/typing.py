@@ -27,15 +27,6 @@ Type hints
 
     If the values are for multiple qubits, [QubitSweepPoints]() is
     a sequence of such values, one for each qubit.
-
-* [SimpleDict]()
-
-    Simple dictionaries are used for artifact metadata and serializer
-    options, allowing these to themselves be serialized easily, especially
-    to JSON.
-
-    Simple dictionaries only allow Python strings as keys and their values
-    may be simnple numeric types, strings or `None`.
 """
 
 from __future__ import annotations
@@ -43,7 +34,7 @@ from __future__ import annotations
 from collections.abc import Sequence
 from typing import Union
 
-from laboneq.dsl.quantum.quantum_element import QuantumElement
+from laboneq.workflow.typing import Qubits
 from numpy.typing import ArrayLike
 from typing_extensions import TypeAlias
 
@@ -55,7 +46,4 @@ __all__ = [
 # Use of Union is to support Python 3.9.
 # Use of typing_extensions TypeAlias is to support Python 3.9.
 
-Qubits: TypeAlias = Union[QuantumElement, Sequence[QuantumElement]]
 QubitSweepPoints: TypeAlias = Union[ArrayLike, Sequence[ArrayLike]]
-
-SimpleDict: TypeAlias = dict[str, Union[str, int, float, complex, bool, None]]

@@ -28,7 +28,6 @@ from laboneq.workflow.tasks import (
 
 from laboneq_applications import dsl
 from laboneq_applications.analysis.time_traces import analysis_workflow
-from laboneq_applications.core.build_experiment import qubit_experiment
 from laboneq_applications.experiments.options import (
     BaseExperimentOptions,
     TuneUpWorkflowOptions,
@@ -152,7 +151,7 @@ def experiment_workflow(
 
 
 @workflow.task
-@qubit_experiment
+@dsl.qubit_experiment
 def create_experiment(
     qpu: QPU,
     qubit: QuantumElement,
