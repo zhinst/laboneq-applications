@@ -13,8 +13,8 @@ from laboneq.workflow import (
 
 if TYPE_CHECKING:
     import uncertainties as unc
+    from laboneq.dsl.quantum.qpu import QPU
 
-    from laboneq_applications.qpu_types import QPU
     from laboneq_applications.typing import Qubits
 
 

@@ -19,14 +19,20 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from laboneq import workflow
-from laboneq.simple import AveragingMode, Experiment, SectionAlignment, SweepParameter
+from laboneq.simple import (
+    AveragingMode,
+    Experiment,
+    SectionAlignment,
+    SweepParameter,
+    dsl,
+)
 from laboneq.workflow.tasks import (
     compile_experiment,
     run_experiment,
 )
 
-from laboneq_applications import dsl
 from laboneq_applications.analysis.lifetime_measurement import analysis_workflow
+from laboneq_applications.core import validation
 from laboneq_applications.experiments.options import (
     TuneupExperimentOptions,
     TuneUpWorkflowOptions,
@@ -38,9 +44,9 @@ from laboneq_applications.tasks.parameter_updating import (
 
 if TYPE_CHECKING:
     from laboneq.dsl.quantum import TransmonParameters
+    from laboneq.dsl.quantum.qpu import QPU
     from laboneq.dsl.session import Session
 
-    from laboneq_applications.qpu_types import QPU
     from laboneq_applications.typing import Qubits, QubitSweepPoints
 
 
@@ -193,7 +199,7 @@ def create_experiment(
     """
     # Define the custom options for the experiment
     opts = TuneupExperimentOptions() if options is None else options
-    qubits, delays = dsl.validation.validate_and_convert_qubits_sweeps(qubits, delays)
+    qubits, delays = validation.validate_and_convert_qubits_sweeps(qubits, delays)
     if (
         opts.use_cal_traces
         and AveragingMode(opts.averaging_mode) == AveragingMode.SEQUENTIAL

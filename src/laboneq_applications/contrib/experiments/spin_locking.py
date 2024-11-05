@@ -15,23 +15,23 @@ from dataclasses import field
 from typing import TYPE_CHECKING
 
 import numpy as np
-from laboneq.simple import Experiment, SweepParameter
+from laboneq.simple import Experiment, SweepParameter, dsl
 from laboneq.workflow import WorkflowOptions, task, workflow
 from laboneq.workflow.tasks import (
     compile_experiment,
     run_experiment,
 )
 
-from laboneq_applications import dsl
+from laboneq_applications.core import validation
 from laboneq_applications.experiments.options import (
     TuneupExperimentOptions,
 )
 
 if TYPE_CHECKING:
+    from laboneq.dsl.quantum.qpu import QPU
     from laboneq.dsl.session import Session
     from numpy.typing import ArrayLike
 
-    from laboneq_applications.qpu_types import QPU
     from laboneq_applications.typing import Qubits, QubitSweepPoints
 
 
@@ -201,7 +201,7 @@ def create_experiment(
     """
     # Define the custom options for the experiment
     opts = SpinLockingExperimentOptions() if options is None else options
-    qubits, lengths = dsl.validation.validate_and_convert_qubits_sweeps(qubits, lengths)
+    qubits, lengths = validation.validate_and_convert_qubits_sweeps(qubits, lengths)
     angle = rel_amp * np.pi if rel_amp is not None else np.pi
 
     qop = qpu.quantum_operations

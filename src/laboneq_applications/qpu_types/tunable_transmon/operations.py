@@ -7,8 +7,7 @@ from typing import TYPE_CHECKING, Literal
 import numpy as np
 from laboneq.dsl.calibration import Oscillator
 from laboneq.dsl.enums import ModulationType
-
-from laboneq_applications import dsl
+from laboneq.simple import dsl
 
 from .qubit_types import TunableTransmonQubit
 

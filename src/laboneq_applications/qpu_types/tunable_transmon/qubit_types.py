@@ -15,10 +15,7 @@ from laboneq.dsl.quantum import (
     TransmonParameters,
 )
 from laboneq.dsl.quantum.quantum_element import SignalType
-
-from laboneq_applications.dsl import (
-    create_pulse,
-)
+from laboneq.simple import dsl
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
@@ -303,7 +300,7 @@ class TunableTransmonQubit(QuantumElement):
             `readout_integration_length`.
         """
         return [
-            create_pulse(
+            dsl.create_pulse(
                 {
                     "function": "const",
                     "length": self.parameters.readout_integration_length,
@@ -348,7 +345,9 @@ class TunableTransmonQubit(QuantumElement):
             kernel_params = self.parameters.readout_integration_kernels
             if isinstance(kernel_params, (list, tuple)) and len(kernel_params) > 0:
                 integration_kernels = [
-                    create_pulse(kernel_pulse, name=f"integration_kernel_{self.uid}")
+                    dsl.create_pulse(
+                        kernel_pulse, name=f"integration_kernel_{self.uid}"
+                    )
                     for kernel_pulse in kernel_params
                 ]
             else:
@@ -358,7 +357,7 @@ class TunableTransmonQubit(QuantumElement):
                 )
         elif isinstance(kernel_pulses, (list, tuple)) and kernel_pulses:
             integration_kernels = [
-                create_pulse(kernel_pulse, name=f"integration_kernel_{self.uid}")
+                dsl.create_pulse(kernel_pulse, name=f"integration_kernel_{self.uid}")
                 for kernel_pulse in kernel_pulses
             ]
         else:

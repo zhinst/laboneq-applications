@@ -17,8 +17,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Literal
 
 from laboneq import workflow
-from laboneq.simple import AcquisitionType, Experiment
-from laboneq.workflow import option_field, options
+from laboneq.simple import AcquisitionType, Experiment, dsl
 from laboneq.workflow.tasks import (
     append_result,
     combine_results,
@@ -26,8 +25,8 @@ from laboneq.workflow.tasks import (
     run_experiment,
 )
 
-from laboneq_applications import dsl
 from laboneq_applications.analysis.time_traces import analysis_workflow
+from laboneq_applications.core import validation
 from laboneq_applications.experiments.options import (
     BaseExperimentOptions,
     TuneUpWorkflowOptions,
@@ -40,17 +39,15 @@ from laboneq_applications.tasks.parameter_updating import (
 if TYPE_CHECKING:
     from collections.abc import Sequence
 
-    from laboneq.dsl.quantum import (
-        TransmonParameters,
-    )
+    from laboneq.dsl.quantum import TransmonParameters
+    from laboneq.dsl.quantum.qpu import QPU
     from laboneq.dsl.quantum.quantum_element import QuantumElement
     from laboneq.dsl.session import Session
 
-    from laboneq_applications.qpu_types import QPU
     from laboneq_applications.typing import Qubits
 
 
-@options
+@workflow.options
 class TimeTracesExperimentOptions(BaseExperimentOptions):
     """Options for the time-traces experiment.
 
@@ -63,7 +60,7 @@ class TimeTracesExperimentOptions(BaseExperimentOptions):
             Default: `AcquisitionType.RAW`.
     """
 
-    acquisition_type: str | AcquisitionType = option_field(
+    acquisition_type: str | AcquisitionType = workflow.option_field(
         AcquisitionType.RAW, description="Acquisition type to use for the experiment"
     )
 
@@ -131,7 +128,7 @@ def experiment_workflow(
         ```
     """
     qubits = temporary_modify(qubits, temporary_parameters)
-    qubits = dsl.validation.validate_and_convert_qubits_sweeps(qubits)
+    qubits = validation.validate_and_convert_qubits_sweeps(qubits)
     results = []
     with workflow.for_(qubits, lambda q: q.uid) as qubit:
         with workflow.for_(states, lambda s: s) as state:

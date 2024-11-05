@@ -18,18 +18,16 @@ import matplotlib.pyplot as plt
 import numpy as np
 import uncertainties as unc
 from laboneq import workflow
-from laboneq.workflow import option_field, options
+from laboneq.simple import dsl
 
-from laboneq_applications import dsl
 from laboneq_applications.analysis.fitting_helpers import lorentzian_fit
 from laboneq_applications.analysis.plotting_helpers import (
     plot_raw_complex_data_1d,
     timestamped_title,
 )
-from laboneq_applications.core.validation import validate_result
+from laboneq_applications.core import validation
 from laboneq_applications.experiments.options import (
     ResonatorSpectroscopyExperimentOptions,
-    WorkflowOptions,
 )
 
 if TYPE_CHECKING:
@@ -40,7 +38,7 @@ if TYPE_CHECKING:
     from numpy.typing import ArrayLike
 
 
-@options
+@workflow.options
 class ResonatorSpectroscopyAnalysisOptions(ResonatorSpectroscopyExperimentOptions):
     """Options for the analysis of the resonator spectroscopy experiment.
 
@@ -63,25 +61,27 @@ class ResonatorSpectroscopyAnalysisOptions(ResonatorSpectroscopyExperimentOption
 
     """
 
-    fit_lorentzian: bool = option_field(
+    fit_lorentzian: bool = workflow.option_field(
         False, description="Whether to fit a Lorentzian model to the data."
     )
     fit_parameters_hints: dict[str, dict[str, float | bool | str]] | None = (
-        option_field(None, description="Parameters hints accepted by lmfit")
+        workflow.option_field(None, description="Parameters hints accepted by lmfit")
     )
-    find_peaks: bool = option_field(
+    find_peaks: bool = workflow.option_field(
         False,
         description="Whether to search for peaks (True) or dips (False) "
         "in the spectrum.",
     )
-    save_figures: bool = option_field(True, description="Whether to save the figures.")
-    close_figures: bool = option_field(
+    save_figures: bool = workflow.option_field(
+        True, description="Whether to save the figures."
+    )
+    close_figures: bool = workflow.option_field(
         True, description="Whether to close the figures."
     )
 
 
-@options
-class ResonatorSpectroscopyAnalysisWorkflowOptions(WorkflowOptions):
+@workflow.options
+class ResonatorSpectroscopyAnalysisWorkflowOptions(workflow.WorkflowOptions):
     """Option class for spectroscopy analysis workflows.
 
     Attributes:
@@ -99,14 +99,16 @@ class ResonatorSpectroscopyAnalysisWorkflowOptions(WorkflowOptions):
             Default: True.
     """
 
-    do_plotting: bool = option_field(True, description="Whether to create plots.")
-    do_raw_data_plotting: bool = option_field(
+    do_plotting: bool = workflow.option_field(
+        True, description="Whether to create plots."
+    )
+    do_raw_data_plotting: bool = workflow.option_field(
         True, description="Whether to plot the raw data."
     )
-    do_plotting_magnitude_phase: bool = option_field(
+    do_plotting_magnitude_phase: bool = workflow.option_field(
         True, description="Whether to plot the magnitude and phase."
     )
-    do_plotting_real_imaginary: bool = option_field(
+    do_plotting_real_imaginary: bool = workflow.option_field(
         True, description="Whether to plot the real and imaginary data."
     )
 
@@ -203,8 +205,8 @@ def calculate_signal_magnitude_and_phase(
             magnitude
             phase
     """
-    validate_result(result)
-    qubit, frequencies = dsl.validation.validate_and_convert_single_qubit_sweeps(
+    validation.validate_result(result)
+    qubit, frequencies = validation.validate_and_convert_single_qubit_sweeps(
         qubit, frequencies
     )
 
@@ -295,7 +297,7 @@ def extract_qubit_parameters(
         left empty.
     """
     opts = ResonatorSpectroscopyAnalysisOptions() if options is None else options
-    qubit = dsl.validation.validate_and_convert_single_qubit_sweeps(qubit)
+    qubit = validation.validate_and_convert_single_qubit_sweeps(qubit)
 
     qubit_parameters = {
         "old_parameter_values": {qubit.uid: {}},
@@ -362,7 +364,7 @@ def plot_magnitude_phase(
         textbox with the extracted readout resonator frequency are not plotted.
     """
     opts = ResonatorSpectroscopyAnalysisOptions() if options is None else options
-    qubit = dsl.validation.validate_and_convert_single_qubit_sweeps(qubit)
+    qubit = validation.validate_and_convert_single_qubit_sweeps(qubit)
 
     sweep_points = processed_data_dict["sweep_points"]
     magnitude = processed_data_dict["magnitude"]
@@ -485,8 +487,8 @@ def plot_real_imaginary(
         the matplotlib figure
     """
     opts = ResonatorSpectroscopyAnalysisOptions() if options is None else options
-    validate_result(result)
-    qubit = dsl.validation.validate_and_convert_single_qubit_sweeps(qubit)
+    validation.validate_result(result)
+    qubit = validation.validate_and_convert_single_qubit_sweeps(qubit)
 
     raw_data = result[dsl.handles.result_handle(qubit.uid)].data
 

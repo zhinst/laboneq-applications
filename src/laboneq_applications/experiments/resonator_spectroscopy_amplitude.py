@@ -17,14 +17,13 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from laboneq import workflow
-from laboneq.dsl.enums import AcquisitionType
-from laboneq.simple import Experiment, SweepParameter
+from laboneq.simple import AcquisitionType, Experiment, SweepParameter, dsl
 from laboneq.workflow.tasks import (
     compile_experiment,
     run_experiment,
 )
 
-from laboneq_applications import dsl
+from laboneq_applications.core import validation
 from laboneq_applications.experiments.options import (
     ResonatorSpectroscopyExperimentOptions,
     TuneUpWorkflowOptions,
@@ -35,11 +34,10 @@ if TYPE_CHECKING:
     from laboneq.dsl.quantum import (
         TransmonParameters,
     )
+    from laboneq.dsl.quantum.qpu import QPU
     from laboneq.dsl.quantum.quantum_element import QuantumElement
     from laboneq.dsl.session import Session
     from numpy.typing import ArrayLike
-
-    from laboneq_applications.qpu_types import QPU
 
 
 @workflow.workflow(name="resonator_spectroscopy_amplitude")
@@ -182,7 +180,7 @@ def create_experiment(
     """
     # Define the custom options for the experiment
     opts = ResonatorSpectroscopyExperimentOptions() if options is None else options
-    qubit, frequencies = dsl.validation.validate_and_convert_single_qubit_sweeps(
+    qubit, frequencies = validation.validate_and_convert_single_qubit_sweeps(
         qubit, frequencies
     )
     # guard against wrong options for the acquisition type

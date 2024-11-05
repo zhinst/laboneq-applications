@@ -7,9 +7,14 @@ import numpy as np
 import pytest
 from laboneq.dsl.enums import ModulationType
 from laboneq.dsl.experiment.build_experiment import build
-from laboneq.simple import AcquisitionType, SectionAlignment, Session, SweepParameter
+from laboneq.simple import (
+    AcquisitionType,
+    SectionAlignment,
+    Session,
+    SweepParameter,
+    dsl,
+)
 
-from laboneq_applications import dsl
 from laboneq_applications.qpu_types.tunable_transmon import (
     TunableTransmonOperations,
     TunableTransmonQubit,

@@ -20,14 +20,10 @@ from typing import TYPE_CHECKING
 import matplotlib.pyplot as plt
 import numpy as np
 from laboneq import workflow
-from laboneq.workflow import option_field, options
+from laboneq.simple import dsl
 
-from laboneq_applications import dsl
 from laboneq_applications.analysis.plotting_helpers import timestamped_title
-from laboneq_applications.experiments.options import (
-    TaskOptions,
-    WorkflowOptions,
-)
+from laboneq_applications.core import validation
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
@@ -38,8 +34,8 @@ if TYPE_CHECKING:
     from numpy.typing import ArrayLike
 
 
-@options
-class DispersiveShiftAnalysisOptions(TaskOptions):
+@workflow.options
+class DispersiveShiftAnalysisOptions(workflow.TaskOptions):
     """Base options for the analysis of a dispersive-shift experiment.
 
     Attributes:
@@ -52,14 +48,16 @@ class DispersiveShiftAnalysisOptions(TaskOptions):
 
     """
 
-    save_figures: bool = option_field(True, description="Whether to save the figures.")
-    close_figures: bool = option_field(
+    save_figures: bool = workflow.option_field(
+        True, description="Whether to save the figures."
+    )
+    close_figures: bool = workflow.option_field(
         True, description="Whether to close the figures."
     )
 
 
-@options
-class DispersiveShiftAnalysisWorkflowOptions(WorkflowOptions):
+@workflow.options
+class DispersiveShiftAnalysisWorkflowOptions(workflow.WorkflowOptions):
     """Option class for a dispersive-shift analysis workflows.
 
     Attributes:
@@ -75,11 +73,13 @@ class DispersiveShiftAnalysisWorkflowOptions(WorkflowOptions):
             Default: True.
     """
 
-    do_plotting: bool = option_field(True, description="Whether to create the plots.")
-    do_plotting_dispersive_shift: bool = option_field(
+    do_plotting: bool = workflow.option_field(
+        True, description="Whether to create the plots."
+    )
+    do_plotting_dispersive_shift: bool = workflow.option_field(
         True, description="Whether to create the dispersive shift plot."
     )
-    do_plotting_signal_distances: bool = option_field(
+    do_plotting_signal_distances: bool = workflow.option_field(
         True,
         description="Whether to create the plot for the pair-wise signal distances.",
     )
@@ -177,10 +177,10 @@ def calculate_signal_differences(
         TypeError:
             If the result is not an instance of RunExperimentResults.
     """
-    qubit, frequencies = dsl.validation.validate_and_convert_single_qubit_sweeps(
+    qubit, frequencies = validation.validate_and_convert_single_qubit_sweeps(
         qubit, frequencies
     )
-    dsl.validation.validate_result(result)
+    validation.validate_result(result)
     all_state_combinations = combinations(list(states), 2)
     processed_data_dict = {}
     joined_states = ["".join(sc) for sc in all_state_combinations]
@@ -249,7 +249,7 @@ def extract_qubit_parameters(
         }
         ```
     """
-    qubit = dsl.validation.validate_and_convert_single_qubit_sweeps(qubit)
+    qubit = validation.validate_and_convert_single_qubit_sweeps(qubit)
     qubit_parameters = {
         "old_parameter_values": {qubit.uid: {}},
         "new_parameter_values": {qubit.uid: {}},
@@ -305,10 +305,10 @@ def plot_dispersive_shift(
             If the result is not an instance of RunExperimentResults.
     """
     opts = DispersiveShiftAnalysisOptions() if options is None else options
-    qubit, frequencies = dsl.validation.validate_and_convert_single_qubit_sweeps(
+    qubit, frequencies = validation.validate_and_convert_single_qubit_sweeps(
         qubit, frequencies
     )
-    dsl.validation.validate_result(result)
+    validation.validate_result(result)
 
     # Plot S21 for each prep state
     fig, ax = plt.subplots()
@@ -356,7 +356,7 @@ def plot_signal_distances(
         the matplotlib figure
     """
     opts = DispersiveShiftAnalysisOptions() if options is None else options
-    qubit, frequencies = dsl.validation.validate_and_convert_single_qubit_sweeps(
+    qubit, frequencies = validation.validate_and_convert_single_qubit_sweeps(
         qubit, frequencies
     )
 

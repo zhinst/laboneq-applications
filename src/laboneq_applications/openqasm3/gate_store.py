@@ -7,10 +7,10 @@ from typing import TYPE_CHECKING, Callable
 from laboneq.openqasm3.gate_store import GateStore
 
 if TYPE_CHECKING:
+    from laboneq.dsl.experiment.builtins_dsl import QuantumOperations
+    from laboneq.dsl.quantum.quantum_operations import Operation
     from laboneq.simple import Section
 
-    from laboneq_applications.core.quantum_operations import Operation
-    from laboneq_applications.dsl import QuantumOperations
     from laboneq_applications.qpu_types.tunable_transmon.qubit_types import (
         TunableTransmonQubit,
     )

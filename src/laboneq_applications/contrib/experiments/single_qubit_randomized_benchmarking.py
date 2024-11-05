@@ -20,7 +20,7 @@ from typing import TYPE_CHECKING
 
 from laboneq.openqasm3.gate_store import GateStore
 from laboneq.openqasm3.openqasm3_importer import OpenQasm3Importer
-from laboneq.simple import Experiment, SweepParameter
+from laboneq.simple import Experiment, SweepParameter, dsl
 from laboneq.workflow import (
     if_,
     task,
@@ -33,7 +33,6 @@ from laboneq.workflow.tasks import (
 from qiskit import qasm3, transpile
 from qiskit_experiments.library import randomized_benchmarking
 
-from laboneq_applications import dsl
 from laboneq_applications.contrib.analysis.single_qubit_randomized_benchmarking import (
     analysis_workflow,
 )
@@ -46,9 +45,9 @@ from laboneq_applications.experiments.options import (
 )
 
 if TYPE_CHECKING:
+    from laboneq.dsl.quantum.qpu import QPU
     from laboneq.dsl.session import Session
 
-    from laboneq_applications.qpu_types import QPU
     from laboneq_applications.typing import Qubits
 
 

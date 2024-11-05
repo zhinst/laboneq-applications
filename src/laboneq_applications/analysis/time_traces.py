@@ -19,12 +19,10 @@ import numpy as np
 import scipy as sp
 from laboneq import workflow
 from laboneq.analysis import calculate_integration_kernels_thresholds
-from laboneq.workflow import option_field, options
+from laboneq.simple import dsl
 
-from laboneq_applications import dsl
 from laboneq_applications.analysis.plotting_helpers import timestamped_title
 from laboneq_applications.core.validation import validate_and_convert_qubits_sweeps
-from laboneq_applications.experiments.options import TaskOptions, WorkflowOptions
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
@@ -36,8 +34,8 @@ if TYPE_CHECKING:
     from laboneq_applications.typing import Qubits
 
 
-@options
-class TimeTracesAnalysisWorkflowOptions(WorkflowOptions):
+@workflow.options
+class TimeTracesAnalysisWorkflowOptions(workflow.WorkflowOptions):
     """Option class for the time-traces analysis workflow.
 
     Attributes:
@@ -61,24 +59,28 @@ class TimeTracesAnalysisWorkflowOptions(WorkflowOptions):
             Default: 'True'.
     """
 
-    filter_kernels: bool = option_field(
+    filter_kernels: bool = workflow.option_field(
         False, description="Whether to filter the kernels."
     )
-    do_fitting: bool = option_field(True, description="Whether to perform the fit.")
-    do_plotting: bool = option_field(True, description="Whether to create plots.")
-    do_plotting_time_traces: bool = option_field(
+    do_fitting: bool = workflow.option_field(
+        True, description="Whether to perform the fit."
+    )
+    do_plotting: bool = workflow.option_field(
+        True, description="Whether to create plots."
+    )
+    do_plotting_time_traces: bool = workflow.option_field(
         True, description="Whether to create time-traces plots."
     )
-    do_plotting_kernels_traces: bool = option_field(
+    do_plotting_kernels_traces: bool = workflow.option_field(
         True, description="Whether to create the integration-kernel plots."
     )
-    do_plotting_kernels_fft: bool = option_field(
+    do_plotting_kernels_fft: bool = workflow.option_field(
         True, description="Whether to create the kernels-FFT plots."
     )
 
 
-@options
-class TimeTracesAnalysisOptions(TaskOptions):
+@workflow.options
+class TimeTracesAnalysisOptions(workflow.TaskOptions):
     """Option class for the tasks in the time-traces analysis workflows.
 
     Attributes:
@@ -106,16 +108,20 @@ class TimeTracesAnalysisOptions(TaskOptions):
             Default: `True`.
     """
 
-    granularity: int = option_field(
+    granularity: int = workflow.option_field(
         16, description="The granularity of the acquisition."
     )
-    filter_cutoff_frequency: float | None = option_field(
+    filter_cutoff_frequency: float | None = workflow.option_field(
         None, description="The cut-off frequency."
     )
-    sampling_rate: float = option_field(2e9, description="The sampling rate.")
-    do_fitting: bool = option_field(True, description="Whether to perform the fit.")
-    save_figures: bool = option_field(True, description="Whether to save the figures.")
-    close_figures: bool = option_field(
+    sampling_rate: float = workflow.option_field(2e9, description="The sampling rate.")
+    do_fitting: bool = workflow.option_field(
+        True, description="Whether to perform the fit."
+    )
+    save_figures: bool = workflow.option_field(
+        True, description="Whether to save the figures."
+    )
+    close_figures: bool = workflow.option_field(
         True, description="Whether to close the figures."
     )
 

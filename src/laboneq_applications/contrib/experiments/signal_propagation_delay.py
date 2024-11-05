@@ -14,14 +14,13 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from laboneq.simple import Experiment, SweepParameter
+from laboneq.simple import Experiment, SweepParameter, dsl
 from laboneq.workflow import if_, task, workflow
 from laboneq.workflow.tasks import (
     compile_experiment,
     run_experiment,
 )
 
-from laboneq_applications import dsl
 from laboneq_applications.contrib.analysis.signal_propagation_delay import (
     analysis_workflow,
 )
@@ -32,9 +31,9 @@ from laboneq_applications.experiments.options import (
 from laboneq_applications.tasks.parameter_updating import update_qubits
 
 if TYPE_CHECKING:
+    from laboneq.dsl.quantum.qpu import QPU
     from laboneq.dsl.session import Session
 
-    from laboneq_applications.qpu_types import QPU
     from laboneq_applications.typing import Qubit, QubitSweepPoints
 
 

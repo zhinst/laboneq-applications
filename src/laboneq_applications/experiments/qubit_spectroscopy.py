@@ -16,13 +16,12 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from laboneq import workflow
-from laboneq.simple import Experiment, SweepParameter
+from laboneq.simple import Experiment, SweepParameter, dsl
 from laboneq.workflow.tasks import (
     compile_experiment,
     run_experiment,
 )
 
-from laboneq_applications import dsl
 from laboneq_applications.analysis.qubit_spectroscopy import analysis_workflow
 from laboneq_applications.core.validation import validate_and_convert_qubits_sweeps
 from laboneq_applications.experiments.options import (
@@ -36,9 +35,9 @@ from laboneq_applications.tasks.parameter_updating import (
 
 if TYPE_CHECKING:
     from laboneq.dsl.quantum import TransmonParameters
+    from laboneq.dsl.quantum.qpu import QPU
     from laboneq.dsl.session import Session
 
-    from laboneq_applications.qpu_types import QPU
     from laboneq_applications.typing import Qubits, QubitSweepPoints
 
 

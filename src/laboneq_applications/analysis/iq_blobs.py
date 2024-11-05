@@ -19,18 +19,16 @@ import matplotlib.colors as mc
 import matplotlib.pyplot as plt
 import numpy as np
 from laboneq import workflow
-from laboneq.workflow import option_field, options
+from laboneq.simple import dsl
 from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
 from sklearn.inspection import DecisionBoundaryDisplay
 from sklearn.metrics import confusion_matrix
 
-from laboneq_applications import dsl
 from laboneq_applications.analysis.plotting_helpers import timestamped_title
 from laboneq_applications.core.validation import (
     validate_and_convert_qubits_sweeps,
     validate_result,
 )
-from laboneq_applications.experiments.options import TaskOptions, WorkflowOptions
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
@@ -42,8 +40,8 @@ if TYPE_CHECKING:
     from laboneq_applications.typing import Qubits
 
 
-@options
-class IQBlobAnalysisWorkflowOptions(WorkflowOptions):
+@workflow.options
+class IQBlobAnalysisWorkflowOptions(workflow.WorkflowOptions):
     """Option class for IQ-blob analysis workflows.
 
     Attributes:
@@ -61,18 +59,22 @@ class IQBlobAnalysisWorkflowOptions(WorkflowOptions):
             Default: 'True'.
     """
 
-    do_fitting: bool = option_field(True, description="Whether to perform the fit.")
-    do_plotting: bool = option_field(True, description="Whether to create plots.")
-    do_plotting_iq_blobs: bool = option_field(
+    do_fitting: bool = workflow.option_field(
+        True, description="Whether to perform the fit."
+    )
+    do_plotting: bool = workflow.option_field(
+        True, description="Whether to create plots."
+    )
+    do_plotting_iq_blobs: bool = workflow.option_field(
         True, description="Whether to create the IQ-blob plots of the single shots."
     )
-    do_plotting_assignment_matrices: bool = option_field(
+    do_plotting_assignment_matrices: bool = workflow.option_field(
         True, description="Whether to create the assignment matrix plots."
     )
 
 
-@options
-class IQBlobAnalysisOptions(TaskOptions):
+@workflow.options
+class IQBlobAnalysisOptions(workflow.TaskOptions):
     """Option class for the tasks in the iq-blob analysis workflows.
 
     Attributes:
@@ -84,8 +86,10 @@ class IQBlobAnalysisOptions(TaskOptions):
             Default: `True`.
     """
 
-    save_figures: bool = option_field(True, description="Whether to save the figures.")
-    close_figures: bool = option_field(
+    save_figures: bool = workflow.option_field(
+        True, description="Whether to save the figures."
+    )
+    close_figures: bool = workflow.option_field(
         True, description="Whether to close the figures."
     )
 

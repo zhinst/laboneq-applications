@@ -7,17 +7,12 @@ from typing import TYPE_CHECKING
 import matplotlib.pyplot as plt
 from laboneq import workflow
 from laboneq.data.experiment_results import AcquiredResult as AcquiredResultLegacy
-from laboneq.workflow import (
-    option_field,
-    options,
-)
-from laboneq.workflow.options import TaskOptions
+from laboneq.simple import dsl
 from laboneq.workflow.tasks.run_experiment import (
     AcquiredResult as AcquiredResultRunExp,
 )
 from laboneq.workflow.timestamps import local_timestamp
 
-from laboneq_applications import dsl
 from laboneq_applications.core.validation import (
     validate_and_convert_qubits_sweeps,
     validate_result,
@@ -33,8 +28,8 @@ if TYPE_CHECKING:
     from laboneq_applications.typing import Qubits, QubitSweepPoints
 
 
-@options
-class PlotRawDataOptions(TaskOptions):
+@workflow.options
+class PlotRawDataOptions(workflow.TaskOptions):
     """Options for the plot_raw_complex_data_1d task.
 
     Attributes:
@@ -53,16 +48,18 @@ class PlotRawDataOptions(TaskOptions):
             Default: `True`.
     """
 
-    use_cal_traces: bool = option_field(
+    use_cal_traces: bool = workflow.option_field(
         True, description="Whether to include calibration traces in the experiment."
     )
-    cal_states: str | tuple = option_field(
+    cal_states: str | tuple = workflow.option_field(
         "ge",
         description="The states to prepare in the calibration traces."
         "Can be any string or tuple made from combining the characters 'g', 'e', 'f'.",
     )
-    save_figures: bool = option_field(True, description="Whether to save the figures.")
-    close_figures: bool = option_field(
+    save_figures: bool = workflow.option_field(
+        True, description="Whether to save the figures."
+    )
+    close_figures: bool = workflow.option_field(
         True, description="Whether to close the figures."
     )
 

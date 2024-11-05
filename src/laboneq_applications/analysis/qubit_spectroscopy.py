@@ -17,8 +17,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 import uncertainties as unc
 from laboneq import workflow
+from laboneq.simple import dsl
 
-from laboneq_applications import dsl
 from laboneq_applications.analysis.fitting_helpers import lorentzian_fit
 from laboneq_applications.analysis.plotting_helpers import (
     plot_raw_complex_data_1d,

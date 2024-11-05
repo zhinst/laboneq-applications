@@ -14,15 +14,14 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from laboneq import workflow
-from laboneq.simple import AveragingMode, Experiment
-from laboneq.workflow import option_field, options
+from laboneq.simple import AveragingMode, Experiment, dsl
 from laboneq.workflow.tasks import (
     compile_experiment,
     run_experiment,
 )
 
-from laboneq_applications import dsl
 from laboneq_applications.analysis.iq_blobs import analysis_workflow
+from laboneq_applications.core import validation
 from laboneq_applications.experiments.options import (
     BaseExperimentOptions,
     WorkflowOptions,
@@ -35,13 +34,13 @@ if TYPE_CHECKING:
     from laboneq.dsl.quantum import (
         TransmonParameters,
     )
+    from laboneq.dsl.quantum.qpu import QPU
     from laboneq.dsl.session import Session
 
-    from laboneq_applications.qpu_types import QPU
     from laboneq_applications.typing import Qubits
 
 
-@options
+@workflow.options
 class IQBlobExperimentOptions(BaseExperimentOptions):
     """Options for the iq_blobs experiment.
 
@@ -54,12 +53,12 @@ class IQBlobExperimentOptions(BaseExperimentOptions):
             Default: `AveragingMode.SINGLE_SHOT`
     """
 
-    averaging_mode: AveragingMode = option_field(
+    averaging_mode: AveragingMode = workflow.option_field(
         AveragingMode.SINGLE_SHOT, description="Averaging mode used for the experiment"
     )
 
 
-@options
+@workflow.options
 class IQBlobExperimentWorkflowOptions(WorkflowOptions):
     """Options for the iq_blobs experiment workflow.
 
@@ -69,7 +68,7 @@ class IQBlobExperimentWorkflowOptions(WorkflowOptions):
             Default: True
     """
 
-    do_analysis: bool = option_field(
+    do_analysis: bool = workflow.option_field(
         True, description="Whether to run the analysis workflow."
     )
 
@@ -189,7 +188,7 @@ def create_experiment(
     """
     # Define the custom options for the experiment
     opts = IQBlobExperimentOptions() if options is None else options
-    qubits = dsl.validation.validate_and_convert_qubits_sweeps(qubits)
+    qubits = validation.validate_and_convert_qubits_sweeps(qubits)
 
     max_measure_section_length = qpu.measure_section_length(qubits)
     qop = qpu.quantum_operations

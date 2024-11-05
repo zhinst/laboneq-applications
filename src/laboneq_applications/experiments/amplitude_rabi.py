@@ -16,14 +16,14 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from laboneq import workflow
-from laboneq.simple import AveragingMode, Experiment, SweepParameter
+from laboneq.simple import AveragingMode, Experiment, SweepParameter, dsl
 from laboneq.workflow.tasks import (
     compile_experiment,
     run_experiment,
 )
 
-from laboneq_applications import dsl
 from laboneq_applications.analysis.amplitude_rabi import analysis_workflow
+from laboneq_applications.core import validation
 from laboneq_applications.experiments.options import (
     TuneupExperimentOptions,
     TuneUpWorkflowOptions,
@@ -37,9 +37,9 @@ if TYPE_CHECKING:
     from laboneq.dsl.quantum import (
         TransmonParameters,
     )
+    from laboneq.dsl.quantum.qpu import QPU
     from laboneq.dsl.session import Session
 
-    from laboneq_applications.qpu_types import QPU
     from laboneq_applications.typing import Qubits, QubitSweepPoints
 
 
@@ -199,7 +199,7 @@ def create_experiment(
     """
     # Define the custom options for the experiment
     opts = TuneupExperimentOptions() if options is None else options
-    qubits, amplitudes = dsl.validation.validate_and_convert_qubits_sweeps(
+    qubits, amplitudes = validation.validate_and_convert_qubits_sweeps(
         qubits, amplitudes
     )
     if (

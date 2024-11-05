@@ -22,16 +22,14 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from laboneq import workflow
-from laboneq.dsl.enums import AcquisitionType
-from laboneq.simple import Experiment, SweepParameter
-from laboneq.workflow import option_field, options
+from laboneq.simple import AcquisitionType, Experiment, SweepParameter, dsl
 from laboneq.workflow.tasks import (
     compile_experiment,
     run_experiment,
 )
 
-from laboneq_applications import dsl
 from laboneq_applications.analysis.dispersive_shift import analysis_workflow
+from laboneq_applications.core import validation
 from laboneq_applications.experiments.options import (
     BaseExperimentOptions,
     TuneUpWorkflowOptions,
@@ -47,15 +45,15 @@ if TYPE_CHECKING:
     from laboneq.dsl.quantum import (
         TransmonParameters,
     )
+    from laboneq.dsl.quantum.qpu import QPU
     from laboneq.dsl.quantum.quantum_element import QuantumElement
     from laboneq.dsl.session import Session
     from numpy.typing import ArrayLike
 
-    from laboneq_applications.qpu_types import QPU
     from laboneq_applications.typing import QubitSweepPoints
 
 
-@options
+@workflow.options
 class DispersiveShiftExperimentOptions(BaseExperimentOptions):
     """Options for the dispersive-shift experiment.
 
@@ -68,7 +66,7 @@ class DispersiveShiftExperimentOptions(BaseExperimentOptions):
             Default: `AcquisitionType.SPECTROSCOPY`.
     """
 
-    acquisition_type: AcquisitionType = option_field(
+    acquisition_type: AcquisitionType = workflow.option_field(
         AcquisitionType.SPECTROSCOPY, description="Acquisition type to use."
     )
 
@@ -213,7 +211,7 @@ def create_experiment(
     """
     # Define the custom options for the experiment
     opts = DispersiveShiftExperimentOptions() if options is None else options
-    qubit, frequencies = dsl.validation.validate_and_convert_single_qubit_sweeps(
+    qubit, frequencies = validation.validate_and_convert_single_qubit_sweeps(
         qubit, frequencies
     )
     if AcquisitionType(opts.acquisition_type) != AcquisitionType.SPECTROSCOPY:
