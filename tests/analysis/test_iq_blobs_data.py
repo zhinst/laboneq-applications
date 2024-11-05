@@ -16,7 +16,7 @@ from laboneq.workflow.tasks.run_experiment import (
 def results_single_qubit_gef():
     """Results from an IQ-blob experiment on 1 qubit with preparation states g, e, f."""
     data = {}
-    data[handles.result_handle("q0", suffix="g")] = np.array(
+    data[handles.calibration_trace_handle("q0", "g")] = np.array(
         [
             1.12769313 - 0.29815394j,
             0.93048922 - 0.34467484j,
@@ -220,7 +220,7 @@ def results_single_qubit_gef():
             0.99250267 - 0.39959195j,
         ]
     )
-    data[handles.result_handle("q0", suffix="e")] = np.array(
+    data[handles.calibration_trace_handle("q0", "e")] = np.array(
         [
             -0.15612985 - 0.86294146j,
             -0.13138433 - 0.83104476j,
@@ -424,7 +424,7 @@ def results_single_qubit_gef():
             -0.46577344 - 0.86260161j,
         ]
     )
-    data[handles.result_handle("q0", suffix="f")] = np.array(
+    data[handles.calibration_trace_handle("q0", "f")] = np.array(
         [
             -2.45103404e-01 - 0.07639098j,
             -8.38897433e-02 - 0.07039703j,
@@ -635,7 +635,7 @@ def results_single_qubit_gef():
 def results_two_qubit_ge():
     """Results from an IQ-blob experiment on 2 qubits, with preparation states g, e."""
     data = {}
-    data[handles.result_handle("q0", suffix="g")] = np.array(
+    data[handles.calibration_trace_handle("q0", "g")] = np.array(
         [
             -0.23244926 + 0.72359905j,
             -0.00260867 + 0.78604911j,
@@ -839,7 +839,7 @@ def results_two_qubit_ge():
             -0.075829 + 0.71538629j,
         ]
     )
-    data[handles.result_handle("q0", suffix="e")] = np.array(
+    data[handles.calibration_trace_handle("q0", "e")] = np.array(
         [
             0.15272856 + 5.25424385e-02j,
             0.34256414 - 5.23202145e-02j,
@@ -1043,7 +1043,7 @@ def results_two_qubit_ge():
             0.48943326 + 3.03792038e-01j,
         ]
     )
-    data[handles.result_handle("q1", suffix="g")] = np.array(
+    data[handles.calibration_trace_handle("q1", "g")] = np.array(
         [
             -0.0485765 + 0.20037536j,
             0.12068975 + 0.28502562j,
@@ -1247,7 +1247,7 @@ def results_two_qubit_ge():
             0.14308031 + 0.37414276j,
         ]
     )
-    data[handles.result_handle("q1", suffix="e")] = np.array(
+    data[handles.calibration_trace_handle("q1", "e")] = np.array(
         [
             1.11728124 - 0.23232429j,
             1.11224043 - 0.15367901j,

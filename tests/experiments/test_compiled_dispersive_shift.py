@@ -11,6 +11,11 @@ from laboneq_applications.experiments import (
 )
 from laboneq_applications.testing import CompiledExperimentVerifier
 
+_LENGTH_GE = 32e-9
+_LENGTH_EF = 64e-9
+_LENGTH_MEASURE = 2e-6
+_LENGTH_MEASURE_RESET = 2e-6 + 1e-6
+
 
 def create_dispers_shift_verifier(
     tunable_transmon_platform,
@@ -20,6 +25,9 @@ def create_dispers_shift_verifier(
 ):
     """Create a CompiledExperimentVerifier for the amplitude rabi experiment."""
     qubits = tunable_transmon_platform.qpu.qubits
+    for q in qubits:
+        q.parameters.ge_drive_length = _LENGTH_GE
+        q.parameters.ef_drive_length = _LENGTH_EF
     session = tunable_transmon_platform.session(do_emulation=True)
     options = dispersive_shift.experiment_workflow.options()
     options.count(count)
@@ -53,7 +61,7 @@ def create_dispers_shift_verifier(
 )
 @pytest.mark.parametrize(
     "states",
-    ["g", "e", "f", "ge", "ef"],
+    ["ge", "ef", "gef"],
 )
 class TestDispersiveShiftSingleQubit:
     def test_pulse_count_drive(
@@ -121,33 +129,33 @@ class TestDispersiveShiftSingleQubit:
             pass
         else:
             if e_num > 0 and f_num > 0:
-                pulse_timing_offset = 88e-9 + 3e-6 * min(
+                pulse_timing_offset = 88e-9 + _LENGTH_MEASURE_RESET * min(
                     states.index("e"), states.index("f")
                 )
             elif e_num > 0:
-                pulse_timing_offset = 88e-9 + 3e-6 * states.index("e")
+                pulse_timing_offset = 88e-9 + _LENGTH_MEASURE_RESET * states.index("e")
             elif f_num > 0:
-                pulse_timing_offset = 88e-9 + 3e-6 * states.index("f")
+                pulse_timing_offset = 88e-9 + _LENGTH_MEASURE_RESET * states.index("f")
             verifier.assert_pulse(
                 signal="/logical_signal_groups/q0/drive",
                 index=0,
                 start=pulse_timing_offset,
-                end=pulse_timing_offset + 51e-9,
+                end=pulse_timing_offset + _LENGTH_GE,
                 parameterized_with=[],
             )
             if f_num > 0:
                 prev_states = states[: states.index("f")]
                 pulse_timing_offset = (
                     88e-9
-                    + 3e-6 * prev_states.count("g")
-                    + (3e-6 + 56e-9) * (prev_states.count("e"))
-                    + 56e-9
+                    + _LENGTH_MEASURE_RESET * prev_states.count("g")
+                    + (_LENGTH_MEASURE_RESET + _LENGTH_GE) * (prev_states.count("e"))
+                    + _LENGTH_GE
                 )
                 verifier.assert_pulse(
                     signal="/logical_signal_groups/q0/drive_ef",
                     index=0,
                     start=pulse_timing_offset,
-                    end=pulse_timing_offset + 52e-9,
+                    end=pulse_timing_offset + _LENGTH_EF,
                     parameterized_with=[],
                 )
 
@@ -166,12 +174,14 @@ class TestDispersiveShiftSingleQubit:
             states,
         )
         for qa_pair in ["measure", "acquire"]:
+            start = (
+                88e-9
+                + _LENGTH_GE * (states[0] == "e")
+                + _LENGTH_EF * (states[0] == "f")
+            )
             verifier.assert_pulse(
                 signal=f"/logical_signal_groups/q0/{qa_pair}",
                 index=0,
-                start=88e-9 + 56e-9 * (states[0] == "e") + 112e-9 * (states[0] == "f"),
-                end=88e-9
-                + 56e-9 * (states[0] == "e")
-                + 112e-9 * (states[0] == "f")
-                + 2e-6,
+                start=start,
+                end=start + _LENGTH_MEASURE,
             )

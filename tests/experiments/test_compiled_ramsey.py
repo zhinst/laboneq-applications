@@ -10,6 +10,9 @@ import pytest
 from laboneq_applications.experiments import ramsey
 from laboneq_applications.testing import CompiledExperimentVerifier
 
+_LENGTH_GE = 32e-9
+_LENGTH_EF = 64e-9
+
 
 def create_ramsey_verifier(
     tunable_transmon_platform,
@@ -21,6 +24,9 @@ def create_ramsey_verifier(
 ):
     """Create a CompiledExperimentVerifier for the ramsey experiment."""
     qubits = tunable_transmon_platform.qpu.qubits
+    for q in qubits:
+        q.parameters.ge_drive_length = _LENGTH_GE
+        q.parameters.ef_drive_length = _LENGTH_EF
     if len(qubits) == 1:
         qubits = qubits[0]
     if readout_lengths is not None:
@@ -40,7 +46,10 @@ def create_ramsey_verifier(
         delays=delays,
         options=options,
     ).run()
-    return CompiledExperimentVerifier(res.tasks["compile_experiment"].output)
+
+    return CompiledExperimentVerifier(
+        res.tasks["compile_experiment"].output, max_events=10000
+    )
 
 
 @pytest.mark.parametrize(
@@ -56,7 +65,7 @@ def create_ramsey_verifier(
     [True, False],
 )
 class TestRamseySingleQubit:
-    _DELAYS = tuple(0.1e-6 * i for i in range(1, 11))
+    _DELAYS = tuple(np.arange(8e-9, 1.6e-6, 128e-9))
 
     def test_pulse_count_drive(
         self,
@@ -125,9 +134,6 @@ class TestRamseySingleQubit:
         use_cal_traces,
     ):
         """Test the properties of drive pulses."""
-        [q0] = single_tunable_transmon_platform.qpu.qubits
-        q0_pulse_length_ge = q0.parameters.ge_drive_length
-        q0_pulse_length_ef = q0.parameters.ef_drive_length
         verifier = create_ramsey_verifier(
             single_tunable_transmon_platform,
             self._DELAYS,
@@ -136,36 +142,34 @@ class TestRamseySingleQubit:
             use_cal_traces,
         )
         if transition == "ge":
-            offset = 6e-9
             verifier.assert_pulse(
                 signal="/logical_signal_groups/q0/drive",
                 index=0,
-                start=offset,
-                end=offset + q0_pulse_length_ge,
+                start=0,
+                end=_LENGTH_GE,
                 parameterized_with=[],
             )
             verifier.assert_pulse(
                 signal="/logical_signal_groups/q0/drive",
                 index=1,
-                start=offset + q0_pulse_length_ge + self._DELAYS[0],
-                end=offset + 2 * q0_pulse_length_ge + self._DELAYS[0],
+                start=_LENGTH_GE + self._DELAYS[0],
+                end=2 * _LENGTH_GE + self._DELAYS[0],
                 parameterized_with=["x90_phases_q0"],
             )
         elif transition == "ef":
-            offset = 5e-9
-            start_ef = offset + q0_pulse_length_ge
+            start_ef = _LENGTH_GE
             verifier.assert_pulse(
                 signal="/logical_signal_groups/q0/drive_ef",
                 index=0,
                 start=start_ef,
-                end=start_ef + q0_pulse_length_ef,
+                end=start_ef + _LENGTH_EF,
                 parameterized_with=[],
             )
             verifier.assert_pulse(
                 signal="/logical_signal_groups/q0/drive_ef",
                 index=1,
-                start=start_ef + q0_pulse_length_ef + self._DELAYS[0],
-                end=start_ef + 2 * q0_pulse_length_ef + self._DELAYS[0],
+                start=start_ef + _LENGTH_EF + self._DELAYS[0],
+                end=start_ef + 2 * _LENGTH_EF + self._DELAYS[0],
                 parameterized_with=["x90_phases_q0"],
             )
 
@@ -190,7 +194,7 @@ class TestRamseySingleQubit:
         # hardcoded it here
 
         if transition == "ge":
-            start_measure = 208e-9
+            start_measure = 2 * _LENGTH_GE + self._DELAYS[0]
             verifier.assert_pulse(
                 signal="/logical_signal_groups/q0/measure",
                 index=0,
@@ -204,7 +208,7 @@ class TestRamseySingleQubit:
                 end=start_measure + 2e-6,
             )
         elif transition == "ef":
-            start_measure = 264e-9
+            start_measure = _LENGTH_GE + 2 * _LENGTH_EF + self._DELAYS[0]
             verifier.assert_pulse(
                 signal="/logical_signal_groups/q0/measure",
                 index=0,
@@ -233,8 +237,8 @@ class TestRamseySingleQubit:
 )
 class TestRamseyTwoQubits:
     _DELAYS: ClassVar = [
-        [0.1e-6 * i for i in range(1, 11)],
-        [0.1e-6 * i for i in range(1, 11)],
+        tuple(np.arange(8e-9, 1.6e-6, 128e-9)),
+        tuple(np.arange(8e-9, 1.6e-6, 128e-9)),
     ]  # validate_and_convert_sweeps_to_arrays requires a list
 
     def test_pulse_count(
@@ -333,12 +337,6 @@ class TestRamseyTwoQubits:
         readout_lengths,
     ):
         """Test the properties of drive pulses."""
-        [q0, q1] = two_tunable_transmon_platform.qpu.qubits
-        q0_pulse_length_ge = q0.parameters.ge_drive_length
-        q0_pulse_length_ef = q0.parameters.ef_drive_length
-        q1_pulse_length_ge = q1.parameters.ge_drive_length
-        q1_pulse_length_ef = q1.parameters.ef_drive_length
-
         verifier = create_ramsey_verifier(
             two_tunable_transmon_platform,
             self._DELAYS,
@@ -348,63 +346,60 @@ class TestRamseyTwoQubits:
             readout_lengths,
         )
         if transition == "ge":
-            # Offset at the beginning of experiment is not crucial.
-            offset = 6e-9
             verifier.assert_pulse(
                 signal="/logical_signal_groups/q0/drive",
                 index=0,
-                end=offset + q0_pulse_length_ge,
+                end=_LENGTH_GE,
                 parameterized_with=[],
             )
             verifier.assert_pulse(
                 signal="/logical_signal_groups/q0/drive",
                 index=1,
-                start=offset + q0_pulse_length_ge + self._DELAYS[0][0],
-                end=offset + 2 * q0_pulse_length_ge + self._DELAYS[0][0],
+                start=_LENGTH_GE + self._DELAYS[0][0],
+                end=2 * _LENGTH_GE + self._DELAYS[0][0],
                 parameterized_with=["x90_phases_q0"],
             )
             verifier.assert_pulse(
                 signal="/logical_signal_groups/q1/drive",
                 index=0,
-                end=offset + q1_pulse_length_ge,
+                end=_LENGTH_GE,
                 parameterized_with=[],
             )
             verifier.assert_pulse(
                 signal="/logical_signal_groups/q1/drive",
                 index=1,
-                start=offset + q1_pulse_length_ge + self._DELAYS[0][0],
-                end=offset + 2 * q1_pulse_length_ge + self._DELAYS[0][0],
+                start=_LENGTH_GE + self._DELAYS[0][0],
+                end=2 * _LENGTH_GE + self._DELAYS[0][0],
                 parameterized_with=["x90_phases_q1"],
             )
         elif transition == "ef":
-            offset = 5e-9
-            start_ef_q0 = offset + q0_pulse_length_ge
-            start_ef_q1 = offset + q1_pulse_length_ge
+            start_ef_q0 = _LENGTH_GE
+            start_ef_q1 = _LENGTH_GE
             verifier.assert_pulse(
                 signal="/logical_signal_groups/q0/drive_ef",
                 index=0,
-                end=start_ef_q0 + q0_pulse_length_ef,
+                end=start_ef_q0 + _LENGTH_EF,
                 parameterized_with=[],
             )
             verifier.assert_pulse(
                 signal="/logical_signal_groups/q0/drive_ef",
                 index=1,
-                start=start_ef_q0 + q0_pulse_length_ef + self._DELAYS[0][0],
-                end=start_ef_q0 + 2 * q0_pulse_length_ef + self._DELAYS[0][0],
+                start=start_ef_q0 + _LENGTH_EF + self._DELAYS[0][0],
+                end=start_ef_q0 + 2 * _LENGTH_EF + self._DELAYS[0][0],
                 parameterized_with=["x90_phases_q0"],
             )
             verifier.assert_pulse(
                 signal="/logical_signal_groups/q1/drive_ef",
                 index=0,
                 start=start_ef_q1,
-                end=start_ef_q1 + q1_pulse_length_ef,
+                end=start_ef_q1 + _LENGTH_EF,
                 parameterized_with=[],
             )
             verifier.assert_pulse(
                 signal="/logical_signal_groups/q1/drive_ef",
                 index=1,
-                start=start_ef_q1 + q1_pulse_length_ef + self._DELAYS[1][0],
-                end=start_ef_q1 + 2 * q1_pulse_length_ef + self._DELAYS[0][0],
+                start=start_ef_q1 + _LENGTH_EF + self._DELAYS[1][0],
+                end=start_ef_q1 + 2 * _LENGTH_EF + self._DELAYS[0][0],
                 parameterized_with=["x90_phases_q1"],
             )
 
@@ -429,7 +424,7 @@ class TestRamseyTwoQubits:
         if transition == "ge":
             # See the explanation for the hardcoding of start_measure
             # in the single-qubit tests
-            start_measure = 208e-9
+            start_measure = 2 * _LENGTH_GE + self._DELAYS[0][0]
             verifier.assert_pulse(
                 signal="/logical_signal_groups/q0/measure",
                 index=0,
@@ -443,6 +438,7 @@ class TestRamseyTwoQubits:
                 end=start_measure + 2e-6,
             )
 
+            start_measure = 2 * _LENGTH_GE + self._DELAYS[1][0]
             verifier.assert_pulse(
                 signal="/logical_signal_groups/q1/measure",
                 index=0,
@@ -456,7 +452,7 @@ class TestRamseyTwoQubits:
                 end=start_measure + 2e-6,
             )
         elif transition == "ef":
-            start_measure = 264e-9
+            start_measure = _LENGTH_GE + 2 * _LENGTH_EF + self._DELAYS[0][0]
             verifier.assert_pulse(
                 signal="/logical_signal_groups/q0/measure",
                 index=0,
@@ -469,6 +465,7 @@ class TestRamseyTwoQubits:
                 start=start_measure,
                 end=start_measure + 2e-6,
             )
+            start_measure = _LENGTH_GE + 2 * _LENGTH_EF + self._DELAYS[1][0]
             verifier.assert_pulse(
                 signal="/logical_signal_groups/q1/measure",
                 index=0,
@@ -481,6 +478,59 @@ class TestRamseyTwoQubits:
                 start=start_measure,
                 end=start_measure + 2e-6,
             )
+
+
+@pytest.mark.parametrize(
+    ("transition", "cal_states", "active_reset_states"),
+    [("ge", "ge", "ge"), ("ef", "ef", "gef")],
+)
+@pytest.mark.parametrize(
+    "active_reset_repetitions",
+    [1, 5],
+)
+def test_single_qubit_run_with_active_reset(
+    single_tunable_transmon_platform,
+    transition,
+    cal_states,
+    active_reset_states,
+    active_reset_repetitions,
+):
+    options = ramsey.experiment_workflow.options()
+    options.transition(transition)
+    options.cal_states(cal_states)
+    options.active_reset(True)
+    options.active_reset_states(active_reset_states)
+    options.active_reset_repetitions(active_reset_repetitions)
+    [q0] = single_tunable_transmon_platform.qpu.qubits
+    delays = np.linspace(0, 1e-6, 11)
+    workflow_result = ramsey.experiment_workflow(
+        session=single_tunable_transmon_platform.session(do_emulation=True),
+        qubits=q0,
+        qpu=single_tunable_transmon_platform.qpu,
+        delays=delays,
+        options=options,
+    ).run()
+
+    exp = workflow_result.tasks["create_experiment"].output
+    active_reset_section = exp.sections[0].children[0].children[0]
+    assert active_reset_section.uid == "active_reset_q0_0"
+    truth_len = len(q0.signals) + active_reset_repetitions * 3
+    assert len(active_reset_section.children) == truth_len
+
+    data = workflow_result.output
+    assert "active_reset" in data.q0
+    shape_truth = (
+        (len(delays), active_reset_repetitions)
+        if active_reset_repetitions > 1
+        else (len(delays),)
+    )
+    assert np.shape(data.q0.active_reset.result.data) == shape_truth
+    for s in cal_states:
+        cal_trace_data = data.q0.active_reset.cal_trace[s].data
+        if active_reset_repetitions == 1:
+            assert isinstance(cal_trace_data, np.complex128)
+        else:
+            assert len(cal_trace_data) == active_reset_repetitions
 
 
 def test_invalid_averaging_mode(single_tunable_transmon_platform):

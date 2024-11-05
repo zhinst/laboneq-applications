@@ -204,7 +204,7 @@ def collect_shots(
         ideal_states = []
 
         for s in states:
-            shots[s] = result[dsl.handles.result_handle(q.uid, suffix=s)].data
+            shots[s] = result[dsl.handles.calibration_trace_handle(q.uid, s)].data
             shots_combined += [
                 np.concatenate(
                     [

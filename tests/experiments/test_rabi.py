@@ -31,134 +31,66 @@ def reference_rabi_exp(qubits, count, amplitudes, transition):
     exp = tsl.experiment()
     acq = tsl.acquire_loop_rt(count=count)
     exp.children(acq)
-    for i, q in enumerate(qubits):
-        sweep_parameter = tsl.sweep_parameter(
-            uid=f"amplitude_{q.uid}",
-            values=amplitudes[i],
+    sweep_parameters = [
+        tsl.sweep_parameter(
+            uid=f"amplitude_{q.uid}", values=amplitudes[i], axis_name=f"{q.uid}"
         )
-        x180_ge_length = q.transition_parameters("ge")[1]["length"]
-        x180_ef_length = q.transition_parameters("ef")[1]["length"]
-        if transition == "ge":
-            acq.children(
-                tsl.sweep(uid=f"amps_{q.uid}_0", parameters=[sweep_parameter]).children(
-                    tsl.section(uid=f"prepare_state_{q.uid}_0").children(
-                        reserve_ops(q),
-                    ),
-                    tsl.section(uid=f"x180_{q.uid}_0").children(
-                        reserve_ops(q),
-                        tsl.play_pulse_op(length=x180_ge_length),
-                    ),
-                    tsl.section(uid=f"measure_{q.uid}_0").children(
-                        reserve_ops(q),
-                        tsl.play_pulse_op(),
-                        tsl.acquire_op(),
-                    ),
-                    tsl.section(uid=f"passive_reset_{q.uid}_0").children(
-                        reserve_ops(q),
-                        tsl.delay_op(),
-                    ),
+        for i, q in enumerate(qubits)
+    ]
+    measure_sections = []
+    for q in qubits:
+        measure_sections += [
+            tsl.section(uid=f"measure_{q.uid}_0").children(
+                reserve_ops(q),
+                tsl.play_pulse_op(),
+                tsl.acquire_op(),
+            ),
+            tsl.section(uid=f"passive_reset_{q.uid}_0").children(
+                reserve_ops(q),
+                tsl.delay_op(),
+            ),
+        ]
+    if transition == "ge":
+        x180_sections = [
+            tsl.section(uid=f"x180_{q.uid}_0").children(
+                reserve_ops(q),
+                tsl.play_pulse_op(length=q.transition_parameters("ge")[1]["length"]),
+            )
+            for q in qubits
+        ]
+        acq.children(
+            tsl.sweep(uid="rabi_amp_sweep_0", parameters=sweep_parameters).children(
+                tsl.section(uid="main_0").children(
+                    tsl.section(uid="main_drive_0").children(x180_sections),
+                    tsl.section(uid="main_measure_0").children(measure_sections),
                 ),
             )
-            acq.children(
-                tsl.section(uid=f"calibration_traces_{q.uid}_0").children(
+        )
+    elif transition == "ef":
+        x180_sections = []
+        for q in qubits:
+            x180_sections += [
+                tsl.section(uid=f"x180_{q.uid}_0").children(
                     reserve_ops(q),
-                    tsl.section(uid=f"prepare_state_{q.uid}_1").children(
-                        reserve_ops(q),
-                    ),
-                    tsl.section(uid=f"measure_{q.uid}_1").children(
-                        reserve_ops(q),
-                        tsl.play_pulse_op(),
-                        tsl.acquire_op(),
-                    ),
-                    tsl.section(uid=f"passive_reset_{q.uid}_1").children(
-                        reserve_ops(q),
-                        tsl.delay_op(),
-                    ),
-                    tsl.section(uid=f"prepare_state_{q.uid}_2").children(
-                        reserve_ops(q),
-                        tsl.section(uid=f"x180_{q.uid}_1").children(
-                            reserve_ops(q),
-                            tsl.play_pulse_op(),
-                        ),
-                    ),
-                    tsl.section(uid=f"measure_{q.uid}_2").children(
-                        reserve_ops(q),
-                        tsl.play_pulse_op(),
-                        tsl.acquire_op(),
-                    ),
-                    tsl.section(uid=f"passive_reset_{q.uid}_2").children(
-                        reserve_ops(q),
-                        tsl.delay_op(),
+                    tsl.play_pulse_op(
+                        length=q.transition_parameters("ge")[1]["length"]
                     ),
                 ),
-            )
-        elif transition == "ef":
-            acq.children(
-                tsl.sweep(uid=f"amps_{q.uid}_0", parameters=[sweep_parameter]).children(
-                    tsl.section(uid=f"prepare_state_{q.uid}_0").children(
-                        reserve_ops(q),
-                        tsl.section(uid=f"x180_{q.uid}_0").children(
-                            reserve_ops(q),
-                            tsl.play_pulse_op(length=x180_ge_length),
-                        ),
-                    ),
-                    tsl.section(uid=f"x180_{q.uid}_1").children(
-                        reserve_ops(q),
-                        tsl.play_pulse_op(length=x180_ef_length),
-                    ),
-                    tsl.section(uid=f"measure_{q.uid}_0").children(
-                        reserve_ops(q),
-                        tsl.play_pulse_op(),
-                        tsl.acquire_op(),
-                    ),
-                    tsl.section(uid=f"passive_reset_{q.uid}_0").children(
-                        reserve_ops(q),
-                        tsl.delay_op(),
-                    ),
-                ),
-            )
-            acq.children(
-                tsl.section(uid=f"calibration_traces_{q.uid}_0").children(
+                tsl.section(uid=f"x180_{q.uid}_1").children(
                     reserve_ops(q),
-                    tsl.section(uid=f"prepare_state_{q.uid}_1").children(
-                        reserve_ops(q),
-                        tsl.section(uid=f"x180_{q.uid}_2").children(
-                            reserve_ops(q),
-                            tsl.play_pulse_op(length=x180_ge_length),
-                        ),
-                    ),
-                    tsl.section(uid=f"measure_{q.uid}_1").children(
-                        reserve_ops(q),
-                        tsl.play_pulse_op(),
-                        tsl.acquire_op(),
-                    ),
-                    tsl.section(uid=f"passive_reset_{q.uid}_1").children(
-                        reserve_ops(q),
-                        tsl.delay_op(),
-                    ),
-                    tsl.section(uid=f"prepare_state_{q.uid}_2").children(
-                        reserve_ops(q),
-                        tsl.section(uid=f"x180_{q.uid}_3").children(
-                            reserve_ops(q),
-                            tsl.play_pulse_op(),
-                        ),
-                        tsl.section(uid=f"x180_{q.uid}_4").children(
-                            reserve_ops(q),
-                            tsl.play_pulse_op(),
-                        ),
-                    ),
-                    tsl.section(uid=f"measure_{q.uid}_2").children(
-                        reserve_ops(q),
-                        tsl.play_pulse_op(),
-                        tsl.acquire_op(),
-                    ),
-                    tsl.section(uid=f"passive_reset_{q.uid}_2").children(
-                        reserve_ops(q),
-                        tsl.delay_op(),
+                    tsl.play_pulse_op(
+                        length=q.transition_parameters("ef")[1]["length"]
                     ),
                 ),
+            ]
+        acq.children(
+            tsl.sweep(uid="rabi_amp_sweep_0", parameters=sweep_parameters).children(
+                tsl.section(uid="main_0").children(
+                    tsl.section(uid="main_drive_0").children(x180_sections),
+                    tsl.section(uid="main_measure_0").children(measure_sections),
+                ),
             )
-
+        )
     return exp
 
 
@@ -299,12 +231,12 @@ class TestWorkflow:
 
         exp_result = result.tasks["run_experiment"].output
         np.testing.assert_array_almost_equal(
-            exp_result[dsl.handles.result_handle(q0.uid)].axis,
-            [np.linspace(0, 1, 21)],
+            exp_result[dsl.handles.result_handle(q0.uid)].axis[0][0],
+            np.linspace(0, 1, 21),
         )
         np.testing.assert_array_almost_equal(
-            exp_result[dsl.handles.result_handle(q1.uid)].axis,
-            [np.linspace(0, 0.5, 21)],
+            exp_result[dsl.handles.result_handle(q1.uid)].axis[0][1],
+            np.linspace(0, 0.5, 21),
         )
         np.testing.assert_almost_equal(
             exp_result[dsl.handles.calibration_trace_handle(q0.uid, state="g")].data,
@@ -343,6 +275,7 @@ class TestAmplitudeRabiSingleQubit:
         self.options = TuneupExperimentOptions(
             count=count, transition=transition, cal_states=transition
         )
+        self.options.use_cal_traces = False
 
     def test_create_exp_single_qubit(self):
         exp = amplitude_rabi.create_experiment(
@@ -411,6 +344,7 @@ class TestAmplitudeRabiTwoQubit:
         self.options = TuneupExperimentOptions(
             count=count, transition=transition, cal_states=transition
         )
+        self.options.use_cal_traces = False
 
     def test_run_standalone(self):
         exp = amplitude_rabi.create_experiment(

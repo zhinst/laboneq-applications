@@ -21,6 +21,8 @@ from laboneq.dsl.experiment.pulse import PulseFunctional
 from laboneq.simple import (
     AcquireLoopRt,
     Calibration,
+    Case,
+    Match,
     Section,
     SignalCalibration,
     Sweep,
@@ -255,6 +257,8 @@ def section_like(type_, **kw):
 section = partial(section_like, type_=Section)
 acquire_loop_rt = partial(section_like, type_=AcquireLoopRt)
 sweep = partial(section_like, type_=Sweep)
+match = partial(section_like, type_=Match)
+case = partial(section_like, type_=Case)
 
 
 # Operations

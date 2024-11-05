@@ -34,7 +34,13 @@ from typing import TYPE_CHECKING
 
 import numpy as np
 from laboneq import workflow
-from laboneq.simple import AveragingMode, Experiment, SweepParameter, dsl
+from laboneq.simple import (
+    AveragingMode,
+    Experiment,
+    SectionAlignment,
+    SweepParameter,
+    dsl,
+)
 from laboneq.workflow.tasks import (
     compile_experiment,
     run_experiment,
@@ -225,11 +231,19 @@ def create_experiment(
             "outside the sweep."
         )
 
-    max_measure_section_length = qpu.measure_section_length(qubits)
-    qop = qpu.quantum_operations
     pulse_ids = ["xx", "xy", "xmy"]
     ops_ids = ["x180", "y180", "y180"]
     phase_overrides = [0.0, np.pi / 2, -np.pi / 2]
+    qscaling_sweep_pars = [
+        SweepParameter(f"amplitude_{q.uid}", q_qscales, axis_name=f"{q.uid}")
+        for q, q_qscales in zip(qubits, q_scalings)
+    ]
+
+    # We will fix the length of the measure section to the longest section among
+    # the qubits to allow the qubits to have different readout and/or
+    # integration lengths.
+    max_measure_section_length = qpu.measure_section_length(qubits)
+    qop = qpu.quantum_operations
     with dsl.acquire_loop_rt(
         count=opts.count,
         averaging_mode=opts.averaging_mode,
@@ -238,26 +252,53 @@ def create_experiment(
         repetition_time=opts.repetition_time,
         reset_oscillator_phase=opts.reset_oscillator_phase,
     ):
-        for q, q_scales in zip(qubits, q_scalings):
-            with dsl.sweep(
-                name=f"q_scalings_{q.uid}",
-                parameter=SweepParameter(f"beta_{q.uid}", q_scales),
-            ) as beta:
-                for i, op_id in enumerate(ops_ids):
-                    pulse_id = pulse_ids[i]
-                    phase = phase_overrides[i]
-                    qop.prepare_state(q, opts.transition[0])
-                    qop.x90(q, pulse={"beta": beta}, transition=opts.transition)
-                    qop[op_id](
-                        q, pulse={"beta": beta}, phase=phase, transition=opts.transition
+        with dsl.sweep(
+            name="drag_q_scaling_sweep",
+            parameter=qscaling_sweep_pars,
+        ):
+            for i, op_id in enumerate(ops_ids):
+                if opts.active_reset:
+                    qop.active_reset(
+                        qubits,
+                        active_reset_states=opts.active_reset_states,
+                        number_resets=opts.active_reset_repetitions,
+                        measure_section_length=max_measure_section_length,
                     )
-                    sec = qop.measure(
-                        q, dsl.handles.result_handle(q.uid, suffix=pulse_id)
-                    )
-                    # we fix the length of the measure section to the longest section
-                    # among the qubits to allow the qubits to have different readout
-                    # and/or integration lengths.
-                    sec.length = max_measure_section_length
-                    qop.passive_reset(q)
-            if opts.use_cal_traces:
-                qop.calibration_traces(q, states=opts.cal_states)
+                with dsl.section(name="main", alignment=SectionAlignment.RIGHT):
+                    with dsl.section(
+                        name="main_drive", alignment=SectionAlignment.RIGHT
+                    ):
+                        for q, beta in zip(qubits, qscaling_sweep_pars):
+                            pulse_id = pulse_ids[i]
+                            phase = phase_overrides[i]
+                            qop.prepare_state.omit_section(q, opts.transition[0])
+                            sec = qop.x90(
+                                q, pulse={"beta": beta}, transition=opts.transition
+                            )
+                            sec.alignment = SectionAlignment.RIGHT
+                            sec = qop[op_id](
+                                q,
+                                pulse={"beta": beta},
+                                phase=phase,
+                                transition=opts.transition,
+                            )
+                            sec.alignment = SectionAlignment.RIGHT
+                    with dsl.section(
+                        name="main_measure", alignment=SectionAlignment.LEFT
+                    ):
+                        for q in qubits:
+                            sec = qop.measure(
+                                q, dsl.handles.result_handle(q.uid, suffix=pulse_id)
+                            )
+                            # Fix the length of the measure section
+                            sec.length = max_measure_section_length
+                            qop.passive_reset(q)
+        if opts.use_cal_traces:
+            qop.calibration_traces.omit_section(
+                qubits=qubits,
+                states=opts.cal_states,
+                active_reset=opts.active_reset,
+                active_reset_states=opts.active_reset_states,
+                active_reset_repetitions=opts.active_reset_repetitions,
+                measure_section_length=max_measure_section_length,
+            )

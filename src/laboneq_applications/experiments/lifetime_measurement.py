@@ -210,16 +210,15 @@ def create_experiment(
             "outside the sweep."
         )
 
+    delays_sweep_pars = [
+        SweepParameter(f"delays_{q.uid}", q_delays, axis_name=f"{q.uid}")
+        for q, q_delays in zip(qubits, delays)
+    ]
+    # We will fix the length of the measure section to the longest section among
+    # the qubits to allow the qubits to have different readout and/or
+    # integration lengths.
     max_measure_section_length = qpu.measure_section_length(qubits)
     qop = qpu.quantum_operations
-    if opts.transition == "ef":
-        on_system_grid = True
-    elif opts.transition == "ge":
-        on_system_grid = False
-    else:
-        raise ValueError(
-            f"Support only ge or ef transitions, not {options.transition!r}"
-        )
     with dsl.acquire_loop_rt(
         count=opts.count,
         averaging_mode=opts.averaging_mode,
@@ -228,28 +227,39 @@ def create_experiment(
         repetition_time=opts.repetition_time,
         reset_oscillator_phase=opts.reset_oscillator_phase,
     ):
-        for q, q_delays in zip(qubits, delays):
-            with dsl.sweep(
-                name=f"delays_{q.uid}",
-                parameter=SweepParameter(f"delay_{q.uid}", q_delays),
-            ) as delay:
-                qop.prepare_state(q, opts.transition[0])
+        with dsl.sweep(
+            name="lifetime_measurement_sweep",
+            parameter=delays_sweep_pars,
+        ):
+            if opts.active_reset:
+                qop.active_reset(
+                    qubits,
+                    active_reset_states=opts.active_reset_states,
+                    number_resets=opts.active_reset_repetitions,
+                    measure_section_length=max_measure_section_length,
+                )
+            with dsl.section(name="main", alignment=SectionAlignment.RIGHT):
                 with dsl.section(
-                    name=f"t1_{q.uid}",
-                    on_system_grid=on_system_grid,
+                    name="main_drive",
                     alignment=SectionAlignment.RIGHT,
                 ):
-                    sec_180 = qop.x180(q, transition=opts.transition)
-                    qop.delay(q, time=delay)
-                    sec_measure = qop.measure(q, dsl.handles.result_handle(q.uid))
-                    # we fix the length of the measure section to the longest section
-                    # among the qubits to allow the qubits to have different readout
-                    # and/or integration lengths.
-                    sec_measure.length = max_measure_section_length
-                # to remove the gaps between ef_drive and measure pulses
-                # introduced by system grid alignment.
-                qop.passive_reset(q)
-                sec_180.on_system_grid = False
-                sec_measure.on_system_grid = False
-            if opts.use_cal_traces:
-                qop.calibration_traces(q, states=opts.cal_states)
+                    for q, delay in zip(qubits, delays_sweep_pars):
+                        qop.prepare_state.omit_section(q, opts.transition[0])
+                        sec = qop.x180(q, transition=opts.transition)
+                        sec.alignment = SectionAlignment.RIGHT
+                        qop.delay(q, time=delay)
+                with dsl.section(name="main_measure", alignment=SectionAlignment.LEFT):
+                    for q in qubits:
+                        sec = qop.measure(q, dsl.handles.result_handle(q.uid))
+                        # Fix the length of the measure section
+                        sec.length = max_measure_section_length
+                        qop.passive_reset(q)
+        if opts.use_cal_traces:
+            qop.calibration_traces.omit_section(
+                qubits=qubits,
+                states=opts.cal_states,
+                active_reset=opts.active_reset,
+                active_reset_states=opts.active_reset_states,
+                active_reset_repetitions=opts.active_reset_repetitions,
+                measure_section_length=max_measure_section_length,
+            )

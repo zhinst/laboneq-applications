@@ -22,7 +22,13 @@ from typing import TYPE_CHECKING
 
 import numpy as np
 from laboneq import workflow
-from laboneq.simple import AveragingMode, Experiment, SweepParameter, dsl
+from laboneq.simple import (
+    AveragingMode,
+    Experiment,
+    SectionAlignment,
+    SweepParameter,
+    dsl,
+)
 from laboneq.workflow.tasks import compile_experiment, run_experiment
 
 from laboneq_applications.analysis.amplitude_fine import analysis_workflow
@@ -235,6 +241,13 @@ def create_experiment(
             "outside the sweep."
         )
 
+    reps_sweep_pars = [
+        SweepParameter(f"repetitions_{q.uid}", q_reps, axis_name=f"{q.uid}")
+        for q, q_reps in zip(qubits, repetitions)
+    ]
+    # We will fix the length of the measure section to the longest section among
+    # the qubits to allow the qubits to have different readout and/or
+    # integration lengths.
     max_measure_section_length = qpu.measure_section_length(qubits)
     qop = qpu.quantum_operations
     with dsl.acquire_loop_rt(
@@ -245,30 +258,50 @@ def create_experiment(
         repetition_time=opts.repetition_time,
         reset_oscillator_phase=opts.reset_oscillator_phase,
     ):
-        for q, q_n in zip(qubits, repetitions):
-            with dsl.sweep(
-                name=f"loop_{q.uid}",
-                parameter=SweepParameter(f"n_{q.uid}", q_n),
-            ) as index:
-                qop.prepare_state(q, opts.transition[0])
-                qop.x90(q, transition=opts.transition)
-
-                with dsl.match(
-                    sweep_parameter=index,
-                ):
-                    for _i, num in enumerate(q_n):
-                        with dsl.case(num):
-                            for _j in range(num):
-                                qop[amplification_qop](q, transition=opts.transition)
-
-                sec = qop.measure(q, dsl.handles.result_handle(q.uid))
-                # we fix the length of the measure section to the longest section among
-                # the qubits to allow the qubits to have different readout and/or
-                # integration lengths.
-                sec.length = max_measure_section_length
-                qop.passive_reset(q)
-            if opts.use_cal_traces:
-                qop.calibration_traces(q, states=opts.cal_states)
+        with dsl.sweep(
+            name="amplitude_fine_sweep",
+            parameter=reps_sweep_pars,
+        ):
+            if opts.active_reset:
+                qop.active_reset(
+                    qubits,
+                    active_reset_states=opts.active_reset_states,
+                    number_resets=opts.active_reset_repetitions,
+                    measure_section_length=max_measure_section_length,
+                )
+            with dsl.section(name="main", alignment=SectionAlignment.RIGHT):
+                with dsl.section(name="main_drive", alignment=SectionAlignment.RIGHT):
+                    for qbidx, q in enumerate(qubits):
+                        qop.prepare_state.omit_section(q, opts.transition[0])
+                        sec = qop.x90(q, transition=opts.transition)
+                        sec.alignment = SectionAlignment.RIGHT
+                        with dsl.section(
+                            name=f"match_{q.uid}", alignment=SectionAlignment.RIGHT
+                        ):
+                            with dsl.match(
+                                sweep_parameter=reps_sweep_pars[qbidx],
+                            ):
+                                for _i, num in enumerate(repetitions[qbidx]):
+                                    with dsl.case(num):
+                                        for _j in range(num):
+                                            qop[amplification_qop].omit_section(
+                                                q, transition=opts.transition
+                                            )
+                with dsl.section(name="main_measure", alignment=SectionAlignment.LEFT):
+                    for q in qubits:
+                        sec = qop.measure(q, dsl.handles.result_handle(q.uid))
+                        # Fix the length of the measure section
+                        sec.length = max_measure_section_length
+                        qop.passive_reset(q)
+        if opts.use_cal_traces:
+            qop.calibration_traces.omit_section(
+                qubits=qubits,
+                states=opts.cal_states,
+                active_reset=opts.active_reset,
+                active_reset_states=opts.active_reset_states,
+                active_reset_repetitions=opts.active_reset_repetitions,
+                measure_section_length=max_measure_section_length,
+            )
 
 
 @workflow.workflow

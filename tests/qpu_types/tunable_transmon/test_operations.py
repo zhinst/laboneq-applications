@@ -1926,103 +1926,112 @@ class TestTunableTransmonOperations:
             uid="__calibration_traces_q0_0", on_system_grid=False
         ).children(
             self.reserve_ops(q0),
-            tsl.section(uid="__prepare_state_q0_0", on_system_grid=False).children(
-                self.reserve_ops(q0),
-            ),
-            tsl.section(uid="__measure_q0_0", on_system_grid=False).children(
-                self.reserve_ops(q0),
-                tsl.play_pulse_op(
-                    signal="/logical_signal_groups/q0/measure",
-                    amplitude=1.0,
-                    length=2e-6,
-                    phase=None,
-                    pulse_parameters=None,
-                    pulse=tsl.pulse(
-                        function="const",
-                        amplitude=1.0,
-                        length=1e-7,
-                    ),
-                ),
-                tsl.acquire_op(
-                    signal="/logical_signal_groups/q0/acquire",
-                    handle="q0/cal_trace/g",
-                    kernel=[
-                        tsl.pulse(
-                            function="const",
-                            uid="__integration_kernel_q0_0",
+            tsl.section(uid="__cal_g_0", on_system_grid=False).children(
+                tsl.section(uid="__cal_prep_g_0", on_system_grid=False).children([]),
+                tsl.section(uid="__cal_measure_g_0", on_system_grid=False).children(
+                    tsl.section(uid="__measure_q0_0", on_system_grid=False).children(
+                        self.reserve_ops(q0),
+                        tsl.play_pulse_op(
+                            signal="/logical_signal_groups/q0/measure",
                             amplitude=1.0,
+                            length=2e-6,
+                            phase=None,
+                            pulse_parameters=None,
+                            pulse=tsl.pulse(
+                                function="const",
+                                amplitude=1.0,
+                                length=1e-7,
+                            ),
+                        ),
+                        tsl.acquire_op(
+                            signal="/logical_signal_groups/q0/acquire",
+                            handle="q0/cal_trace/g",
+                            kernel=[
+                                tsl.pulse(
+                                    function="const",
+                                    uid="__integration_kernel_q0_0",
+                                    amplitude=1.0,
+                                    length=2e-6,
+                                    pulse_parameters=None,
+                                ),
+                            ],
                             length=2e-6,
                             pulse_parameters=None,
                         ),
-                    ],
-                    length=2e-6,
-                    pulse_parameters=None,
-                ),
-            ),
-            tsl.section(uid="__passive_reset_q0_0", on_system_grid=False).children(
-                self.reserve_ops(q0),
-                tsl.delay_op(
-                    signal="/logical_signal_groups/q0/drive",
-                    time=1e-6,
-                    precompensation_clear=None,
-                ),
-            ),
-            tsl.section(uid="__prepare_state_q0_1", on_system_grid=False).children(
-                self.reserve_ops(q0),
-                tsl.section(uid="__x180_q0_0", on_system_grid=False).children(
-                    self.reserve_ops(q0),
-                    tsl.play_pulse_op(
-                        signal="/logical_signal_groups/q0/drive",
-                        amplitude=0.8,
-                        length=5.1e-8,
-                        phase=0.0,
-                        pulse_parameters=None,
-                        pulse=tsl.pulse(
-                            function="drag",
-                            amplitude=1.0,
-                            length=1e-7,
-                            pulse_parameters={"beta": 0.01, "sigma": 0.21},
+                    ),
+                    tsl.section(
+                        uid="__passive_reset_q0_0", on_system_grid=False
+                    ).children(
+                        self.reserve_ops(q0),
+                        tsl.delay_op(
+                            signal="/logical_signal_groups/q0/drive",
+                            time=1e-6,
+                            precompensation_clear=None,
                         ),
                     ),
                 ),
             ),
-            tsl.section(uid="__measure_q0_1", on_system_grid=False).children(
-                self.reserve_ops(q0),
-                tsl.play_pulse_op(
-                    signal="/logical_signal_groups/q0/measure",
-                    amplitude=1.0,
-                    length=2e-6,
-                    phase=None,
-                    pulse_parameters=None,
-                    pulse=tsl.pulse(
-                        function="const",
-                        uid="__readout_pulse_0",
-                        amplitude=1.0,
-                        length=1e-7,
+            tsl.section(uid="__cal_e_0", on_system_grid=False).children(
+                tsl.section(uid="__cal_prep_e_0", on_system_grid=False).children(
+                    tsl.section(uid="__x180_q0_0", on_system_grid=False).children(
+                        self.reserve_ops(q0),
+                        tsl.play_pulse_op(
+                            signal="/logical_signal_groups/q0/drive",
+                            amplitude=0.8,
+                            length=5.1e-8,
+                            phase=0.0,
+                            pulse_parameters=None,
+                            pulse=tsl.pulse(
+                                function="drag",
+                                amplitude=1.0,
+                                length=1e-7,
+                                pulse_parameters={"beta": 0.01, "sigma": 0.21},
+                            ),
+                        ),
                     ),
                 ),
-                tsl.acquire_op(
-                    signal="/logical_signal_groups/q0/acquire",
-                    handle="q0/cal_trace/e",
-                    kernel=[
-                        tsl.pulse(
-                            function="const",
-                            uid="__integration_kernel_q0_0",
+                tsl.section(uid="__cal_measure_e_0", on_system_grid=False).children(
+                    tsl.section(uid="__measure_q0_1", on_system_grid=False).children(
+                        self.reserve_ops(q0),
+                        tsl.play_pulse_op(
+                            signal="/logical_signal_groups/q0/measure",
                             amplitude=1.0,
+                            length=2e-6,
+                            phase=None,
+                            pulse_parameters=None,
+                            pulse=tsl.pulse(
+                                function="const",
+                                uid="__readout_pulse_0",
+                                amplitude=1.0,
+                                length=1e-7,
+                            ),
+                        ),
+                        tsl.acquire_op(
+                            signal="/logical_signal_groups/q0/acquire",
+                            handle="q0/cal_trace/e",
+                            kernel=[
+                                tsl.pulse(
+                                    function="const",
+                                    uid="__integration_kernel_q0_0",
+                                    amplitude=1.0,
+                                    length=2e-6,
+                                    pulse_parameters=None,
+                                ),
+                            ],
                             length=2e-6,
                             pulse_parameters=None,
                         ),
-                    ],
-                    length=2e-6,
-                    pulse_parameters=None,
-                ),
-            ),
-            tsl.section(uid="__passive_reset_q0_1", on_system_grid=False).children(
-                self.reserve_ops(q0),
-                tsl.delay_op(
-                    signal="/logical_signal_groups/q0/drive",
-                    time=1e-6,
-                    precompensation_clear=None,
+                    ),
+                    tsl.section(
+                        uid="__passive_reset_q0_1", on_system_grid=False
+                    ).children(
+                        self.reserve_ops(q0),
+                        tsl.delay_op(
+                            signal="/logical_signal_groups/q0/drive",
+                            time=1e-6,
+                            precompensation_clear=None,
+                        ),
+                    ),
                 ),
             ),
         )
@@ -2039,135 +2048,146 @@ class TestTunableTransmonOperations:
             uid="__calibration_traces_q0_0", on_system_grid=False
         ).children(
             self.reserve_ops(q0),
-            tsl.section(uid="__prepare_state_q0_0", on_system_grid=False).children(
-                self.reserve_ops(q0),
-                tsl.section(uid="__x180_q0_0", on_system_grid=False).children(
-                    self.reserve_ops(q0),
-                    tsl.play_pulse_op(
-                        signal="/logical_signal_groups/q0/drive",
-                        amplitude=0.8,
-                        length=5.1e-8,
-                        phase=0.0,
-                        pulse_parameters=None,
-                        pulse=tsl.pulse(
-                            function="drag",
-                            amplitude=1.0,
-                            length=1e-7,
-                            pulse_parameters={"beta": 0.01, "sigma": 0.21},
+            tsl.section(uid="__cal_e_0", on_system_grid=False).children(
+                tsl.section(uid="__cal_prep_e_0", on_system_grid=False).children(
+                    tsl.section(uid="__x180_q0_0", on_system_grid=False).children(
+                        self.reserve_ops(q0),
+                        tsl.play_pulse_op(
+                            signal="/logical_signal_groups/q0/drive",
+                            amplitude=0.8,
+                            length=5.1e-8,
+                            phase=0.0,
+                            pulse_parameters=None,
+                            pulse=tsl.pulse(
+                                function="drag",
+                                amplitude=1.0,
+                                length=1e-7,
+                                pulse_parameters={"beta": 0.01, "sigma": 0.21},
+                            ),
                         ),
                     ),
                 ),
-            ),
-            tsl.section(uid="__measure_q0_0", on_system_grid=False).children(
-                self.reserve_ops(q0),
-                tsl.play_pulse_op(
-                    signal="/logical_signal_groups/q0/measure",
-                    amplitude=1.0,
-                    length=2e-6,
-                    phase=None,
-                    pulse_parameters=None,
-                    pulse=tsl.pulse(
-                        function="const",
-                        amplitude=1.0,
-                        length=1e-7,
-                    ),
-                ),
-                tsl.acquire_op(
-                    signal="/logical_signal_groups/q0/acquire",
-                    handle="q0/cal_trace/e",
-                    kernel=[
-                        tsl.pulse(
-                            function="const",
-                            uid="__integration_kernel_q0_0",
+                tsl.section(uid="__cal_measure_e_0", on_system_grid=False).children(
+                    tsl.section(uid="__measure_q0_0", on_system_grid=False).children(
+                        self.reserve_ops(q0),
+                        tsl.play_pulse_op(
+                            signal="/logical_signal_groups/q0/measure",
                             amplitude=1.0,
+                            length=2e-6,
+                            phase=None,
+                            pulse_parameters=None,
+                            pulse=tsl.pulse(
+                                function="const",
+                                uid="__readout_pulse_0",
+                                amplitude=1.0,
+                                length=1e-7,
+                            ),
+                        ),
+                        tsl.acquire_op(
+                            signal="/logical_signal_groups/q0/acquire",
+                            handle="q0/cal_trace/e",
+                            kernel=[
+                                tsl.pulse(
+                                    function="const",
+                                    uid="__integration_kernel_q0_0",
+                                    amplitude=1.0,
+                                    length=2e-6,
+                                    pulse_parameters=None,
+                                ),
+                            ],
                             length=2e-6,
                             pulse_parameters=None,
                         ),
-                    ],
-                    length=2e-6,
-                    pulse_parameters=None,
-                ),
-            ),
-            tsl.section(uid="__passive_reset_q0_0", on_system_grid=False).children(
-                self.reserve_ops(q0),
-                tsl.delay_op(
-                    signal="/logical_signal_groups/q0/drive",
-                    time=1e-6,
-                    precompensation_clear=None,
-                ),
-            ),
-            tsl.section(uid="__prepare_state_q0_1", on_system_grid=False).children(
-                self.reserve_ops(q0),
-                tsl.section(uid="__x180_q0_1", on_system_grid=False).children(
-                    self.reserve_ops(q0),
-                    tsl.play_pulse_op(
-                        signal="/logical_signal_groups/q0/drive",
-                        amplitude=0.8,
-                        length=5.1e-8,
-                        phase=0.0,
-                        pulse_parameters=None,
-                        pulse=tsl.pulse(
-                            function="drag",
-                            amplitude=1.0,
-                            length=1e-7,
-                            pulse_parameters={"beta": 0.01, "sigma": 0.21},
-                        ),
                     ),
-                ),
-                tsl.section(uid="__x180_q0_2", on_system_grid=True).children(
-                    self.reserve_ops(q0),
-                    tsl.play_pulse_op(
-                        signal="/logical_signal_groups/q0/drive_ef",
-                        amplitude=0.7,
-                        length=5.2e-8,
-                        phase=0.0,
-                        pulse_parameters=None,
-                        pulse=tsl.pulse(
-                            function="drag",
-                            amplitude=1.0,
-                            length=1e-7,
-                            pulse_parameters={"beta": 0.01, "sigma": 0.21},
+                    tsl.section(
+                        uid="__passive_reset_q0_0", on_system_grid=False
+                    ).children(
+                        self.reserve_ops(q0),
+                        tsl.delay_op(
+                            signal="/logical_signal_groups/q0/drive",
+                            time=1e-6,
+                            precompensation_clear=None,
                         ),
                     ),
                 ),
             ),
-            tsl.section(uid="__measure_q0_1", on_system_grid=False).children(
-                self.reserve_ops(q0),
-                tsl.play_pulse_op(
-                    signal="/logical_signal_groups/q0/measure",
-                    amplitude=1.0,
-                    length=2e-6,
-                    phase=None,
-                    pulse_parameters=None,
-                    pulse=tsl.pulse(
-                        function="const",
-                        uid="__readout_pulse_0",
-                        amplitude=1.0,
-                        length=1e-7,
+            tsl.section(uid="__cal_f_0", on_system_grid=False).children(
+                tsl.section(uid="__cal_prep_f_0", on_system_grid=False).children(
+                    tsl.section(uid="__x180_q0_1", on_system_grid=False).children(
+                        self.reserve_ops(q0),
+                        tsl.play_pulse_op(
+                            signal="/logical_signal_groups/q0/drive",
+                            amplitude=0.8,
+                            length=5.1e-8,
+                            phase=0.0,
+                            pulse_parameters=None,
+                            pulse=tsl.pulse(
+                                function="drag",
+                                amplitude=1.0,
+                                length=1e-7,
+                                pulse_parameters={"beta": 0.01, "sigma": 0.21},
+                            ),
+                        ),
+                    ),
+                    tsl.section(uid="__x180_q0_2", on_system_grid=True).children(
+                        self.reserve_ops(q0),
+                        tsl.play_pulse_op(
+                            signal="/logical_signal_groups/q0/drive_ef",
+                            amplitude=0.7,
+                            length=5.2e-8,
+                            phase=0.0,
+                            pulse_parameters=None,
+                            pulse=tsl.pulse(
+                                function="drag",
+                                amplitude=1.0,
+                                length=1e-7,
+                                pulse_parameters={"beta": 0.01, "sigma": 0.21},
+                            ),
+                        ),
                     ),
                 ),
-                tsl.acquire_op(
-                    signal="/logical_signal_groups/q0/acquire",
-                    handle="q0/cal_trace/f",
-                    kernel=[
-                        tsl.pulse(
-                            function="const",
-                            uid="__integration_kernel_q0_0",
+                tsl.section(uid="__cal_measure_f_0", on_system_grid=False).children(
+                    tsl.section(uid="__measure_q0_1", on_system_grid=False).children(
+                        self.reserve_ops(q0),
+                        tsl.play_pulse_op(
+                            signal="/logical_signal_groups/q0/measure",
                             amplitude=1.0,
+                            length=2e-6,
+                            phase=None,
+                            pulse_parameters=None,
+                            pulse=tsl.pulse(
+                                function="const",
+                                uid="__readout_pulse_0",
+                                amplitude=1.0,
+                                length=1e-7,
+                            ),
+                        ),
+                        tsl.acquire_op(
+                            signal="/logical_signal_groups/q0/acquire",
+                            handle="q0/cal_trace/f",
+                            kernel=[
+                                tsl.pulse(
+                                    function="const",
+                                    uid="__integration_kernel_q0_0",
+                                    amplitude=1.0,
+                                    length=2e-6,
+                                    pulse_parameters=None,
+                                ),
+                            ],
                             length=2e-6,
                             pulse_parameters=None,
                         ),
-                    ],
-                    length=2e-6,
-                    pulse_parameters=None,
-                ),
-            ),
-            tsl.section(uid="__passive_reset_q0_1", on_system_grid=False).children(
-                self.reserve_ops(q0),
-                tsl.delay_op(
-                    signal="/logical_signal_groups/q0/drive",
-                    time=1e-6,
-                    precompensation_clear=None,
+                    ),
+                    tsl.section(
+                        uid="__passive_reset_q0_1", on_system_grid=False
+                    ).children(
+                        self.reserve_ops(q0),
+                        tsl.delay_op(
+                            signal="/logical_signal_groups/q0/drive",
+                            time=1e-6,
+                            precompensation_clear=None,
+                        ),
+                    ),
                 ),
             ),
         )
@@ -2175,3 +2195,219 @@ class TestTunableTransmonOperations:
         assert section == truth_section
 
         self.check_op_builds_and_compiles(section, single_tunable_transmon_platform)
+
+    def test_x180_ef_reset_pulse(self, qops, single_tunable_transmon_platform):
+        [q0] = single_tunable_transmon_platform.qpu.qubits
+        section = qops.x180_ef_reset(q0)
+
+        truth_section = tsl.section(
+            uid="__x180_ef_reset_q0_0", on_system_grid=False
+        ).children(
+            self.reserve_ops(q0),
+            tsl.play_pulse_op(
+                signal="/logical_signal_groups/q0/drive",
+                amplitude=0.7,
+                length=5.2e-8,
+                phase=0.0,
+                pulse_parameters=None,
+                pulse=tsl.pulse(
+                    uid="__x180_ef_reset_0",
+                    function="x180_ef_reset_pulse",
+                    amplitude=1.0,
+                    length=1e-7,
+                    pulse_parameters={
+                        "frequency": -200e6,
+                        "pulse_params": (
+                            ("function", "drag"),
+                            ("beta", 0.01),
+                            ("sigma", 0.21),
+                        ),
+                    },
+                ),
+            ),
+        )
+
+        assert section == truth_section
+
+        self.check_op_builds_and_compiles(section, single_tunable_transmon_platform)
+
+    @pytest.mark.parametrize(
+        "states",
+        ["ge", "ef"],
+    )
+    @pytest.mark.parametrize(
+        "repeats",
+        [1, 2, 5],
+    )
+    def test_active_reset(
+        self, qops, single_tunable_transmon_platform, states, repeats
+    ):
+        [q0] = single_tunable_transmon_platform.qpu.qubits
+        section = qops.active_reset(
+            q0,
+            active_reset_states=states,
+            feedback_processing_delay=300e-9,
+            number_resets=repeats,
+        )
+
+        ar_sections = []
+        for i in range(repeats):
+            ar_sections += [
+                tsl.section(uid=f"__measure_q0_{i}", on_system_grid=False).children(
+                    self.reserve_ops(q0),
+                    tsl.play_pulse_op(
+                        signal="/logical_signal_groups/q0/measure",
+                        amplitude=1.0,
+                        length=2e-6,
+                        phase=None,
+                        pulse_parameters=None,
+                        pulse=tsl.pulse(
+                            function="const",
+                            amplitude=1.0,
+                            length=1e-7,
+                        ),
+                    ),
+                    tsl.acquire_op(
+                        signal="/logical_signal_groups/q0/acquire",
+                        kernel=[
+                            tsl.pulse(
+                                function="const",
+                                amplitude=1.0,
+                                length=2e-6,
+                                pulse_parameters=None,
+                            ),
+                        ],
+                        length=2e-6,
+                        pulse_parameters=None,
+                    ),
+                ),
+                tsl.section(
+                    uid=f"__passive_reset_q0_{i}", on_system_grid=False
+                ).children(
+                    self.reserve_ops(q0),
+                    tsl.delay_op(
+                        signal="/logical_signal_groups/q0/drive",
+                        time=300e-9,
+                        precompensation_clear=None,
+                    ),
+                ),
+            ]
+
+            if states == "ge":
+                ar_sections += [
+                    tsl.match(
+                        on_system_grid=False,
+                        handle="q0/active_reset/result",
+                    ).children(
+                        tsl.case(state=0).children([]),
+                        tsl.case(state=1).children(
+                            tsl.play_pulse_op(
+                                signal="/logical_signal_groups/q0/drive",
+                                amplitude=0.8,
+                                length=5.1e-8,
+                                phase=0.0,
+                                pulse_parameters=None,
+                                pulse=tsl.pulse(
+                                    function="drag",
+                                    amplitude=1.0,
+                                    length=1e-7,
+                                    pulse_parameters={"beta": 0.01, "sigma": 0.21},
+                                ),
+                            ),
+                        ),
+                        tsl.case(state=2).children([]),
+                    )
+                ]
+            else:
+                ar_sections += [
+                    tsl.match(
+                        on_system_grid=False,
+                        handle="q0/active_reset/result",
+                    ).children(
+                        tsl.case(state=0).children([]),
+                        tsl.case(state=1).children(
+                            tsl.play_pulse_op(
+                                signal="/logical_signal_groups/q0/drive",
+                                amplitude=0.8,
+                                length=5.1e-8,
+                                phase=0.0,
+                                pulse_parameters=None,
+                                pulse=tsl.pulse(
+                                    function="drag",
+                                    amplitude=1.0,
+                                    length=1e-7,
+                                    pulse_parameters={"beta": 0.01, "sigma": 0.21},
+                                ),
+                            ),
+                        ),
+                        tsl.case(state=2).children(
+                            tsl.play_pulse_op(
+                                signal="/logical_signal_groups/q0/drive",
+                                amplitude=0.7,
+                                length=5.2e-8,
+                                phase=0.0,
+                                pulse_parameters=None,
+                                pulse=tsl.pulse(
+                                    function="x180_ef_reset_pulse",
+                                    amplitude=1.0,
+                                    length=1e-7,
+                                    pulse_parameters={
+                                        "frequency": -200e6,
+                                        "pulse_params": (
+                                            ("function", "drag"),
+                                            ("beta", 0.01),
+                                            ("sigma", 0.21),
+                                        ),
+                                    },
+                                ),
+                            ),
+                            tsl.play_pulse_op(
+                                signal="/logical_signal_groups/q0/drive",
+                                amplitude=0.8,
+                                length=5.1e-8,
+                                phase=0.0,
+                                pulse_parameters=None,
+                                pulse=tsl.pulse(
+                                    function="drag",
+                                    amplitude=1.0,
+                                    length=1e-7,
+                                    pulse_parameters={"beta": 0.01, "sigma": 0.21},
+                                ),
+                            ),
+                        ),
+                    ),
+                ]
+
+        truth_section = tsl.section(
+            uid="__active_reset_q0_0", on_system_grid=False
+        ).children(self.reserve_ops(q0) + ar_sections)
+
+        assert section == truth_section
+
+        self.check_op_builds_and_compiles(section, single_tunable_transmon_platform)
+
+    def test_invalid_active_reset_states(self, qops, single_tunable_transmon_platform):
+        [q0] = single_tunable_transmon_platform.qpu.qubits
+
+        # no failure
+        qops.active_reset(q0, active_reset_states="gef")
+
+        # failure
+        with pytest.raises(NotImplementedError) as err:
+            qops.active_reset(q0, active_reset_states="gefh")
+
+        assert str(err.value) == (
+            "The active reset operation can only be applied on the states 'g', "
+            "'e', 'f' at the moment."
+        )
+
+    def test_invalid_active_reset_qubits(self, qops, two_tunable_transmon_platform):
+        qubits = two_tunable_transmon_platform.qpu.qubits
+
+        with pytest.raises(NotImplementedError) as err:
+            qops.active_reset(qubits)
+
+        assert str(err.value) == (
+            "The active reset operation only supports one qubit at the moment. "
+            "Multi-qubit support will be added soon."
+        )

@@ -231,6 +231,32 @@ def create_experiment(
             "outside the sweep."
         )
 
+    swp_delays = []
+    swp_phases = []
+    for i, q in enumerate(qubits):
+        q_delays = delays[i]
+        swp_delays += [
+            SweepParameter(
+                uid=f"wait_time_{q.uid}",
+                values=q_delays,
+            ),
+        ]
+        swp_phases += [
+            SweepParameter(
+                uid=f"x90_phases_{q.uid}",
+                values=np.array(
+                    [
+                        ((wait_time - q_delays[0]) * detunings[i] * 2 * np.pi)
+                        % (2 * np.pi)
+                        for wait_time in q_delays
+                    ]
+                ),
+            ),
+        ]
+
+    # We will fix the length of the measure section to the longest section among
+    # the qubits to allow the qubits to have different readout and/or
+    # integration lengths.
     max_measure_section_length = qpu.measure_section_length(qubits)
     qop = qpu.quantum_operations
     with dsl.acquire_loop_rt(
@@ -241,44 +267,36 @@ def create_experiment(
         repetition_time=opts.repetition_time,
         reset_oscillator_phase=opts.reset_oscillator_phase,
     ):
-        swp_delays = []
-        swp_phases = []
-        for i, q in enumerate(qubits):
-            q_delays = delays[i]
-            swp_delays += [
-                SweepParameter(
-                    uid=f"wait_time_{q.uid}",
-                    values=q_delays,
-                ),
-            ]
-            swp_phases += [
-                SweepParameter(
-                    uid=f"x90_phases_{q.uid}",
-                    values=np.array(
-                        [
-                            ((wait_time - q_delays[0]) * detunings[i] * 2 * np.pi)
-                            % (2 * np.pi)
-                            for wait_time in q_delays
-                        ]
-                    ),
-                ),
-            ]
-
         with dsl.sweep(
-            name="sweep_delays_phases",
+            name="ramsey_sweep",
             parameter=swp_delays + swp_phases,
-            alignment=SectionAlignment.RIGHT,
         ):
-            for q, wait_time, phase in zip(qubits, swp_delays, swp_phases):
-                qop.prepare_state(q, opts.transition[0])
-                qop.ramsey(q, wait_time, phase, transition=opts.transition)
-                sec = qop.measure(q, dsl.handles.result_handle(q.uid))
-                # we fix the length of the measure section to the longest section among
-                # the qubits to allow the qubits to have different readout and/or
-                # integration lengths.
-                sec.length = max_measure_section_length
-                qop.passive_reset(q)
-
+            if opts.active_reset:
+                qop.active_reset(
+                    qubits,
+                    active_reset_states=opts.active_reset_states,
+                    number_resets=opts.active_reset_repetitions,
+                    measure_section_length=max_measure_section_length,
+                )
+            with dsl.section(name="main", alignment=SectionAlignment.RIGHT):
+                with dsl.section(name="main_drive", alignment=SectionAlignment.RIGHT):
+                    for q, wait_time, phase in zip(qubits, swp_delays, swp_phases):
+                        qop.prepare_state.omit_section(q, opts.transition[0])
+                        qop.ramsey.omit_section(
+                            q, wait_time, phase, transition=opts.transition
+                        )
+                with dsl.section(name="main_measure", alignment=SectionAlignment.LEFT):
+                    for q in qubits:
+                        sec = qop.measure(q, dsl.handles.result_handle(q.uid))
+                        # Fix the length of the measure section
+                        sec.length = max_measure_section_length
+                        qop.passive_reset(q)
         if opts.use_cal_traces:
-            for q in qubits:
-                qop.calibration_traces(q, states=opts.cal_states)
+            qop.calibration_traces.omit_section(
+                qubits=qubits,
+                states=opts.cal_states,
+                active_reset=opts.active_reset,
+                active_reset_states=opts.active_reset_states,
+                active_reset_repetitions=opts.active_reset_repetitions,
+                measure_section_length=max_measure_section_length,
+            )

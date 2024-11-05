@@ -18,8 +18,8 @@ from laboneq_applications.experiments import (
 from laboneq_applications.testing import CompiledExperimentVerifier
 
 _COUNT = 2  # The number of averaging in experiments
-_LENGTH_GE = 51e-9
-_LENGTH_EF = 52e-9
+_LENGTH_GE = 32e-9
+_LENGTH_EF = 64e-9
 _LENGTH_MEASURE = 2e-6
 
 
@@ -34,6 +34,9 @@ def create_T1_verifier(  # noqa: N802
 ):
     """Create a CompiledExperimentVerifier for the lifetime_measurement experiment."""
     qubits = tunable_transmon_platform.qpu.qubits
+    for q in qubits:
+        q.parameters.ge_drive_length = _LENGTH_GE
+        q.parameters.ef_drive_length = _LENGTH_EF
     if len(qubits) == 1:
         qubits = qubits[0]
     if readout_lengths is not None:
@@ -434,6 +437,59 @@ class TestT1TwoQubits:
                 indices=[0, 0],
                 start=0,
             )
+
+
+@pytest.mark.parametrize(
+    ("transition", "cal_states", "active_reset_states"),
+    [("ge", "ge", "ge"), ("ef", "ef", "gef")],
+)
+@pytest.mark.parametrize(
+    "active_reset_repetitions",
+    [1, 5],
+)
+def test_single_qubit_run_with_active_reset(
+    single_tunable_transmon_platform,
+    transition,
+    cal_states,
+    active_reset_states,
+    active_reset_repetitions,
+):
+    options = lifetime_measurement.experiment_workflow.options()
+    options.transition(transition)
+    options.cal_states(cal_states)
+    options.active_reset(True)
+    options.active_reset_states(active_reset_states)
+    options.active_reset_repetitions(active_reset_repetitions)
+    [q0] = single_tunable_transmon_platform.qpu.qubits
+    delays = np.linspace(0, 10e-6, 15)
+    workflow_result = lifetime_measurement.experiment_workflow(
+        session=single_tunable_transmon_platform.session(do_emulation=True),
+        qubits=q0,
+        qpu=single_tunable_transmon_platform.qpu,
+        delays=delays,
+        options=options,
+    ).run()
+
+    exp = workflow_result.tasks["create_experiment"].output
+    active_reset_section = exp.sections[0].children[0].children[0]
+    assert active_reset_section.uid == "active_reset_q0_0"
+    truth_len = len(q0.signals) + active_reset_repetitions * 3
+    assert len(active_reset_section.children) == truth_len
+
+    data = workflow_result.output
+    assert "active_reset" in data.q0
+    shape_truth = (
+        (len(delays), active_reset_repetitions)
+        if active_reset_repetitions > 1
+        else (len(delays),)
+    )
+    assert np.shape(data.q0.active_reset.result.data) == shape_truth
+    for s in cal_states:
+        cal_trace_data = data.q0.active_reset.cal_trace[s].data
+        if active_reset_repetitions == 1:
+            assert isinstance(cal_trace_data, np.complex128)
+        else:
+            assert len(cal_trace_data) == active_reset_repetitions
 
 
 def test_invalid_averaging_mode(single_tunable_transmon_platform):

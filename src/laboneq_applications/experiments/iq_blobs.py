@@ -190,6 +190,9 @@ def create_experiment(
     opts = IQBlobExperimentOptions() if options is None else options
     qubits = validation.validate_and_convert_qubits_sweeps(qubits)
 
+    # We will fix the length of the measure section to the longest section among
+    # the qubits to allow the qubits to have different readout and/or
+    # integration lengths.
     max_measure_section_length = qpu.measure_section_length(qubits)
     qop = qpu.quantum_operations
     with dsl.acquire_loop_rt(
@@ -200,15 +203,11 @@ def create_experiment(
         repetition_time=opts.repetition_time,
         reset_oscillator_phase=opts.reset_oscillator_phase,
     ):
-        for q in qubits:
-            with dsl.section(
-                name=f"iq_blobs_{q.uid}",
-            ):
-                for state in states:
-                    qop.prepare_state(q, state)
-                    sec = qop.measure(q, dsl.handles.result_handle(q.uid, suffix=state))
-                    # we fix the length of the measure section to the longest section
-                    # among the qubits to allow the qubits to have different readout
-                    # and/or integration lengths.
-                    sec.length = max_measure_section_length
-                    qop.passive_reset(q)
+        qop.calibration_traces.omit_section(
+            qubits=qubits,
+            states=states,
+            active_reset=opts.active_reset,
+            active_reset_states=opts.active_reset_states,
+            active_reset_repetitions=opts.active_reset_repetitions,
+            measure_section_length=max_measure_section_length,
+        )

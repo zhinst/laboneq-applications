@@ -2,12 +2,18 @@
 provided by the LabOne Q Applications Library.
 """
 
+import numpy as np
 import pytest
 
 from laboneq_applications.experiments import (
     iq_blobs,
 )
 from laboneq_applications.testing import CompiledExperimentVerifier
+
+_LENGTH_GE = 32e-9
+_LENGTH_EF = 64e-9
+_LENGTH_MEASURE = 2e-6
+_LENGTH_MEASURE_RESET = 2e-6 + 1e-6
 
 
 def create_iq_blobs_verifier(
@@ -18,6 +24,9 @@ def create_iq_blobs_verifier(
 ):
     """Create a CompiledExperimentVerifier for the iq_blobs experiment."""
     qubits = tunable_transmon_platform.qpu.qubits
+    for q in qubits:
+        q.parameters.ge_drive_length = _LENGTH_GE
+        q.parameters.ef_drive_length = _LENGTH_EF
     if len(qubits) == 1:
         qubits = qubits[0]
     if readout_lengths is not None:
@@ -27,6 +36,7 @@ def create_iq_blobs_verifier(
     session = tunable_transmon_platform.session(do_emulation=True)
     options = iq_blobs.experiment_workflow.options()
     options.count(count)
+    options.do_analysis(False)
     res = iq_blobs.experiment_workflow(
         session=session,
         qubits=qubits,
@@ -108,16 +118,16 @@ class TestIQBlobsSingleQubit:
             verifier.assert_pulse(
                 signal="/logical_signal_groups/q0/drive",
                 index=0,
-                start=2e-6 + 1e-6,
-                end=2e-6 + 1e-6 + 51e-9,
+                start=_LENGTH_MEASURE_RESET,
+                end=_LENGTH_MEASURE_RESET + _LENGTH_GE,
                 parameterized_with=[],
             )
         elif states == "gef":
             verifier.assert_pulse(
                 signal="/logical_signal_groups/q0/drive_ef",
                 index=0,
-                start=2e-6 + 1e-6 + 56e-9 + 2e-6 + 1e-6 + 56e-9,
-                end=2e-6 + 1e-6 + 56e-9 + 2e-6 + 1e-6 + 56e-9 + 52e-9,
+                start=2 * _LENGTH_MEASURE_RESET + 2 * _LENGTH_GE,
+                end=2 * _LENGTH_MEASURE_RESET + 2 * _LENGTH_GE + _LENGTH_EF,
                 parameterized_with=[],
             )
 
@@ -143,13 +153,13 @@ class TestIQBlobsSingleQubit:
             signal="/logical_signal_groups/q0/measure",
             index=0,
             start=0e-9,
-            end=2e-6,
+            end=_LENGTH_MEASURE,
         )
         verifier.assert_pulse(
             signal="/logical_signal_groups/q0/acquire",
             index=0,
             start=0e-9,
-            end=2e-6,
+            end=_LENGTH_MEASURE,
         )
 
 
@@ -256,30 +266,30 @@ class TestIQBlobsTwoQubit:
             verifier.assert_pulse(
                 signal="/logical_signal_groups/q0/drive",
                 index=0,
-                start=2e-6 + 1e-6,
-                end=2e-6 + 1e-6 + 51e-9,
+                start=_LENGTH_MEASURE_RESET,
+                end=_LENGTH_MEASURE_RESET + _LENGTH_GE,
                 parameterized_with=[],
             )
             verifier.assert_pulse(
                 signal="/logical_signal_groups/q1/drive",
                 index=0,
-                start=2e-6 + 1e-6,
-                end=2e-6 + 1e-6 + 51e-9,
+                start=_LENGTH_MEASURE_RESET,
+                end=_LENGTH_MEASURE_RESET + _LENGTH_GE,
                 parameterized_with=[],
             )
         elif states == "gef":
             verifier.assert_pulse(
                 signal="/logical_signal_groups/q0/drive_ef",
                 index=0,
-                start=2e-6 + 1e-6 + 56e-9 + 2e-6 + 1e-6 + 56e-9,
-                end=2e-6 + 1e-6 + 56e-9 + 2e-6 + 1e-6 + 56e-9 + 52e-9,
+                start=2 * _LENGTH_MEASURE_RESET + 2 * _LENGTH_GE,
+                end=2 * _LENGTH_MEASURE_RESET + 2 * _LENGTH_GE + _LENGTH_EF,
                 parameterized_with=[],
             )
             verifier.assert_pulse(
                 signal="/logical_signal_groups/q1/drive_ef",
                 index=0,
-                start=2e-6 + 1e-6 + 56e-9 + 2e-6 + 1e-6 + 56e-9,
-                end=2e-6 + 1e-6 + 56e-9 + 2e-6 + 1e-6 + 56e-9 + 52e-9,
+                start=2 * _LENGTH_MEASURE_RESET + 2 * _LENGTH_GE,
+                end=2 * _LENGTH_MEASURE_RESET + 2 * _LENGTH_GE + _LENGTH_EF,
                 parameterized_with=[],
             )
 
@@ -309,7 +319,7 @@ class TestIQBlobsTwoQubit:
             signal="/logical_signal_groups/q0/acquire",
             index=0,
             start=0e-9,
-            end=2e-6,
+            end=_LENGTH_MEASURE,
         )
         verifier.assert_pulse(
             signal="/logical_signal_groups/q1/measure",
@@ -321,5 +331,51 @@ class TestIQBlobsTwoQubit:
             signal="/logical_signal_groups/q1/acquire",
             index=0,
             start=0e-9,
-            end=2e-6,
+            end=_LENGTH_MEASURE,
+        )
+
+
+@pytest.mark.parametrize(
+    ("states", "active_reset_states"),
+    [("ge", "ge"), ("ef", "gef"), ("gef", "gef")],
+)
+@pytest.mark.parametrize(
+    "active_reset_repetitions",
+    [1, 5],
+)
+def test_single_qubit_run_with_active_reset(
+    single_tunable_transmon_platform,
+    states,
+    active_reset_states,
+    active_reset_repetitions,
+):
+    options = iq_blobs.experiment_workflow.options()
+    count = 1024
+    options.count(count)
+    options.active_reset(True)
+    options.active_reset_states(active_reset_states)
+    options.active_reset_repetitions(active_reset_repetitions)
+    [q0] = single_tunable_transmon_platform.qpu.qubits
+    workflow_result = iq_blobs.experiment_workflow(
+        session=single_tunable_transmon_platform.session(do_emulation=True),
+        qubits=q0,
+        qpu=single_tunable_transmon_platform.qpu,
+        states=states,
+        options=options,
+    ).run()
+
+    exp = workflow_result.tasks["create_experiment"].output
+    active_reset_section = exp.sections[0].children[0]
+    assert active_reset_section.uid == "active_reset_q0_0"
+    truth_len = len(q0.signals) + active_reset_repetitions * 3
+    assert len(active_reset_section.children) == truth_len
+
+    data = workflow_result.output
+    assert "active_reset" in data.q0
+    for s in states:
+        cal_trace_data = data.q0.active_reset.cal_trace[s].data
+        assert (
+            np.shape(cal_trace_data) == (count,)
+            if active_reset_repetitions == 1
+            else (count, active_reset_repetitions)
         )

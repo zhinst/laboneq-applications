@@ -7,12 +7,16 @@ from typing import TYPE_CHECKING, Literal
 import numpy as np
 from laboneq.dsl.calibration import Oscillator
 from laboneq.dsl.enums import ModulationType
-from laboneq.simple import dsl
+from laboneq.simple import SectionAlignment, dsl
 
 from .qubit_types import TunableTransmonQubit
 
 if TYPE_CHECKING:
+    from collections.abc import Sequence
+
     from laboneq.dsl.parameter import SweepParameter
+
+    from laboneq_applications.typing import Qubits
 
 # TODO: Implement multistate 0-1-2 measurement operation
 
@@ -317,6 +321,9 @@ class TunableTransmonOperations(dsl.QuantumOperations):
         the case pass `reset="passive"` or `reset="active"` to perform a
         passive or active reset operation before preparing the state.
 
+        The returned section is right-aligned to ensure that there is not time gap
+        between the end of the preparation pulses and the end of the section.
+
         Arguments:
             q:
                 The qubit to prepare.
@@ -341,10 +348,13 @@ class TunableTransmonOperations(dsl.QuantumOperations):
         if state == "g":
             pass
         elif state == "e":
-            self.x180(q, transition="ge")
+            sec = self.x180(q, transition="ge")
+            sec.alignment = SectionAlignment.RIGHT
         elif state == "f":
-            self.x180(q, transition="ge")
-            self.x180(q, transition="ef")
+            sec = self.x180(q, transition="ge")
+            sec.alignment = SectionAlignment.RIGHT
+            sec = self.x180(q, transition="ef")
+            sec.alignment = SectionAlignment.RIGHT
         else:
             raise ValueError(f"Only states g, e and f can be prepared, not {state!r}")
 
@@ -812,7 +822,7 @@ class TunableTransmonOperations(dsl.QuantumOperations):
             pulse=spectroscopy_drive,
         )
 
-    @dsl.quantum_operation
+    @dsl.quantum_operation(broadcast=False)
     def ramsey(
         self,
         q: TunableTransmonQubit,
@@ -863,15 +873,20 @@ class TunableTransmonOperations(dsl.QuantumOperations):
         with dsl.section(
             name=f"ramsey_{q.uid}",
             on_system_grid=on_system_grid,
+            alignment=SectionAlignment.RIGHT,
         ):
             sec_x90_1 = self.x90(q, transition=transition)
+            sec_x90_1.alignment = SectionAlignment.RIGHT
             if echo_pulse is not None:
                 self.delay(q, time=delay / 2)
                 sec_echo = self[echo_pulse](q, transition=transition)
+                sec_echo.alignment = SectionAlignment.RIGHT
                 self.delay(q, time=delay / 2)
             else:
                 self.delay(q, time=delay)
             sec_x90_2 = self.x90(q, phase=phase, transition=transition)
+            sec_x90_2.alignment = SectionAlignment.RIGHT
+
         # to remove the gap due to oscillator switching for driving ef transitions.
         if echo_pulse is not None:
             sec_echo.on_system_grid = False
@@ -879,22 +894,208 @@ class TunableTransmonOperations(dsl.QuantumOperations):
         sec_x90_2.on_system_grid = False
 
     @dsl.quantum_operation
-    def calibration_traces(
+    def x180_ef_reset(
         self,
         q: TunableTransmonQubit,
-        states: str | tuple = "ge",
     ) -> None:
-        """Add calibration-trace measurements.
+        """Modulated x180 operation on the ef transition, used for active reset.
 
         Arguments:
             q:
                 The qubit to reset.
+        """
+        _, params = q.transition_parameters("ef")
+        frequency = q.parameters.drive_frequency_ef - q.parameters.drive_frequency_ge
+        drag_params = list(params["pulse"].items())
+        rst_pls_params = {
+            "function": "x180_ef_reset_pulse",
+            "frequency": frequency,
+            "pulse_params": tuple(drag_params),
+        }
+        reset_pulse = dsl.create_pulse(rst_pls_params, name="x180_ef_reset")
+        dsl.play(
+            q.signals["drive"],
+            amplitude=params["amplitude_pi"],
+            phase=0,
+            length=params["length"],
+            pulse=reset_pulse,
+        )
+
+    @dsl.quantum_operation(broadcast=False)
+    def active_reset(
+        self,
+        qubits: Qubits,
+        active_reset_states: str | tuple = "ge",
+        number_resets: int = 1,
+        feedback_processing_delay: float = 0.0,
+        handles: Sequence[str] | None = None,
+        measure_section_length: float | None = None,
+    ) -> None:
+        """Reset a qubit into the ground state, 'g', using feedback-based active reset.
+
+        Arguments:
+            qubits:
+                The qubits to reset.
+            handles:
+                The handles to store the active-reset acquisition results in for each
+                qubit.
+            active_reset_states:
+                The qubit states to reset. Can be any combination of ("g", "e", "f").
+                Default: "ge"
+            number_resets:
+                The number of active reset rounds to apply
+            feedback_processing_delay:
+                Feedback processing time.
+                Default: 300ns
+            measure_section_length:
+                The length of the measure section. If multiple qubits are passed, the
+                measure section must have the same length for each qubit.
+                Default: None.
+        """
+        if isinstance(qubits, TunableTransmonQubit):
+            qubits = [qubits]
+        if len(qubits) > 1:
+            raise NotImplementedError(
+                "The active reset operation only supports one qubit at the moment. "
+                "Multi-qubit support will be added soon."
+            )
+
+        if not all(s in ["g", "e", "f"] for s in active_reset_states):
+            raise NotImplementedError(
+                "The active reset operation can only be applied on the states 'g', "
+                "'e', 'f' at the moment."
+            )
+
+        if handles is None:
+            handles = [dsl.handles.active_reset_handle(q.uid) for q in qubits]
+        if len(handles) != len(qubits):
+            raise ValueError(
+                f"Please provide a handle for each qubits. Currently, there are "
+                f"{len(qubits)} qubits and {len(handles)} handles."
+            )
+
+        for qidx, q in enumerate(qubits):
+            for _nr in range(number_resets):
+                sec = self.measure(q, handle=handles[qidx])
+                sec.length = measure_section_length
+                self.passive_reset(q, delay=feedback_processing_delay)
+                with dsl.match(name=f"match_{q.uid}", handle=handles[qidx]):
+                    with dsl.case(name=f"case_{q.uid}_g", state=0):
+                        pass
+                    with dsl.case(name=f"case_{q.uid}_e", state=1):
+                        if "e" in active_reset_states:
+                            self.x180.omit_section(q)
+                        else:
+                            pass
+                    with dsl.case(name=f"case_{q.uid}_f", state=2):
+                        if "f" in active_reset_states:
+                            self.x180_ef_reset.omit_section(q)
+                            self.x180.omit_section(q)
+                        else:
+                            pass
+
+    @dsl.quantum_operation(broadcast=False)
+    def calibration_traces(
+        self,
+        qubits: Qubits,
+        states: str | tuple = "ge",
+        active_reset: bool = False,  # noqa: FBT001, FBT002
+        active_reset_states: str | tuple = "ge",
+        active_reset_repetitions: int = 1,
+        feedback_processing_delay: float = 0.0,
+        measure_section_length: float | None = None,
+    ) -> None:
+        """Add calibration-trace measurements.
+
+        Arguments:
+            qubits:
+                The qubits to reset.
             states:
                 The calibration states to prepare. Can be any combination of
-                ("g", "e", "f").
+                ("g", "e", "f"). The same states are prepared for each qubit.
                 Default: "ge"
+            active_reset: whether to use active reset to prepare the qubit in g before
+                every calibration state preparation
+            active_reset_states:
+                The qubit states to reset. Can be any combination of ("g", "e", "f").
+                Default: "ge"
+            active_reset_repetitions:
+                The number of active reset rounds to apply
+            feedback_processing_delay:
+                Feedback processing time.
+                Default: 300ns
+            measure_section_length:
+                The length of the measure section. If multiple qubits are passed, the
+                measure section must have the same length for each qubit.
+                Default: None.
         """
+        if isinstance(qubits, TunableTransmonQubit):
+            qubits = [qubits]
         for state in states:
-            self.prepare_state(q, state)
-            self.measure(q, dsl.handles.calibration_trace_handle(q.uid, state))
-            self.passive_reset(q)
+            if active_reset:
+                active_reset_handles = [
+                    dsl.handles.active_reset_calibration_trace_handle(q.uid, state)
+                    for q in qubits
+                ]
+                self.active_reset(
+                    qubits,
+                    active_reset_states=active_reset_states,
+                    number_resets=active_reset_repetitions,
+                    feedback_processing_delay=feedback_processing_delay,
+                    handles=active_reset_handles,
+                    measure_section_length=measure_section_length,
+                )
+
+            with dsl.section(
+                name=f"cal_{state}",
+                alignment=SectionAlignment.RIGHT,
+            ):
+                with dsl.section(
+                    name=f"cal_prep_{state}", alignment=SectionAlignment.RIGHT
+                ):
+                    for q in qubits:
+                        self.prepare_state.omit_section(q, state=state)
+                with dsl.section(
+                    name=f"cal_measure_{state}", alignment=SectionAlignment.LEFT
+                ):
+                    for q in qubits:
+                        sec = self.measure(
+                            q, dsl.handles.calibration_trace_handle(q.uid, state)
+                        )
+                        # Fix the length of the measure section
+                        sec.length = measure_section_length
+                        self.passive_reset(q)
+
+
+@dsl.pulse_library.register_pulse_functional
+def x180_ef_reset_pulse(
+    x: np.ndarray,
+    frequency: float,
+    pulse_params: list[tuple],
+    length: float,
+    **_,
+) -> np.ndarray:
+    """Modulated x180 pulse on the ef transition, used for active reset.
+
+    Arguments:
+        x:
+            Array between -1 and 1.
+        frequency:
+            Modulation frequency of the pulse.
+        pulse_params:
+            Parameters of the pulse functional.
+        length:
+            Pulse length.
+        **_: keyword arguments
+            uid ([str][]): Unique identifier of the pulse
+            length ([float][]): Length of the pulse in seconds
+            amplitude ([float][]): Amplitude of the pulse
+
+    Returns:
+        the array describing the pulse waveform
+    """
+    pls_kwags = dict(pulse_params)
+    pulse_func = pls_kwags.pop("function")
+    time = 0.5 * (x + 1) * length
+    wfm = dsl.pulse_library.pulse_factory(pulse_func)(**pls_kwags).evaluate(x)
+    return np.exp(-1j * 2 * np.pi * frequency * time) * wfm

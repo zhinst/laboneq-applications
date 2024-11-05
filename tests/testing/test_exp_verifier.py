@@ -79,8 +79,8 @@ class TestPulseExtractor:
     def test_get_pulse(self, rabi_pulse_extractor):
         pulse = rabi_pulse_extractor.get_pulse("/logical_signal_groups/q0/drive", 1)
         truth = _Pulse(
-            start=3.056e-6,
-            end=3.107e-6,
+            start=3.061e-6,
+            end=3.112e-6,
             parameterized_with=["amplitude_q0"],
         )
         np.testing.assert_allclose(pulse.start, truth.start, atol=1e-12)
@@ -91,7 +91,7 @@ class TestPulseExtractor:
         pulse = rabi_pulse_extractor.get_pulse("/logical_signal_groups/q0/drive", 3)
         # This is not ideal to hardcode values for pulse timing here
         # but too much effort to calculate them to test only the pulse extractor
-        truth = _Pulse(start=12.168e-6, end=12.219e-6, parameterized_with=[])
+        truth = _Pulse(start=12.173e-6, end=12.224e-6, parameterized_with=[])
         np.testing.assert_allclose(pulse.start, truth.start, atol=1e-12)
         np.testing.assert_allclose(pulse.end, truth.end, atol=1e-12)
         assert pulse.parameterized_with == truth.parameterized_with
@@ -146,14 +146,14 @@ class TestExperimentVerifier:
         rabi_exp_verifier.assert_pulse(
             "/logical_signal_groups/q0/drive",
             3,
-            12.168e-6,
-            12.219e-6,
+            12.173e-6,
+            12.224e-6,
             [],
         )
         rabi_exp_verifier.assert_pulse(
             "/logical_signal_groups/q0/drive",
             3,
-            12.168e-6,
+            12.173e-6,
         )
 
     def test_assert_wrong_pulse(self, rabi_exp_verifier):
@@ -187,13 +187,13 @@ class TestExperimentVerifier:
         rabi_exp_verifier.assert_pulse_pair(
             (signal_drive, signal_measure),
             (0, 0),
-            start=56e-9,
+            start=51e-9,
         )
 
         rabi_exp_verifier.assert_pulse_pair(
             (signal_drive, signal_measure),
             (0, 0),
-            distance=5e-9,
+            distance=0.0,
         )
 
         with pytest.raises(ValueError, match="Indices must be a tuple of two integers"):

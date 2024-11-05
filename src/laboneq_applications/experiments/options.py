@@ -45,6 +45,15 @@ class BaseExperimentOptions(TaskOptions):
         reset_oscillator_phase:
             Whether to reset the oscillator phase.
             Default: False.
+        active_reset (bool):
+            Whether to use active reset.
+            Default: False.
+        active_reset_repetitions (int):
+            The number of times to repeat the active resets.
+            Default: 1
+        active_reset_states (str | tuple | None):
+            The qubit states to actively reset.
+            Default: "ge"
     """
 
     count: int = option_field(default=1024, description="The number of repetitions.")
@@ -68,6 +77,13 @@ class BaseExperimentOptions(TaskOptions):
     )
     reset_oscillator_phase: bool = option_field(
         False, description="Whether to reset the oscillator phase."
+    )
+    active_reset: bool = option_field(False, description="Whether to use active reset.")
+    active_reset_repetitions: int = option_field(
+        1, description="The number of times to repeat the active resets."
+    )
+    active_reset_states: str | tuple | None = option_field(
+        "ge", description="The qubit states to actively reset."
     )
 
 

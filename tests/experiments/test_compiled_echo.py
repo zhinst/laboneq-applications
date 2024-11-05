@@ -10,6 +10,9 @@ from laboneq_applications.experiments import (
 )
 from laboneq_applications.testing import CompiledExperimentVerifier
 
+_LENGTH_GE = 32e-9
+_LENGTH_EF = 64e-9
+
 
 def on_system_grid(time, system_grid=8):
     # time_ns is time in ns, system_grid is minimum stepsize in ns
@@ -32,6 +35,9 @@ def create_echo_verifier(
 ):
     """Create a CompiledExperimentVerifier for the echo experiment."""
     qubits = tunable_transmon_platform.qpu.qubits
+    for q in qubits:
+        q.parameters.ge_drive_length = _LENGTH_GE
+        q.parameters.ef_drive_length = _LENGTH_EF
     if len(qubits) == 1:
         qubits = qubits[0]
     if readout_lengths is not None:
@@ -138,7 +144,7 @@ class TestEchoSingleQubit:
         # In this test, all the qubit ge drive pulses have lengths of 51ns,
         # and all the ef pulses have lengths of 52ns.
 
-        delays = [1e-6, 2e-6, 3e-6]
+        delays = [1.032e-6, 2.0560e-6, 3.08e-6]
         count = 2
         verifier = create_echo_verifier(
             single_tunable_transmon_platform,
@@ -153,7 +159,7 @@ class TestEchoSingleQubit:
                 signal="/logical_signal_groups/q0/drive",
                 index=0,
                 start=0e-6,
-                end=51e-9,
+                end=_LENGTH_GE,
                 parameterized_with=[  # empty for echo: pulses are constant
                 ],
             )
@@ -171,8 +177,8 @@ class TestEchoSingleQubit:
             verifier.assert_pulse(
                 signal="/logical_signal_groups/q0/drive_ef",
                 index=0,
-                start=56e-9,
-                end=56e-9 + 52e-9,
+                start=_LENGTH_GE,
+                end=_LENGTH_GE + _LENGTH_EF,
                 parameterized_with=[],
             )
             verifier.assert_pulse_pair(
@@ -199,7 +205,7 @@ class TestEchoSingleQubit:
 
         """
 
-        delays = [1e-6, 2e-6, 3e-6]
+        delays = [1.032e-6, 2.0560e-6, 3.08e-6]
         count = 2
 
         verifier = create_echo_verifier(
@@ -214,7 +220,7 @@ class TestEchoSingleQubit:
         delay = delays[0] / 2
 
         if transition == "ge":
-            measure_pulse_start = on_system_grid(51e-9 + delay + 51e-9 + delay + 51e-9)
+            measure_pulse_start = on_system_grid(3 * _LENGTH_GE + 2 * delay)
             verifier.assert_pulse(
                 signal="/logical_signal_groups/q0/measure",
                 index=0,
@@ -230,8 +236,8 @@ class TestEchoSingleQubit:
                 tolerance=1e-9,
             )
         elif transition == "ef":
-            measure_pulse_start = (
-                56e-9 + 52e-9 + delay + 52e-9 + delay + on_system_grid(52e-9)
+            measure_pulse_start = on_system_grid(
+                _LENGTH_GE + 3 * _LENGTH_EF + 2 * delay
             )
             verifier.assert_pulse(
                 signal="/logical_signal_groups/q0/measure",
@@ -380,7 +386,7 @@ class TestEchoTwoQubits:
         # In this test, all the qubit ge drive pulses have lengths of 51ns,
         # and all the ef pulses have lengths of 52ns.
 
-        delays = [[1e-6, 2e-6, 3e-6], [1e-6, 2e-6, 3e-6]]
+        delays = [[1.032e-6, 2.0560e-6, 3.08e-6], [1.032e-6, 2.0560e-6, 3.08e-6]]
         count = 2
         verifier = create_echo_verifier(
             two_tunable_transmon_platform,
@@ -396,14 +402,14 @@ class TestEchoTwoQubits:
                 signal="/logical_signal_groups/q0/drive",
                 index=0,
                 start=0e-6,
-                end=51e-9,
+                end=_LENGTH_GE,
                 parameterized_with=[],
             )
             verifier.assert_pulse(
                 signal="/logical_signal_groups/q1/drive",
                 index=0,
                 start=0e-6,
-                end=51e-9,
+                end=_LENGTH_GE,
                 parameterized_with=[],
             )
             verifier.assert_pulse_pair(
@@ -431,15 +437,15 @@ class TestEchoTwoQubits:
             verifier.assert_pulse(
                 signal="/logical_signal_groups/q0/drive_ef",
                 index=0,
-                start=56e-9,
-                end=56e-9 + 52e-9,
+                start=_LENGTH_GE,
+                end=_LENGTH_GE + _LENGTH_EF,
                 parameterized_with=[],
             )
             verifier.assert_pulse(
                 signal="/logical_signal_groups/q1/drive_ef",
                 index=0,
-                start=56e-9,
-                end=56e-9 + 52e-9,
+                start=_LENGTH_GE,
+                end=_LENGTH_GE + _LENGTH_EF,
                 parameterized_with=[],
             )
             verifier.assert_pulse_pair(
@@ -477,7 +483,7 @@ class TestEchoTwoQubits:
         Here, we can assert the start, end, and the parameterization of the pulses.
 
         """
-        delays = [[1e-6, 2e-6, 3e-6], [1e-6, 2e-6, 3e-6]]
+        delays = [[1.032e-6, 2.0560e-6, 3.08e-6], [1.032e-6, 2.0560e-6, 3.08e-6]]
         count = 2
 
         verifier = create_echo_verifier(
@@ -493,7 +499,7 @@ class TestEchoTwoQubits:
         if transition == "ge":
             # Check for q0
             delay = delays[0][0] / 2
-            measure_start_time = on_system_grid(51e-9 + delay + 51e-9 + delay + 51e-9)
+            measure_start_time = on_system_grid(3 * _LENGTH_GE + 2 * delay)
             verifier.assert_pulse(
                 signal="/logical_signal_groups/q0/measure",
                 index=0,
@@ -510,7 +516,7 @@ class TestEchoTwoQubits:
             )
             # Check for q1
             delay = delays[1][0] / 2
-            measure_start_time = on_system_grid(51e-9 + delay + 51e-9 + delay + 51e-9)
+            measure_start_time = on_system_grid(3 * _LENGTH_GE + 2 * delay)
             verifier.assert_pulse(
                 signal="/logical_signal_groups/q1/measure",
                 index=0,
@@ -528,9 +534,7 @@ class TestEchoTwoQubits:
         elif transition == "ef":
             # Check for q0
             delay = delays[0][0] / 2
-            measure_start_time = (
-                56e-9 + 52e-9 + delay + 52e-9 + delay + on_system_grid(52e-9)
-            )
+            measure_start_time = on_system_grid(_LENGTH_GE + 3 * _LENGTH_EF + 2 * delay)
             verifier.assert_pulse(
                 signal="/logical_signal_groups/q0/measure",
                 index=0,
@@ -545,9 +549,7 @@ class TestEchoTwoQubits:
             )
             # Check for q1
             delay = delays[1][0] / 2
-            measure_start_time = (
-                56e-9 + 52e-9 + delay + 52e-9 + delay + on_system_grid(52e-9)
-            )
+            measure_start_time = on_system_grid(_LENGTH_GE + 3 * _LENGTH_EF + 2 * delay)
             verifier.assert_pulse(
                 signal="/logical_signal_groups/q1/measure",
                 index=0,
@@ -561,6 +563,59 @@ class TestEchoTwoQubits:
                 end=measure_start_time + 2e-6,
                 tolerance=1e-9,
             )
+
+
+@pytest.mark.parametrize(
+    ("transition", "cal_states", "active_reset_states"),
+    [("ge", "ge", "ge"), ("ef", "ef", "gef")],
+)
+@pytest.mark.parametrize(
+    "active_reset_repetitions",
+    [1, 5],
+)
+def test_single_qubit_run_with_active_reset(
+    single_tunable_transmon_platform,
+    transition,
+    cal_states,
+    active_reset_states,
+    active_reset_repetitions,
+):
+    options = echo.experiment_workflow.options()
+    options.transition(transition)
+    options.cal_states(cal_states)
+    options.active_reset(True)
+    options.active_reset_states(active_reset_states)
+    options.active_reset_repetitions(active_reset_repetitions)
+    [q0] = single_tunable_transmon_platform.qpu.qubits
+    delays = np.linspace(0, 1e-6, 11)
+    workflow_result = echo.experiment_workflow(
+        session=single_tunable_transmon_platform.session(do_emulation=True),
+        qubits=q0,
+        qpu=single_tunable_transmon_platform.qpu,
+        delays=delays,
+        options=options,
+    ).run()
+
+    exp = workflow_result.tasks["create_experiment"].output
+    active_reset_section = exp.sections[0].children[0].children[0]
+    assert active_reset_section.uid == "active_reset_q0_0"
+    truth_len = len(q0.signals) + active_reset_repetitions * 3
+    assert len(active_reset_section.children) == truth_len
+
+    data = workflow_result.output
+    assert "active_reset" in data.q0
+    shape_truth = (
+        (len(delays), active_reset_repetitions)
+        if active_reset_repetitions > 1
+        else (len(delays),)
+    )
+    assert np.shape(data.q0.active_reset.result.data) == shape_truth
+    for s in cal_states:
+        cal_trace_data = data.q0.active_reset.cal_trace[s].data
+        if active_reset_repetitions == 1:
+            assert isinstance(cal_trace_data, np.complex128)
+        else:
+            assert len(cal_trace_data) == active_reset_repetitions
 
 
 def test_invalid_averaging_mode(single_tunable_transmon_platform):

@@ -36,7 +36,7 @@ class TestIQBlobsAnalysisSingleQubitGEF:
         assert list(proc_data_dict["q0"]["shots_per_state"]) == states
         len_sps = [len(sps) for sps in proc_data_dict["q0"]["shots_per_state"].values()]
         len_raw_data = [
-            len(results_single_qubit_gef[handles.result_handle("q0", suffix=s)])
+            len(results_single_qubit_gef[handles.calibration_trace_handle("q0", s)])
             for s in states
         ]
         assert len_sps == len_raw_data
@@ -180,7 +180,7 @@ class TestIQBlobsAnalysisTwoQubitGE:
                 len(sps) for sps in proc_data_dict[qid]["shots_per_state"].values()
             ]
             len_raw_data = [
-                len(results_two_qubit_ge[handles.result_handle(qid, suffix=s)])
+                len(results_two_qubit_ge[handles.calibration_trace_handle(qid, s)])
                 for s in states
             ]
             assert len_sps == len_raw_data

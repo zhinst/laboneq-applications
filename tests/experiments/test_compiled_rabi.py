@@ -32,6 +32,9 @@ from laboneq_applications.experiments import (
 # For new experiments: import the relevant experiment
 from laboneq_applications.testing import CompiledExperimentVerifier
 
+_LENGTH_GE = 32e-9
+_LENGTH_EF = 64e-9
+
 
 # For new experiments: replace rabi with the name of the new experiment
 def create_rabi_verifier(
@@ -45,6 +48,9 @@ def create_rabi_verifier(
 ):
     """Create a CompiledExperimentVerifier for the amplitude rabi experiment."""
     qubits = tunable_transmon_platform.qpu.qubits
+    for q in qubits:
+        q.parameters.ge_drive_length = _LENGTH_GE
+        q.parameters.ef_drive_length = _LENGTH_EF
     if len(qubits) == 1:
         qubits = qubits[0]
     if readout_lengths is not None:
@@ -199,7 +205,7 @@ class TestAmplitudeRabiSingleQubit:
                 signal="/logical_signal_groups/q0/drive",
                 index=0,  # For new experiments: change this value as needed
                 start=0e-6,  # For new experiments: change this value as needed
-                end=51e-9,  # For new experiments: change this value as needed
+                end=_LENGTH_GE,  # For new experiments: change this value as needed
                 parameterized_with=[
                     "amplitude_q0",
                 ],  # For new experiments: list of SweepParameter names or leave empty
@@ -211,8 +217,9 @@ class TestAmplitudeRabiSingleQubit:
             verifier.assert_pulse(
                 signal="/logical_signal_groups/q0/drive_ef",
                 index=0,  # For new experiments: change this value as needed
-                start=56e-9,  # For new experiments: change this value as needed
-                end=56e-9 + 52e-9,  # For new experiments: change this value as needed
+                start=_LENGTH_GE,  # For new experiments: change this value as needed
+                end=_LENGTH_GE
+                + _LENGTH_EF,  # For new experiments: change this value as needed
                 parameterized_with=[
                     "amplitude_q0",
                 ],  # For new experiments: list of SweepParameter names or leave empty
@@ -246,28 +253,36 @@ class TestAmplitudeRabiSingleQubit:
             verifier.assert_pulse(
                 signal="/logical_signal_groups/q0/measure",
                 index=0,  # For new experiments: change this value as needed
-                start=56e-9,  # For new experiments: change this value as needed
-                end=56e-9 + 2e-6,  # For new experiments: change this value as needed
+                start=_LENGTH_GE,  # For new experiments: change this value as needed
+                end=_LENGTH_GE
+                + 2e-6,  # For new experiments: change this value as needed
             )
             verifier.assert_pulse(
                 signal="/logical_signal_groups/q0/acquire",
                 index=0,  # For new experiments: change this value as needed
-                start=56e-9,  # For new experiments: change this value as needed
-                end=56e-9 + 2e-6,  # For new experiments: change this value as needed
+                start=_LENGTH_GE,  # For new experiments: change this value as needed
+                end=_LENGTH_GE
+                + 2e-6,  # For new experiments: change this value as needed
             )
         elif transition == "ef":
             # For new experiments: remove if not relevant
             verifier.assert_pulse(
                 signal="/logical_signal_groups/q0/measure",
                 index=0,  # For new experiments: change this value as needed
-                start=112e-9,  # For new experiments: change this value as needed
-                end=112e-9 + 2e-6,  # For new experiments: change this value as needed
+                start=_LENGTH_GE
+                + _LENGTH_EF,  # For new experiments: change this value as needed
+                end=_LENGTH_GE
+                + _LENGTH_EF
+                + 2e-6,  # For new experiments: change this value as needed
             )
             verifier.assert_pulse(
                 signal="/logical_signal_groups/q0/acquire",
                 index=0,  # For new experiments: change this value as needed
-                start=112e-9,  # For new experiments: change this value as needed
-                end=112e-9 + 2e-6,  # For new experiments: change this value as needed
+                start=_LENGTH_GE
+                + _LENGTH_EF,  # For new experiments: change this value as needed
+                end=_LENGTH_GE
+                + _LENGTH_EF
+                + 2e-6,  # For new experiments: change this value as needed
             )
 
 
@@ -429,7 +444,7 @@ class TestAmplitudeRabiTwoQubits:
                 signal="/logical_signal_groups/q0/drive",
                 index=0,  # For new experiments: change this value as needed
                 start=0e-6,  # For new experiments: change this value as needed
-                end=51e-9,  # For new experiments: change this value as needed
+                end=_LENGTH_GE,  # For new experiments: change this value as needed
                 parameterized_with=[
                     "amplitude_q0",
                 ],  # For new experiments: list of SweepParameter names or leave empty
@@ -438,7 +453,7 @@ class TestAmplitudeRabiTwoQubits:
                 signal="/logical_signal_groups/q1/drive",
                 index=0,  # For new experiments: change this value as needed
                 start=0e-6,  # For new experiments: change this value as needed
-                end=51e-9,  # For new experiments: change this value as needed
+                end=_LENGTH_GE,  # For new experiments: change this value as needed
                 parameterized_with=[
                     "amplitude_q1",
                 ],  # For new experiments: list of SweepParameter names or leave empty
@@ -449,8 +464,9 @@ class TestAmplitudeRabiTwoQubits:
             verifier.assert_pulse(
                 signal="/logical_signal_groups/q0/drive_ef",
                 index=0,  # For new experiments: change this value as needed
-                start=56e-9,  # For new experiments: change this value as needed
-                end=56e-9 + 52e-9,  # For new experiments: change this value as needed
+                start=_LENGTH_GE,  # For new experiments: change this value as needed
+                end=_LENGTH_GE
+                + _LENGTH_EF,  # For new experiments: change this value as needed
                 parameterized_with=[
                     "amplitude_q0",
                 ],  # For new experiments: list of SweepParameter names or leave empty
@@ -458,8 +474,9 @@ class TestAmplitudeRabiTwoQubits:
             verifier.assert_pulse(
                 signal="/logical_signal_groups/q1/drive_ef",
                 index=0,  # For new experiments: change this value as needed
-                start=56e-9,  # For new experiments: change this value as needed
-                end=56e-9 + 52e-9,  # For new experiments: change this value as needed
+                start=_LENGTH_GE,  # For new experiments: change this value as needed
+                end=_LENGTH_GE
+                + _LENGTH_EF,  # For new experiments: change this value as needed
                 parameterized_with=[
                     "amplitude_q1",
                 ],  # For new experiments: list of SweepParameter names or leave empty
@@ -496,8 +513,8 @@ class TestAmplitudeRabiTwoQubits:
             verifier.assert_pulse(
                 signal="/logical_signal_groups/q0/measure",
                 index=0,  # For new experiments: change this value as needed
-                start=56e-9,  # For new experiments: change this value as needed
-                end=56e-9
+                start=_LENGTH_GE,  # For new experiments: change this value as needed
+                end=_LENGTH_GE
                 + readout_lengths[
                     0
                 ],  # For new experiments: change this value as needed
@@ -505,16 +522,17 @@ class TestAmplitudeRabiTwoQubits:
             verifier.assert_pulse(
                 signal="/logical_signal_groups/q0/acquire",
                 index=0,  # For new experiments: change this value as needed
-                start=56e-9,  # For new experiments: change this value as needed
-                end=56e-9 + 2e-6,  # For new experiments: change this value as needed
+                start=_LENGTH_GE,  # For new experiments: change this value as needed
+                end=_LENGTH_GE
+                + 2e-6,  # For new experiments: change this value as needed
             )
 
             # Check for q1
             verifier.assert_pulse(
                 signal="/logical_signal_groups/q1/measure",
                 index=0,  # For new experiments: change this value as needed
-                start=56e-9,  # For new experiments: change this value as needed
-                end=56e-9
+                start=_LENGTH_GE,  # For new experiments: change this value as needed
+                end=_LENGTH_GE
                 + readout_lengths[
                     1
                 ],  # For new experiments: change this value as needed
@@ -522,16 +540,19 @@ class TestAmplitudeRabiTwoQubits:
             verifier.assert_pulse(
                 signal="/logical_signal_groups/q1/acquire",
                 index=0,  # For new experiments: change this value as needed
-                start=56e-9,  # For new experiments: change this value as needed
-                end=56e-9 + 2e-6,  # For new experiments: change this value as needed
+                start=_LENGTH_GE,  # For new experiments: change this value as needed
+                end=_LENGTH_GE
+                + 2e-6,  # For new experiments: change this value as needed
             )
         elif transition == "ef":  # For new experiments: remove if not relevant
             # Check for q0
             verifier.assert_pulse(
                 signal="/logical_signal_groups/q0/measure",
                 index=0,  # For new experiments: change this value as needed
-                start=112e-9,  # For new experiments: change this value as needed
-                end=112e-9
+                start=_LENGTH_GE
+                + _LENGTH_EF,  # For new experiments: change this value as needed
+                end=_LENGTH_GE
+                + _LENGTH_EF
                 + readout_lengths[
                     0
                 ],  # For new experiments: change this value as needed
@@ -539,15 +560,20 @@ class TestAmplitudeRabiTwoQubits:
             verifier.assert_pulse(
                 signal="/logical_signal_groups/q0/acquire",
                 index=0,  # For new experiments: change this value as needed
-                start=112e-9,  # For new experiments: change this value as needed
-                end=112e-9 + 2e-6,  # For new experiments: change this value as needed
+                start=_LENGTH_GE
+                + _LENGTH_EF,  # For new experiments: change this value as needed
+                end=_LENGTH_GE
+                + _LENGTH_EF
+                + 2e-6,  # For new experiments: change this value as needed
             )
             # Check for q1
             verifier.assert_pulse(
                 signal="/logical_signal_groups/q1/measure",
                 index=0,  # For new experiments: change this value as needed
-                start=112e-9,  # For new experiments: change this value as needed
-                end=112e-9
+                start=_LENGTH_GE
+                + _LENGTH_EF,  # For new experiments: change this value as needed
+                end=_LENGTH_GE
+                + _LENGTH_EF
                 + readout_lengths[
                     1
                 ],  # For new experiments: change this value as needed
@@ -555,9 +581,65 @@ class TestAmplitudeRabiTwoQubits:
             verifier.assert_pulse(
                 signal="/logical_signal_groups/q1/acquire",
                 index=0,  # For new experiments: change this value as needed
-                start=112e-9,  # For new experiments: change this value as needed
-                end=112e-9 + 2e-6,  # For new experiments: change this value as needed
+                start=_LENGTH_GE
+                + _LENGTH_EF,  # For new experiments: change this value as needed
+                end=_LENGTH_GE
+                + _LENGTH_EF
+                + 2e-6,  # For new experiments: change this value as needed
             )
+
+
+@pytest.mark.parametrize(
+    ("transition", "cal_states", "active_reset_states"),
+    [("ge", "ge", "ge"), ("ef", "ef", "gef")],
+)
+@pytest.mark.parametrize(
+    "active_reset_repetitions",
+    [1, 5],
+)
+def test_single_qubit_run_with_active_reset(
+    single_tunable_transmon_platform,
+    transition,
+    cal_states,
+    active_reset_states,
+    active_reset_repetitions,
+):
+    options = amplitude_rabi.experiment_workflow.options()
+    options.transition(transition)
+    options.cal_states(cal_states)
+    options.active_reset(True)
+    options.active_reset_states(active_reset_states)
+    options.active_reset_repetitions(active_reset_repetitions)
+    [q0] = single_tunable_transmon_platform.qpu.qubits
+    amplitudes = np.linspace(0, 1, 11)
+    workflow_result = amplitude_rabi.experiment_workflow(
+        session=single_tunable_transmon_platform.session(do_emulation=True),
+        qubits=q0,
+        qpu=single_tunable_transmon_platform.qpu,
+        amplitudes=amplitudes,
+        options=options,
+    ).run()
+
+    exp = workflow_result.tasks["create_experiment"].output
+    active_reset_section = exp.sections[0].children[0].children[0]
+    assert active_reset_section.uid == "active_reset_q0_0"
+    truth_len = len(q0.signals) + active_reset_repetitions * 3
+    assert len(active_reset_section.children) == truth_len
+
+    data = workflow_result.output
+    assert "active_reset" in data.q0
+    shape_truth = (
+        (len(amplitudes), active_reset_repetitions)
+        if active_reset_repetitions > 1
+        else (len(amplitudes),)
+    )
+    assert np.shape(data.q0.active_reset.result.data) == shape_truth
+    for s in cal_states:
+        cal_trace_data = data.q0.active_reset.cal_trace[s].data
+        if active_reset_repetitions == 1:
+            assert isinstance(cal_trace_data, np.complex128)
+        else:
+            assert len(cal_trace_data) == active_reset_repetitions
 
 
 def test_invalid_averaging_mode(single_tunable_transmon_platform):

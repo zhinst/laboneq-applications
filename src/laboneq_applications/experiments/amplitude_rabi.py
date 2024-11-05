@@ -16,7 +16,13 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from laboneq import workflow
-from laboneq.simple import AveragingMode, Experiment, SweepParameter, dsl
+from laboneq.simple import (
+    AveragingMode,
+    Experiment,
+    SectionAlignment,
+    SweepParameter,
+    dsl,
+)
 from laboneq.workflow.tasks import (
     compile_experiment,
     run_experiment,
@@ -212,6 +218,13 @@ def create_experiment(
             "outside the sweep."
         )
 
+    amps_sweep_pars = [
+        SweepParameter(f"amplitude_{q.uid}", q_amplitudes, axis_name=f"{q.uid}")
+        for q, q_amplitudes in zip(qubits, amplitudes)
+    ]
+    # We will fix the length of the measure section to the longest section among
+    # the qubits to allow the qubits to have different readout and/or
+    # integration lengths.
     max_measure_section_length = qpu.measure_section_length(qubits)
     qop = qpu.quantum_operations
     with dsl.acquire_loop_rt(
@@ -222,18 +235,38 @@ def create_experiment(
         repetition_time=opts.repetition_time,
         reset_oscillator_phase=opts.reset_oscillator_phase,
     ):
-        for q, q_amplitudes in zip(qubits, amplitudes):
-            with dsl.sweep(
-                name=f"amps_{q.uid}",
-                parameter=SweepParameter(f"amplitude_{q.uid}", q_amplitudes),
-            ) as amplitude:
-                qop.prepare_state(q, opts.transition[0])
-                qop.x180(q, amplitude=amplitude, transition=opts.transition)
-                sec = qop.measure(q, dsl.handles.result_handle(q.uid))
-                # we fix the length of the measure section to the longest section among
-                # the qubits to allow the qubits to have different readout and/or
-                # integration lengths.
-                sec.length = max_measure_section_length
-                qop.passive_reset(q)
-            if opts.use_cal_traces:
-                qop.calibration_traces(q, states=opts.cal_states)
+        with dsl.sweep(
+            name="rabi_amp_sweep",
+            parameter=amps_sweep_pars,
+        ):
+            if opts.active_reset:
+                qop.active_reset(
+                    qubits,
+                    active_reset_states=opts.active_reset_states,
+                    number_resets=opts.active_reset_repetitions,
+                    measure_section_length=max_measure_section_length,
+                )
+            with dsl.section(name="main", alignment=SectionAlignment.RIGHT):
+                with dsl.section(name="main_drive", alignment=SectionAlignment.RIGHT):
+                    for q, q_amplitudes in zip(qubits, amps_sweep_pars):
+                        qop.prepare_state.omit_section(q, state=opts.transition[0])
+                        sec = qop.x180(
+                            q, amplitude=q_amplitudes, transition=opts.transition
+                        )
+                        sec.alignment = SectionAlignment.RIGHT
+                with dsl.section(name="main_measure", alignment=SectionAlignment.LEFT):
+                    for q in qubits:
+                        sec = qop.measure(q, dsl.handles.result_handle(q.uid))
+                        # Fix the length of the measure section
+                        sec.length = max_measure_section_length
+                        qop.passive_reset(q)
+
+        if opts.use_cal_traces:
+            qop.calibration_traces.omit_section(
+                qubits=qubits,
+                states=opts.cal_states,
+                active_reset=opts.active_reset,
+                active_reset_states=opts.active_reset_states,
+                active_reset_repetitions=opts.active_reset_repetitions,
+                measure_section_length=max_measure_section_length,
+            )
