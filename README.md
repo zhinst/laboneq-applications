@@ -1,10 +1,7 @@
-# laboneq-applications
+# LabOne Q Applications Library (laboneq-applications)
 
-`laboneq-applications` is an experiment execution framework for LabOne Q experiments and an extensible collection of top-quality pre-built experiments for various applications.
-
-**IMPORTANT: Please do not offer this package to customers without aligning with Stefania Lazar.**
-
-- **Currently, the `laboneq-applications` is internal and serves as a learning and development platform for the final product. We do not provide support for the current version. If you are an application scientist and you share this with customers, you yourself are responsible for providing support until the final version is released.**
+The LabOne Q Applications Library is a library of experiments and analyses for various quantum computing applications, implemented using the 
+Zurich Instruments [LabOne Q](https://github.com/zhinst/laboneq) software framework.
 
 ---
 <!-- NOTE: Change to the public link when ready -->
@@ -12,49 +9,48 @@
 
 ---
 
-## Goals of the Applications Library and its parts
+## Contents of the Applications Library
 
-The `laboneq-applications` provides a scalable framework for quantum experiments based on the Zurich Instruments [LabOne Q](https://github.com/zhinst/laboneq) software framework.
-
-To this end, `laboneq-applications` contains several elements:
+The Applications Library currently contains the following:
 
 ### Qubit types
 
-- Transmon qubits
+- Tunable Transmon qubits 
 
-### Pre-built experiments
+### Quantum Operations
 
-- Amplitude Rabi
-- Ramsey
-- Hahn echo
-- IQ Blob
+- common operations for Tunable Transmon Qubits, such as `measure`, `acquire`, `rx`, `ry`, `rz`, etc.
+
+### Pre-Built Experiments and Analyses 
+
+Single-qubit calibration measurements:
+
 - Resonator Spectroscopy
-- lifetime_measurement
+- Qubit Spectroscopy
+- Amplitude Rabi
+- Ramsey Interferometry 
+- DRAG Quadrature-Scaling calibration
+- Lifetime measurement
+- Hahn echo
+- Amplitude Fine
+- Dispersive Shift
+- IQ Blobs
+- Raw Time Traces for Optimal Readout Weights
 
-### Quantum operations
 
-A package that defines quantum operations (such as pulses or gates) on a specific qubit.
+## How to Install and Use
 
-## How to install and use
+The LabOne Q Applications Library depends on the Zurich Instruments' [LabOne Q](https://github.com/zhinst/laboneq) software framework.
 
-The LabOne Q Applications Library is used together and depends on Zurich Instruments' LabOne Q software framework.
 
-<!-- NOTE: Remove when public -->
-> :warning: The following instructions are for internal testing
+## How to contribute
 
-See: [internal installation](docs/internal/install.md)
+You can either clone or fork the `laboneq-applications` repository and use it as the working directory for your quantum experiments.
 
-### For the developer
-
-You can either clone or fork the `laboneq-applications` directory and use it as the working directory for your quantum experiments.
-
-<!-- NOTE: Remove when public -->
 ```
-git clone https://gitlab.zhinst.com/qccs/laboneq-applications.git
+git clone https://github.com/zhinst/laboneq-applications.git
 cd laboneq-applications
 pip install -e .
 ```
 
-## How to contribute?
-
-See [CONTRIBUTING](CONTRIBUTING.md)
+See the [contributions guidelines](CONTRIBUTING.md) for more information. 
