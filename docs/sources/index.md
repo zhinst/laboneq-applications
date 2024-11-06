@@ -43,13 +43,13 @@ which turn Python functions into task and workflow objects respectively, or
 [WorkflowOptions][laboneq.workflow.WorkflowOptions] and [TaskOptions][laboneq.workflow.TaskOptions] 
 used to parametrize the control of a workflow.
 
-- `laboneq_applications.tasks`
+- `laboneq.workflow.tasks` and `laboneq_applications.tasks`
 
 A module containing common tasks that may be used within experiment workflows such
 as [compile_experiment][laboneq.workflow.tasks.compile_experiment], [run_experiment][laboneq.workflow.tasks.run_experiment] 
 and [update_qubits][laboneq_applications.tasks.parameter_updating.update_qubits].
 
-- `laboneq_applications.dsl`
+- `laboneq.dsl`
 
 A namespace that exposes commonly used objects and extensions for building an LabOne Q `Experiment`, such
 as the decorator [@qubit_experiment][laboneq.dsl.experiment.build_experiment.qubit_experiment],

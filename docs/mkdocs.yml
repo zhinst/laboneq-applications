@@ -9,29 +9,26 @@ nav:
   - Home: index.md
   - How-to Guides:
       - how-to-guides/index.md
-      - Amplitude Rabi: how-to-guides/sources/01_superconducting_qubits/01_workflows/amplitude_rabi.ipynb
-      - Ramsey interferometry: how-to-guides/sources/01_superconducting_qubits/01_workflows/ramsey.ipynb
-      - Amplitude Fine: how-to-guides/sources/01_superconducting_qubits/01_workflows/amplitude_fine.ipynb
-      - Dispersive Shift: how-to-guides/sources/01_superconducting_qubits/01_workflows/dispersive_shift.ipynb
-      - Echo: how-to-guides/sources/01_superconducting_qubits/01_workflows/echo.ipynb
-      - IQ blobs: how-to-guides/sources/01_superconducting_qubits/01_workflows/iq_blobs.ipynb
-      - Lifetime measurement: how-to-guides/sources/01_superconducting_qubits/01_workflows/lifetime_measurement.ipynb
-      - Qubit spectroscopy: how-to-guides/sources/01_superconducting_qubits/01_workflows/qubit_spectroscopy.ipynb
-      - Resonator Spectroscopy: how-to-guides/sources/01_superconducting_qubits/01_workflows/resonator_spectroscopy.ipynb
-      - Resonator Spectroscopy DC bias: how-to-guides/sources/01_superconducting_qubits/01_workflows/resonator_spectroscopy_dcbias.ipynb
-      - Raw Time Traces for Optimal Readout Weights: how-to-guides/sources/01_superconducting_qubits/01_workflows/time_traces.ipynb
+      - Resonator Spectroscopy: how-to-guides/sources/01_superconducting_qubits/01_workflows/01_resonator_spectroscopy.ipynb
+      - Resonator Spectroscopy DC bias: how-to-guides/sources/01_superconducting_qubits/01_workflows/02_resonator_spectroscopy_dcbias.ipynb
+      - Qubit spectroscopy: how-to-guides/sources/01_superconducting_qubits/01_workflows/03_qubit_spectroscopy.ipynb
+      - Amplitude Rabi: how-to-guides/sources/01_superconducting_qubits/01_workflows/04_amplitude_rabi.ipynb
+      - Ramsey interferometry: how-to-guides/sources/01_superconducting_qubits/01_workflows/05_ramsey.ipynb
+      - DRAG pulse characterization: how-to-guides/sources/01_superconducting_qubits/01_workflows/06_drag_q_scaling.ipynb
+      - Lifetime_measurement: how-to-guides/sources/01_superconducting_qubits/01_workflows/07_lifetime_measurement.ipynb
+      - Echo: how-to-guides/sources/01_superconducting_qubits/01_workflows/08_echo.ipynb
+      - Amplitude Fine: how-to-guides/sources/01_superconducting_qubits/01_workflows/09_amplitude_fine.ipynb
+      - Dispersive Shift: how-to-guides/sources/01_superconducting_qubits/01_workflows/10_dispersive_shift.ipynb
+      - IQ blobs: how-to-guides/sources/01_superconducting_qubits/01_workflows/11_iq_blobs.ipynb
+      - Raw Time Traces for Optimal Readout Weights: how-to-guides/sources/01_superconducting_qubits/01_workflows/12_time_traces.ipynb
       - OpenQASM:
         - how-to-guides/sources/04_qasm/01_VQE_Qiskit.ipynb
         - how-to-guides/sources/04_qasm/02_RandomizedBenchmarking_from_Qiskit.ipynb
   - Tutorials:
       - tutorials/index.md
+      - Defining the Experimental Setup: tutorials/sources/getting_started.ipynb
       - Experiment Workflows: tutorials/sources/experiment_workflows.ipynb
       - Quantum Operations: tutorials/sources/quantum_operations.ipynb
-      - Workflow:
-          - tutorials/workflow/index.md
-          - Build a workflow: tutorials/workflow/sources/build_workflow.ipynb
-          - Options: tutorials/workflow/sources/options.ipynb
-          - Variables and references: tutorials/workflow/sources/workflow_language.ipynb
       - Tasks: tutorials/sources/tasks.ipynb
       - Logbooks: tutorials/sources/logbooks.ipynb
   - Release Notes: release_notes.md

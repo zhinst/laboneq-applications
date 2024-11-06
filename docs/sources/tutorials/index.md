@@ -23,9 +23,6 @@ The library provides generic tasks for building, compiling and running LabOne Q 
 It also provides specific tasks for simple experiments and the associated analysis (e.g.
 Rabi).
 
-## Workflows
-
-[This tutorial](workflow/index.md) shows how to define and run your own workflows.
 
 ## Logbooks
 

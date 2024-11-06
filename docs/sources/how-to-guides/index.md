@@ -21,17 +21,19 @@ experiments provided by the LabOneQ Applications library in the lab. They are in
     
 </div>
 
-* [Amplitude Rabi](sources/01_superconducting_qubits/01_workflows/amplitude_rabi.ipynb)
-* [Ramsey interferometry](sources/01_superconducting_qubits/01_workflows/ramsey.ipynb)
-* [Amplitude Fine](sources/01_superconducting_qubits/01_workflows/amplitude_fine.ipynb)
-* [Dispersive Shift](sources/01_superconducting_qubits/01_workflows/dispersive_shift.ipynb)
-* [Echo](sources/01_superconducting_qubits/01_workflows/echo.ipynb)
-* [IQ blobs](sources/01_superconducting_qubits/01_workflows/iq_blobs.ipynb)
-* [Qubit spectroscopy](sources/01_superconducting_qubits/01_workflows/qubit_spectroscopy.ipynb)
-* [Resonator Spectroscopy](sources/01_superconducting_qubits/01_workflows/resonator_spectroscopy.ipynb)
-* [Resonator Spectroscopy DC bias](sources/01_superconducting_qubits/01_workflows/resonator_spectroscopy_dcbias.ipynb)
-* [Lifetime_measurement](sources/01_superconducting_qubits/01_workflows/lifetime_measurement.ipynb)
-* [Raw Time Traces for Optimal Readout Weights](sources/01_superconducting_qubits/01_workflows/time_traces.ipynb)
+* [Defining the Experimental Setup](../tutorials/sources/getting_started.ipynb)
+* [Resonator Spectroscopy](sources/01_superconducting_qubits/01_workflows/01_resonator_spectroscopy.ipynb)
+* [Resonator Spectroscopy DC bias](sources/01_superconducting_qubits/01_workflows/02_resonator_spectroscopy_dcbias.ipynb)
+* [Qubit spectroscopy](sources/01_superconducting_qubits/01_workflows/03_qubit_spectroscopy.ipynb)
+* [Amplitude Rabi](sources/01_superconducting_qubits/01_workflows/04_amplitude_rabi.ipynb)
+* [Ramsey interferometry](sources/01_superconducting_qubits/01_workflows/05_ramsey.ipynb)
+* [DRAG pulse characterization](sources/01_superconducting_qubits/01_workflows/06_drag_q_scaling.ipynb)
+* [Lifetime_measurement](sources/01_superconducting_qubits/01_workflows/07_lifetime_measurement.ipynb)
+* [Echo](sources/01_superconducting_qubits/01_workflows/08_echo.ipynb)
+* [Amplitude Fine](sources/01_superconducting_qubits/01_workflows/09_amplitude_fine.ipynb)
+* [Dispersive Shift](sources/01_superconducting_qubits/01_workflows/10_dispersive_shift.ipynb)
+* [IQ blobs](sources/01_superconducting_qubits/01_workflows/11_iq_blobs.ipynb)
+* [Raw Time Traces for Optimal Readout Weights](sources/01_superconducting_qubits/01_workflows/12_time_traces.ipynb)
 
 <div class="grid-cards" markdown>
 
