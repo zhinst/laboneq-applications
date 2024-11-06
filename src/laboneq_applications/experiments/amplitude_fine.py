@@ -310,6 +310,7 @@ def experiment_workflow_x180(
     qpu: QPU,
     qubits: Qubits,
     repetitions: QubitSweepPoints[int],
+    temporary_parameters: dict[str, dict | TransmonParameters] | None = None,
     options: TuneUpWorkflowOptions | None = None,
 ) -> None:
     """The amplitude fine experiment workflow for a x180 gate.
@@ -334,6 +335,8 @@ def experiment_workflow_x180(
             amplification_qop for each qubit. If `qubits` is a single qubit,
             `repetitions` must be a list of integers. Otherwise it must be a list of
             lists of integers.
+        temporary_parameters:
+            The temporary parameters to update the qubits with.
         options:
             The options for building the workflow.
             In addition to options from [WorkflowOptions], the following
@@ -371,6 +374,7 @@ def experiment_workflow_x180(
     phase_offset = -np.pi / 2
     parameter_to_update = "drive_amplitude_pi"
 
+    qubits = temporary_modify(qubits, temporary_parameters)
     exp = create_experiment(
         qpu,
         qubits,
@@ -401,6 +405,7 @@ def experiment_workflow_x90(
     qpu: QPU,
     qubits: Qubits,
     repetitions: QubitSweepPoints[int],
+    temporary_parameters: dict[str, dict | TransmonParameters] | None = None,
     options: TuneUpWorkflowOptions | None = None,
 ) -> None:
     """The amplitude fine experiment workflow for a x90 gate.
@@ -425,6 +430,8 @@ def experiment_workflow_x90(
             amplification_qop for each qubit. If `qubits` is a single qubit,
             `repetitions` must be a list of integers. Otherwise it must be a list of
             lists of integers.
+        temporary_parameters:
+            The temporary parameters to update the qubits with.
         options:
             The options for building the workflow.
             In addition to options from [WorkflowOptions], the following
@@ -462,6 +469,7 @@ def experiment_workflow_x90(
     phase_offset = -np.pi / 2
     parameter_to_update = "drive_amplitude_pi2"
 
+    qubits = temporary_modify(qubits, temporary_parameters)
     exp = create_experiment(
         qpu,
         qubits,
