@@ -1,3 +1,6 @@
+# Copyright 2024 Zurich Instruments AG
+# SPDX-License-Identifier: Apache-2.0
+
 """Tunable transmon qubit device setups for testing and demonstration."""
 
 from laboneq.dsl.calibration import Oscillator, SignalCalibration

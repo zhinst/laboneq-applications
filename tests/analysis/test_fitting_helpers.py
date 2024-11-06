@@ -1,3 +1,6 @@
+# Copyright 2024 Zurich Instruments AG
+# SPDX-License-Identifier: Apache-2.0
+
 import numpy as np
 import pytest
 from laboneq.analysis import fitting as fit_mods

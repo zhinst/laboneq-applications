@@ -1,3 +1,6 @@
+# Copyright 2024 Zurich Instruments AG
+# SPDX-License-Identifier: Apache-2.0
+
 """This module defines the time rabi chevron experiment.
 
 In this experiment, we sweep the frequency and the amplitude

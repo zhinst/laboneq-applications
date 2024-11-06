@@ -1,3 +1,6 @@
+# Copyright 2024 Zurich Instruments AG
+# SPDX-License-Identifier: Apache-2.0
+
 """This module defines the dispersive shift experiment.
 
 In this experiment, we prepare the qubit at defined states and then perform resonator

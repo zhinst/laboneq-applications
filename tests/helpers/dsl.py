@@ -1,3 +1,6 @@
+# Copyright 2024 Zurich Instruments AG
+# SPDX-License-Identifier: Apache-2.0
+
 """Test helpers for working with DSL outputs and UIDs."""
 
 from __future__ import annotations

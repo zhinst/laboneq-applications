@@ -1,3 +1,6 @@
+# Copyright 2024 Zurich Instruments AG
+# SPDX-License-Identifier: Apache-2.0
+
 from laboneq.simple import AcquisitionType, AveragingMode, RepetitionMode
 
 from laboneq_applications.experiments.options import (

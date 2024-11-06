@@ -1,3 +1,6 @@
+# Copyright 2024 Zurich Instruments AG
+# SPDX-License-Identifier: Apache-2.0
+
 """Tests for laboneq_applications.core.validation."""
 
 import numpy as np

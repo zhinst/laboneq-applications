@@ -1,3 +1,6 @@
+# Copyright 2024 Zurich Instruments AG
+# SPDX-License-Identifier: Apache-2.0
+
 """This module defines the DRAG quadrature-scaling calibration experiment.
 
 In this experiment, we determine the quadrature scaling factor, beta, of a DRAG pulse,

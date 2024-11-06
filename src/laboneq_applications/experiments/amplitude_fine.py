@@ -1,3 +1,6 @@
+# Copyright 2024 Zurich Instruments AG
+# SPDX-License-Identifier: Apache-2.0
+
 """This module defines the amplitude_fine experiment.
 
 In this experiment, we apply the same quantum operation a variable number of times. If

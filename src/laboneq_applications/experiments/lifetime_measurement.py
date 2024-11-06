@@ -1,3 +1,6 @@
+# Copyright 2024 Zurich Instruments AG
+# SPDX-License-Identifier: Apache-2.0
+
 """This module defines the lifetime_measurement experiment.
 
 In this experiment, the qubit is first excited to either its first

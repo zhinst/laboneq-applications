@@ -1,3 +1,6 @@
+# Copyright 2024 Zurich Instruments AG
+# SPDX-License-Identifier: Apache-2.0
+
 """This module defines the signal propagation delay experiment.
 
 In this experiment, we sweep the readout integration delay

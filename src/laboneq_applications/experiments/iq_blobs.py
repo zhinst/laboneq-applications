@@ -1,3 +1,6 @@
+# Copyright 2024 Zurich Instruments AG
+# SPDX-License-Identifier: Apache-2.0
+
 """This module defines the IQ_blob experiment.
 
 In this experiment, we perform single-shot measurements with the qubits prepared

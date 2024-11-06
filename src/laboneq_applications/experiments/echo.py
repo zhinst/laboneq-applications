@@ -1,3 +1,6 @@
+# Copyright 2024 Zurich Instruments AG
+# SPDX-License-Identifier: Apache-2.0
+
 """This module defines the Hahn echo experiment.
 
 In the Hahn echo experiment, we perform a Ramsey experiment and place one extra

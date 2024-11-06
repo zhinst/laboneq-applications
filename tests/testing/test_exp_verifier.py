@@ -1,3 +1,6 @@
+# Copyright 2024 Zurich Instruments AG
+# SPDX-License-Identifier: Apache-2.0
+
 """Tests for the ExperimentVerifier class.
 
 Here, to test the ExperimentVerifier class, we need a sample L1Q experiment that

@@ -1,3 +1,6 @@
+# Copyright 2024 Zurich Instruments AG
+# SPDX-License-Identifier: Apache-2.0
+
 """This module defines functions to leverage the LabOne Q GateStore."""
 
 from __future__ import annotations

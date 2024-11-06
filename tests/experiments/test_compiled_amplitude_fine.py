@@ -1,3 +1,6 @@
+# Copyright 2024 Zurich Instruments AG
+# SPDX-License-Identifier: Apache-2.0
+
 """Tests for the compiled amplitude_fine experiments.
 
 NOTES: The relative timing check are skipped and need investigations for

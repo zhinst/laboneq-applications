@@ -1,3 +1,6 @@
+# Copyright 2024 Zurich Instruments AG
+# SPDX-License-Identifier: Apache-2.0
+
 """Data for testing the time-traces analysis in test_time_traces.py.
 
 In the arrays in the fixtures below represent the raw time traces obtained in

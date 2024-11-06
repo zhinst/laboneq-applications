@@ -1,3 +1,6 @@
+# Copyright 2024 Zurich Instruments AG
+# SPDX-License-Identifier: Apache-2.0
+
 """This module contains functions for rotating raw experiment data.
 
 The raw data needs to be translated into qubit populations. This is done either by

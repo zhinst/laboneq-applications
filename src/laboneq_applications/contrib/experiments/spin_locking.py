@@ -1,3 +1,6 @@
+# Copyright 2024 Zurich Instruments AG
+# SPDX-License-Identifier: Apache-2.0
+
 """This module defines the spin locking experiment.
 
 The spin locking experiment has the following pulse sequence:

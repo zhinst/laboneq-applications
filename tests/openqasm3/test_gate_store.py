@@ -1,3 +1,6 @@
+# Copyright 2024 Zurich Instruments AG
+# SPDX-License-Identifier: Apache-2.0
+
 """Tests for laboneq_applications.opeqnqasm3.gate_store"""
 
 from __future__ import annotations

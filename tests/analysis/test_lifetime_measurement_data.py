@@ -1,3 +1,6 @@
+# Copyright 2024 Zurich Instruments AG
+# SPDX-License-Identifier: Apache-2.0
+
 """Data for testing the lifetime_measurement analysis."""
 
 import numpy as np

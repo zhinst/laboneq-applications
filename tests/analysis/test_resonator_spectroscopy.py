@@ -1,3 +1,6 @@
+# Copyright 2024 Zurich Instruments AG
+# SPDX-License-Identifier: Apache-2.0
+
 """Tests for the resonator spectroscopy analysis using the testing utilities."""
 
 import matplotlib as mpl

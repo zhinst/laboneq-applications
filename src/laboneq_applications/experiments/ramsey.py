@@ -1,3 +1,6 @@
+# Copyright 2024 Zurich Instruments AG
+# SPDX-License-Identifier: Apache-2.0
+
 """This module defines the Ramsey experiment.
 
 In this experiment, we sweep the wait time between two x90 pulses on a given qubit

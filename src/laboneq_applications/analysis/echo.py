@@ -1,3 +1,6 @@
+# Copyright 2024 Zurich Instruments AG
+# SPDX-License-Identifier: Apache-2.0
+
 """This module defines the analysis for extracting T2 from a Hahn Echo experiment.
 
 The experiment is defined in laboneq_applications.experiments. See the docstring of

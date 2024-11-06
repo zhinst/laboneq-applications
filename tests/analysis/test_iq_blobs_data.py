@@ -1,3 +1,6 @@
+# Copyright 2024 Zurich Instruments AG
+# SPDX-License-Identifier: Apache-2.0
+
 """Data for IQ-Blobs analysis testing.
 
 In the AcquiredResults the data represents the raw acquisition result obtained in

@@ -26,3 +26,13 @@ notebooks:check_no_outputs:
     - docker
   script:
     - python3 ci/scripts/notebook_check.py docs
+
+check:license:
+  stage: pre-build
+  image:
+    name: $DEFAULT_PYTHON_IMAGE
+  script:
+    - python ci/scripts/check_license.py src/ tests/
+  tags:
+    - linux
+    - docker

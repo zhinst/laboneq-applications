@@ -1,3 +1,6 @@
+# Copyright 2024 Zurich Instruments AG
+# SPDX-License-Identifier: Apache-2.0
+
 """This module defines the analysis for a amplitude Rabi chevron experiment.
 
 The experiment is defined in laboneq_applications.contrib.experiments.

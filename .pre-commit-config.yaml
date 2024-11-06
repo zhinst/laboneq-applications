@@ -4,3 +4,11 @@ repos:
     hooks:
       - id: ruff
       - id: ruff-format
+  - repo: local
+    hooks:
+      - id: check-license
+        name: check-license
+        entry: python ci/scripts/check_license.py src/ tests/ --fix
+        language: system
+        types: [ python ]
+        pass_filenames: false

@@ -1,3 +1,6 @@
+# Copyright 2024 Zurich Instruments AG
+# SPDX-License-Identifier: Apache-2.0
+
 """LabOneQ Application Library provides some utilities to verify the experiments.
 
 The `CompiledExperimentVerifier` class is used to verify the workflow results.

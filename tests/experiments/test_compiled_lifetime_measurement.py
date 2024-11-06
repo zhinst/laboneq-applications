@@ -1,3 +1,6 @@
+# Copyright 2024 Zurich Instruments AG
+# SPDX-License-Identifier: Apache-2.0
+
 """Tests for the compiled lifetime_measurement experiments.
 The followings are checked:
 - The number of measure, drive and acquire pulses.

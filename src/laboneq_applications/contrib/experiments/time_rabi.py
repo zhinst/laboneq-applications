@@ -1,3 +1,6 @@
+# Copyright 2024 Zurich Instruments AG
+# SPDX-License-Identifier: Apache-2.0
+
 """This module defines the time-rabi experiment.
 
 In this experiment, we sweep the length of a drive pulse on a given qubit transition

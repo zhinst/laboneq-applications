@@ -1,3 +1,6 @@
+# Copyright 2024 Zurich Instruments AG
+# SPDX-License-Identifier: Apache-2.0
+
 """Tests for laboneq_applications.qpu_types.tunable_transmon.device_setups."""
 
 import pytest

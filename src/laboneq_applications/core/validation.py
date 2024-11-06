@@ -1,3 +1,6 @@
+# Copyright 2024 Zurich Instruments AG
+# SPDX-License-Identifier: Apache-2.0
+
 """Utilities for the LabOne Q Applications library."""
 
 from __future__ import annotations

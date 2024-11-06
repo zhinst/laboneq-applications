@@ -1,3 +1,6 @@
+# Copyright 2024 Zurich Instruments AG
+# SPDX-License-Identifier: Apache-2.0
+
 """This module defines the raw-traces measurement.
 
 In this measurement, raw traces are acquired for qubits in different states in order to

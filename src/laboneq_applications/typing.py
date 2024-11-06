@@ -1,3 +1,6 @@
+# Copyright 2024 Zurich Instruments AG
+# SPDX-License-Identifier: Apache-2.0
+
 """Common type hints for the laboneq_applications library.
 
 This module provides a set of common types for use within the
