@@ -22,8 +22,8 @@ nav:
       - IQ blobs: how-to-guides/sources/01_superconducting_qubits/01_workflows/11_iq_blobs.ipynb
       - Raw Time Traces for Optimal Readout Weights: how-to-guides/sources/01_superconducting_qubits/01_workflows/12_time_traces.ipynb
       - OpenQASM:
-        - how-to-guides/sources/04_qasm/01_VQE_Qiskit.ipynb
-        - how-to-guides/sources/04_qasm/02_RandomizedBenchmarking_from_Qiskit.ipynb
+          - how-to-guides/sources/04_qasm/01_VQE_Qiskit.ipynb
+          - how-to-guides/sources/04_qasm/02_RandomizedBenchmarking_from_Qiskit.ipynb
   - Tutorials:
       - tutorials/index.md
       - Defining the Experimental Setup: tutorials/sources/getting_started.ipynb
@@ -60,7 +60,7 @@ nav:
           - amplitude_rabi: reference/analysis/amplitude_rabi.md
           - ramsey: reference/analysis/ramsey.md
           - lifetime_measurement: reference/analysis/lifetime_measurement.md
-          - echo: reference/analysis/echo.md          
+          - echo: reference/analysis/echo.md
           - drag_q_scaling: reference/analysis/drag_q_scaling.md
           - amplitude_fine: reference/analysis/amplitude_fine.md
           - dispersive_shift: reference/analysis/dispersive_shift.md
@@ -100,11 +100,7 @@ plugins:
     enabled: !ENV [ENABLE_MKDOCSTRINGS, false]
     handlers:
       python:
-        # TODO: The commented out link below is for the public release.
-        #       Do we still need it? Or does the release via the documentation
-        #       hub make it obsolete?
-        # import: ["https://docs.zhinst.com/labone_q_user_manual/objects.inv"]
-        import: ["http://qccs.pages.zhinst.com/qccs/manual/objects.inv"]
+        import: ["https://docs.zhinst.com/labone_q_user_manual/objects.inv"]
   mkdocs-jupyter:
     execute: true
   spellcheck:
