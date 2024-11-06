@@ -4,8 +4,7 @@ The LabOne Q Applications Library is a library of experiments and analyses for v
 Zurich Instruments [LabOne Q](https://github.com/zhinst/laboneq) software framework.
 
 ---
-<!-- NOTE: Change to the public link when ready -->
-**Documentation**: [Documentation](http://laboneq-applications-qccs-1d05f433a85f43634ee9a3c36e976e1ae43ad.pages.zhinst.com/manual/index.html)
+**Documentation**: [Documentation](https://docs.zhinst.com/labone_q_user_manual/index.html)
 
 ---
 
