@@ -28,3 +28,17 @@ deploy:deploy-internal:
   only:
     variables:
       - $CI_COMMIT_TAG =~ /^v\d+.\d+.\d+-?.*$/
+
+deploy:deploy-pypi:
+  stage: deploy
+  image: $DEFAULT_PYTHON_IMAGE
+  tags:
+    - linux
+    - docker
+  needs: ["deploy:build-distribution"]
+  script:
+    - pip install twine
+    - twine upload dist/*
+  only:
+    variables:
+      - $CI_COMMIT_TAG =~ /^v\d+.\d+.\d+-?.*$/
