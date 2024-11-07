@@ -1,12 +1,10 @@
 # How-to Guides
 
-This section of the documentation provides practical guides and examples on how to use the 
-experiments provided by the LabOneQ Applications library in the lab. They are intended to be a starting point to be further adapted by you for your experimental needs. Please reach out to us at <info@zhinst.com> if you'd like to discuss your experimental needs or have questions about how we can help you with LabOne Q.
+This section of the documentation provides practical how-to guides and example notebooks to get you up-and-running quickly in LabOne Q. They are intended to be a starting point to be further adapted by you for your experimental needs. Please reach out to us at <info@zhinst.com> if you'd like to discuss your experimental needs or have questions about how we can help you with LabOne Q.
 
 <div class="grid-cards" markdown>
 
-<!-- -   __[Superconducting Qubits](superconducting_qubits/index.md)__ -->
--   __Superconducting Qubits__
+-   __[Superconducting Qubits](sources/01_superconducting_qubits/index.md)__
 
     ---
     
@@ -21,24 +19,9 @@ experiments provided by the LabOneQ Applications library in the lab. They are in
     
 </div>
 
-* [Defining the Experimental Setup](../tutorials/sources/getting_started.ipynb)
-* [Resonator Spectroscopy](sources/01_superconducting_qubits/01_workflows/01_resonator_spectroscopy.ipynb)
-* [Resonator Spectroscopy DC bias](sources/01_superconducting_qubits/01_workflows/02_resonator_spectroscopy_dcbias.ipynb)
-* [Qubit spectroscopy](sources/01_superconducting_qubits/01_workflows/03_qubit_spectroscopy.ipynb)
-* [Amplitude Rabi](sources/01_superconducting_qubits/01_workflows/04_amplitude_rabi.ipynb)
-* [Ramsey interferometry](sources/01_superconducting_qubits/01_workflows/05_ramsey.ipynb)
-* [DRAG pulse characterization](sources/01_superconducting_qubits/01_workflows/06_drag_q_scaling.ipynb)
-* [Lifetime_measurement](sources/01_superconducting_qubits/01_workflows/07_lifetime_measurement.ipynb)
-* [Echo](sources/01_superconducting_qubits/01_workflows/08_echo.ipynb)
-* [Amplitude Fine](sources/01_superconducting_qubits/01_workflows/09_amplitude_fine.ipynb)
-* [Dispersive Shift](sources/01_superconducting_qubits/01_workflows/10_dispersive_shift.ipynb)
-* [IQ blobs](sources/01_superconducting_qubits/01_workflows/11_iq_blobs.ipynb)
-* [Raw Time Traces for Optimal Readout Weights](sources/01_superconducting_qubits/01_workflows/12_time_traces.ipynb)
-
 <div class="grid-cards" markdown>
 
-<!-- -   __[Spin Qubits](spin_qubits/index.md)__ -->
--   __Spin Qubits__
+-   __[Spin Qubits](sources/02_spin_qubits/index.md)__
 
     ---
 
@@ -55,8 +38,7 @@ experiments provided by the LabOneQ Applications library in the lab. They are in
 
 <div class="grid-cards" markdown>
 
-<!-- -   __[Color Centers](color_centers/index.md)__ -->
--   __Color Centers__
+-   __[Color Centers](sources/03_color_centers/index.md)__
 
     ---
 
@@ -70,6 +52,8 @@ experiments provided by the LabOneQ Applications library in the lab. They are in
     </div>
 
 </div>
+
+-   __[QASM](sources/04_qasm/index.md)__
 
 > **_NOTE:_** Most of the examples are generated from Jupyter Notebook files and the source
 can be downloaded on each page by pressing the download button at the top right corner
