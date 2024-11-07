@@ -142,9 +142,8 @@ plugins:
     handlers:
       python:
         # TODO: The commented out link below is for the public release.
-        #       Do we still need it? Or does the release via the documentation
-        #       hub make it obsolete?
-        # import: ["https://docs.zhinst.com/labone_q_user_manual/objects.inv"]
+        #       Make it a variable in GitLab CI.
+        # import: ["https://docs.zhinst.com/labone_q_user_manual/core/objects.inv"]
         import: ["http://qccs.pages.zhinst.com/qccs/manual/objects.inv"]
   mkdocs-jupyter:
     execute: true
