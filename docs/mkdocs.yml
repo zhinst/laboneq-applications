@@ -141,7 +141,7 @@ plugins:
     enabled: !ENV [ENABLE_MKDOCSTRINGS, false]
     handlers:
       python:
-        import: ["https://docs.zhinst.com/labone_q_user_manual/objects.inv"]
+        import: ["https://docs.zhinst.com/labone_q_user_manual/core/objects.inv"]
   mkdocs-jupyter:
     execute: true
   spellcheck:
