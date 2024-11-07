@@ -1,6 +1,6 @@
 repos:
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.5.6 # must match the version used in requirements-lint.txt
+    rev: v0.7.1 # must match the version used in requirements-lint.txt
     hooks:
       - id: ruff
       - id: ruff-format
@@ -10,5 +10,5 @@ repos:
         name: check-license
         entry: python ci/scripts/check_license.py src/ tests/ --fix
         language: system
-        types: [ python ]
+        types: [python]
         pass_filenames: false

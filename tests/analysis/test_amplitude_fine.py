@@ -12,7 +12,7 @@ from laboneq.workflow.tasks.run_experiment import (
 from laboneq_applications.analysis import amplitude_fine
 
 
-@pytest.fixture()
+@pytest.fixture
 def results_single_qubit():
     """Results from an amplitude-fine experiment."""
     data = {}
@@ -119,7 +119,7 @@ class TestAmplitudeFineAnalysisSingleQubit:
         assert len(qb_params["new_parameter_values"]) == 1
 
 
-@pytest.fixture()
+@pytest.fixture
 def results_two_qubit():
     """Results from an amplitude-fine experiment."""
     data = {}

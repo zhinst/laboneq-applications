@@ -15,7 +15,7 @@ from laboneq.workflow.tasks.run_experiment import (
 )
 
 
-@pytest.fixture()
+@pytest.fixture
 def results_single_qubit_gef():
     """Results from an IQ-blob experiment on 1 qubit with preparation states g, e, f."""
     data = {}
@@ -634,7 +634,7 @@ def results_single_qubit_gef():
     return RunExperimentResults(data=data)
 
 
-@pytest.fixture()
+@pytest.fixture
 def results_two_qubit_ge():
     """Results from an IQ-blob experiment on 2 qubits, with preparation states g, e."""
     data = {}

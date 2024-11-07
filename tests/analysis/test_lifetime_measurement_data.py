@@ -12,7 +12,7 @@ from laboneq.workflow.tasks.run_experiment import (
 )
 
 
-@pytest.fixture()
+@pytest.fixture
 def raw_data_ge():
     """Results from a lifetime_measurement experiment.
 
@@ -193,13 +193,13 @@ def raw_data_ge():
     return data_q0, sweep_points_q0, data_q1, sweep_points_q1
 
 
-@pytest.fixture()
+@pytest.fixture
 def results_single_qubit_ge(raw_data_ge):
     data_q0, sweep_points_q0, _, _ = raw_data_ge
     return RunExperimentResults(data_q0), sweep_points_q0
 
 
-@pytest.fixture()
+@pytest.fixture
 def results_two_qubit_ge(raw_data_ge):
     data_q0, sweep_points_q0, data_q1, sweep_points_q1 = raw_data_ge
     data = {}
@@ -208,7 +208,7 @@ def results_two_qubit_ge(raw_data_ge):
     return RunExperimentResults(data), [sweep_points_q0, sweep_points_q1]
 
 
-@pytest.fixture()
+@pytest.fixture
 def population_q0_q1_no_pca():
     return [
         np.array(
@@ -284,7 +284,7 @@ def population_q0_q1_no_pca():
     ]
 
 
-@pytest.fixture()
+@pytest.fixture
 def population_q0_q1_pca():
     return [
         np.array(

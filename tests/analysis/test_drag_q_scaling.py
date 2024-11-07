@@ -16,7 +16,7 @@ from laboneq.workflow.tasks.run_experiment import (
 from laboneq_applications.analysis import drag_q_scaling
 
 
-@pytest.fixture()
+@pytest.fixture
 def results_single_qubit():
     """Results from a DRAG quadrature-scaling calibration experiment.
 
@@ -352,7 +352,7 @@ class TestDRAGQScalingAnalysisSingleQubit:
         assert "plot_population" not in task_names
 
 
-@pytest.fixture()
+@pytest.fixture
 def results_two_qubit():
     """Results from a DRAG quadrature-scaling calibration experiment.
 

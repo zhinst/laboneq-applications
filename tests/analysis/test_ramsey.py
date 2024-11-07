@@ -16,7 +16,7 @@ from laboneq.workflow.tasks.run_experiment import (
 from laboneq_applications.analysis import ramsey
 
 
-@pytest.fixture()
+@pytest.fixture
 def results_single_qubit():
     """Results from a Ramsey experiment.
 
@@ -412,7 +412,7 @@ class TestRamseyAnalysisSingleQubit:
         assert "extract_qubit_parameters" in task_names
 
 
-@pytest.fixture()
+@pytest.fixture
 def results_two_qubit():
     """Results from a Ramsey experiment.
 

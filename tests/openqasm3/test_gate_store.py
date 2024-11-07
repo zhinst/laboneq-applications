@@ -12,22 +12,22 @@ from laboneq.simple import Session
 from laboneq_applications.openqasm3 import create_gate_store
 
 
-@pytest.fixture()
+@pytest.fixture
 def platform(two_tunable_transmon_platform):
     return two_tunable_transmon_platform
 
 
-@pytest.fixture()
+@pytest.fixture
 def qop(platform):
     return platform.qpu.quantum_operations
 
 
-@pytest.fixture()
+@pytest.fixture
 def qubits(platform):
     return platform.qpu.qubits
 
 
-@pytest.fixture()
+@pytest.fixture
 def qubit_map(qubits):
     return {qubit.uid: qubit for qubit in qubits}
 

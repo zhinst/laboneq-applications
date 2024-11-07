@@ -16,7 +16,7 @@ from numpy.testing import assert_almost_equal, assert_array_almost_equal
 from laboneq_applications.analysis import amplitude_rabi
 
 
-@pytest.fixture()
+@pytest.fixture
 def results_single_qubit():
     """Results from AmplitudeRabi experiment."""
     data = {}
@@ -85,7 +85,7 @@ def results_single_qubit():
     return RunExperimentResults(data=data), sweep_points
 
 
-@pytest.fixture()
+@pytest.fixture
 def monkeypatch_tzlocal(monkeypatch):
     import dateutil.tz
     import laboneq.workflow.timestamps
@@ -305,7 +305,7 @@ class TestRabiAnalysisSingleQubit:
         assert "extract_qubit_parameters" in task_names
 
 
-@pytest.fixture()
+@pytest.fixture
 def results_two_qubit():
     """Results from AmplitudeRabi experiment."""
     data = {}

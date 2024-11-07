@@ -8,7 +8,7 @@ from laboneq.analysis import fitting as fit_mods
 from laboneq_applications.analysis import fitting_helpers as fit_hlp
 
 
-@pytest.fixture()
+@pytest.fixture
 def fit_data():
     """Results from AmplitudeRabi experiment."""
     data = np.array(
@@ -121,7 +121,7 @@ def test_get_pi_pi2_xvalues_on_cos(fit_data):
     np.testing.assert_array_almost_equal(pi2xv_falling, np.array([]))
 
 
-@pytest.fixture()
+@pytest.fixture
 def fit_data_cos_osc_decay_fit():
     """Results from Ramsey experiment.
 
@@ -248,7 +248,7 @@ def test_cosine_oscillatory_decay_fit(fit_data_cos_osc_decay_fit):
     np.testing.assert_allclose(fit_res.best_values["decay_exponent"], 1)
 
 
-@pytest.fixture()
+@pytest.fixture
 def fit_data_exp_decay():
     """Results from a lifetime_measurement experiment.
 
@@ -347,7 +347,7 @@ def test_exponential_decay_fit(fit_data_exp_decay):
     np.testing.assert_almost_equal(fit_res.best_values["offset"], 0)
 
 
-@pytest.fixture()
+@pytest.fixture
 def fit_data_lorentzian():
     """Results from qubit-spectroscopy experiment.
 
