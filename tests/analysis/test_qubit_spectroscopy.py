@@ -16,7 +16,7 @@ from laboneq.workflow.tasks.run_experiment import (
 from laboneq_applications.analysis import qubit_spectroscopy
 
 
-@pytest.fixture()
+@pytest.fixture
 def results_single_qubit():
     """Results from a qubit-spectroscopy experiment.
 
@@ -949,7 +949,7 @@ class TestQubitSpectroscopyAnalysisSingleQubit:
         assert "extract_qubit_parameters" in task_names
 
 
-@pytest.fixture()
+@pytest.fixture
 def results_two_qubit():
     """Results from a qubit-spectroscopy experiment.
 

@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Utility to check for presence of the correct license boilerplate."""
+
 # ruff: noqa
 import argparse
 import re
@@ -63,7 +64,7 @@ def main():
                 continue
 
             comment_char = "#" if path.suffix == ".py" else "//"
-            original_text = path.read_text()
+            original_text = path.read_text(encoding="utf-8")
             (modified_text, count) = SEARCH_RE.subn(REPLACEMENT, original_text)
 
             if count == 0:

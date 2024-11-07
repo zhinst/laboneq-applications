@@ -13,7 +13,7 @@ from laboneq_applications.analysis import plotting_helpers as plt_hlp
 from laboneq_applications.experiments.options import TuneupAnalysisOptions
 
 
-@pytest.fixture()
+@pytest.fixture
 def result():
     """Results from an AmplitudeRabi experiment."""
     data = {}
@@ -83,7 +83,7 @@ def result():
     return RunExperimentResults(data=data), sweep_points
 
 
-@pytest.fixture()
+@pytest.fixture
 def result_nested_two_qubits():
     """Results from an AmplitudeRabi experiment.
 

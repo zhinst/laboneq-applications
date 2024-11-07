@@ -7,7 +7,7 @@ import uncertainties as unc
 from laboneq_applications.tasks import update_qubits
 
 
-@pytest.fixture()
+@pytest.fixture
 def qubit_parameters():
     """Qubit parameters to update."""
 

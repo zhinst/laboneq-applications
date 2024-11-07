@@ -31,7 +31,7 @@ from laboneq_applications.testing.experiment_verifier import (
 )
 
 
-@pytest.fixture()
+@pytest.fixture
 def rabi_compiled(single_tunable_transmon_platform):
     session = Session(single_tunable_transmon_platform.setup)
     session.connect(do_emulation=True)
@@ -50,12 +50,12 @@ def rabi_compiled(single_tunable_transmon_platform):
     return res.tasks["compile_experiment"].output
 
 
-@pytest.fixture()
+@pytest.fixture
 def rabi_pulse_extractor(rabi_compiled):
     return _PulseExtractorPSV(rabi_compiled, max_events=5000)
 
 
-@pytest.fixture()
+@pytest.fixture
 def rabi_exp_verifier(rabi_compiled) -> CompiledExperimentVerifier:
     return CompiledExperimentVerifier(rabi_compiled)
 

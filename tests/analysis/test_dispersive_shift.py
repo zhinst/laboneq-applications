@@ -16,7 +16,7 @@ from laboneq.workflow.tasks.run_experiment import (
 from laboneq_applications.analysis import dispersive_shift
 
 
-@pytest.fixture()
+@pytest.fixture
 def results_single_qubit():
     """Results from a dispersive shift experiment for states g, e, f.
 

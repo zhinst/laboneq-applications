@@ -26,7 +26,7 @@ from laboneq_applications.qpu_types.tunable_transmon import (
 import tests.helpers.dsl as tsl
 
 
-@pytest.fixture()
+@pytest.fixture
 def qops():
     """Return TunableTransmonQubit operations."""
     return TunableTransmonOperations()

@@ -9,7 +9,7 @@ from laboneq.workflow import task, workflow
 from laboneq_applications.tasks import temporary_modify
 
 
-@pytest.fixture()
+@pytest.fixture
 def qubit_parameters():
     """Qubit parameters to update."""
 

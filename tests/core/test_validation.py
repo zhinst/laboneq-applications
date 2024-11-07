@@ -369,7 +369,7 @@ class TestValidateAndConvertSingleQubitSweeps:
         )
 
 
-@pytest.fixture()
+@pytest.fixture
 def result():
     """Results from AmplitudeRabi experiment."""
     data = {

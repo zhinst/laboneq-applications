@@ -16,7 +16,7 @@ from laboneq.workflow.tasks.run_experiment import (
 )
 
 
-@pytest.fixture()
+@pytest.fixture
 def raw_data():
     data = {}
     data["g"] = np.array(
@@ -636,7 +636,7 @@ def raw_data():
     return data
 
 
-@pytest.fixture()
+@pytest.fixture
 def results_single_qubit_ge(raw_data):
     return RunExperimentResults(
         data={
@@ -646,7 +646,7 @@ def results_single_qubit_ge(raw_data):
     )
 
 
-@pytest.fixture()
+@pytest.fixture
 def results_single_qubit_gef(raw_data):
     return RunExperimentResults(
         data={
@@ -657,17 +657,17 @@ def results_single_qubit_gef(raw_data):
     )
 
 
-@pytest.fixture()
+@pytest.fixture
 def discrimination_thresholds_ge():
     return [0.01166932494537904]
 
 
-@pytest.fixture()
+@pytest.fixture
 def discrimination_thresholds_gef():
     return [0.01166932494537904, 0.03851393540570304, 0.026844610460323996]
 
 
-@pytest.fixture()
+@pytest.fixture
 def integration_kernels_ge():
     return np.array(
         [
@@ -867,7 +867,7 @@ def integration_kernels_ge():
     )
 
 
-@pytest.fixture()
+@pytest.fixture
 def integration_kernels_gef():
     return [
         np.array(
@@ -1265,7 +1265,7 @@ def integration_kernels_gef():
     ]
 
 
-@pytest.fixture()
+@pytest.fixture
 def integration_kernels_filtered_gef():
     return [
         np.array(
