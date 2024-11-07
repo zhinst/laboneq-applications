@@ -41,6 +41,11 @@ Single-qubit calibration measurements:
 
 The LabOne Q Applications Library depends on the Zurich Instruments' [LabOne Q](https://github.com/zhinst/laboneq) software framework.
 
+You can install it using:
+
+```
+pip install laboneq-applications
+```
 
 ## How to contribute
 
