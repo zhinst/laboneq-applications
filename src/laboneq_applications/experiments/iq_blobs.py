@@ -27,7 +27,6 @@ from laboneq_applications.analysis.iq_blobs import analysis_workflow
 from laboneq_applications.core import validation
 from laboneq_applications.experiments.options import (
     BaseExperimentOptions,
-    WorkflowOptions,
 )
 from laboneq_applications.tasks.parameter_updating import temporary_modify
 
@@ -43,8 +42,8 @@ if TYPE_CHECKING:
     from laboneq_applications.typing import Qubits
 
 
-@workflow.options
-class IQBlobExperimentOptions(BaseExperimentOptions):
+@workflow.task_options(base_class=BaseExperimentOptions)
+class IQBlobExperimentOptions:
     """Options for the iq_blobs experiment.
 
     The purpose of this class is to change the default value of averaging_mode in
@@ -61,8 +60,8 @@ class IQBlobExperimentOptions(BaseExperimentOptions):
     )
 
 
-@workflow.options
-class IQBlobExperimentWorkflowOptions(WorkflowOptions):
+@workflow.workflow_options
+class IQBlobExperimentWorkflowOptions:
     """Options for the iq_blobs experiment workflow.
 
     Attributes:

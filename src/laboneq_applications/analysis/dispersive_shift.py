@@ -37,8 +37,8 @@ if TYPE_CHECKING:
     from numpy.typing import ArrayLike
 
 
-@workflow.options
-class DispersiveShiftAnalysisOptions(workflow.TaskOptions):
+@workflow.task_options
+class DispersiveShiftAnalysisOptions:
     """Base options for the analysis of a dispersive-shift experiment.
 
     Attributes:
@@ -59,8 +59,8 @@ class DispersiveShiftAnalysisOptions(workflow.TaskOptions):
     )
 
 
-@workflow.options
-class DispersiveShiftAnalysisWorkflowOptions(workflow.WorkflowOptions):
+@workflow.workflow_options
+class DispersiveShiftAnalysisWorkflowOptions:
     """Option class for a dispersive-shift analysis workflows.
 
     Attributes:

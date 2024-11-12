@@ -46,8 +46,6 @@ if TYPE_CHECKING:
 
     from laboneq_applications.typing import Qubits, QubitSweepPoints
 
-options = TuneUpAnalysisWorkflowOptions
-
 
 def validate_and_convert_detunings(
     qubits: Qubits,

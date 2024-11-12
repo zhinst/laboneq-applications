@@ -8,7 +8,12 @@ from __future__ import annotations
 from typing import Literal, TypeVar
 
 from laboneq.simple import AcquisitionType, AveragingMode, RepetitionMode
-from laboneq.workflow import TaskOptions, WorkflowOptions, option_field, options
+from laboneq.workflow import (
+    WorkflowOptions,
+    option_field,
+    task_options,
+    workflow_options,
+)
 
 T = TypeVar("T")
 
@@ -25,8 +30,8 @@ def _parse_repetition_mode(v: str | RepetitionMode) -> RepetitionMode:
     return RepetitionMode(v)
 
 
-@options
-class BaseExperimentOptions(TaskOptions):
+@task_options
+class BaseExperimentOptions:
     """Base options for the experiment.
 
     Attributes:
@@ -90,8 +95,8 @@ class BaseExperimentOptions(TaskOptions):
     )
 
 
-@options
-class TuneupExperimentOptions(BaseExperimentOptions):
+@task_options(base_class=BaseExperimentOptions)
+class TuneupExperimentOptions:
     """Base options for a tune-up experiment.
 
     Attributes:
@@ -122,8 +127,8 @@ class TuneupExperimentOptions(BaseExperimentOptions):
 
 
 # create additional options for spectroscopy
-@options
-class ResonatorSpectroscopyExperimentOptions(BaseExperimentOptions):
+@task_options(base_class=BaseExperimentOptions)
+class ResonatorSpectroscopyExperimentOptions:
     """Base options for the resonator spectroscopy experiment.
 
     Additional attributes:
@@ -150,7 +155,7 @@ class ResonatorSpectroscopyExperimentOptions(BaseExperimentOptions):
     )
 
 
-@options
+@task_options(base_class=TuneupExperimentOptions)
 class TuneupAnalysisOptions(TuneupExperimentOptions):
     """Base options for the analysis of a tune-up experiment.
 
@@ -198,8 +203,8 @@ class TuneupAnalysisOptions(TuneupExperimentOptions):
     )
 
 
-@options
-class TuneUpAnalysisWorkflowOptions(WorkflowOptions):
+@workflow_options
+class TuneUpAnalysisWorkflowOptions:
     """Option class for tune-up analysis workflows.
 
     Attributes:
@@ -221,8 +226,8 @@ class TuneUpAnalysisWorkflowOptions(WorkflowOptions):
     )
 
 
-@options
-class TuneUpWorkflowOptions(WorkflowOptions):
+@workflow_options
+class TuneUpWorkflowOptions:
     """Option class for tune-up experiment workflows.
 
     Attributes:
@@ -244,8 +249,8 @@ class TuneUpWorkflowOptions(WorkflowOptions):
     )
 
 
-@options
-class QubitSpectroscopyExperimentOptions(BaseExperimentOptions):
+@task_options(base_class=BaseExperimentOptions)
+class QubitSpectroscopyExperimentOptions:
     """Base options for the resonator spectroscopy experiment.
 
     Additional attributes:
@@ -259,8 +264,8 @@ class QubitSpectroscopyExperimentOptions(BaseExperimentOptions):
     )
 
 
-@options
-class QubitSpectroscopyAnalysisOptions(QubitSpectroscopyExperimentOptions):
+@task_options(base_class=QubitSpectroscopyExperimentOptions)
+class QubitSpectroscopyAnalysisOptions:
     """Base options for the analysis of a qubit-spectroscopy experiment.
 
     Attributes:
@@ -288,7 +293,7 @@ class QubitSpectroscopyAnalysisOptions(QubitSpectroscopyExperimentOptions):
     )
 
 
-@options
+@workflow_options
 class QubitSpectroscopyAnalysisWorkflowOptions(WorkflowOptions):
     """Option class for qubit spectroscopy analysis workflows.
 

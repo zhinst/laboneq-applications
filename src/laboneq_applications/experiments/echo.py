@@ -58,8 +58,8 @@ if TYPE_CHECKING:
     from laboneq_applications.typing import Qubits, QubitSweepPoints
 
 
-@workflow.options
-class EchoExperimentOptions(TuneupExperimentOptions):
+@workflow.task_options(base_class=TuneupExperimentOptions)
+class EchoExperimentOptions:
     """Options for the Hahn echo experiment.
 
     Additional attributes:

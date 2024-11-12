@@ -37,8 +37,8 @@ if TYPE_CHECKING:
     from laboneq_applications.typing import Qubits
 
 
-@workflow.options
-class TimeTracesAnalysisWorkflowOptions(workflow.WorkflowOptions):
+@workflow.workflow_options
+class TimeTracesAnalysisWorkflowOptions:
     """Option class for the time-traces analysis workflow.
 
     Attributes:
@@ -82,8 +82,8 @@ class TimeTracesAnalysisWorkflowOptions(workflow.WorkflowOptions):
     )
 
 
-@workflow.options
-class TimeTracesAnalysisOptions(workflow.TaskOptions):
+@workflow.task_options
+class TimeTracesAnalysisOptions:
     """Option class for the tasks in the time-traces analysis workflows.
 
     Attributes:

@@ -18,8 +18,8 @@ from dataclasses import field
 from typing import TYPE_CHECKING
 
 import numpy as np
+from laboneq import workflow
 from laboneq.simple import Experiment, SweepParameter, dsl
-from laboneq.workflow import WorkflowOptions, task, workflow
 from laboneq.workflow.tasks import (
     compile_experiment,
     run_experiment,
@@ -38,7 +38,8 @@ if TYPE_CHECKING:
     from laboneq_applications.typing import Qubits, QubitSweepPoints
 
 
-class SpinLockingExperimentOptions(TuneupExperimentOptions):
+@workflow.task_options(base_class=TuneupExperimentOptions)
+class SpinLockingExperimentOptions:
     """Base options for the resonator spectroscopy experiment.
 
     Additional attributes:
@@ -56,7 +57,8 @@ class SpinLockingExperimentOptions(TuneupExperimentOptions):
     )
 
 
-class SpinLockingWorkflowOptions(WorkflowOptions):
+@workflow.workflow_options
+class SpinLockingWorkflowOptions:
     """Option for spectroscopy workflow.
 
     Attributes:
@@ -67,7 +69,7 @@ class SpinLockingWorkflowOptions(WorkflowOptions):
     create_experiment: SpinLockingExperimentOptions = SpinLockingExperimentOptions()
 
 
-@workflow(name="spin_locking")
+@workflow.workflow(name="spin_locking")
 def experiment_workflow(
     session: Session,
     qpu: QPU,
@@ -138,7 +140,7 @@ def experiment_workflow(
     _result = run_experiment(session, compiled_exp)
 
 
-@task
+@workflow.task
 @dsl.qubit_experiment
 def create_experiment(
     qpu: QPU,

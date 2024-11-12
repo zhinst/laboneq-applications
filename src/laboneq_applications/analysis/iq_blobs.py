@@ -43,8 +43,8 @@ if TYPE_CHECKING:
     from laboneq_applications.typing import Qubits
 
 
-@workflow.options
-class IQBlobAnalysisWorkflowOptions(workflow.WorkflowOptions):
+@workflow.workflow_options
+class IQBlobAnalysisWorkflowOptions:
     """Option class for IQ-blob analysis workflows.
 
     Attributes:
@@ -76,8 +76,8 @@ class IQBlobAnalysisWorkflowOptions(workflow.WorkflowOptions):
     )
 
 
-@workflow.options
-class IQBlobAnalysisOptions(workflow.TaskOptions):
+@workflow.task_options
+class IQBlobAnalysisOptions:
     """Option class for the tasks in the iq-blob analysis workflows.
 
     Attributes:

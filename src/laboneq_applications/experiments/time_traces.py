@@ -50,8 +50,8 @@ if TYPE_CHECKING:
     from laboneq_applications.typing import Qubits
 
 
-@workflow.options
-class TimeTracesExperimentOptions(BaseExperimentOptions):
+@workflow.task_options(base_class=BaseExperimentOptions)
+class TimeTracesExperimentOptions:
     """Options for the time-traces experiment.
 
     This class is needed to change the default value of acquisition_type compared with

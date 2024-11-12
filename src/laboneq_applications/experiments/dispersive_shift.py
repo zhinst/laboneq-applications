@@ -56,8 +56,8 @@ if TYPE_CHECKING:
     from laboneq_applications.typing import QubitSweepPoints
 
 
-@workflow.options
-class DispersiveShiftExperimentOptions(BaseExperimentOptions):
+@workflow.task_options(base_class=BaseExperimentOptions)
+class DispersiveShiftExperimentOptions:
     """Options for the dispersive-shift experiment.
 
     This class is needed only to change the default value of acquisition_type compared

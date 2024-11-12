@@ -41,8 +41,8 @@ if TYPE_CHECKING:
     from numpy.typing import ArrayLike
 
 
-@workflow.options
-class ResonatorSpectroscopyAnalysisOptions(ResonatorSpectroscopyExperimentOptions):
+@workflow.task_options(base_class=ResonatorSpectroscopyExperimentOptions)
+class ResonatorSpectroscopyAnalysisOptions:
     """Options for the analysis of the resonator spectroscopy experiment.
 
     Attributes:
@@ -83,8 +83,8 @@ class ResonatorSpectroscopyAnalysisOptions(ResonatorSpectroscopyExperimentOption
     )
 
 
-@workflow.options
-class ResonatorSpectroscopyAnalysisWorkflowOptions(workflow.WorkflowOptions):
+@workflow.workflow_options
+class ResonatorSpectroscopyAnalysisWorkflowOptions:
     """Option class for spectroscopy analysis workflows.
 
     Attributes:
