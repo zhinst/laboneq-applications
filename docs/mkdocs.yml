@@ -138,12 +138,9 @@ nav:
 
 plugins:
   mkdocstrings:
-    enabled: !ENV [ENABLE_MKDOCSTRINGS, false]
+    enabled: !ENV [ENABLE_MKDOCSTRINGS, true]
     handlers:
       python:
-        # TODO: The commented out link below is for the public release.
-        #       Make it a variable in GitLab CI.
-        # import: ["https://docs.zhinst.com/labone_q_user_manual/core/objects.inv"]
         import: ["http://qccs.pages.zhinst.com/qccs/manual/objects.inv"]
   mkdocs-jupyter:
     execute: true
@@ -152,3 +149,6 @@ plugins:
   zhinst-standalone:
     projects:
       - qccs/qccs
+    replace: {
+      "http://qccs.pages.zhinst.com/qccs/manual": "/qccs/qccs",
+    }
