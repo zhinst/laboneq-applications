@@ -138,9 +138,11 @@ nav:
 
 plugins:
   mkdocstrings:
-    enabled: !ENV [ENABLE_MKDOCSTRINGS, true]
+    enabled: !ENV [ENABLE_MKDOCSTRINGS, false]
     handlers:
       python:
+        # NOTE: This object url is replaced and resolved to the correct one in the hub.
+        #       Configured in 'zhinst-standalone' 'replace' section below
         import: ["http://qccs.pages.zhinst.com/qccs/manual/objects.inv"]
   mkdocs-jupyter:
     execute: true
