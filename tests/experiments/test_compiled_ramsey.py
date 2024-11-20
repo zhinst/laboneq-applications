@@ -504,6 +504,7 @@ def test_single_qubit_run_with_active_reset(
     options.active_reset(True)
     options.active_reset_states(active_reset_states)
     options.active_reset_repetitions(active_reset_repetitions)
+    options.do_analysis(False)
     [q0] = single_tunable_transmon_platform.qpu.qubits
     delays = np.linspace(0, 1e-6, 11)
     workflow_result = ramsey.experiment_workflow(

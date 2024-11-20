@@ -358,6 +358,7 @@ def test_single_qubit_run_with_active_reset(
     options.active_reset(True)
     options.active_reset_states(active_reset_states)
     options.active_reset_repetitions(active_reset_repetitions)
+    options.do_analysis(False)
     [q0] = single_tunable_transmon_platform.qpu.qubits
     workflow_result = iq_blobs.experiment_workflow(
         session=single_tunable_transmon_platform.session(do_emulation=True),

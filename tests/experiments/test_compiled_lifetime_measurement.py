@@ -463,6 +463,7 @@ def test_single_qubit_run_with_active_reset(
     options.active_reset(True)
     options.active_reset_states(active_reset_states)
     options.active_reset_repetitions(active_reset_repetitions)
+    options.do_analysis(False)
     [q0] = single_tunable_transmon_platform.qpu.qubits
     delays = np.linspace(0, 10e-6, 15)
     workflow_result = lifetime_measurement.experiment_workflow(
