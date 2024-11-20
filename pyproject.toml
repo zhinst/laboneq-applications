@@ -43,6 +43,11 @@ dependencies = [
     "scikit-learn~=1.5.2",
 ]
 
+[project.urls]
+Changelog = "https://docs.zhinst.com/labone_q_user_manual/release_notes/"
+Documentation = "https://docs.zhinst.com/labone_q_user_manual/applications_library/"
+GitHub = "https://github.com/zhinst/laboneq-applications"
+
 [tool.setuptools.packages.find]
 where = ["src"]
 include = ["laboneq_applications*"]
