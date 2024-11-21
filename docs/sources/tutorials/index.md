@@ -4,6 +4,11 @@
 
 This section of the documentation provides practical guides and examples on how to use the components of the LabOneQ Applications library.
 
+## Getting Started
+
+If you are just getting started using the how-to guides showcasing Workflows, Quantum Operations, and Tasks, 
+our tutorial on defining your [experimental Setup](sources/getting_started.ipynb) can help get you up-and-running.
+
 ## Experiment Workflows
 
 [This tutorial](sources/experiment_workflows.ipynb) shows how to run predefined experiment workflows.
@@ -22,7 +27,6 @@ You can also create your own kind of qubit and quantum operations for them.
 The library provides generic tasks for building, compiling and running LabOne Q experiments. 
 It also provides specific tasks for simple experiments and the associated analysis (e.g.
 Rabi).
-
 
 ## Logbooks
 
