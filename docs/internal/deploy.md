@@ -14,6 +14,10 @@ This document contains information about the deployment procedure.
 
 - Push the tag
 
+- Push the `main` branch to GitHub. Make sure the commit pushed works with
+  the current release of LabOne Q. The `release-*` branches are mirrored to
+  GitHub automatically.
+
 - Bump the version again to a development version, e.g. `v0.2.0dev0`.
 
 Pushing the tag with the specified format will trigger a pipeline which is described in the next section.
