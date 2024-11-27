@@ -9,7 +9,6 @@ from typing import Literal, TypeVar
 
 from laboneq.simple import AcquisitionType, AveragingMode, RepetitionMode
 from laboneq.workflow import (
-    WorkflowOptions,
     option_field,
     task_options,
     workflow_options,
@@ -294,7 +293,7 @@ class QubitSpectroscopyAnalysisOptions:
 
 
 @workflow_options
-class QubitSpectroscopyAnalysisWorkflowOptions(WorkflowOptions):
+class QubitSpectroscopyAnalysisWorkflowOptions:
     """Option class for qubit spectroscopy analysis workflows.
 
     Attributes:
