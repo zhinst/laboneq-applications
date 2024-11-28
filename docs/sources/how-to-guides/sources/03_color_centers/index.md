@@ -9,3 +9,4 @@ In the [color center notebook](00_shfsg_basic_experiments.ipynb), you'll learn h
 * ODMR Spectroscopy
 * Length Rabi
 * Ramsey
+* Use LabOne Q with a [Time Tagger Ultra](https://www.swabianinstruments.com/time-tagger/) from Swabian Instruments
