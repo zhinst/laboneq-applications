@@ -69,6 +69,7 @@ nav:
         - Color Centers:
           - how-to-guides/sources/03_color_centers/index.md
           - how-to-guides/sources/03_color_centers/00_shfsg_basic_experiments.ipynb
+          - how-to-guides/sources/03_color_centers/01_shfsg_timetagger_basic_experiments.ipynb
         - OpenQASM: 
           - how-to-guides/sources/04_qasm/index.md
           - how-to-guides/sources/04_qasm/01_VQE_Qiskit.ipynb
