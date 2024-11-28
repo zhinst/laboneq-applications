@@ -11,6 +11,7 @@ import pytest
 from laboneq.dsl.enums import ModulationType
 from laboneq.dsl.experiment.build_experiment import build
 from laboneq.simple import (
+    AcquireLoopRt,
     AcquisitionType,
     SectionAlignment,
     Session,
@@ -142,6 +143,29 @@ class TestTunableTransmonOperations:
         calibration = exp.get_calibration()
         signal_calibration = calibration[q0.signals["drive"]]
         assert signal_calibration.oscillator.frequency == oscillator_freq
+
+        self.check_exp_compiles(exp, single_tunable_transmon_platform)
+
+    def test_set_frequency_no_experiment_context(
+        self, qops, single_tunable_transmon_platform
+    ):
+        [q0] = single_tunable_transmon_platform.qpu.qubits
+
+        @dsl.qubit_experiment(context=False)
+        def exp_set_frequency(exp, q):
+            acquire_loop = AcquireLoopRt(count=10)
+            exp.add(acquire_loop)
+            acquire_loop.add(
+                qops.set_frequency(
+                    q0, 6.5e9, rf=True, calibration=exp.get_calibration()
+                )
+            )
+
+        exp = exp_set_frequency(q0)
+
+        calibration = exp.get_calibration()
+        signal_calibration = calibration[q0.signals["drive"]]
+        assert signal_calibration.oscillator.frequency == 0.1e9
 
         self.check_exp_compiles(exp, single_tunable_transmon_platform)
 
@@ -394,6 +418,27 @@ class TestTunableTransmonOperations:
         calibration_amplitudes = signal_calibration.amplitude
         assert isinstance(calibration_amplitudes, SweepParameter)
         np.testing.assert_equal(calibration_amplitudes.values, amplitudes)
+
+        self.check_exp_compiles(exp, single_tunable_transmon_platform)
+
+    def test_set_readout_amplitude_no_experiment_context(
+        self, qops, single_tunable_transmon_platform
+    ):
+        [q0] = single_tunable_transmon_platform.qpu.qubits
+
+        @dsl.qubit_experiment(context=False)
+        def exp_set_readout_amplitude(exp, q):
+            acquire_loop = AcquireLoopRt(count=10)
+            exp.add(acquire_loop)
+            acquire_loop.add(
+                qops.set_readout_amplitude(q0, 0.5, calibration=exp.get_calibration())
+            )
+
+        exp = exp_set_readout_amplitude(q0)
+
+        calibration = exp.get_calibration()
+        signal_calibration = calibration[q0.signals["measure"]]
+        assert signal_calibration.amplitude == 0.5
 
         self.check_exp_compiles(exp, single_tunable_transmon_platform)
 
