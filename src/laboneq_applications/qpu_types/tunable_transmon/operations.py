@@ -17,6 +17,7 @@ from .qubit_types import TunableTransmonQubit
 if TYPE_CHECKING:
     from collections.abc import Sequence
 
+    from laboneq.dsl.calibration import Calibration
     from laboneq.dsl.parameter import SweepParameter
 
     from laboneq_applications.typing import Qubits
@@ -74,6 +75,7 @@ class TunableTransmonOperations(dsl.QuantumOperations):
         transition: str | None = None,
         readout: bool = False,
         rf: bool = True,
+        calibration: Calibration | None = None,
     ) -> None:
         """Sets the frequency of the given qubit drive line or readout line.
 
@@ -97,6 +99,13 @@ class TunableTransmonOperations(dsl.QuantumOperations):
                 If True, set the RF frequency of the transition.
                 If False, set the oscillator frequency directly instead.
                 The default is to set the RF frequency.
+            calibration:
+                The experiment calibration to update (see the note below).
+                By default, the calibration from the currently active
+                experiment context is used. If no experiment context is
+                active, for example when using
+                `@qubit_experiment(context=False)`, the calibration
+                object may be passed explicitly.
 
         Raises:
             RuntimeError:
@@ -127,7 +136,8 @@ class TunableTransmonOperations(dsl.QuantumOperations):
             # This subtraction works for both numbers and SweepParameters
             frequency -= lo_frequency
 
-        calibration = dsl.experiment_calibration()
+        if calibration is None:
+            calibration = dsl.experiment_calibration()
         signal_calibration = calibration[q.signals[signal_line]]
         oscillator = signal_calibration.oscillator
 
@@ -158,6 +168,8 @@ class TunableTransmonOperations(dsl.QuantumOperations):
         self,
         q: TunableTransmonQubit,
         amplitude: float | SweepParameter,
+        *,
+        calibration: Calibration | None = None,
     ) -> None:
         """Sets the readout amplitude of the given qubit's measure line.
 
@@ -167,6 +179,13 @@ class TunableTransmonOperations(dsl.QuantumOperations):
             amplitude:
                 The amplitude to set for the measure line
                 in units from 0 (no power) to 1 (full scale).
+            calibration:
+                The experiment calibration to update (see the note below).
+                By default, the calibration from the currently active
+                experiment context is used. If no experiment context is
+                active, for example when using
+                `@qubit_experiment(context=False)`, the calibration
+                object may be passed explicitly.
 
         Raises:
             RuntimeError:
@@ -186,7 +205,8 @@ class TunableTransmonOperations(dsl.QuantumOperations):
 
             This will be improved in a future release.
         """
-        calibration = dsl.experiment_calibration()
+        if calibration is None:
+            calibration = dsl.experiment_calibration()
         signal_calibration = calibration[q.signals["measure"]]
 
         if getattr(calibration, "_set_readout_amplitude", False):
