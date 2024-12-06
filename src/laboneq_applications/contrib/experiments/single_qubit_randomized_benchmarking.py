@@ -21,7 +21,6 @@ from __future__ import annotations
 from collections.abc import Sequence
 from typing import TYPE_CHECKING
 
-from laboneq.openqasm3.gate_store import GateStore
 from laboneq.openqasm3.openqasm3_importer import OpenQasm3Importer
 from laboneq.simple import Experiment, SweepParameter, dsl
 from laboneq.workflow import (
@@ -39,8 +38,6 @@ from qiskit_experiments.library import randomized_benchmarking
 from laboneq_applications.contrib.analysis.single_qubit_randomized_benchmarking import (
     analysis_workflow,
 )
-from laboneq_applications.core import handles
-from laboneq_applications.core.build_experiment import qubit_experiment
 from laboneq_applications.core.validation import validate_and_convert_qubits_sweeps
 from laboneq_applications.experiments.options import (
     TuneupExperimentOptions,
@@ -199,7 +196,7 @@ def create_sq_rb_qasm(
 
 
 @task
-@qubit_experiment
+@dsl.qubit_experiment
 def create_experiment(
     qpu: QPU,
     qubits: Qubits,
@@ -273,10 +270,6 @@ def create_experiment(
         reset_oscillator_phase=opts.reset_oscillator_phase,
     ):
         for q, q_indices in zip(qubits, indices):
-            # single qubit in qasm is labelled as 'q[0]'
-            qubit_map = {"q[0]": q}
-            gate_store = create_gate_store(qpu, qubit_map, gate_map)
-
             with dsl.sweep(
                 name=f"rb_{q.uid}",
                 parameter=SweepParameter(f"index_{q.uid}", q_indices),
@@ -295,15 +288,15 @@ def create_experiment(
                         for i, sequence in enumerate(qasm_rb_sequences):
                             with dsl.case(i) as c:
                                 importer = OpenQasm3Importer(
-                                    qubits=qubit_map,
-                                    gate_store=gate_store,
+                                    qops=qpu.quantum_operations,
+                                    qubits={"q[0]": q},
                                 )
                                 c.add(importer(text=sequence))
 
                 with dsl.section(
                     name=f"measure_{q.uid}",
                 ):
-                    qop.measure(q, handles.result_handle(q.uid))
+                    qop.measure(q, dsl.handles.result_handle(q.uid))
                     qop.passive_reset(q)
 
             if opts.use_cal_traces:
@@ -314,36 +307,6 @@ def create_experiment(
                         qop.prepare_state(q, state)
                         qop.measure(
                             q,
-                            handles.calibration_trace_handle(q.uid, state),
+                            dsl.handles.calibration_trace_handle(q.uid, state),
                         )
                         qop.passive_reset(q)
-
-
-def create_gate_store(
-    qpu: QPU,
-    qubit_map: dict,
-    gate_map: dict,
-) -> GateStore:
-    """Creates a GateStore to convert QASM gates to L1Q qops.
-
-    Arguments:
-        qpu:
-            The qpu consisting of the original qubits and quantum operations.
-        qubit_map:
-            A dictionary that translates a qasm qubit to L1Q qubit.
-        gate_map:
-            A dictionary that translates the native gates from QASM to L1Q, e.g.
-            {"id":None, "sx":"x90", "x":"x180", "rz":"rz"}
-    """
-    gate_store = GateStore()
-    # gates
-    for oq3_qubit, l1q_qubit in qubit_map.items():
-        for qasm_gate, l1q_gate in gate_map.items():
-            gate_store.register_gate_section(
-                qasm_gate,
-                (oq3_qubit,),
-                lambda *args, qubit=l1q_qubit, gate=l1q_gate: qpu.quantum_operations[
-                    gate
-                ](qubit, *args),
-            )
-    return gate_store
