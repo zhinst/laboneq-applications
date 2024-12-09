@@ -64,7 +64,8 @@ class TunableTransmonOperations(dsl.QuantumOperations):
         """
         # Delaying on a single line is sufficient since the operation
         # section automatically reserves all lines.
-        dsl.delay(q.signals["drive"], time=time)
+        signal_line, _ = q.transition_parameters()
+        dsl.delay(q.signals[signal_line], time=time)
 
     @dsl.quantum_operation
     def set_frequency(
@@ -126,7 +127,7 @@ class TunableTransmonOperations(dsl.QuantumOperations):
             This will be improved in a future release.
         """
         if readout:
-            signal_line = "measure"
+            signal_line, _ = q.readout_parameters()
             lo_frequency = q.parameters.readout_lo_frequency
         else:
             signal_line, _ = q.transition_parameters(transition)
@@ -155,7 +156,7 @@ class TunableTransmonOperations(dsl.QuantumOperations):
 
         oscillator._set_frequency = True
         oscillator.frequency = frequency
-        if signal_line == "measure":
+        if readout:
             # LabOne Q does not support software modulation of measurement
             # signal sweeps because it results in multiple readout waveforms
             # on the same readout signal. Ideally the LabOne Q compiler would
@@ -207,7 +208,8 @@ class TunableTransmonOperations(dsl.QuantumOperations):
         """
         if calibration is None:
             calibration = dsl.experiment_calibration()
-        signal_calibration = calibration[q.signals["measure"]]
+        measure_line, _ = q.readout_parameters()
+        signal_calibration = calibration[q.signals[measure_line]]
 
         if getattr(calibration, "_set_readout_amplitude", False):
             # We mark the oscillator with a _set_readout_amplitude attribute to ensure
@@ -445,7 +447,7 @@ class TunableTransmonOperations(dsl.QuantumOperations):
         """
         drive_line, params = q.transition_parameters(transition)
 
-        if drive_line == "drive_ef":
+        if transition == "ef":
             section = dsl.active_section()
             section.on_system_grid = True
 
@@ -621,7 +623,7 @@ class TunableTransmonOperations(dsl.QuantumOperations):
         """
         drive_line, params = q.transition_parameters(transition)
 
-        if drive_line == "drive_ef":
+        if transition == "ef":
             section = dsl.active_section()
             section.on_system_grid = True
 
@@ -809,11 +811,13 @@ class TunableTransmonOperations(dsl.QuantumOperations):
         self.rz.omit_section(q, self._PI, transition=transition)
 
     @dsl.quantum_operation
-    def spectroscopy_drive(
+    def qubit_spectroscopy_drive(
         self,
         q: TunableTransmonQubit,
         amplitude: float | SweepParameter | None = None,
         phase: float = 0.0,
+        length: float | SweepParameter | None = None,
+        pulse: dict | None = None,
     ) -> None:
         """Long pulse used for qubit spectroscopy that emulates a coherent field.
 
@@ -821,28 +825,42 @@ class TunableTransmonOperations(dsl.QuantumOperations):
             q:
                 The qubit to apply the spectroscopy drive.
             amplitude:
-                The amplitude of the pulse. By default the
+                The amplitude of the pulse. By default, the
                 qubit parameter "spectroscopy_amplitude".
             phase:
-                The phase of the pulse in radians. By default
+                The phase of the pulse in radians. By default,
                 this is 0.0.
+            length:
+                The duration of the rotation pulse. By default, this
+                is determined by the qubit parameters.
+            pulse:
+                A dictionary of overrides for the qubit-spectroscopy pulse parameters.
+
+                The dictionary may contain sweep parameters for the pulse
+                parameters other than `function`.
+
+                If the `function` parameter is different to the one
+                specified for the qubit, then this override dictionary
+                completely replaces the existing pulse parameters.
+
+                Otherwise, the values override or extend the existing ones.
         """
-        drive_line, _ = q.transition_parameters("ge")
+        spec_line, params = q.spectroscopy_parameters()
         if amplitude is None:
-            amplitude = q.parameters.spectroscopy_amplitude
-        spectroscopy_drive = dsl.create_pulse(
-            {
-                "function": "const",
-                "can_compress": True,
-            },
-            name="coherent_drive",
+            amplitude = params["amplitude"]
+        if length is None:
+            length = params["length"]
+
+        spectroscopy_pulse = dsl.create_pulse(
+            params["pulse"], pulse, name="qubit_spectroscopy_pulse"
         )
+
         dsl.play(
-            q.signals[drive_line],
+            q.signals[spec_line],
             amplitude=amplitude,
             phase=phase,
-            length=q.parameters.spectroscopy_length,
-            pulse=spectroscopy_drive,
+            length=length,
+            pulse=spectroscopy_pulse,
         )
 
     @dsl.quantum_operation(broadcast=False)
@@ -927,9 +945,11 @@ class TunableTransmonOperations(dsl.QuantumOperations):
             q:
                 The qubit to reset.
         """
-        _, params = q.transition_parameters("ef")
+        # The ef-pulse is applied on the ge logical line
+        drive_line_ge, _ = q.transition_parameters("ge")
+        _, params_ef = q.transition_parameters("ef")
         frequency = q.parameters.drive_frequency_ef - q.parameters.drive_frequency_ge
-        drag_params = list(params["pulse"].items())
+        drag_params = list(params_ef["pulse"].items())
         rst_pls_params = {
             "function": "x180_ef_reset_pulse",
             "frequency": frequency,
@@ -937,10 +957,10 @@ class TunableTransmonOperations(dsl.QuantumOperations):
         }
         reset_pulse = dsl.create_pulse(rst_pls_params, name="x180_ef_reset")
         dsl.play(
-            q.signals["drive"],
-            amplitude=params["amplitude_pi"],
+            signal=q.signals[drive_line_ge],
+            amplitude=params_ef["amplitude_pi"],
             phase=0,
-            length=params["length"],
+            length=params_ef["length"],
             pulse=reset_pulse,
         )
 

@@ -1908,16 +1908,16 @@ class TestTunableTransmonOperations:
             ),
         ],
     )
-    def test_spectroscopy_drive_amplitude(
+    def test_qubit_spectroscopy_drive_amplitude(
         self,
         amplitude,
         qops,
         single_tunable_transmon_platform,
     ):
         [q0] = single_tunable_transmon_platform.qpu.qubits
-        section = qops.spectroscopy_drive(q0, amplitude=amplitude)
+        section = qops.qubit_spectroscopy_drive(q0, amplitude=amplitude)
 
-        assert section == tsl.section(uid="__spectroscopy_drive_q0_0").children(
+        assert section == tsl.section(uid="__qubit_spectroscopy_drive_q0_0").children(
             self.reserve_ops(q0),
             tsl.play_pulse_op(
                 signal="/logical_signal_groups/q0/drive",
@@ -1942,16 +1942,16 @@ class TestTunableTransmonOperations:
             ),
         ],
     )
-    def test_spectroscopy_drive_phase(
+    def test_qubit_spectroscopy_drive_phase(
         self,
         phase,
         qops,
         single_tunable_transmon_platform,
     ):
         [q0] = single_tunable_transmon_platform.qpu.qubits
-        section = qops.spectroscopy_drive(q0, phase=phase)
+        section = qops.qubit_spectroscopy_drive(q0, phase=phase)
 
-        assert section == tsl.section(uid="__spectroscopy_drive_q0_0").children(
+        assert section == tsl.section(uid="__qubit_spectroscopy_drive_q0_0").children(
             self.reserve_ops(q0),
             tsl.play_pulse_op(
                 signal="/logical_signal_groups/q0/drive",

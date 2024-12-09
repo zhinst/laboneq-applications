@@ -63,6 +63,14 @@ class TestTunableTransmonQubit:
             q0.transition_parameters("gef")
         assert str(err.value) == "Transition 'gef' is not one of None, 'ge' or 'ef'."
 
+    def test_spectroscopy_parameters(self, q0):
+        spec_line, params = q0.spectroscopy_parameters()
+        assert spec_line == "drive"
+        assert params["length"] == 5e-6
+        assert params["amplitude"] == 1.0
+        assert params["pulse"]["can_compress"] is True
+        assert params["pulse"]["function"] == "const"
+
     def test_default_integration_kernels(self, q0):
         assert q0.default_integration_kernels() == [
             tsl.pulse(function="const", amplitude=1, length=2e-6),

@@ -208,7 +208,7 @@ def create_experiment(
                 parameter=SweepParameter(f"frequency_{q.uid}", q_frequencies),
             ) as frequency:
                 qop.set_frequency(q, frequency)
-                qop.spectroscopy_drive(q)
+                qop.qubit_spectroscopy_drive(q)
                 sec = qop.measure(q, dsl.handles.result_handle(q.uid))
                 # we fix the length of the measure section to the longest section among
                 # the qubits to allow the qubits to have different readout and/or

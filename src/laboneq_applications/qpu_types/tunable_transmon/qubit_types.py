@@ -153,6 +153,12 @@ class TunableTransmonQubitParameters(TransmonParameters):
 
     spectroscopy_length: float | None = 5e-6
     spectroscopy_amplitude: float | None = 1
+    spectroscopy_pulse: dict = field(
+        default_factory=lambda: {
+            "function": "const",
+            "can_compress": True,
+        },
+    )
 
     # flux parameters
 
@@ -294,6 +300,19 @@ class TunableTransmonQubit(QuantumElement):
             k: getattr(self.parameters, f"readout_integration_{k}") for k in param_keys
         }
         return "acquire", params
+
+    def spectroscopy_parameters(self) -> tuple[str, dict]:
+        """Return the qubit-spectroscopy line and the spectroscopy-pulse parameters.
+
+        Returns:
+           line:
+               The qubit-spectroscopy drive line of the qubit.
+           params:
+               The spectroscopy-pulse parameters.
+        """
+        param_keys = ["amplitude", "length", "pulse"]
+        params = {k: getattr(self.parameters, f"spectroscopy_{k}") for k in param_keys}
+        return "drive", params
 
     def default_integration_kernels(self) -> list[Pulse]:
         """Return a default list of integration kernels.
