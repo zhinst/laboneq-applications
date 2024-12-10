@@ -9,10 +9,10 @@ nav:
     - Home: index.md
     - Tutorials:
       - tutorials/index.md
-      - Defining the Experimental Setup: tutorials/sources/getting_started.ipynb
+      - Getting Started - Defining your Experimental Setup: tutorials/sources/getting_started.ipynb
       - Experiment Workflows: tutorials/sources/experiment_workflows.ipynb
-      - Quantum Operations: tutorials/sources/quantum_operations.ipynb
-      - Tasks: tutorials/sources/tasks.ipynb
+      - Qubits and Quantum Operations: tutorials/sources/quantum_operations.ipynb
+      - Writing an Experiment Workflow: tutorials/sources/writing_experiments.ipynb
       - Logbooks: tutorials/sources/logbooks.ipynb
     - How-to Guides:
         - how-to-guides/index.md
@@ -59,6 +59,9 @@ nav:
               - Dispersive Shift: how-to-guides/sources/01_superconducting_qubits/01_workflows/10_dispersive_shift.ipynb
               - IQ blobs: how-to-guides/sources/01_superconducting_qubits/01_workflows/11_iq_blobs.ipynb
               - Raw Time Traces for Optimal Readout Weights: how-to-guides/sources/01_superconducting_qubits/01_workflows/12_time_traces.ipynb
+            - Tune-Up Guides:
+                - Qubit Tune-Up: how-to-guides/sources/01_superconducting_qubits/03_tuneup_guides/00_tuneup_qubits.ipynb
+                - Active Reset: how-to-guides/sources/01_superconducting_qubits/03_tuneup_guides/01_tuneup_active_reset.ipynb
         - Spin Qubits:
           - how-to-guides/sources/02_spin_qubits/index.md
           - how-to-guides/sources/02_spin_qubits/00_neartime_callback_sweeps.ipynb

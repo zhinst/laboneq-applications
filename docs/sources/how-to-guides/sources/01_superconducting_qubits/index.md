@@ -40,3 +40,10 @@ These experiments use the new workflow and tasks components included in LabOne Q
 * [Dispersive Shift](01_workflows/10_dispersive_shift.ipynb)
 * [IQ blobs](01_workflows/11_iq_blobs.ipynb)
 * [Raw Time Traces for Optimal Readout Weights](01_workflows/12_time_traces.ipynb)
+
+## Tune-Up Guides
+
+These guides teach you how to tune-up a quantum processor with superconducting qubits.
+
+* [Qubit Tune-Up](03_tuneup_guides/00_tuneup_qubits.ipynb)
+* [Active Reset](03_tuneup_guides/01_tuneup_active_reset.ipynb)
