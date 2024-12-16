@@ -997,11 +997,6 @@ class TunableTransmonOperations(dsl.QuantumOperations):
         """
         if isinstance(qubits, TunableTransmonQubit):
             qubits = [qubits]
-        if len(qubits) > 1:
-            raise NotImplementedError(
-                "The active reset operation only supports one qubit at the moment. "
-                "Multi-qubit support will be added soon."
-            )
 
         if not all(s in ["g", "e", "f"] for s in active_reset_states):
             raise NotImplementedError(
@@ -1017,25 +1012,26 @@ class TunableTransmonOperations(dsl.QuantumOperations):
                 f"{len(qubits)} qubits and {len(handles)} handles."
             )
 
-        for qidx, q in enumerate(qubits):
-            for _nr in range(number_resets):
-                sec = self.measure(q, handle=handles[qidx])
-                sec.length = measure_section_length
-                self.passive_reset(q, delay=feedback_processing_delay)
-                with dsl.match(name=f"match_{q.uid}", handle=handles[qidx]):
-                    with dsl.case(name=f"case_{q.uid}_g", state=0):
-                        pass
-                    with dsl.case(name=f"case_{q.uid}_e", state=1):
-                        if "e" in active_reset_states:
-                            self.x180.omit_section(q)
-                        else:
+        for nr in range(number_resets):
+            with dsl.section(name=f"active_reset_rep_{nr}"):
+                for qidx, q in enumerate(qubits):
+                    sec = self.measure(q, handle=handles[qidx])
+                    sec.length = measure_section_length
+                    self.delay(q, feedback_processing_delay)
+                    with dsl.match(name=f"match_{q.uid}", handle=handles[qidx]):
+                        with dsl.case(name=f"case_{q.uid}_g", state=0):
                             pass
-                    with dsl.case(name=f"case_{q.uid}_f", state=2):
-                        if "f" in active_reset_states:
-                            self.x180_ef_reset.omit_section(q)
-                            self.x180.omit_section(q)
-                        else:
-                            pass
+                        with dsl.case(name=f"case_{q.uid}_e", state=1):
+                            if "e" in active_reset_states:
+                                self.x180.omit_section(q)
+                            else:
+                                pass
+                        with dsl.case(name=f"case_{q.uid}_f", state=2):
+                            if "f" in active_reset_states:
+                                self.x180_ef_reset.omit_section(q)
+                                self.x180.omit_section(q)
+                            else:
+                                pass
 
     @dsl.quantum_operation(broadcast=False)
     def calibration_traces(

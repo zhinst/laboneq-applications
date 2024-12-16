@@ -371,7 +371,7 @@ def test_single_qubit_run_with_active_reset(
     exp = workflow_result.tasks["create_experiment"].output
     active_reset_section = exp.sections[0].children[0]
     assert active_reset_section.uid == "active_reset_q0_0"
-    truth_len = len(q0.signals) + active_reset_repetitions * 3
+    truth_len = len(q0.signals) + active_reset_repetitions
     assert len(active_reset_section.children) == truth_len
 
     data = workflow_result.output
@@ -383,3 +383,51 @@ def test_single_qubit_run_with_active_reset(
             if active_reset_repetitions == 1
             else (count, active_reset_repetitions)
         )
+
+
+@pytest.mark.parametrize(
+    ("states", "active_reset_states"),
+    [("ge", "ge"), ("ef", "gef"), ("gef", "gef")],
+)
+@pytest.mark.parametrize(
+    "active_reset_repetitions",
+    [1, 5],
+)
+def test_two_qubit_run_with_active_reset(
+    two_tunable_transmon_platform,
+    states,
+    active_reset_states,
+    active_reset_repetitions,
+):
+    options = iq_blobs.experiment_workflow.options()
+    count = 1024
+    options.count(count)
+    options.active_reset(True)
+    options.active_reset_states(active_reset_states)
+    options.active_reset_repetitions(active_reset_repetitions)
+    options.do_analysis(False)
+    qubits = two_tunable_transmon_platform.qpu.qubits
+    workflow_result = iq_blobs.experiment_workflow(
+        session=two_tunable_transmon_platform.session(do_emulation=True),
+        qubits=qubits,
+        qpu=two_tunable_transmon_platform.qpu,
+        states=states,
+        options=options,
+    ).run()
+
+    exp = workflow_result.tasks["create_experiment"].output
+    active_reset_section = exp.sections[0].children[0]
+    assert active_reset_section.uid == "active_reset_q0_q1_0"
+    truth_len = len(qubits[0].signals) * len(qubits) + active_reset_repetitions
+    assert len(active_reset_section.children) == truth_len
+
+    data = workflow_result.output
+    assert "active_reset" in data.q0
+    for s in states:
+        for q in qubits:
+            cal_trace_data = data[q.uid].active_reset.cal_trace[s].data
+            assert (
+                np.shape(cal_trace_data) == (count,)
+                if active_reset_repetitions == 1
+                else (count, active_reset_repetitions)
+            )
