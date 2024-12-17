@@ -221,4 +221,4 @@ def create_experiment(
                     # among the qubits to allow the qubits to have different readout
                     # and/or integration lengths.
                     sec.length = max_measure_section_length
-                    qop.passive_reset(q)
+                    qop.passive_reset(q, delay=opts.spectroscopy_reset_delay)
