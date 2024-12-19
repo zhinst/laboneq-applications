@@ -37,16 +37,20 @@ https://github.com/your-tools/tbump.
 - Cherry pick changes from main and add fixes to the release branch
   as needed. Repeat as necessary.
 
-- Once LabOne Q has been released, change `ci/gitlab/test.yml` to
-  build against the latest LabOne Q by switching `USE_LABONEQ_DEVELOP: "true"`
-  to `USE_LABONEQ_DEVELOP: "false"`. Ensure the builds all pass.
+- Wait for LabOne Q to be released.
+
+- Change `ci/gitlab/test.yml` to build against the latest LabOne Q by
+  switching `USE_LABONEQ_DEVELOP: "true"` to
+  `USE_LABONEQ_DEVELOP: "false"`.
+
+- Wait for the release branch builds to pass.
 
 - Bump the version to the new version using `tbump <new-version>`. This
   will also create an appropriate tag and push the tag. Pushing the
   tag triggers the automated release pipeline (see next section).
 
 - Once the release has been published, bump the version on the release
-  branch to the next patch version. For example, `tbump 1.3.1dev0 --no-tag`.
+  branch to the next patch version. For example, `tbump 1.2.1dev0 --no-tag`.
 
 - If this is a release on the latest release branch, manually push the `main`
   branch to GitHub. Make sure the commit pushed works with
