@@ -9,7 +9,7 @@ single-shot acquisition mode for an IQ blob experiment.
 
 import numpy as np
 import pytest
-from laboneq.workflow.tasks import handles
+from laboneq.workflow import handles
 from laboneq.workflow.tasks.run_experiment import (
     RunExperimentResults,
 )

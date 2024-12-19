@@ -9,7 +9,7 @@ raw acquisition mode for each prepared qubit state.
 
 import numpy as np
 import pytest
-from laboneq.workflow.tasks import handles
+from laboneq.workflow import handles
 from laboneq.workflow.tasks.run_experiment import (
     AcquiredResult,
     RunExperimentResults,

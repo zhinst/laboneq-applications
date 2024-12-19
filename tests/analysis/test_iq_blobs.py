@@ -6,7 +6,7 @@
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 import numpy as np
-from laboneq.workflow.tasks import handles
+from laboneq.workflow import handles
 from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
 from test_iq_blobs_data import (  # noqa: F401
     results_single_qubit_gef,

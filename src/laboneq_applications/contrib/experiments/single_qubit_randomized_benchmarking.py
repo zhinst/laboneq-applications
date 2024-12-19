@@ -21,7 +21,7 @@ from __future__ import annotations
 from collections.abc import Sequence
 from typing import TYPE_CHECKING
 
-from laboneq.openqasm3.openqasm3_importer import OpenQasm3Importer
+from laboneq import openqasm3
 from laboneq.simple import Experiment, SweepParameter, dsl
 from laboneq.workflow import (
     if_,
@@ -259,7 +259,7 @@ def create_experiment(
     else:
         indices = range(len(qasm_rb_sequences))
     qubits, indices = validate_and_convert_qubits_sweeps(qubits, indices)
-
+    qasm_transpiler = openqasm3.OpenQASMTranspiler(qpu)
     qop = qpu.quantum_operations
     with dsl.acquire_loop_rt(
         count=opts.count,
@@ -287,11 +287,10 @@ def create_experiment(
                     ):
                         for i, sequence in enumerate(qasm_rb_sequences):
                             with dsl.case(i) as c:
-                                importer = OpenQasm3Importer(
-                                    qops=qpu.quantum_operations,
-                                    qubits={"q[0]": q},
+                                qasm_section = qasm_transpiler.section(
+                                    sequence, qubits={"q": [q]}
                                 )
-                                c.add(importer(text=sequence))
+                                c.add(qasm_section)
 
                 with dsl.section(
                     name=f"measure_{q.uid}",

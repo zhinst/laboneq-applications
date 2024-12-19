@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pytest
 from freezegun import freeze_time
-from laboneq.workflow.tasks import handles
+from laboneq.workflow import handles
 from laboneq.workflow.tasks.run_experiment import (
     AcquiredResult,
     RunExperimentResults,

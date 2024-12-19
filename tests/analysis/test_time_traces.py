@@ -6,7 +6,7 @@
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 import numpy as np
-from laboneq.workflow.tasks import handles
+from laboneq.workflow import handles
 from test_time_traces_data import (  # noqa: F401
     discrimination_thresholds_ge,
     discrimination_thresholds_gef,
