@@ -41,6 +41,8 @@ dependencies = [
     "matplotlib",
     "lmfit",
     "scikit-learn~=1.5.2",
+    "qiskit",
+    "qiskit_experiments",
 ]
 
 [project.urls]
