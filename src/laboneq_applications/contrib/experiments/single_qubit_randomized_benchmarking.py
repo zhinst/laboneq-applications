@@ -22,12 +22,7 @@ from collections.abc import Sequence
 from typing import TYPE_CHECKING
 
 from laboneq import openqasm3
-from laboneq.simple import Experiment, SweepParameter, dsl
-from laboneq.workflow import (
-    if_,
-    task,
-    workflow,
-)
+from laboneq.simple import Experiment, SweepParameter, dsl, workflow
 from laboneq.workflow.tasks import (
     compile_experiment,
     run_experiment,
@@ -51,7 +46,7 @@ if TYPE_CHECKING:
     from laboneq_applications.typing import Qubits
 
 
-@workflow(name="single_qubit_randomized_benchmarking")
+@workflow.workflow(name="single_qubit_randomized_benchmarking")
 def experiment_workflow(
     session: Session,
     qpu: QPU,
@@ -104,11 +99,6 @@ def experiment_workflow(
         options = experiment_workflow.options()
         options.count(10)
         options.transition("ge")
-        qpu = QPU(
-            qubits=[TunableTransmonQubit("q0"), TunableTransmonQubit("q1")],
-            quantum_operations=TunableTransmonOperations(),
-        )
-        temp_qubits = qpu.copy_qubits()
         result = experiment_workflow(
             session=session,
             qpu=qpu,
@@ -119,8 +109,9 @@ def experiment_workflow(
         ).run()
         ```
     """
-    if gate_map.isEmpty:
-        gate_map = {"id": None, "sx": "x90", "x": "x180", "rz": "rz"}
+    gate_map = get_gate_map(gate_map)
+
+    quantum_operations = add_qasm_operations(qpu.quantum_operations, gate_map)
 
     qasm_rb_sequences = create_sq_rb_qasm(
         length_cliffords=length_cliffords,
@@ -133,15 +124,59 @@ def experiment_workflow(
         qpu,
         qubits,
         qasm_rb_sequences,
-        gate_map=gate_map,
+        quantum_operations=quantum_operations,
     )
     compiled_exp = compile_experiment(session, exp)
-    _result = run_experiment(session, compiled_exp)
-    with if_(options.do_analysis):
-        analysis_workflow(_result, qubits, length_cliffords, variations)
+    result = run_experiment(session, compiled_exp)
+    with workflow.if_(options.do_analysis):
+        analysis_workflow(result, qubits, length_cliffords, variations)
+    workflow.return_(result)
 
 
-@task
+@workflow.task
+def get_gate_map(gate_map: dict[str, str] | None = None) -> dict[str, str]:
+    """Helper task to generate the default gate map.
+
+    Args:
+        gate_map: a dictionary specifying the names of the qasm operations as keys
+            and the corresponding names in the set of quantum operations as values.
+            If this is not provided, the default map
+            {"sx": "x90", "x": "x180", "rz": "rz"} is returned.
+
+    Returns:
+        the gate map
+    """
+    return (
+        {"sx": "x90", "x": "x180", "rz": "rz"}
+        if gate_map is None or len(gate_map) == 0
+        else gate_map
+    )
+
+
+@workflow.task
+def add_qasm_operations(
+    quantum_operations: dsl.QuantumOperations,
+    gate_map: dict[str, str],
+) -> dsl.QuantumOperations:
+    """Helper task to add qasm operations to the set of quantum operations.
+
+    The qasm operations are added as aliases of existing operations in the set.
+
+    Args:
+        quantum_operations: the set of quantum operations to add to.
+        gate_map: a dictionary specifying the names of the qasm operations as keys
+            and the corresponding names in the set of quantum operations as values.
+
+    Returns:
+        the extended set of quantum operations
+    """
+    for alias, qop_name in gate_map.items():
+        quantum_operations[alias] = quantum_operations[qop_name]
+
+    return quantum_operations
+
+
+@workflow.task
 def create_sq_rb_qasm(
     length_cliffords: list,
     gate_map: dict,
@@ -195,13 +230,13 @@ def create_sq_rb_qasm(
     return [qasm3.dumps(circuit) for circuit in transpiled_circuits]
 
 
-@task
+@workflow.task
 @dsl.qubit_experiment
 def create_experiment(
     qpu: QPU,
     qubits: Qubits,
     qasm_rb_sequences: list,
-    gate_map: dict,
+    quantum_operations: dsl.QuantumOperations | None = None,
     options: TuneupExperimentOptions | None = None,
 ) -> Experiment:
     """Creates an Amplitude Rabi Experiment.
@@ -214,10 +249,9 @@ def create_experiment(
             qubit or a list of qubits.
         qasm_rb_sequences:
             RB sequences as QASM experiments.
-        gate_map:
-            Dictionary to define the native gate set in QASM and the corresponding
-            quantum_operations's in LabOne Q.
-            Default: {"id":None, "sx":"x90", "x":"x180", "rz":"rz"}.
+        quantum_operations:
+            A set of quantum operations to use for the experiment.
+            If None, the set from qpu.quantum_operations is used.
         options:
             The options for building the workflow.
             In addition to options from [WorkflowOptions], the following
@@ -235,15 +269,9 @@ def create_experiment(
         ```python
         options = TuneupExperimentOptions()
         options.count = 10
-        setup = DeviceSetup()
-        qpu = QPU(
-            qubits=[TunableTransmonQubit("q0"), TunableTransmonQubit("q1")],
-            quantum_operations=TunableTransmonOperations(),
-        )
-        temp_qubits = qpu.copy_qubits()
         create_experiment(
             qpu=qpu,
-            qubits=temp_qubits,
+            qubits=qubits,
             length_cliffords=[1,5,10,20,50],
             variations=5,
             options=options,
@@ -255,12 +283,12 @@ def create_experiment(
     # TODO: so far clifford sequences are identical for all qubits
     # finally have different clifford sequences on all qubits
     if isinstance(qubits, Sequence):
-        indices = [range(len(qasm_rb_sequences)) for q in qubits]
+        indices = [range(len(qasm_rb_sequences)) for _ in qubits]
     else:
         indices = range(len(qasm_rb_sequences))
     qubits, indices = validate_and_convert_qubits_sweeps(qubits, indices)
     qasm_transpiler = openqasm3.OpenQASMTranspiler(qpu)
-    qop = qpu.quantum_operations
+    qop = qpu.quantum_operations if quantum_operations is None else quantum_operations
     with dsl.acquire_loop_rt(
         count=opts.count,
         averaging_mode=opts.averaging_mode,
@@ -288,7 +316,7 @@ def create_experiment(
                         for i, sequence in enumerate(qasm_rb_sequences):
                             with dsl.case(i) as c:
                                 qasm_section = qasm_transpiler.section(
-                                    sequence, qubits={"q": [q]}
+                                    sequence, qubit_map={"q": [q]}
                                 )
                                 c.add(qasm_section)
 

@@ -152,10 +152,10 @@ def calculate_qubit_population_rb(
     qubits, cliffords = validate_and_convert_qubits_sweeps(qubits, cliffords)
     processed_data_dict = {}
     for q, cliffs in zip(qubits, cliffords):
-        raw_data = result.result[q.uid].data
+        raw_data = result[q.uid].result.data
         if opts.use_cal_traces:
             calibration_traces = [
-                result.cal_trace[q.uid][cs].data for cs in opts.cal_states
+                result[q.uid].cal_trace[cs].data for cs in opts.cal_states
             ]
             do_pca = opts.do_pca
         else:
