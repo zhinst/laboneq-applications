@@ -100,11 +100,11 @@ class TestAmplitudeFine:
 
         for i in range(_NUM_QUBITS):
             self.verifier.assert_number_of_pulses(
-                f"/logical_signal_groups/q{i}/drive",
+                f"q{i}/drive",
                 expected_ge,
             )
             self.verifier.assert_number_of_pulses(
-                f"/logical_signal_groups/q{i}/drive_ef",
+                f"q{i}/drive_ef",
                 expected_ef,
             )
 
@@ -116,11 +116,11 @@ class TestAmplitudeFine:
             expected_measure += _COUNT * 2 * int(self.use_cal_traces)
         for i in range(_NUM_QUBITS):
             self.verifier.assert_number_of_pulses(
-                f"/logical_signal_groups/q{i}/measure",
+                f"q{i}/measure",
                 expected_measure,
             )
             self.verifier.assert_number_of_pulses(
-                f"/logical_signal_groups/q{i}/acquire",
+                f"q{i}/acquire",
                 expected_measure,
             )
 
@@ -130,13 +130,13 @@ class TestAmplitudeFine:
         # check length for state preparation
         for i in range(_NUM_QUBITS):
             self.verifier.assert_pulse(
-                signal=f"/logical_signal_groups/q{i}/drive",
+                signal=f"q{i}/drive",
                 index=0,
                 length=_LENGTH_GE,
             )  # x90_ge
             if self.transition == "ef":
                 self.verifier.assert_pulse(
-                    signal=f"/logical_signal_groups/q{i}/drive_ef",
+                    signal=f"q{i}/drive_ef",
                     index=0,
                     length=_LENGTH_EF,
                 )  # x180_ge + x90_ef
@@ -149,20 +149,20 @@ class TestAmplitudeFine:
             for index, rep in enumerate(_REPETITIONS):
                 if self.transition == "ge":
                     self.verifier.assert_pulse_pair(
-                        signals=f"/logical_signal_groups/q{i}/drive",
+                        signals=f"q{i}/drive",
                         indices=(index_rep, index_rep + 1),
                         distance=0,
                     )  # no gap
                 else:
                     self.verifier.assert_pulse_pair(
-                        signals=f"/logical_signal_groups/q{i}/drive_ef",
+                        signals=f"q{i}/drive_ef",
                         indices=(index_rep, index_rep + 1),
                         distance=(on_system_grid(_LENGTH_GE) - _LENGTH_EF),
                     )  # small gaps due to system grid alignment.
                     self.verifier.assert_pulse_pair(
                         signals=(
-                            f"/logical_signal_groups/q{i}/drive",
-                            f"/logical_signal_groups/q{i}/drive_ef",
+                            f"q{i}/drive",
+                            f"q{i}/drive_ef",
                         ),
                         indices=(
                             index,
@@ -190,13 +190,13 @@ class TestAmplitudeFine:
                 time_start = length_drive + _LENGTH_MEASURE_RESET * index
 
                 self.verifier.assert_pulse(
-                    signal=f"/logical_signal_groups/q{i}/measure",
+                    signal=f"q{i}/measure",
                     index=index,
                     start=time_start,
                     end=time_start + _LENGTH_MEASURE,
                 )
                 self.verifier.assert_pulse(
-                    signal=f"/logical_signal_groups/q{i}/acquire",
+                    signal=f"q{i}/acquire",
                     index=index,
                     start=time_start,
                     end=time_start + _LENGTH_MEASURE,

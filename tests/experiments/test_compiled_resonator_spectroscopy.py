@@ -83,12 +83,12 @@ class TestResonatorSpectroscopySingleQubit:
 
         if True:
             verifier.assert_number_of_pulses(
-                "/logical_signal_groups/q0/measure",
+                "q0/measure",
                 expected_measure_count,
             )
 
             verifier.assert_number_of_pulses(
-                "/logical_signal_groups/q0/acquire",
+                "q0/acquire",
                 expected_acquire_count,
             )
 
@@ -114,13 +114,13 @@ class TestResonatorSpectroscopySingleQubit:
         )
         if not use_cw:
             verifier.assert_pulse(
-                signal="/logical_signal_groups/q0/measure",
+                signal="q0/measure",
                 index=0,
                 start=88e-9,
                 end=2.088e-6,
             )
         verifier.assert_pulse(
-            signal="/logical_signal_groups/q0/acquire",
+            signal="q0/acquire",
             index=0,
             start=88e-9,
             end=2.088e-6,

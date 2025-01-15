@@ -27,7 +27,13 @@ def multi_qubits(two_tunable_transmon_platform):
 
 class TestTunableTransmonQubit:
     def test_create(self):
-        q = TunableTransmonQubit()
+        signals = {
+            "drive": "q0/drive",
+            "acquire": "q0/acquire",
+            "measure": "q0/measure",
+        }
+        q = TunableTransmonQubit(uid="q0", signals=signals)
+        assert q.uid == "q0"
         assert isinstance(q.parameters, TunableTransmonQubitParameters)
 
     def test_readout_parameters(self, q0):
@@ -173,22 +179,22 @@ class TestTunableTransmonQubit:
         )
 
     def test_update(self, q0):
-        q0.update({"readout_range_out": 10})
+        q0.update(readout_range_out=10)
         assert q0.parameters.readout_range_out == 10
 
-        q0.update({"readout_length": 10e-6})
+        q0.update(readout_length=10e-6)
         assert q0.parameters.readout_length == 10e-6
 
         # test update existing params but with None value
         q0.parameters.readout_pulse = None
-        q0.update({"readout_pulse": {"function": "const"}})
+        q0.update(readout_pulse={"function": "const"})
         assert q0.parameters.readout_pulse == {"function": "const"}
 
-        q0.update({"ge_drive_amplitude_pi": 0.1})
+        q0.update(ge_drive_amplitude_pi=0.1)
         assert q0.parameters.ge_drive_amplitude_pi == 0.1
 
         _original_ge_drive_pulse = copy.deepcopy(q0.parameters.ge_drive_pulse)
-        q0.update({"ge_drive_pulse.beta": 0.5})
+        q0.update(**{"ge_drive_pulse.beta": 0.5})
         assert q0.parameters.ge_drive_pulse["beta"] == 0.5
         assert (
             q0.parameters.ge_drive_pulse["function"]
@@ -204,7 +210,7 @@ class TestTunableTransmonQubit:
         original_params = copy.deepcopy(q0.parameters)
         with pytest.raises(ValueError) as err:
             q0.update(
-                {
+                **{
                     "readout_range_out": 10,
                     "non_existing_param": 10,
                     "readout_parameters.non_existing_param": 10,
@@ -212,20 +218,17 @@ class TestTunableTransmonQubit:
             )
 
         assert str(err.value) == (
-            f"Cannot update {q0.uid}: Update parameters do not "
-            f"match the qubit parameters: ['non_existing_param', "
-            f"'readout_parameters.non_existing_param']."
+            "Update parameters do not match the qubit parameters:"
+            " ['non_existing_param', 'readout_parameters.non_existing_param']"
         )
         # assert no parameters were updated
         assert q0.parameters == original_params
 
     def test_replace(self, q0):
         new_q0 = q0.replace(
-            {
-                "readout_range_out": 10,
-                "readout_length": 10e-6,
-                "ge_drive_amplitude_pi": 0.1,
-            },
+            readout_range_out=10,
+            readout_length=10e-6,
+            ge_drive_amplitude_pi=0.1,
         )
         assert id(new_q0) != id(q0)
         assert new_q0.parameters.readout_range_out == 10
@@ -235,15 +238,12 @@ class TestTunableTransmonQubit:
     def test_replace_wrong_params(self, q0):
         with pytest.raises(ValueError) as exc_info:
             _ = q0.replace(
-                {
-                    "wrong_param": 0,
-                    "wrong_param_2": 1,
-                },
+                wrong_param=0,
+                wrong_param_2=1,
             )
-        assert str(exc_info.value) == f"Cannot update {q0.uid}"
-        assert str(exc_info.value.__cause__) == (
-            "Update parameters do not match the qubit "
-            "parameters: ['wrong_param', 'wrong_param_2']"
+        assert str(exc_info.value) == (
+            "Update parameters do not match the qubit parameters:"
+            " ['wrong_param', 'wrong_param_2']"
         )
 
     def test_invalid_params_reported_correctly(self, q0):
@@ -252,8 +252,8 @@ class TestTunableTransmonQubit:
             "readout_parameters.non_existing_param",
         ]
         with pytest.raises(ValueError) as err:
-            q0.parameters._override(
-                {
+            q0.parameters.replace(
+                **{
                     "readout_range_out": 10,
                     "non_existing_param": 10,
                     "readout_parameters.non_existing_param": 10,
@@ -271,8 +271,8 @@ class TestTunableTransmonQubit:
             "non_existing.not_existing",
         ]
         with pytest.raises(ValueError) as err:
-            q0.parameters._override(
-                {
+            q0.parameters.replace(
+                **{
                     "drive_parameters_ge.non_existing.not_existing": 10,
                     "non_existing.not_existing": 10,
                 },

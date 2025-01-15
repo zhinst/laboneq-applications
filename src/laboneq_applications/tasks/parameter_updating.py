@@ -5,9 +5,9 @@
 
 from __future__ import annotations
 
-from dataclasses import asdict
 from typing import TYPE_CHECKING
 
+import attrs
 from laboneq.dsl.quantum import TransmonParameters
 from laboneq.workflow import (
     comment,
@@ -101,8 +101,8 @@ def temporary_modify(
         if q.uid in temporary_parameters:
             temp_param = temporary_parameters[q.uid]
             if isinstance(temp_param, TransmonParameters):
-                temp_param = asdict(temp_param)
-            new_q = q.replace(temp_param)
+                temp_param = attrs.asdict(temp_param)
+            new_q = q.replace(**temp_param)
             new_qubits.append(new_q)
         else:
             new_qubits.append(q)

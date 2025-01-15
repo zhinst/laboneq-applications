@@ -14,9 +14,9 @@ in parallel on all the qubits.
 
 from __future__ import annotations
 
-from dataclasses import field
 from typing import TYPE_CHECKING
 
+import attrs
 import numpy as np
 from laboneq import workflow
 from laboneq.simple import Experiment, SweepParameter, dsl
@@ -48,8 +48,8 @@ class SpinLockingExperimentOptions:
             Default: "y180".
     """
 
-    pulse: dict = field(
-        default_factory=lambda: {
+    pulse: dict = attrs.field(
+        factory=lambda: {
             "function": "gaussian_square_sweep",
             "can_compress": True,
             "risefall_in_samples": 64,

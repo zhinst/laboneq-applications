@@ -138,12 +138,12 @@ class TestAmplitudeRabiSingleQubit:
 
         # The signal names can be looked up in device_setup,
         # but typically they are in the form of
-        # /logical_signal_groups/q{i}/drive(measure/acquire/drive_ef)
+        # q{i}/drive(measure/acquire/drive_ef)
         # Note that with cal_state on, there is 1 additional drive pulse.
         expected_drive_count = count * (len(amplitudes) + int(use_cal_traces))
         # For new experiments: change the line above as needed
         verifier.assert_number_of_pulses(
-            "/logical_signal_groups/q0/drive",
+            "q0/drive",
             expected_drive_count,
         )
 
@@ -151,7 +151,7 @@ class TestAmplitudeRabiSingleQubit:
             expected_drive_count = count * len(amplitudes)
             # For new experiments: change the line above as needed
             verifier.assert_number_of_pulses(
-                "/logical_signal_groups/q0/drive_ef",
+                "q0/drive_ef",
                 expected_drive_count,
             )
 
@@ -159,13 +159,13 @@ class TestAmplitudeRabiSingleQubit:
         expected_measure_count = count * (len(amplitudes) + 2 * int(use_cal_traces))
         # For new experiments: change the line above as needed
         verifier.assert_number_of_pulses(
-            "/logical_signal_groups/q0/measure",
+            "q0/measure",
             expected_measure_count,
         )
 
         # acquire and measure pulses have the same count
         verifier.assert_number_of_pulses(
-            "/logical_signal_groups/q0/acquire",
+            "q0/acquire",
             expected_measure_count,
         )
 
@@ -205,7 +205,7 @@ class TestAmplitudeRabiSingleQubit:
             # For new experiments: Please write tests for more than one pulse,
             # if applicable (one call to verifier.assert_pulse for every pulse)
             verifier.assert_pulse(
-                signal="/logical_signal_groups/q0/drive",
+                signal="q0/drive",
                 index=0,  # For new experiments: change this value as needed
                 start=0e-6,  # For new experiments: change this value as needed
                 end=_LENGTH_GE,  # For new experiments: change this value as needed
@@ -218,7 +218,7 @@ class TestAmplitudeRabiSingleQubit:
             # For new experiments: Please write tests for more than one pulse,
             # if applicable (one call to verifier.assert_pulse for every pulse)
             verifier.assert_pulse(
-                signal="/logical_signal_groups/q0/drive_ef",
+                signal="q0/drive_ef",
                 index=0,  # For new experiments: change this value as needed
                 start=_LENGTH_GE,  # For new experiments: change this value as needed
                 end=_LENGTH_GE
@@ -254,14 +254,14 @@ class TestAmplitudeRabiSingleQubit:
 
         if transition == "ge":
             verifier.assert_pulse(
-                signal="/logical_signal_groups/q0/measure",
+                signal="q0/measure",
                 index=0,  # For new experiments: change this value as needed
                 start=_LENGTH_GE,  # For new experiments: change this value as needed
                 end=_LENGTH_GE
                 + 2e-6,  # For new experiments: change this value as needed
             )
             verifier.assert_pulse(
-                signal="/logical_signal_groups/q0/acquire",
+                signal="q0/acquire",
                 index=0,  # For new experiments: change this value as needed
                 start=_LENGTH_GE,  # For new experiments: change this value as needed
                 end=_LENGTH_GE
@@ -270,7 +270,7 @@ class TestAmplitudeRabiSingleQubit:
         elif transition == "ef":
             # For new experiments: remove if not relevant
             verifier.assert_pulse(
-                signal="/logical_signal_groups/q0/measure",
+                signal="q0/measure",
                 index=0,  # For new experiments: change this value as needed
                 start=_LENGTH_GE
                 + _LENGTH_EF,  # For new experiments: change this value as needed
@@ -279,7 +279,7 @@ class TestAmplitudeRabiSingleQubit:
                 + 2e-6,  # For new experiments: change this value as needed
             )
             verifier.assert_pulse(
-                signal="/logical_signal_groups/q0/acquire",
+                signal="q0/acquire",
                 index=0,  # For new experiments: change this value as needed
                 start=_LENGTH_GE
                 + _LENGTH_EF,  # For new experiments: change this value as needed
@@ -345,13 +345,13 @@ class TestAmplitudeRabiTwoQubits:
 
         # The signal names can be looked up in device_setup,
         # but typically they are in the form of
-        # /logical_signal_groups/q{i}/drive(measure/acquire/drive_ef)
+        # q{i}/drive(measure/acquire/drive_ef)
         # Note that with cal_state on, there is 1 additional drive pulse.
         # Check for q0
         expected_drive_count = count * (len(amplitudes[0]) + int(use_cal_traces))
         # For new experiments: change the line above as needed
         verifier.assert_number_of_pulses(
-            "/logical_signal_groups/q0/drive",
+            "q0/drive",
             expected_drive_count,
         )
 
@@ -359,7 +359,7 @@ class TestAmplitudeRabiTwoQubits:
         expected_drive_count = count * (len(amplitudes[1]) + int(use_cal_traces))
         # For new experiments: change the line above as needed
         verifier.assert_number_of_pulses(
-            "/logical_signal_groups/q1/drive",
+            "q1/drive",
             expected_drive_count,
         )
 
@@ -368,7 +368,7 @@ class TestAmplitudeRabiTwoQubits:
             expected_drive_count = count * len(amplitudes[0])
             # For new experiments: change the line above as needed
             verifier.assert_number_of_pulses(
-                "/logical_signal_groups/q0/drive_ef",
+                "q0/drive_ef",
                 expected_drive_count,
             )
 
@@ -376,7 +376,7 @@ class TestAmplitudeRabiTwoQubits:
             expected_drive_count = count * len(amplitudes[1])
             # For new experiments: change the line above as needed
             verifier.assert_number_of_pulses(
-                "/logical_signal_groups/q1/drive_ef",
+                "q1/drive_ef",
                 expected_drive_count,
             )
 
@@ -385,25 +385,25 @@ class TestAmplitudeRabiTwoQubits:
         expected_measure_count = count * (len(amplitudes[0]) + 2 * int(use_cal_traces))
         # For new experiments: change the line above as needed
         verifier.assert_number_of_pulses(
-            "/logical_signal_groups/q0/measure",
+            "q0/measure",
             expected_measure_count,
         )
 
         # acquire and measure pulses have the same count
         verifier.assert_number_of_pulses(
-            "/logical_signal_groups/q0/acquire",
+            "q0/acquire",
             expected_measure_count,
         )
 
         # Check for q1
         verifier.assert_number_of_pulses(
-            "/logical_signal_groups/q1/measure",
+            "q1/measure",
             expected_measure_count,
         )
 
         # acquire and measure pulses have the same count
         verifier.assert_number_of_pulses(
-            "/logical_signal_groups/q1/acquire",
+            "q1/acquire",
             expected_measure_count,
         )
 
@@ -444,7 +444,7 @@ class TestAmplitudeRabiTwoQubits:
             # For new experiments: Please write tests for more than one pulse,
             # if applicable (one call to verifier.assert_pulse for every pulse)
             verifier.assert_pulse(
-                signal="/logical_signal_groups/q0/drive",
+                signal="q0/drive",
                 index=0,  # For new experiments: change this value as needed
                 start=0e-6,  # For new experiments: change this value as needed
                 end=_LENGTH_GE,  # For new experiments: change this value as needed
@@ -453,7 +453,7 @@ class TestAmplitudeRabiTwoQubits:
                 ],  # For new experiments: list of SweepParameter names or leave empty
             )
             verifier.assert_pulse(
-                signal="/logical_signal_groups/q1/drive",
+                signal="q1/drive",
                 index=0,  # For new experiments: change this value as needed
                 start=0e-6,  # For new experiments: change this value as needed
                 end=_LENGTH_GE,  # For new experiments: change this value as needed
@@ -465,7 +465,7 @@ class TestAmplitudeRabiTwoQubits:
             # For new experiments: Please write tests for more than one pulse,
             # if applicable (one call to verifier.assert_pulse for every pulse)
             verifier.assert_pulse(
-                signal="/logical_signal_groups/q0/drive_ef",
+                signal="q0/drive_ef",
                 index=0,  # For new experiments: change this value as needed
                 start=_LENGTH_GE,  # For new experiments: change this value as needed
                 end=_LENGTH_GE
@@ -475,7 +475,7 @@ class TestAmplitudeRabiTwoQubits:
                 ],  # For new experiments: list of SweepParameter names or leave empty
             )
             verifier.assert_pulse(
-                signal="/logical_signal_groups/q1/drive_ef",
+                signal="q1/drive_ef",
                 index=0,  # For new experiments: change this value as needed
                 start=_LENGTH_GE,  # For new experiments: change this value as needed
                 end=_LENGTH_GE
@@ -514,7 +514,7 @@ class TestAmplitudeRabiTwoQubits:
         if transition == "ge":
             # Check for q0
             verifier.assert_pulse(
-                signal="/logical_signal_groups/q0/measure",
+                signal="q0/measure",
                 index=0,  # For new experiments: change this value as needed
                 start=_LENGTH_GE,  # For new experiments: change this value as needed
                 end=_LENGTH_GE
@@ -523,7 +523,7 @@ class TestAmplitudeRabiTwoQubits:
                 ],  # For new experiments: change this value as needed
             )
             verifier.assert_pulse(
-                signal="/logical_signal_groups/q0/acquire",
+                signal="q0/acquire",
                 index=0,  # For new experiments: change this value as needed
                 start=_LENGTH_GE,  # For new experiments: change this value as needed
                 end=_LENGTH_GE
@@ -532,7 +532,7 @@ class TestAmplitudeRabiTwoQubits:
 
             # Check for q1
             verifier.assert_pulse(
-                signal="/logical_signal_groups/q1/measure",
+                signal="q1/measure",
                 index=0,  # For new experiments: change this value as needed
                 start=_LENGTH_GE,  # For new experiments: change this value as needed
                 end=_LENGTH_GE
@@ -541,7 +541,7 @@ class TestAmplitudeRabiTwoQubits:
                 ],  # For new experiments: change this value as needed
             )
             verifier.assert_pulse(
-                signal="/logical_signal_groups/q1/acquire",
+                signal="q1/acquire",
                 index=0,  # For new experiments: change this value as needed
                 start=_LENGTH_GE,  # For new experiments: change this value as needed
                 end=_LENGTH_GE
@@ -550,7 +550,7 @@ class TestAmplitudeRabiTwoQubits:
         elif transition == "ef":  # For new experiments: remove if not relevant
             # Check for q0
             verifier.assert_pulse(
-                signal="/logical_signal_groups/q0/measure",
+                signal="q0/measure",
                 index=0,  # For new experiments: change this value as needed
                 start=_LENGTH_GE
                 + _LENGTH_EF,  # For new experiments: change this value as needed
@@ -561,7 +561,7 @@ class TestAmplitudeRabiTwoQubits:
                 ],  # For new experiments: change this value as needed
             )
             verifier.assert_pulse(
-                signal="/logical_signal_groups/q0/acquire",
+                signal="q0/acquire",
                 index=0,  # For new experiments: change this value as needed
                 start=_LENGTH_GE
                 + _LENGTH_EF,  # For new experiments: change this value as needed
@@ -571,7 +571,7 @@ class TestAmplitudeRabiTwoQubits:
             )
             # Check for q1
             verifier.assert_pulse(
-                signal="/logical_signal_groups/q1/measure",
+                signal="q1/measure",
                 index=0,  # For new experiments: change this value as needed
                 start=_LENGTH_GE
                 + _LENGTH_EF,  # For new experiments: change this value as needed
@@ -582,7 +582,7 @@ class TestAmplitudeRabiTwoQubits:
                 ],  # For new experiments: change this value as needed
             )
             verifier.assert_pulse(
-                signal="/logical_signal_groups/q1/acquire",
+                signal="q1/acquire",
                 index=0,  # For new experiments: change this value as needed
                 start=_LENGTH_GE
                 + _LENGTH_EF,  # For new experiments: change this value as needed

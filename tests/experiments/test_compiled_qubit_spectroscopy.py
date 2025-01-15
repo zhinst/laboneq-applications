@@ -71,7 +71,7 @@ class TestQubitSpectroscopySingleQubit:
 
         expected_drive_count = count * len(frequencies)
         verifier.assert_number_of_pulses(
-            "/logical_signal_groups/q0/drive",
+            "q0/drive",
             expected_drive_count,
         )
 
@@ -91,13 +91,13 @@ class TestQubitSpectroscopySingleQubit:
 
         expected_measure_count = count * len(frequencies)
         verifier.assert_number_of_pulses(
-            "/logical_signal_groups/q0/measure",
+            "q0/measure",
             expected_measure_count,
         )
 
         # acquire and measure pulses have the same count
         verifier.assert_number_of_pulses(
-            "/logical_signal_groups/q0/acquire",
+            "q0/acquire",
             expected_measure_count,
         )
 
@@ -115,7 +115,7 @@ class TestQubitSpectroscopySingleQubit:
             count,
         )
         verifier.assert_pulse(
-            signal="/logical_signal_groups/q0/drive",
+            signal="q0/drive",
             index=0,
             start=88e-9,
             end=88e-9 + 5e-6,
@@ -136,13 +136,13 @@ class TestQubitSpectroscopySingleQubit:
         )
 
         verifier.assert_pulse(
-            signal="/logical_signal_groups/q0/measure",
+            signal="q0/measure",
             index=0,
             start=88e-9 + 5e-6,
             end=88e-9 + 5e-6 + 2e-6,
         )
         verifier.assert_pulse(
-            signal="/logical_signal_groups/q0/acquire",
+            signal="q0/acquire",
             index=0,
             start=88e-9 + 5e-6,
             end=88e-9 + 5e-6 + 2e-6,
@@ -180,14 +180,14 @@ class TestQubitSpectroscopyTwoQubits:
         # Check for q0
         expected_drive_count = count * len(frequencies[0])
         verifier.assert_number_of_pulses(
-            "/logical_signal_groups/q0/drive",
+            "q0/drive",
             expected_drive_count,
         )
 
         # Check for q1
         expected_drive_count = count * len(frequencies[1])
         verifier.assert_number_of_pulses(
-            "/logical_signal_groups/q1/drive",
+            "q1/drive",
             expected_drive_count,
         )
 
@@ -201,25 +201,25 @@ class TestQubitSpectroscopyTwoQubits:
         # Check for q0
         expected_measure_count = count * len(frequencies[0])
         verifier.assert_number_of_pulses(
-            "/logical_signal_groups/q0/measure",
+            "q0/measure",
             expected_measure_count,
         )
 
         # acquire and measure pulses have the same count
         verifier.assert_number_of_pulses(
-            "/logical_signal_groups/q0/acquire",
+            "q0/acquire",
             expected_measure_count,
         )
 
         # Check for q1
         verifier.assert_number_of_pulses(
-            "/logical_signal_groups/q1/measure",
+            "q1/measure",
             expected_measure_count,
         )
 
         # acquire and measure pulses have the same count
         verifier.assert_number_of_pulses(
-            "/logical_signal_groups/q1/acquire",
+            "q1/acquire",
             expected_measure_count,
         )
 
@@ -233,7 +233,7 @@ class TestQubitSpectroscopyTwoQubits:
         )
 
         verifier.assert_pulse(
-            signal="/logical_signal_groups/q0/drive",
+            signal="q0/drive",
             index=0,
             start=88e-9,
             end=88e-9 + 5e-6,
@@ -241,7 +241,7 @@ class TestQubitSpectroscopyTwoQubits:
         )
 
         verifier.assert_pulse(
-            signal="/logical_signal_groups/q1/drive",
+            signal="q1/drive",
             index=0,
             start=88e-9,
             end=88e-9 + 5e-6,
@@ -256,26 +256,26 @@ class TestQubitSpectroscopyTwoQubits:
             two_tunable_transmon_platform, frequencies, count, readout_lengths
         )
         verifier.assert_pulse(
-            signal="/logical_signal_groups/q0/measure",
+            signal="q0/measure",
             index=0,
             start=88e-9 + 5e-6,
             end=88e-9 + 5e-6 + readout_lengths[0],
         )
         verifier.assert_pulse(
-            signal="/logical_signal_groups/q0/acquire",
+            signal="q0/acquire",
             index=0,
             start=88e-9 + 5e-6,
             end=88e-9 + 5e-6 + 2e-6,
         )
 
         verifier.assert_pulse(
-            signal="/logical_signal_groups/q1/measure",
+            signal="q1/measure",
             index=0,
             start=88e-9 + 5e-6,
             end=88e-9 + 5e-6 + readout_lengths[1],
         )
         verifier.assert_pulse(
-            signal="/logical_signal_groups/q1/acquire",
+            signal="q1/acquire",
             index=0,
             start=88e-9 + 5e-6,
             end=88e-9 + 5e-6 + 2e-6,

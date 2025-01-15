@@ -74,25 +74,25 @@ class TestTimeTracesSingleQubit:
             0 * states.count("g") + 1 * states.count("e") + 1 * states.count("f")
         )
         verifier.assert_number_of_pulses(
-            "/logical_signal_groups/q0/drive",
+            "q0/drive",
             expected_ge_drive_count,
         )
         expected_ef_drive_count = count * (
             0 * states.count("g") + 0 * states.count("e") + 1 * states.count("f")
         )
         verifier.assert_number_of_pulses(
-            "/logical_signal_groups/q0/drive_ef",
+            "q0/drive_ef",
             expected_ef_drive_count,
         )
 
         expected_measure_count = count * len(states)
         verifier.assert_number_of_pulses(
-            "/logical_signal_groups/q0/measure",
+            "q0/measure",
             expected_measure_count,
         )
         # acquire and measure pulses have the same count
         verifier.assert_number_of_pulses(
-            "/logical_signal_groups/q0/acquire",
+            "q0/acquire",
             expected_measure_count,
         )
 
@@ -111,7 +111,7 @@ class TestTimeTracesSingleQubit:
         )
         if states == ("e"):
             verifier.assert_pulse(
-                signal="/logical_signal_groups/q0/drive",
+                signal="q0/drive",
                 index=0,
                 start=0e-6,
                 end=51e-9,
@@ -119,14 +119,14 @@ class TestTimeTracesSingleQubit:
             )
         elif states == ("f"):
             verifier.assert_pulse(
-                signal="/logical_signal_groups/q0/drive",
+                signal="q0/drive",
                 index=0,
                 start=0e-6,
                 end=51e-9,
                 parameterized_with=[],
             )
             verifier.assert_pulse(
-                signal="/logical_signal_groups/q0/drive_ef",
+                signal="q0/drive_ef",
                 index=0,
                 start=56e-9,
                 end=56e-9 + 52e-9,
@@ -147,39 +147,39 @@ class TestTimeTracesSingleQubit:
         )
         if states == ("g"):
             verifier.assert_pulse(
-                signal="/logical_signal_groups/q0/measure",
+                signal="q0/measure",
                 index=0,
                 start=0e-9,
                 end=2e-6,
             )
             verifier.assert_pulse(
-                signal="/logical_signal_groups/q0/acquire",
+                signal="q0/acquire",
                 index=0,
                 start=0e-9,
                 end=2e-6,
             )
         if states == ("e"):
             verifier.assert_pulse(
-                signal="/logical_signal_groups/q0/measure",
+                signal="q0/measure",
                 index=0,
                 start=56e-9,
                 end=56e-9 + 2e-6,
             )
             verifier.assert_pulse(
-                signal="/logical_signal_groups/q0/acquire",
+                signal="q0/acquire",
                 index=0,
                 start=56e-9,
                 end=56e-9 + 2e-6,
             )
         if states == ("f"):
             verifier.assert_pulse(
-                signal="/logical_signal_groups/q0/measure",
+                signal="q0/measure",
                 index=0,
                 start=112e-9,
                 end=112e-9 + 2e-6,
             )
             verifier.assert_pulse(
-                signal="/logical_signal_groups/q0/acquire",
+                signal="q0/acquire",
                 index=0,
                 start=112e-9,
                 end=112e-9 + 2e-6,

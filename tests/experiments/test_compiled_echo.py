@@ -111,11 +111,11 @@ class TestEchoSingleQubit:
             expected_drive_count_ef += count * int(use_cal_traces)
 
         verifier.assert_number_of_pulses(
-            "/logical_signal_groups/q0/drive",
+            "q0/drive",
             expected_drive_count_ge,
         )
         verifier.assert_number_of_pulses(
-            "/logical_signal_groups/q0/drive_ef",
+            "q0/drive_ef",
             expected_drive_count_ef,
         )
 
@@ -127,12 +127,12 @@ class TestEchoSingleQubit:
             expected_measure_count += count * 3 * int(use_cal_traces)
 
         verifier.assert_number_of_pulses(
-            "/logical_signal_groups/q0/measure",
+            "q0/measure",
             expected_measure_count,
         )
 
         verifier.assert_number_of_pulses(
-            "/logical_signal_groups/q0/acquire",
+            "q0/acquire",
             expected_measure_count,
         )
 
@@ -159,7 +159,7 @@ class TestEchoSingleQubit:
         )
         if transition == "ge":
             verifier.assert_pulse(
-                signal="/logical_signal_groups/q0/drive",
+                signal="q0/drive",
                 index=0,
                 start=0e-6,
                 end=_LENGTH_GE,
@@ -167,30 +167,30 @@ class TestEchoSingleQubit:
                 ],
             )
             verifier.assert_pulse_pair(
-                signals="/logical_signal_groups/q0/drive",
+                signals="q0/drive",
                 indices=[0, 1],
                 distance=delays[0] / 2,
             )
             verifier.assert_pulse_pair(
-                signals="/logical_signal_groups/q0/drive",
+                signals="q0/drive",
                 indices=[1, 2],
                 distance=delays[0] / 2,
             )
         elif transition == "ef":
             verifier.assert_pulse(
-                signal="/logical_signal_groups/q0/drive_ef",
+                signal="q0/drive_ef",
                 index=0,
                 start=_LENGTH_GE,
                 end=_LENGTH_GE + _LENGTH_EF,
                 parameterized_with=[],
             )
             verifier.assert_pulse_pair(
-                signals="/logical_signal_groups/q0/drive_ef",
+                signals="q0/drive_ef",
                 indices=[0, 1],
                 distance=delays[0] / 2,
             )
             verifier.assert_pulse_pair(
-                signals="/logical_signal_groups/q0/drive_ef",
+                signals="q0/drive_ef",
                 indices=[1, 2],
                 distance=delays[0] / 2,
             )
@@ -225,14 +225,14 @@ class TestEchoSingleQubit:
         if transition == "ge":
             measure_pulse_start = on_system_grid(3 * _LENGTH_GE + 2 * delay)
             verifier.assert_pulse(
-                signal="/logical_signal_groups/q0/measure",
+                signal="q0/measure",
                 index=0,
                 start=measure_pulse_start,
                 end=measure_pulse_start + 2e-6,
                 tolerance=1e-9,
             )
             verifier.assert_pulse(
-                signal="/logical_signal_groups/q0/acquire",
+                signal="q0/acquire",
                 index=0,
                 start=measure_pulse_start,
                 end=measure_pulse_start + 2e-6,
@@ -243,13 +243,13 @@ class TestEchoSingleQubit:
                 _LENGTH_GE + 3 * _LENGTH_EF + 2 * delay
             )
             verifier.assert_pulse(
-                signal="/logical_signal_groups/q0/measure",
+                signal="q0/measure",
                 index=0,
                 start=measure_pulse_start,
                 end=measure_pulse_start + 2e-6,
             )
             verifier.assert_pulse(
-                signal="/logical_signal_groups/q0/acquire",
+                signal="q0/acquire",
                 index=0,
                 start=measure_pulse_start,
                 end=measure_pulse_start + 2e-6,
@@ -309,11 +309,11 @@ class TestEchoTwoQubits:
             expected_drive_count_ef += count * int(use_cal_traces)
 
         verifier.assert_number_of_pulses(
-            "/logical_signal_groups/q0/drive",
+            "q0/drive",
             expected_drive_count_ge,
         )
         verifier.assert_number_of_pulses(
-            "/logical_signal_groups/q0/drive_ef",
+            "q0/drive_ef",
             expected_drive_count_ef,
         )
         # Check for q1
@@ -331,11 +331,11 @@ class TestEchoTwoQubits:
             expected_drive_count_ef += count * int(use_cal_traces)
 
         verifier.assert_number_of_pulses(
-            "/logical_signal_groups/q1/drive",
+            "q1/drive",
             expected_drive_count_ge,
         )
         verifier.assert_number_of_pulses(
-            "/logical_signal_groups/q1/drive_ef",
+            "q1/drive_ef",
             expected_drive_count_ef,
         )
 
@@ -348,12 +348,12 @@ class TestEchoTwoQubits:
             expected_measure_count += count * 3 * int(use_cal_traces)
 
         verifier.assert_number_of_pulses(
-            "/logical_signal_groups/q0/measure",
+            "q0/measure",
             expected_measure_count,
         )
         # acquire and measure pulses have the same count
         verifier.assert_number_of_pulses(
-            "/logical_signal_groups/q0/acquire",
+            "q0/acquire",
             expected_measure_count,
         )
 
@@ -366,13 +366,13 @@ class TestEchoTwoQubits:
             expected_measure_count += count * 3 * int(use_cal_traces)
 
         verifier.assert_number_of_pulses(
-            "/logical_signal_groups/q1/measure",
+            "q1/measure",
             expected_measure_count,
         )
 
         # acquire and measure pulses have the same count
         verifier.assert_number_of_pulses(
-            "/logical_signal_groups/q1/acquire",
+            "q1/acquire",
             expected_measure_count,
         )
 
@@ -402,73 +402,73 @@ class TestEchoTwoQubits:
         )
         if transition == "ge":
             verifier.assert_pulse(
-                signal="/logical_signal_groups/q0/drive",
+                signal="q0/drive",
                 index=0,
                 start=0e-6,
                 end=_LENGTH_GE,
                 parameterized_with=[],
             )
             verifier.assert_pulse(
-                signal="/logical_signal_groups/q1/drive",
+                signal="q1/drive",
                 index=0,
                 start=0e-6,
                 end=_LENGTH_GE,
                 parameterized_with=[],
             )
             verifier.assert_pulse_pair(
-                signals="/logical_signal_groups/q0/drive",
+                signals="q0/drive",
                 indices=[0, 1],
                 distance=delays[0][0] / 2,
             )
             verifier.assert_pulse_pair(
-                signals="/logical_signal_groups/q0/drive",
+                signals="q0/drive",
                 indices=[1, 2],
                 distance=delays[0][0] / 2,
             )
 
             verifier.assert_pulse_pair(
-                signals="/logical_signal_groups/q1/drive",
+                signals="q1/drive",
                 indices=[0, 1],
                 distance=delays[1][0] / 2,
             )
             verifier.assert_pulse_pair(
-                signals="/logical_signal_groups/q1/drive",
+                signals="q1/drive",
                 indices=[1, 2],
                 distance=delays[1][0] / 2,
             )
         elif transition == "ef":
             verifier.assert_pulse(
-                signal="/logical_signal_groups/q0/drive_ef",
+                signal="q0/drive_ef",
                 index=0,
                 start=_LENGTH_GE,
                 end=_LENGTH_GE + _LENGTH_EF,
                 parameterized_with=[],
             )
             verifier.assert_pulse(
-                signal="/logical_signal_groups/q1/drive_ef",
+                signal="q1/drive_ef",
                 index=0,
                 start=_LENGTH_GE,
                 end=_LENGTH_GE + _LENGTH_EF,
                 parameterized_with=[],
             )
             verifier.assert_pulse_pair(
-                signals="/logical_signal_groups/q0/drive_ef",
+                signals="q0/drive_ef",
                 indices=[0, 1],
                 distance=delays[0][0] / 2,
             )
             verifier.assert_pulse_pair(
-                signals="/logical_signal_groups/q0/drive_ef",
+                signals="q0/drive_ef",
                 indices=[1, 2],
                 distance=delays[0][0] / 2,
             )
 
             verifier.assert_pulse_pair(
-                signals="/logical_signal_groups/q1/drive_ef",
+                signals="q1/drive_ef",
                 indices=[0, 1],
                 distance=delays[1][0] / 2,
             )
             verifier.assert_pulse_pair(
-                signals="/logical_signal_groups/q1/drive_ef",
+                signals="q1/drive_ef",
                 indices=[1, 2],
                 distance=delays[1][0] / 2,
             )
@@ -504,14 +504,14 @@ class TestEchoTwoQubits:
             delay = delays[0][0] / 2
             measure_start_time = on_system_grid(3 * _LENGTH_GE + 2 * delay)
             verifier.assert_pulse(
-                signal="/logical_signal_groups/q0/measure",
+                signal="q0/measure",
                 index=0,
                 start=measure_start_time,
                 end=measure_start_time + readout_lengths[0],
                 tolerance=1e-9,
             )
             verifier.assert_pulse(
-                signal="/logical_signal_groups/q0/acquire",
+                signal="q0/acquire",
                 index=0,
                 start=measure_start_time,
                 end=measure_start_time + 2e-6,
@@ -521,14 +521,14 @@ class TestEchoTwoQubits:
             delay = delays[1][0] / 2
             measure_start_time = on_system_grid(3 * _LENGTH_GE + 2 * delay)
             verifier.assert_pulse(
-                signal="/logical_signal_groups/q1/measure",
+                signal="q1/measure",
                 index=0,
                 start=measure_start_time,
                 end=measure_start_time + readout_lengths[1],
                 tolerance=1e-9,
             )
             verifier.assert_pulse(
-                signal="/logical_signal_groups/q1/acquire",
+                signal="q1/acquire",
                 index=0,
                 start=measure_start_time,
                 end=measure_start_time + 2e-6,
@@ -539,13 +539,13 @@ class TestEchoTwoQubits:
             delay = delays[0][0] / 2
             measure_start_time = on_system_grid(_LENGTH_GE + 3 * _LENGTH_EF + 2 * delay)
             verifier.assert_pulse(
-                signal="/logical_signal_groups/q0/measure",
+                signal="q0/measure",
                 index=0,
                 start=measure_start_time,
                 end=measure_start_time + readout_lengths[0],
             )
             verifier.assert_pulse(
-                signal="/logical_signal_groups/q0/acquire",
+                signal="q0/acquire",
                 index=0,
                 start=measure_start_time,
                 end=measure_start_time + 2e-6,
@@ -554,13 +554,13 @@ class TestEchoTwoQubits:
             delay = delays[1][0] / 2
             measure_start_time = on_system_grid(_LENGTH_GE + 3 * _LENGTH_EF + 2 * delay)
             verifier.assert_pulse(
-                signal="/logical_signal_groups/q1/measure",
+                signal="q1/measure",
                 index=0,
                 start=measure_start_time,
                 end=measure_start_time + readout_lengths[1],
             )
             verifier.assert_pulse(
-                signal="/logical_signal_groups/q1/acquire",
+                signal="q1/acquire",
                 index=0,
                 start=measure_start_time,
                 end=measure_start_time + 2e-6,

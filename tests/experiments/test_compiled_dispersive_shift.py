@@ -86,27 +86,27 @@ class TestDispersiveShiftSingleQubit:
             count * len(frequencies) * (states.count("e") + states.count("f"))
         )
         verifier.assert_number_of_pulses(
-            "/logical_signal_groups/q0/drive",
+            "q0/drive",
             expected_drive_count,
         )
 
         if "f" in states:
             expected_drive_count = count * len(frequencies) * states.count("f")
             verifier.assert_number_of_pulses(
-                "/logical_signal_groups/q0/drive_ef",
+                "q0/drive_ef",
                 expected_drive_count,
             )
 
         # Note that with cal_state on, there are 2 additional measure pulses
         expected_measure_count = count * len(frequencies) * len(states)
         verifier.assert_number_of_pulses(
-            "/logical_signal_groups/q0/measure",
+            "q0/measure",
             expected_measure_count,
         )
 
         # acquire and measure pulses have the same count
         verifier.assert_number_of_pulses(
-            "/logical_signal_groups/q0/acquire",
+            "q0/acquire",
             expected_measure_count,
         )
 
@@ -140,7 +140,7 @@ class TestDispersiveShiftSingleQubit:
             elif f_num > 0:
                 pulse_timing_offset = 88e-9 + _LENGTH_MEASURE_RESET * states.index("f")
             verifier.assert_pulse(
-                signal="/logical_signal_groups/q0/drive",
+                signal="q0/drive",
                 index=0,
                 start=pulse_timing_offset,
                 end=pulse_timing_offset + _LENGTH_GE,
@@ -155,7 +155,7 @@ class TestDispersiveShiftSingleQubit:
                     + _LENGTH_GE
                 )
                 verifier.assert_pulse(
-                    signal="/logical_signal_groups/q0/drive_ef",
+                    signal="q0/drive_ef",
                     index=0,
                     start=pulse_timing_offset,
                     end=pulse_timing_offset + _LENGTH_EF,
@@ -183,7 +183,7 @@ class TestDispersiveShiftSingleQubit:
                 + _LENGTH_EF * (states[0] == "f")
             )
             verifier.assert_pulse(
-                signal=f"/logical_signal_groups/q0/{qa_pair}",
+                signal=f"q0/{qa_pair}",
                 index=0,
                 start=start,
                 end=start + _LENGTH_MEASURE,

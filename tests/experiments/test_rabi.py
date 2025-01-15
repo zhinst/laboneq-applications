@@ -17,11 +17,11 @@ import tests.helpers.dsl as tsl
 
 def reserve_ops(q):
     return [
-        tsl.reserve_op(signal=f"/logical_signal_groups/{q.uid}/drive"),
-        tsl.reserve_op(signal=f"/logical_signal_groups/{q.uid}/drive_ef"),
-        tsl.reserve_op(signal=f"/logical_signal_groups/{q.uid}/measure"),
-        tsl.reserve_op(signal=f"/logical_signal_groups/{q.uid}/acquire"),
-        tsl.reserve_op(signal=f"/logical_signal_groups/{q.uid}/flux"),
+        tsl.reserve_op(signal=f"{q.uid}/drive"),
+        tsl.reserve_op(signal=f"{q.uid}/drive_ef"),
+        tsl.reserve_op(signal=f"{q.uid}/measure"),
+        tsl.reserve_op(signal=f"{q.uid}/acquire"),
+        tsl.reserve_op(signal=f"{q.uid}/flux"),
     ]
 
 

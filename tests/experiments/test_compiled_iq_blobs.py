@@ -78,13 +78,13 @@ class TestIQBlobsSingleQubit:
         if "f" in states:
             expected_drive_count = count * (states.count("f"))
             verifier.assert_number_of_pulses(
-                "/logical_signal_groups/q0/drive_ef",
+                "q0/drive_ef",
                 expected_drive_count,
             )
         if "e" in states:
             expected_drive_count = count * (states.count("e") + states.count("f"))
             verifier.assert_number_of_pulses(
-                "/logical_signal_groups/q0/drive",
+                "q0/drive",
                 expected_drive_count,
             )
 
@@ -94,13 +94,13 @@ class TestIQBlobsSingleQubit:
         )
 
         verifier.assert_number_of_pulses(
-            "/logical_signal_groups/q0/measure",
+            "q0/measure",
             expected_measure_count,
         )
 
         # acquire and measure pulses have the same count
         verifier.assert_number_of_pulses(
-            "/logical_signal_groups/q0/acquire",
+            "q0/acquire",
             expected_measure_count,
         )
 
@@ -119,7 +119,7 @@ class TestIQBlobsSingleQubit:
         )
         if states == "ge":
             verifier.assert_pulse(
-                signal="/logical_signal_groups/q0/drive",
+                signal="q0/drive",
                 index=0,
                 start=_LENGTH_MEASURE_RESET,
                 end=_LENGTH_MEASURE_RESET + _LENGTH_GE,
@@ -127,7 +127,7 @@ class TestIQBlobsSingleQubit:
             )
         elif states == "gef":
             verifier.assert_pulse(
-                signal="/logical_signal_groups/q0/drive_ef",
+                signal="q0/drive_ef",
                 index=0,
                 start=2 * _LENGTH_MEASURE_RESET + 2 * _LENGTH_GE,
                 end=2 * _LENGTH_MEASURE_RESET + 2 * _LENGTH_GE + _LENGTH_EF,
@@ -153,13 +153,13 @@ class TestIQBlobsSingleQubit:
         )
 
         verifier.assert_pulse(
-            signal="/logical_signal_groups/q0/measure",
+            signal="q0/measure",
             index=0,
             start=0e-9,
             end=_LENGTH_MEASURE,
         )
         verifier.assert_pulse(
-            signal="/logical_signal_groups/q0/acquire",
+            signal="q0/acquire",
             index=0,
             start=0e-9,
             end=_LENGTH_MEASURE,
@@ -204,22 +204,22 @@ class TestIQBlobsTwoQubit:
             expected_drive_count = count * (states.count("f"))
 
             verifier.assert_number_of_pulses(
-                "/logical_signal_groups/q0/drive_ef",
+                "q0/drive_ef",
                 expected_drive_count,
             )
             verifier.assert_number_of_pulses(
-                "/logical_signal_groups/q1/drive_ef",
+                "q1/drive_ef",
                 expected_drive_count,
             )
         if "e" in states:
             expected_drive_count = count * (states.count("e") + states.count("f"))
 
             verifier.assert_number_of_pulses(
-                "/logical_signal_groups/q0/drive",
+                "q0/drive",
                 expected_drive_count,
             )
             verifier.assert_number_of_pulses(
-                "/logical_signal_groups/q1/drive",
+                "q1/drive",
                 expected_drive_count,
             )
 
@@ -229,24 +229,24 @@ class TestIQBlobsTwoQubit:
         )
 
         verifier.assert_number_of_pulses(
-            "/logical_signal_groups/q0/measure",
+            "q0/measure",
             expected_measure_count,
         )
 
         # acquire and measure pulses have the same count
         verifier.assert_number_of_pulses(
-            "/logical_signal_groups/q0/acquire",
+            "q0/acquire",
             expected_measure_count,
         )
 
         verifier.assert_number_of_pulses(
-            "/logical_signal_groups/q1/measure",
+            "q1/measure",
             expected_measure_count,
         )
 
         # acquire and measure pulses have the same count
         verifier.assert_number_of_pulses(
-            "/logical_signal_groups/q1/acquire",
+            "q1/acquire",
             expected_measure_count,
         )
 
@@ -267,14 +267,14 @@ class TestIQBlobsTwoQubit:
         )
         if states == "ge":
             verifier.assert_pulse(
-                signal="/logical_signal_groups/q0/drive",
+                signal="q0/drive",
                 index=0,
                 start=_LENGTH_MEASURE_RESET,
                 end=_LENGTH_MEASURE_RESET + _LENGTH_GE,
                 parameterized_with=[],
             )
             verifier.assert_pulse(
-                signal="/logical_signal_groups/q1/drive",
+                signal="q1/drive",
                 index=0,
                 start=_LENGTH_MEASURE_RESET,
                 end=_LENGTH_MEASURE_RESET + _LENGTH_GE,
@@ -282,14 +282,14 @@ class TestIQBlobsTwoQubit:
             )
         elif states == "gef":
             verifier.assert_pulse(
-                signal="/logical_signal_groups/q0/drive_ef",
+                signal="q0/drive_ef",
                 index=0,
                 start=2 * _LENGTH_MEASURE_RESET + 2 * _LENGTH_GE,
                 end=2 * _LENGTH_MEASURE_RESET + 2 * _LENGTH_GE + _LENGTH_EF,
                 parameterized_with=[],
             )
             verifier.assert_pulse(
-                signal="/logical_signal_groups/q1/drive_ef",
+                signal="q1/drive_ef",
                 index=0,
                 start=2 * _LENGTH_MEASURE_RESET + 2 * _LENGTH_GE,
                 end=2 * _LENGTH_MEASURE_RESET + 2 * _LENGTH_GE + _LENGTH_EF,
@@ -313,25 +313,25 @@ class TestIQBlobsTwoQubit:
         )
 
         verifier.assert_pulse(
-            signal="/logical_signal_groups/q0/measure",
+            signal="q0/measure",
             index=0,
             start=0e-9,
             end=readout_lengths[0],
         )
         verifier.assert_pulse(
-            signal="/logical_signal_groups/q0/acquire",
+            signal="q0/acquire",
             index=0,
             start=0e-9,
             end=_LENGTH_MEASURE,
         )
         verifier.assert_pulse(
-            signal="/logical_signal_groups/q1/measure",
+            signal="q1/measure",
             index=0,
             start=0e-9,
             end=readout_lengths[1],
         )
         verifier.assert_pulse(
-            signal="/logical_signal_groups/q1/acquire",
+            signal="q1/acquire",
             index=0,
             start=0e-9,
             end=_LENGTH_MEASURE,

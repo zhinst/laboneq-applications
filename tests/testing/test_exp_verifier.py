@@ -67,20 +67,12 @@ class TestPulseExtractor:
         assert p_extract.max_events == 5432
 
     def test_get_number_of_pulses(self, rabi_pulse_extractor):
-        assert (
-            rabi_pulse_extractor.get_pulse_count("/logical_signal_groups/q0/drive") == 8
-        )
-        assert (
-            rabi_pulse_extractor.get_pulse_count("/logical_signal_groups/q0/acquire")
-            == 10
-        )
-        assert (
-            rabi_pulse_extractor.get_pulse_count("/logical_signal_groups/q0/measure")
-            == 10
-        )
+        assert rabi_pulse_extractor.get_pulse_count("q0/drive") == 8
+        assert rabi_pulse_extractor.get_pulse_count("q0/acquire") == 10
+        assert rabi_pulse_extractor.get_pulse_count("q0/measure") == 10
 
     def test_get_pulse(self, rabi_pulse_extractor):
-        pulse = rabi_pulse_extractor.get_pulse("/logical_signal_groups/q0/drive", 1)
+        pulse = rabi_pulse_extractor.get_pulse("q0/drive", 1)
         truth = _Pulse(
             start=3.061e-6,
             end=3.112e-6,
@@ -91,7 +83,7 @@ class TestPulseExtractor:
         assert pulse.parameterized_with == truth.parameterized_with
 
         # amplitude_rabi has cal state measurement at the end of every averaging
-        pulse = rabi_pulse_extractor.get_pulse("/logical_signal_groups/q0/drive", 3)
+        pulse = rabi_pulse_extractor.get_pulse("q0/drive", 3)
         # This is not ideal to hardcode values for pulse timing here
         # but too much effort to calculate them to test only the pulse extractor
         truth = _Pulse(start=12.173e-6, end=12.224e-6, parameterized_with=[])
@@ -100,7 +92,7 @@ class TestPulseExtractor:
         assert pulse.parameterized_with == truth.parameterized_with
 
         # amplitude_rabi has cal state measurement at the end of every averaging
-        pulse = rabi_pulse_extractor.get_pulse("/logical_signal_groups/q0/measure", 0)
+        pulse = rabi_pulse_extractor.get_pulse("q0/measure", 0)
         truth = _Pulse(start=56e-9, end=56e-9 + 2e-6, parameterized_with=[])
         np.testing.assert_allclose(pulse.start, truth.start, atol=1e-12)
         np.testing.assert_allclose(pulse.end, truth.end, atol=1e-12)
@@ -109,7 +101,7 @@ class TestPulseExtractor:
     def test_raise_error_for_invalid_pulse_number(self, rabi_pulse_extractor):
         with pytest.raises(ValueError, match="Pulse number out of range"):
             rabi_pulse_extractor.get_pulse(
-                "/logical_signal_groups/q0/drive",
+                "q0/drive",
                 1000,
             )
 
@@ -120,18 +112,18 @@ class TestExperimentVerifier:
         assert isinstance(verifier.pulse_extractor, _PulseExtractorPSV)
 
     def test_assert_number_of_pulses(self, rabi_exp_verifier):
-        rabi_exp_verifier.assert_number_of_pulses("/logical_signal_groups/q0/drive", 8)
+        rabi_exp_verifier.assert_number_of_pulses("q0/drive", 8)
         rabi_exp_verifier.assert_number_of_pulses(
-            "/logical_signal_groups/q0/acquire",
+            "q0/acquire",
             10,
         )
         rabi_exp_verifier.assert_number_of_pulses(
-            "/logical_signal_groups/q0/measure",
+            "q0/measure",
             10,
         )
 
     def test_assert_wrong_number_of_pulse(self, rabi_exp_verifier):
-        signal = "/logical_signal_groups/q0/drive"
+        signal = "q0/drive"
         pulse_number = 10000
         actual_pulse_number = rabi_exp_verifier.pulse_extractor.get_pulse_count(signal)
         expected_err = (
@@ -147,20 +139,20 @@ class TestExperimentVerifier:
 
     def test_assert_pulse(self, rabi_exp_verifier):
         rabi_exp_verifier.assert_pulse(
-            "/logical_signal_groups/q0/drive",
+            "q0/drive",
             3,
             12.173e-6,
             12.224e-6,
             [],
         )
         rabi_exp_verifier.assert_pulse(
-            "/logical_signal_groups/q0/drive",
+            "q0/drive",
             3,
             12.173e-6,
         )
 
     def test_assert_wrong_pulse(self, rabi_exp_verifier):
-        signal = "/logical_signal_groups/q0/drive"
+        signal = "q0/drive"
         pulse_number = 3
         start = 1234
         end = 5678
@@ -177,7 +169,7 @@ class TestExperimentVerifier:
             )
 
     def test_assert_pulse_pair(self, rabi_exp_verifier):
-        signal = "/logical_signal_groups/q0/drive"
+        signal = "q0/drive"
         rabi_exp_verifier.assert_pulse_pair(
             signal,
             [0, 1],
@@ -185,8 +177,8 @@ class TestExperimentVerifier:
             end=3.056e-6,
         )
 
-        signal_drive = "/logical_signal_groups/q0/drive"
-        signal_measure = "/logical_signal_groups/q0/measure"
+        signal_drive = "q0/drive"
+        signal_measure = "q0/measure"
         rabi_exp_verifier.assert_pulse_pair(
             (signal_drive, signal_measure),
             (0, 0),

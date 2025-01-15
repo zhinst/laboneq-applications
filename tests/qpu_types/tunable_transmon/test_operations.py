@@ -69,11 +69,11 @@ class TestTunableTransmonOperations:
     def reserve_ops(self, q):
         """Return the expected reserve operations for the given qubit."""
         return [
-            tsl.reserve_op(signal=f"/logical_signal_groups/{q.uid}/drive"),
-            tsl.reserve_op(signal=f"/logical_signal_groups/{q.uid}/drive_ef"),
-            tsl.reserve_op(signal=f"/logical_signal_groups/{q.uid}/measure"),
-            tsl.reserve_op(signal=f"/logical_signal_groups/{q.uid}/acquire"),
-            tsl.reserve_op(signal=f"/logical_signal_groups/{q.uid}/flux"),
+            tsl.reserve_op(signal=f"{q.uid}/drive"),
+            tsl.reserve_op(signal=f"{q.uid}/drive_ef"),
+            tsl.reserve_op(signal=f"{q.uid}/measure"),
+            tsl.reserve_op(signal=f"{q.uid}/acquire"),
+            tsl.reserve_op(signal=f"{q.uid}/flux"),
         ]
 
     def generate_active_reset_truth_sections(self, qubits, states, repeats):
@@ -87,7 +87,7 @@ class TestTunableTransmonOperations:
                     ).children(
                         self.reserve_ops(q),
                         tsl.play_pulse_op(
-                            signal=f"/logical_signal_groups/{q.uid}/measure",
+                            signal=f"{q.uid}/measure",
                             amplitude=1.0,
                             length=2e-6,
                             phase=None,
@@ -99,7 +99,7 @@ class TestTunableTransmonOperations:
                             ),
                         ),
                         tsl.acquire_op(
-                            signal=f"/logical_signal_groups/{q.uid}/acquire",
+                            signal=f"{q.uid}/acquire",
                             kernel=[
                                 tsl.pulse(
                                     function="const",
@@ -118,7 +118,7 @@ class TestTunableTransmonOperations:
                     ).children(
                         self.reserve_ops(q),
                         tsl.delay_op(
-                            signal=f"/logical_signal_groups/{q.uid}/drive",
+                            signal=f"{q.uid}/drive",
                             time=300e-9,
                             precompensation_clear=None,
                         ),
@@ -134,7 +134,7 @@ class TestTunableTransmonOperations:
                             tsl.case(state=0).children([]),
                             tsl.case(state=1).children(
                                 tsl.play_pulse_op(
-                                    signal=f"/logical_signal_groups/{q.uid}/drive",
+                                    signal=f"{q.uid}/drive",
                                     length=5.1e-8,
                                     phase=0.0,
                                     pulse_parameters=None,
@@ -161,7 +161,7 @@ class TestTunableTransmonOperations:
                             tsl.case(state=0).children([]),
                             tsl.case(state=1).children(
                                 tsl.play_pulse_op(
-                                    signal=f"/logical_signal_groups/{q.uid}/drive",
+                                    signal=f"{q.uid}/drive",
                                     length=5.1e-8,
                                     phase=0.0,
                                     pulse_parameters=None,
@@ -178,7 +178,7 @@ class TestTunableTransmonOperations:
                             ),
                             tsl.case(state=2).children(
                                 tsl.play_pulse_op(
-                                    signal=f"/logical_signal_groups/{q.uid}/drive",
+                                    signal=f"{q.uid}/drive",
                                     length=5.2e-8,
                                     phase=0.0,
                                     pulse_parameters=None,
@@ -197,7 +197,7 @@ class TestTunableTransmonOperations:
                                     ),
                                 ),
                                 tsl.play_pulse_op(
-                                    signal=f"/logical_signal_groups/{q.uid}/drive",
+                                    signal=f"{q.uid}/drive",
                                     length=5.1e-8,
                                     phase=0.0,
                                     pulse_parameters=None,
@@ -264,7 +264,7 @@ class TestTunableTransmonOperations:
         ).children(
             self.reserve_ops(q0),
             tsl.delay_op(
-                signal="/logical_signal_groups/q0/drive",
+                signal="q0/drive",
                 time=1e-06,
                 precompensation_clear=None,
             ),
@@ -629,7 +629,7 @@ class TestTunableTransmonOperations:
         ).children(
             self.reserve_ops(q0),
             tsl.play_pulse_op(
-                signal="/logical_signal_groups/q0/measure",
+                signal="q0/measure",
                 amplitude=1.0,
                 length=2e-6,
                 increment_oscillator_phase=None,
@@ -644,7 +644,7 @@ class TestTunableTransmonOperations:
                 ),
             ),
             tsl.acquire_op(
-                signal="/logical_signal_groups/q0/acquire",
+                signal="q0/acquire",
                 handle="result",
                 kernel=[
                     tsl.pulse(
@@ -672,7 +672,7 @@ class TestTunableTransmonOperations:
         ).children(
             self.reserve_ops(q0),
             tsl.play_pulse_op(
-                signal="/logical_signal_groups/q0/measure",
+                signal="q0/measure",
                 amplitude=1.0,
                 length=2e-6,
                 increment_oscillator_phase=None,
@@ -705,7 +705,7 @@ class TestTunableTransmonOperations:
             self.reserve_ops(q0),
             tsl.play_pulse_op(),
             tsl.acquire_op(
-                signal="/logical_signal_groups/q0/acquire",
+                signal="q0/acquire",
                 handle="result",
                 kernel=[
                     tsl.pulse(
@@ -747,7 +747,7 @@ class TestTunableTransmonOperations:
         ).children(
             self.reserve_ops(q0),
             tsl.acquire_op(
-                signal="/logical_signal_groups/q0/acquire",
+                signal="q0/acquire",
                 handle="result",
                 kernel=[
                     tsl.pulse(
@@ -779,7 +779,7 @@ class TestTunableTransmonOperations:
         ).children(
             self.reserve_ops(q0),
             tsl.acquire_op(
-                signal="/logical_signal_groups/q0/acquire",
+                signal="q0/acquire",
                 handle="result",
                 kernel=[
                     tsl.pulse(
@@ -836,7 +836,7 @@ class TestTunableTransmonOperations:
             tsl.section(uid="__x180_q0_0").children(
                 self.reserve_ops(q0),
                 tsl.play_pulse_op(
-                    signal="/logical_signal_groups/q0/drive",
+                    signal="q0/drive",
                     amplitude=0.8,
                 ),
             ),
@@ -856,14 +856,14 @@ class TestTunableTransmonOperations:
             tsl.section(uid="__x180_q0_0").children(
                 self.reserve_ops(q0),
                 tsl.play_pulse_op(
-                    signal="/logical_signal_groups/q0/drive",
+                    signal="q0/drive",
                     amplitude=0.8,
                 ),
             ),
             tsl.section(uid="__x180_q0_1").children(
                 self.reserve_ops(q0),
                 tsl.play_pulse_op(
-                    signal="/logical_signal_groups/q0/drive_ef",
+                    signal="q0/drive_ef",
                     amplitude=0.7,
                 ),
             ),
@@ -883,7 +883,7 @@ class TestTunableTransmonOperations:
             tsl.section(uid="__passive_reset_q0_0").children(
                 self.reserve_ops(q0),
                 tsl.delay_op(
-                    signal="/logical_signal_groups/q0/drive",
+                    signal="q0/drive",
                     time=1e-06,
                     precompensation_clear=None,
                 ),
@@ -925,7 +925,7 @@ class TestTunableTransmonOperations:
         ).children(
             self.reserve_ops(q0),
             tsl.delay_op(
-                signal="/logical_signal_groups/q0/drive",
+                signal="q0/drive",
                 time=1e-06,
                 precompensation_clear=None,
             ),
@@ -953,7 +953,7 @@ class TestTunableTransmonOperations:
         ).children(
             self.reserve_ops(q0),
             tsl.delay_op(
-                signal="/logical_signal_groups/q0/drive",
+                signal="q0/drive",
                 time=delay,
                 precompensation_clear=None,
             ),
@@ -991,7 +991,7 @@ class TestTunableTransmonOperations:
         ).children(
             self.reserve_ops(q0),
             tsl.play_pulse_op(
-                signal="/logical_signal_groups/q0/drive",
+                signal="q0/drive",
                 amplitude=expected_amplitude,
                 length=51e-9,
                 increment_oscillator_phase=None,
@@ -1017,10 +1017,8 @@ class TestTunableTransmonOperations:
         [q0] = single_tunable_transmon_platform.qpu.qubits
         my_qubit: TunableTransmonQubit = copy.deepcopy(q0)
         my_qubit.update(
-            {
-                "ge_drive_amplitude_pi": 4,
-                "ge_drive_amplitude_pi2": pi2,
-            },
+            ge_drive_amplitude_pi=4,
+            ge_drive_amplitude_pi2=pi2,
         )
         for angle in np.linspace(0, 1, 9):
             section = qops.rx(my_qubit, np.pi * angle)
@@ -1066,7 +1064,7 @@ class TestTunableTransmonOperations:
             on_system_grid=on_system_grid,
         ).children(
             self.reserve_ops(q0),
-            tsl.play_pulse_op(signal=f"/logical_signal_groups/q0/{expected_signal}"),
+            tsl.play_pulse_op(signal=f"q0/{expected_signal}"),
         )
 
         self.check_op_builds_and_compiles(section, single_tunable_transmon_platform)
@@ -1093,7 +1091,7 @@ class TestTunableTransmonOperations:
         assert section == tsl.section(uid="__rx_q0_0").children(
             self.reserve_ops(q0),
             tsl.play_pulse_op(
-                signal="/logical_signal_groups/q0/drive",
+                signal="q0/drive",
                 amplitude=amplitude,
             ),
         )
@@ -1127,7 +1125,7 @@ class TestTunableTransmonOperations:
         assert section == tsl.section(uid="__rx_q0_0").children(
             self.reserve_ops(q0),
             tsl.play_pulse_op(
-                signal="/logical_signal_groups/q0/drive",
+                signal="q0/drive",
                 phase=phase,
             ),
         )
@@ -1161,7 +1159,7 @@ class TestTunableTransmonOperations:
         assert section == tsl.section(uid="__rx_q0_0").children(
             self.reserve_ops(q0),
             tsl.play_pulse_op(
-                signal="/logical_signal_groups/q0/drive",
+                signal="q0/drive",
                 length=length,
             ),
         )
@@ -1195,7 +1193,7 @@ class TestTunableTransmonOperations:
         assert section == tsl.section(uid="__rx_q0_0").children(
             self.reserve_ops(q0),
             tsl.play_pulse_op(
-                signal="/logical_signal_groups/q0/drive",
+                signal="q0/drive",
                 pulse=tsl.pulse(pulse_parameters={"beta": beta, "sigma": 0.21}),
             ),
         )
@@ -1236,7 +1234,7 @@ class TestTunableTransmonOperations:
                     tsl.section(uid="rx_q0_0").children(
                         self.reserve_ops(q0),
                         tsl.play_pulse_op(
-                            signal="/logical_signal_groups/q0/drive",
+                            signal="q0/drive",
                             pulse=tsl.pulse(
                                 pulse_parameters={"beta": sweep_0, "sigma": 0.21}
                             ),
@@ -1247,7 +1245,7 @@ class TestTunableTransmonOperations:
                     tsl.section(uid="rx_q1_0").children(
                         self.reserve_ops(q1),
                         tsl.play_pulse_op(
-                            signal="/logical_signal_groups/q1/drive",
+                            signal="q1/drive",
                             pulse=tsl.pulse(
                                 pulse_parameters={"beta": sweep_1, "sigma": 0.21}
                             ),
@@ -1270,7 +1268,7 @@ class TestTunableTransmonOperations:
         ).children(
             self.reserve_ops(q0),
             tsl.play_pulse_op(
-                signal="/logical_signal_groups/q0/drive",
+                signal="q0/drive",
                 amplitude=0.4,
                 length=51e-9,
                 increment_oscillator_phase=None,
@@ -1305,7 +1303,7 @@ class TestTunableTransmonOperations:
         ).children(
             self.reserve_ops(q0),
             tsl.play_pulse_op(
-                signal="/logical_signal_groups/q0/drive_ef",
+                signal="q0/drive_ef",
                 amplitude=0.1,
                 length=30e-9,
                 increment_oscillator_phase=None,
@@ -1333,7 +1331,7 @@ class TestTunableTransmonOperations:
         ).children(
             self.reserve_ops(q0),
             tsl.play_pulse_op(
-                signal="/logical_signal_groups/q0/drive",
+                signal="q0/drive",
                 amplitude=0.8,
                 length=51e-9,
                 increment_oscillator_phase=None,
@@ -1368,7 +1366,7 @@ class TestTunableTransmonOperations:
         ).children(
             self.reserve_ops(q0),
             tsl.play_pulse_op(
-                signal="/logical_signal_groups/q0/drive_ef",
+                signal="q0/drive_ef",
                 amplitude=0.1,
                 length=30e-9,
                 increment_oscillator_phase=None,
@@ -1410,7 +1408,7 @@ class TestTunableTransmonOperations:
         ).children(
             self.reserve_ops(q0),
             tsl.play_pulse_op(
-                signal="/logical_signal_groups/q0/drive",
+                signal="q0/drive",
                 amplitude=expected_amplitude,
                 length=51e-9,
                 increment_oscillator_phase=None,
@@ -1452,7 +1450,7 @@ class TestTunableTransmonOperations:
         ).children(
             self.reserve_ops(q0),
             tsl.play_pulse_op(
-                signal=f"/logical_signal_groups/q0/{expected_signal}",
+                signal=f"q0/{expected_signal}",
                 phase=np.pi / 2,
             ),
         )
@@ -1481,7 +1479,7 @@ class TestTunableTransmonOperations:
         assert section == tsl.section(uid="__ry_q0_0").children(
             self.reserve_ops(q0),
             tsl.play_pulse_op(
-                signal="/logical_signal_groups/q0/drive",
+                signal="q0/drive",
                 amplitude=amplitude,
                 phase=np.pi / 2,
             ),
@@ -1516,7 +1514,7 @@ class TestTunableTransmonOperations:
         assert section == tsl.section(uid="__ry_q0_0").children(
             self.reserve_ops(q0),
             tsl.play_pulse_op(
-                signal="/logical_signal_groups/q0/drive",
+                signal="q0/drive",
                 phase=phase,
             ),
         )
@@ -1550,7 +1548,7 @@ class TestTunableTransmonOperations:
         assert section == tsl.section(uid="__ry_q0_0").children(
             self.reserve_ops(q0),
             tsl.play_pulse_op(
-                signal="/logical_signal_groups/q0/drive",
+                signal="q0/drive",
                 length=length,
                 phase=np.pi / 2,
             ),
@@ -1585,7 +1583,7 @@ class TestTunableTransmonOperations:
         assert section == tsl.section(uid="__ry_q0_0").children(
             self.reserve_ops(q0),
             tsl.play_pulse_op(
-                signal="/logical_signal_groups/q0/drive",
+                signal="q0/drive",
                 pulse=tsl.pulse(pulse_parameters={"beta": beta, "sigma": 0.21}),
                 phase=np.pi / 2,
             ),
@@ -1608,7 +1606,7 @@ class TestTunableTransmonOperations:
             tsl.section(uid="__ry_q0_0").children(
                 self.reserve_ops(q0),
                 tsl.play_pulse_op(
-                    signal="/logical_signal_groups/q0/drive",
+                    signal="q0/drive",
                     amplitude=0.4,
                     pulse=tsl.pulse(),
                 ),
@@ -1616,7 +1614,7 @@ class TestTunableTransmonOperations:
             tsl.section(uid="__ry_q1_0").children(
                 self.reserve_ops(q1),
                 tsl.play_pulse_op(
-                    signal="/logical_signal_groups/q1/drive",
+                    signal="q1/drive",
                     amplitude=0.2025,
                     pulse=tsl.pulse(),
                 ),
@@ -1639,7 +1637,7 @@ class TestTunableTransmonOperations:
         ).children(
             self.reserve_ops(q0),
             tsl.play_pulse_op(
-                signal="/logical_signal_groups/q0/drive",
+                signal="q0/drive",
                 amplitude=0.4,
                 length=51e-9,
                 increment_oscillator_phase=None,
@@ -1674,7 +1672,7 @@ class TestTunableTransmonOperations:
         ).children(
             self.reserve_ops(q0),
             tsl.play_pulse_op(
-                signal="/logical_signal_groups/q0/drive_ef",
+                signal="q0/drive_ef",
                 amplitude=0.1,
                 length=30e-9,
                 increment_oscillator_phase=None,
@@ -1702,7 +1700,7 @@ class TestTunableTransmonOperations:
         ).children(
             self.reserve_ops(q0),
             tsl.play_pulse_op(
-                signal="/logical_signal_groups/q0/drive",
+                signal="q0/drive",
                 amplitude=0.8,
                 length=51e-9,
                 increment_oscillator_phase=None,
@@ -1737,7 +1735,7 @@ class TestTunableTransmonOperations:
         ).children(
             self.reserve_ops(q0),
             tsl.play_pulse_op(
-                signal="/logical_signal_groups/q0/drive_ef",
+                signal="q0/drive_ef",
                 amplitude=0.1,
                 length=30e-9,
                 increment_oscillator_phase=None,
@@ -1772,7 +1770,7 @@ class TestTunableTransmonOperations:
         ).children(
             self.reserve_ops(q0),
             tsl.play_pulse_op(
-                signal="/logical_signal_groups/q0/drive",
+                signal="q0/drive",
                 amplitude=None,
                 length=None,
                 increment_oscillator_phase=angle,
@@ -1804,7 +1802,7 @@ class TestTunableTransmonOperations:
         assert section == tsl.section(uid="__rz_q0_0").children(
             self.reserve_ops(q0),
             tsl.play_pulse_op(
-                signal=f"/logical_signal_groups/q0/{expected_signal}",
+                signal=f"q0/{expected_signal}",
                 increment_oscillator_phase=np.pi / 2,
             ),
         )
@@ -1821,14 +1819,14 @@ class TestTunableTransmonOperations:
             tsl.section(uid="__rz_q0_0").children(
                 self.reserve_ops(q0),
                 tsl.play_pulse_op(
-                    signal="/logical_signal_groups/q0/drive",
+                    signal="q0/drive",
                     increment_oscillator_phase=np.pi / 2,
                 ),
             ),
             tsl.section(uid="__rz_q1_0").children(
                 self.reserve_ops(q1),
                 tsl.play_pulse_op(
-                    signal="/logical_signal_groups/q1/drive",
+                    signal="q1/drive",
                     increment_oscillator_phase=np.pi / 4,
                 ),
             ),
@@ -1849,7 +1847,7 @@ class TestTunableTransmonOperations:
         ).children(
             self.reserve_ops(q0),
             tsl.play_pulse_op(
-                signal="/logical_signal_groups/q0/drive",
+                signal="q0/drive",
                 amplitude=None,
                 length=None,
                 increment_oscillator_phase=np.pi / 2,
@@ -1871,7 +1869,7 @@ class TestTunableTransmonOperations:
         ).children(
             self.reserve_ops(q0),
             tsl.play_pulse_op(
-                signal="/logical_signal_groups/q0/drive",
+                signal="q0/drive",
                 amplitude=None,
                 length=None,
                 increment_oscillator_phase=np.pi,
@@ -1894,12 +1892,12 @@ class TestTunableTransmonOperations:
             on_system_grid = True
             amplitude = 0.3
             pulse_length = 5.2e-8
-            drive_signal = "/logical_signal_groups/q0/drive_ef"
+            drive_signal = "q0/drive_ef"
         elif transition == "ge":
             on_system_grid = False
             amplitude = 0.4
             pulse_length = 5.1e-8
-            drive_signal = "/logical_signal_groups/q0/drive"
+            drive_signal = "q0/drive"
 
         truth_section = tsl.section(
             uid="__ramsey_q0_0",
@@ -1928,7 +1926,7 @@ class TestTunableTransmonOperations:
                 ).children(
                     self.reserve_ops(q0),
                     tsl.delay_op(
-                        signal="/logical_signal_groups/q0/drive",
+                        signal="q0/drive",
                         time=1e-06,
                         precompensation_clear=None,
                     ),
@@ -1968,13 +1966,13 @@ class TestTunableTransmonOperations:
             amplitude = 0.3
             amplitude_ef = 0.7
             pulse_length = 5.2e-8
-            drive_signal = "/logical_signal_groups/q0/drive_ef"
+            drive_signal = "q0/drive_ef"
         elif transition == "ge":
             on_system_grid = False
             amplitude = 0.4
             amplitude_ef = 0.8
             pulse_length = 5.1e-8
-            drive_signal = "/logical_signal_groups/q0/drive"
+            drive_signal = "q0/drive"
 
         truth_section = tsl.section(
             uid="__ramsey_q0_0",
@@ -2003,7 +2001,7 @@ class TestTunableTransmonOperations:
                 ).children(
                     self.reserve_ops(q0),
                     tsl.delay_op(
-                        signal="/logical_signal_groups/q0/drive",
+                        signal="q0/drive",
                         time=5.0e-7,
                         precompensation_clear=None,
                     ),
@@ -2030,7 +2028,7 @@ class TestTunableTransmonOperations:
                 ).children(
                     self.reserve_ops(q0),
                     tsl.delay_op(
-                        signal="/logical_signal_groups/q0/drive",
+                        signal="q0/drive",
                         time=5.0e-7,
                         precompensation_clear=None,
                     ),
@@ -2080,7 +2078,7 @@ class TestTunableTransmonOperations:
         assert section == tsl.section(uid="__qubit_spectroscopy_drive_q0_0").children(
             self.reserve_ops(q0),
             tsl.play_pulse_op(
-                signal="/logical_signal_groups/q0/drive",
+                signal="q0/drive",
                 amplitude=amplitude,
             ),
         )
@@ -2114,7 +2112,7 @@ class TestTunableTransmonOperations:
         assert section == tsl.section(uid="__qubit_spectroscopy_drive_q0_0").children(
             self.reserve_ops(q0),
             tsl.play_pulse_op(
-                signal="/logical_signal_groups/q0/drive",
+                signal="q0/drive",
                 phase=phase,
             ),
         )
@@ -2140,7 +2138,7 @@ class TestTunableTransmonOperations:
                     tsl.section(uid="__measure_q0_0", on_system_grid=False).children(
                         self.reserve_ops(q0),
                         tsl.play_pulse_op(
-                            signal="/logical_signal_groups/q0/measure",
+                            signal="q0/measure",
                             amplitude=1.0,
                             length=2e-6,
                             phase=None,
@@ -2152,7 +2150,7 @@ class TestTunableTransmonOperations:
                             ),
                         ),
                         tsl.acquire_op(
-                            signal="/logical_signal_groups/q0/acquire",
+                            signal="q0/acquire",
                             handle="q0/cal_trace/g",
                             kernel=[
                                 tsl.pulse(
@@ -2172,7 +2170,7 @@ class TestTunableTransmonOperations:
                     ).children(
                         self.reserve_ops(q0),
                         tsl.delay_op(
-                            signal="/logical_signal_groups/q0/drive",
+                            signal="q0/drive",
                             time=1e-6,
                             precompensation_clear=None,
                         ),
@@ -2184,7 +2182,7 @@ class TestTunableTransmonOperations:
                     tsl.section(uid="__x180_q0_0", on_system_grid=False).children(
                         self.reserve_ops(q0),
                         tsl.play_pulse_op(
-                            signal="/logical_signal_groups/q0/drive",
+                            signal="q0/drive",
                             amplitude=0.8,
                             length=5.1e-8,
                             phase=0.0,
@@ -2202,7 +2200,7 @@ class TestTunableTransmonOperations:
                     tsl.section(uid="__measure_q0_1", on_system_grid=False).children(
                         self.reserve_ops(q0),
                         tsl.play_pulse_op(
-                            signal="/logical_signal_groups/q0/measure",
+                            signal="q0/measure",
                             amplitude=1.0,
                             length=2e-6,
                             phase=None,
@@ -2215,7 +2213,7 @@ class TestTunableTransmonOperations:
                             ),
                         ),
                         tsl.acquire_op(
-                            signal="/logical_signal_groups/q0/acquire",
+                            signal="q0/acquire",
                             handle="q0/cal_trace/e",
                             kernel=[
                                 tsl.pulse(
@@ -2235,7 +2233,7 @@ class TestTunableTransmonOperations:
                     ).children(
                         self.reserve_ops(q0),
                         tsl.delay_op(
-                            signal="/logical_signal_groups/q0/drive",
+                            signal="q0/drive",
                             time=1e-6,
                             precompensation_clear=None,
                         ),
@@ -2261,7 +2259,7 @@ class TestTunableTransmonOperations:
                     tsl.section(uid="__x180_q0_0", on_system_grid=False).children(
                         self.reserve_ops(q0),
                         tsl.play_pulse_op(
-                            signal="/logical_signal_groups/q0/drive",
+                            signal="q0/drive",
                             amplitude=0.8,
                             length=5.1e-8,
                             phase=0.0,
@@ -2279,7 +2277,7 @@ class TestTunableTransmonOperations:
                     tsl.section(uid="__measure_q0_0", on_system_grid=False).children(
                         self.reserve_ops(q0),
                         tsl.play_pulse_op(
-                            signal="/logical_signal_groups/q0/measure",
+                            signal="q0/measure",
                             amplitude=1.0,
                             length=2e-6,
                             phase=None,
@@ -2292,7 +2290,7 @@ class TestTunableTransmonOperations:
                             ),
                         ),
                         tsl.acquire_op(
-                            signal="/logical_signal_groups/q0/acquire",
+                            signal="q0/acquire",
                             handle="q0/cal_trace/e",
                             kernel=[
                                 tsl.pulse(
@@ -2312,7 +2310,7 @@ class TestTunableTransmonOperations:
                     ).children(
                         self.reserve_ops(q0),
                         tsl.delay_op(
-                            signal="/logical_signal_groups/q0/drive",
+                            signal="q0/drive",
                             time=1e-6,
                             precompensation_clear=None,
                         ),
@@ -2324,7 +2322,7 @@ class TestTunableTransmonOperations:
                     tsl.section(uid="__x180_q0_1", on_system_grid=False).children(
                         self.reserve_ops(q0),
                         tsl.play_pulse_op(
-                            signal="/logical_signal_groups/q0/drive",
+                            signal="q0/drive",
                             amplitude=0.8,
                             length=5.1e-8,
                             phase=0.0,
@@ -2340,7 +2338,7 @@ class TestTunableTransmonOperations:
                     tsl.section(uid="__x180_q0_2", on_system_grid=True).children(
                         self.reserve_ops(q0),
                         tsl.play_pulse_op(
-                            signal="/logical_signal_groups/q0/drive_ef",
+                            signal="q0/drive_ef",
                             amplitude=0.7,
                             length=5.2e-8,
                             phase=0.0,
@@ -2358,7 +2356,7 @@ class TestTunableTransmonOperations:
                     tsl.section(uid="__measure_q0_1", on_system_grid=False).children(
                         self.reserve_ops(q0),
                         tsl.play_pulse_op(
-                            signal="/logical_signal_groups/q0/measure",
+                            signal="q0/measure",
                             amplitude=1.0,
                             length=2e-6,
                             phase=None,
@@ -2371,7 +2369,7 @@ class TestTunableTransmonOperations:
                             ),
                         ),
                         tsl.acquire_op(
-                            signal="/logical_signal_groups/q0/acquire",
+                            signal="q0/acquire",
                             handle="q0/cal_trace/f",
                             kernel=[
                                 tsl.pulse(
@@ -2391,7 +2389,7 @@ class TestTunableTransmonOperations:
                     ).children(
                         self.reserve_ops(q0),
                         tsl.delay_op(
-                            signal="/logical_signal_groups/q0/drive",
+                            signal="q0/drive",
                             time=1e-6,
                             precompensation_clear=None,
                         ),
@@ -2413,7 +2411,7 @@ class TestTunableTransmonOperations:
         ).children(
             self.reserve_ops(q0),
             tsl.play_pulse_op(
-                signal="/logical_signal_groups/q0/drive",
+                signal="q0/drive",
                 amplitude=0.7,
                 length=5.2e-8,
                 phase=0.0,

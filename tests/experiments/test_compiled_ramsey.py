@@ -90,14 +90,14 @@ class TestRamseySingleQubit:
         if transition == "ge":
             expected_drive_count = count * (2 * len(self._DELAYS) + int(use_cal_traces))
             verifier.assert_number_of_pulses(
-                "/logical_signal_groups/q0/drive",
+                "q0/drive",
                 expected_drive_count,
             )
 
         if transition == "ef":
             expected_drive_count = count * 2 * len(self._DELAYS)
             verifier.assert_number_of_pulses(
-                "/logical_signal_groups/q0/drive_ef",
+                "q0/drive_ef",
                 expected_drive_count,
             )
 
@@ -119,13 +119,13 @@ class TestRamseySingleQubit:
         # with cal_state on, there are 2 additional measure pulses
         expected_measure_count = count * (len(self._DELAYS) + 2 * int(use_cal_traces))
         verifier.assert_number_of_pulses(
-            "/logical_signal_groups/q0/measure",
+            "q0/measure",
             expected_measure_count,
         )
 
         # acquire and measure pulses have the same count
         verifier.assert_number_of_pulses(
-            "/logical_signal_groups/q0/acquire",
+            "q0/acquire",
             expected_measure_count,
         )
 
@@ -146,14 +146,14 @@ class TestRamseySingleQubit:
         )
         if transition == "ge":
             verifier.assert_pulse(
-                signal="/logical_signal_groups/q0/drive",
+                signal="q0/drive",
                 index=0,
                 start=0,
                 end=_LENGTH_GE,
                 parameterized_with=[],
             )
             verifier.assert_pulse(
-                signal="/logical_signal_groups/q0/drive",
+                signal="q0/drive",
                 index=1,
                 start=_LENGTH_GE + self._DELAYS[0],
                 end=2 * _LENGTH_GE + self._DELAYS[0],
@@ -162,14 +162,14 @@ class TestRamseySingleQubit:
         elif transition == "ef":
             start_ef = _LENGTH_GE
             verifier.assert_pulse(
-                signal="/logical_signal_groups/q0/drive_ef",
+                signal="q0/drive_ef",
                 index=0,
                 start=start_ef,
                 end=start_ef + _LENGTH_EF,
                 parameterized_with=[],
             )
             verifier.assert_pulse(
-                signal="/logical_signal_groups/q0/drive_ef",
+                signal="q0/drive_ef",
                 index=1,
                 start=start_ef + _LENGTH_EF + self._DELAYS[0],
                 end=start_ef + 2 * _LENGTH_EF + self._DELAYS[0],
@@ -199,13 +199,13 @@ class TestRamseySingleQubit:
         if transition == "ge":
             start_measure = 2 * _LENGTH_GE + self._DELAYS[0]
             verifier.assert_pulse(
-                signal="/logical_signal_groups/q0/measure",
+                signal="q0/measure",
                 index=0,
                 start=start_measure,
                 end=start_measure + 2e-6,
             )
             verifier.assert_pulse(
-                signal="/logical_signal_groups/q0/acquire",
+                signal="q0/acquire",
                 index=0,
                 start=start_measure,
                 end=start_measure + 2e-6,
@@ -213,13 +213,13 @@ class TestRamseySingleQubit:
         elif transition == "ef":
             start_measure = _LENGTH_GE + 2 * _LENGTH_EF + self._DELAYS[0]
             verifier.assert_pulse(
-                signal="/logical_signal_groups/q0/measure",
+                signal="q0/measure",
                 index=0,
                 start=start_measure,
                 end=start_measure + 2e-6,
             )
             verifier.assert_pulse(
-                signal="/logical_signal_groups/q0/acquire",
+                signal="q0/acquire",
                 index=0,
                 start=start_measure,
                 end=start_measure + 2e-6,
@@ -268,7 +268,7 @@ class TestRamseyTwoQubits:
                 2 * len(self._DELAYS[0]) + int(use_cal_traces)
             )
             verifier.assert_number_of_pulses(
-                "/logical_signal_groups/q0/drive",
+                "q0/drive",
                 expected_drive_count,
             )
 
@@ -276,32 +276,32 @@ class TestRamseyTwoQubits:
                 2 * len(self._DELAYS[1]) + int(use_cal_traces)
             )
             verifier.assert_number_of_pulses(
-                "/logical_signal_groups/q1/drive",
+                "q1/drive",
                 expected_drive_count,
             )
 
         if transition == "ef":
             expected_drive_count = count * (len(self._DELAYS[0]) + int(use_cal_traces))
             verifier.assert_number_of_pulses(
-                "/logical_signal_groups/q0/drive",
+                "q0/drive",
                 expected_drive_count,
             )
 
             expected_drive_count = count * (len(self._DELAYS[1]) + int(use_cal_traces))
             verifier.assert_number_of_pulses(
-                "/logical_signal_groups/q1/drive",
+                "q1/drive",
                 expected_drive_count,
             )
 
             expected_drive_count = count * (2 * len(self._DELAYS[0]))
             verifier.assert_number_of_pulses(
-                "/logical_signal_groups/q0/drive_ef",
+                "q0/drive_ef",
                 expected_drive_count,
             )
 
             expected_drive_count = count * (2 * len(self._DELAYS[1]))
             verifier.assert_number_of_pulses(
-                "/logical_signal_groups/q1/drive_ef",
+                "q1/drive_ef",
                 expected_drive_count,
             )
 
@@ -310,24 +310,24 @@ class TestRamseyTwoQubits:
             len(self._DELAYS[0]) + 2 * int(use_cal_traces)
         )
         verifier.assert_number_of_pulses(
-            "/logical_signal_groups/q0/measure",
+            "q0/measure",
             expected_measure_count,
         )
 
         # acquire and measure pulses have the same count
         verifier.assert_number_of_pulses(
-            "/logical_signal_groups/q0/acquire",
+            "q0/acquire",
             expected_measure_count,
         )
 
         verifier.assert_number_of_pulses(
-            "/logical_signal_groups/q1/measure",
+            "q1/measure",
             expected_measure_count,
         )
 
         # acquire and measure pulses have the same count
         verifier.assert_number_of_pulses(
-            "/logical_signal_groups/q1/acquire",
+            "q1/acquire",
             expected_measure_count,
         )
 
@@ -350,26 +350,26 @@ class TestRamseyTwoQubits:
         )
         if transition == "ge":
             verifier.assert_pulse(
-                signal="/logical_signal_groups/q0/drive",
+                signal="q0/drive",
                 index=0,
                 end=_LENGTH_GE,
                 parameterized_with=[],
             )
             verifier.assert_pulse(
-                signal="/logical_signal_groups/q0/drive",
+                signal="q0/drive",
                 index=1,
                 start=_LENGTH_GE + self._DELAYS[0][0],
                 end=2 * _LENGTH_GE + self._DELAYS[0][0],
                 parameterized_with=["x90_phases_q0"],
             )
             verifier.assert_pulse(
-                signal="/logical_signal_groups/q1/drive",
+                signal="q1/drive",
                 index=0,
                 end=_LENGTH_GE,
                 parameterized_with=[],
             )
             verifier.assert_pulse(
-                signal="/logical_signal_groups/q1/drive",
+                signal="q1/drive",
                 index=1,
                 start=_LENGTH_GE + self._DELAYS[0][0],
                 end=2 * _LENGTH_GE + self._DELAYS[0][0],
@@ -379,27 +379,27 @@ class TestRamseyTwoQubits:
             start_ef_q0 = _LENGTH_GE
             start_ef_q1 = _LENGTH_GE
             verifier.assert_pulse(
-                signal="/logical_signal_groups/q0/drive_ef",
+                signal="q0/drive_ef",
                 index=0,
                 end=start_ef_q0 + _LENGTH_EF,
                 parameterized_with=[],
             )
             verifier.assert_pulse(
-                signal="/logical_signal_groups/q0/drive_ef",
+                signal="q0/drive_ef",
                 index=1,
                 start=start_ef_q0 + _LENGTH_EF + self._DELAYS[0][0],
                 end=start_ef_q0 + 2 * _LENGTH_EF + self._DELAYS[0][0],
                 parameterized_with=["x90_phases_q0"],
             )
             verifier.assert_pulse(
-                signal="/logical_signal_groups/q1/drive_ef",
+                signal="q1/drive_ef",
                 index=0,
                 start=start_ef_q1,
                 end=start_ef_q1 + _LENGTH_EF,
                 parameterized_with=[],
             )
             verifier.assert_pulse(
-                signal="/logical_signal_groups/q1/drive_ef",
+                signal="q1/drive_ef",
                 index=1,
                 start=start_ef_q1 + _LENGTH_EF + self._DELAYS[1][0],
                 end=start_ef_q1 + 2 * _LENGTH_EF + self._DELAYS[0][0],
@@ -429,13 +429,13 @@ class TestRamseyTwoQubits:
             # in the single-qubit tests
             start_measure = 2 * _LENGTH_GE + self._DELAYS[0][0]
             verifier.assert_pulse(
-                signal="/logical_signal_groups/q0/measure",
+                signal="q0/measure",
                 index=0,
                 start=start_measure,
                 end=start_measure + readout_lengths[0],
             )
             verifier.assert_pulse(
-                signal="/logical_signal_groups/q0/acquire",
+                signal="q0/acquire",
                 index=0,
                 start=start_measure,
                 end=start_measure + 2e-6,
@@ -443,13 +443,13 @@ class TestRamseyTwoQubits:
 
             start_measure = 2 * _LENGTH_GE + self._DELAYS[1][0]
             verifier.assert_pulse(
-                signal="/logical_signal_groups/q1/measure",
+                signal="q1/measure",
                 index=0,
                 start=start_measure,
                 end=start_measure + readout_lengths[1],
             )
             verifier.assert_pulse(
-                signal="/logical_signal_groups/q1/acquire",
+                signal="q1/acquire",
                 index=0,
                 start=start_measure,
                 end=start_measure + 2e-6,
@@ -457,26 +457,26 @@ class TestRamseyTwoQubits:
         elif transition == "ef":
             start_measure = _LENGTH_GE + 2 * _LENGTH_EF + self._DELAYS[0][0]
             verifier.assert_pulse(
-                signal="/logical_signal_groups/q0/measure",
+                signal="q0/measure",
                 index=0,
                 start=start_measure,
                 end=start_measure + readout_lengths[0],
             )
             verifier.assert_pulse(
-                signal="/logical_signal_groups/q0/acquire",
+                signal="q0/acquire",
                 index=0,
                 start=start_measure,
                 end=start_measure + 2e-6,
             )
             start_measure = _LENGTH_GE + 2 * _LENGTH_EF + self._DELAYS[1][0]
             verifier.assert_pulse(
-                signal="/logical_signal_groups/q1/measure",
+                signal="q1/measure",
                 index=0,
                 start=start_measure,
                 end=start_measure + readout_lengths[1],
             )
             verifier.assert_pulse(
-                signal="/logical_signal_groups/q1/acquire",
+                signal="q1/acquire",
                 index=0,
                 start=start_measure,
                 end=start_measure + 2e-6,
