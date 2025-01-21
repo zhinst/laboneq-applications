@@ -34,7 +34,7 @@ if TYPE_CHECKING:
     from laboneq.workflow.tasks.run_experiment import RunExperimentResults
     from numpy.typing import ArrayLike, NDArray
 
-    from laboneq_applications.typing import Qubits
+    from laboneq_applications.typing import QuantumElements
 
 
 @workflow.workflow_options
@@ -132,7 +132,7 @@ class TimeTracesAnalysisOptions:
 @workflow.workflow
 def analysis_workflow(
     result: RunExperimentResults,
-    qubits: Qubits,
+    qubits: QuantumElements,
     states: Sequence[Literal["g", "e", "f"]],
     options: TimeTracesAnalysisWorkflowOptions | None = None,
 ) -> None:
@@ -227,7 +227,7 @@ def analysis_workflow(
 
 @workflow.task
 def truncate_time_traces(
-    qubits: Qubits,
+    qubits: QuantumElements,
     result: RunExperimentResults,
     states: Sequence[Literal["g", "e", "f"]],
     options: TimeTracesAnalysisOptions | None = None,
@@ -270,7 +270,7 @@ def truncate_time_traces(
 
 @workflow.task
 def extract_kernels_thresholds(
-    qubits: Qubits,
+    qubits: QuantumElements,
     truncated_time_traces: dict[str, list[NDArray]],
     options: TimeTracesAnalysisOptions | None = None,
 ) -> tuple[dict[str, list[ArrayLike]] | None, dict[str, list[float]] | None]:
@@ -313,7 +313,7 @@ def extract_kernels_thresholds(
 
 @workflow.task
 def filter_integration_kernels(
-    qubits: Qubits,
+    qubits: QuantumElements,
     integration_kernels: dict[str, list[ArrayLike]],
     options: TimeTracesAnalysisOptions | None = None,
 ) -> dict[str, list]:
@@ -361,7 +361,7 @@ def filter_integration_kernels(
 
 @workflow.task
 def extract_qubit_parameters(
-    qubits: Qubits,
+    qubits: QuantumElements,
     discrimination_thresholds: dict[str, list] | None,
     integration_kernels: dict[str, list] | None,
     integration_kernels_filtered: dict[str, list] | None,
@@ -458,7 +458,7 @@ def extract_qubit_parameters(
 
 @workflow.task
 def plot_time_traces(
-    qubits: Qubits,
+    qubits: QuantumElements,
     states: Sequence[str],
     truncated_time_traces: dict[str, list],
     options: TimeTracesAnalysisOptions | None = None,
@@ -525,7 +525,7 @@ def plot_time_traces(
 
 @workflow.task
 def plot_kernels_traces(
-    qubits: Qubits,
+    qubits: QuantumElements,
     discrimination_thresholds: dict[str, list],
     integration_kernels: dict[str, list],
     integration_kernels_filtered: dict[str, list] | None = None,
@@ -625,7 +625,7 @@ def plot_kernels_traces(
 
 @workflow.task
 def plot_kernels_fft(
-    qubits: Qubits,
+    qubits: QuantumElements,
     discrimination_thresholds: dict[str, list],
     integration_kernels: dict[str, list],
     integration_kernels_filtered: dict[str, list] | None = None,

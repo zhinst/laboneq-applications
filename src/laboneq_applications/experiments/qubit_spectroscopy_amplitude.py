@@ -40,14 +40,14 @@ if TYPE_CHECKING:
     from laboneq.dsl.quantum.qpu import QPU
     from laboneq.dsl.session import Session
 
-    from laboneq_applications.typing import Qubits, QubitSweepPoints
+    from laboneq_applications.typing import QuantumElements, QubitSweepPoints
 
 
 @workflow.workflow(name="qubit_spectroscopy_amplitude")
 def experiment_workflow(
     session: Session,
     qpu: QPU,
-    qubits: Qubits,
+    qubits: QuantumElements,
     frequencies: QubitSweepPoints,
     amplitudes: QubitSweepPoints,
     temporary_parameters: dict[str, dict | TransmonParameters] | None = None,
@@ -126,7 +126,7 @@ def experiment_workflow(
 @dsl.qubit_experiment
 def create_experiment(
     qpu: QPU,
-    qubits: Qubits,
+    qubits: QuantumElements,
     frequencies: QubitSweepPoints,
     amplitudes: QubitSweepPoints,
     options: QubitSpectroscopyExperimentOptions | None = None,

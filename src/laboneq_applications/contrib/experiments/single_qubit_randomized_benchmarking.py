@@ -43,14 +43,14 @@ if TYPE_CHECKING:
     from laboneq.dsl.quantum.qpu import QPU
     from laboneq.dsl.session import Session
 
-    from laboneq_applications.typing import Qubits
+    from laboneq_applications.typing import QuantumElements
 
 
 @workflow.workflow(name="single_qubit_randomized_benchmarking")
 def experiment_workflow(
     session: Session,
     qpu: QPU,
-    qubits: Qubits,
+    qubits: QuantumElements,
     length_cliffords: list,
     variations: int = 1,
     seed: int | None = None,
@@ -234,7 +234,7 @@ def create_sq_rb_qasm(
 @dsl.qubit_experiment
 def create_experiment(
     qpu: QPU,
-    qubits: Qubits,
+    qubits: QuantumElements,
     qasm_rb_sequences: list,
     quantum_operations: dsl.QuantumOperations | None = None,
     options: TuneupExperimentOptions | None = None,

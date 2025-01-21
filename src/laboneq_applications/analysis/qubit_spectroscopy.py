@@ -42,13 +42,13 @@ if TYPE_CHECKING:
     from laboneq.workflow.tasks.run_experiment import RunExperimentResults
     from numpy.typing import ArrayLike
 
-    from laboneq_applications.typing import Qubits, QubitSweepPoints
+    from laboneq_applications.typing import QuantumElements, QubitSweepPoints
 
 
 @workflow.workflow
 def analysis_workflow(
     result: RunExperimentResults,
-    qubits: Qubits,
+    qubits: QuantumElements,
     frequencies: QubitSweepPoints,
     options: QubitSpectroscopyAnalysisWorkflowOptions | None = None,
 ) -> None:
@@ -121,7 +121,7 @@ def analysis_workflow(
 
 @workflow.task
 def calculate_signal_magnitude_and_phase(
-    qubits: Qubits,
+    qubits: QuantumElements,
     result: RunExperimentResults,
     frequencies: ArrayLike,
 ) -> dict[str, dict[str, ArrayLike]]:
@@ -161,7 +161,7 @@ def calculate_signal_magnitude_and_phase(
 
 @workflow.task
 def fit_data(
-    qubits: Qubits,
+    qubits: QuantumElements,
     processed_data_dict: dict[str, dict[str, ArrayLike]],
     options: QubitSpectroscopyAnalysisOptions | None = None,
 ) -> dict[str, lmfit.model.ModelResult] | None:
@@ -205,7 +205,7 @@ def fit_data(
 
 @workflow.task
 def extract_qubit_parameters(
-    qubits: Qubits,
+    qubits: QuantumElements,
     fit_results: dict[str, lmfit.model.ModelResult] | None,
     options: QubitSpectroscopyAnalysisOptions | None = None,
 ) -> dict[str, dict[str, dict[str, int | float | unc.core.Variable | None]]]:
@@ -273,7 +273,7 @@ def extract_qubit_parameters(
 
 @workflow.task
 def plot_qubit_spectroscopy(
-    qubits: Qubits,
+    qubits: QuantumElements,
     processed_data_dict: dict[str, dict[str, ArrayLike]],
     fit_results: dict[str, lmfit.model.ModelResult] | None,
     qubit_parameters: dict[

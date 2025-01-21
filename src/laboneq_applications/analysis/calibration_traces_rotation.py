@@ -28,7 +28,7 @@ if TYPE_CHECKING:
     from laboneq.workflow.tasks.run_experiment import RunExperimentResults
     from numpy.typing import ArrayLike, NDArray
 
-    from laboneq_applications.typing import Qubits, QubitSweepPoints
+    from laboneq_applications.typing import QuantumElements, QubitSweepPoints
 
 
 def principal_component_analysis(raw_data: ArrayLike) -> ArrayLike:
@@ -251,7 +251,7 @@ def calculate_population_1d(
 
 @workflow.task
 def calculate_qubit_population(
-    qubits: Qubits,
+    qubits: QuantumElements,
     result: RunExperimentResults,
     sweep_points: QubitSweepPoints,
     options: TuneupAnalysisOptions | None = None,

@@ -47,7 +47,7 @@ if TYPE_CHECKING:
     from laboneq.dsl.quantum.quantum_element import QuantumElement
     from laboneq.dsl.session import Session
 
-    from laboneq_applications.typing import Qubits
+    from laboneq_applications.typing import QuantumElements
 
 
 @workflow.task_options(base_class=BaseExperimentOptions)
@@ -72,7 +72,7 @@ class TimeTracesExperimentOptions:
 def experiment_workflow(
     session: Session,
     qpu: QPU,
-    qubits: Qubits,
+    qubits: QuantumElements,
     states: Sequence[Literal["g", "e", "f"]],
     temporary_parameters: dict[str, dict | TransmonParameters] | None = None,
     options: TuneUpWorkflowOptions | None = None,

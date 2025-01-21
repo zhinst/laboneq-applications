@@ -18,7 +18,7 @@ if TYPE_CHECKING:
     import uncertainties as unc
     from laboneq.dsl.quantum.qpu import QPU
 
-    from laboneq_applications.typing import Qubits
+    from laboneq_applications.typing import QuantumElements
 
 
 @task
@@ -60,9 +60,9 @@ def update_qubits(
 
 @task
 def temporary_modify(
-    qubits: Qubits,
+    qubits: QuantumElements,
     temporary_parameters: dict[str, dict | TransmonParameters] | None = None,
-) -> Qubits:
+) -> QuantumElements:
     """Modify the qubits temporarily with the given parameters.
 
     Args:

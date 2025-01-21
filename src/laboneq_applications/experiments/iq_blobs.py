@@ -39,7 +39,7 @@ if TYPE_CHECKING:
     from laboneq.dsl.quantum.qpu import QPU
     from laboneq.dsl.session import Session
 
-    from laboneq_applications.typing import Qubits
+    from laboneq_applications.typing import QuantumElements
 
 
 @workflow.task_options(base_class=BaseExperimentOptions)
@@ -79,7 +79,7 @@ class IQBlobExperimentWorkflowOptions:
 def experiment_workflow(
     session: Session,
     qpu: QPU,
-    qubits: Qubits,
+    qubits: QuantumElements,
     states: Sequence[str],
     temporary_parameters: dict[str, dict | TransmonParameters] | None = None,
     options: IQBlobExperimentWorkflowOptions | None = None,
@@ -148,7 +148,7 @@ def experiment_workflow(
 @dsl.qubit_experiment
 def create_experiment(
     qpu: QPU,
-    qubits: Qubits,
+    qubits: QuantumElements,
     states: Sequence[str],
     options: IQBlobExperimentOptions | None = None,
 ) -> Experiment:

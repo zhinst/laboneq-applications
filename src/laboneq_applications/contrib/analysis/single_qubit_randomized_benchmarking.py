@@ -50,13 +50,13 @@ if TYPE_CHECKING:
     from laboneq.workflow.tasks.run_experiment import RunExperimentResults
     from numpy.typing import ArrayLike
 
-    from laboneq_applications.typing import Qubits
+    from laboneq_applications.typing import QuantumElements
 
 
 @workflow
 def analysis_workflow(
     result: RunExperimentResults,
-    qubits: Qubits,
+    qubits: QuantumElements,
     length_cliffords: list,
     variations: int,
     options: TuneUpAnalysisWorkflowOptions | None = None,
@@ -100,7 +100,7 @@ def analysis_workflow(
 
 @task
 def calculate_qubit_population_rb(
-    qubits: Qubits,
+    qubits: QuantumElements,
     result: RunExperimentResults,
     length_cliffords: list,
     variations: int,
@@ -173,7 +173,7 @@ def calculate_qubit_population_rb(
 
 @task
 def fit_data(
-    qubits: Qubits,
+    qubits: QuantumElements,
     processed_data_dict: dict[str, dict[str, ArrayLike]],
     options: TuneupAnalysisOptions | None = None,
 ) -> dict[str, lmfit.model.ModelResult]:
@@ -232,7 +232,7 @@ def fit_data(
 
 @task
 def plot_population(
-    qubits: Qubits,
+    qubits: QuantumElements,
     processed_data_dict: dict[str, dict[str, ArrayLike]],
     fit_results: dict[str, lmfit.model.ModelResult] | None,
     options: TuneupAnalysisOptions | None = None,

@@ -49,14 +49,14 @@ if TYPE_CHECKING:
     from laboneq.dsl.quantum.qpu import QPU
     from laboneq.dsl.session import Session
 
-    from laboneq_applications.typing import Qubits, QubitSweepPoints
+    from laboneq_applications.typing import QuantumElements, QubitSweepPoints
 
 
 @workflow.workflow(name="amplitude_rabi")
 def experiment_workflow(
     session: Session,
     qpu: QPU,
-    qubits: Qubits,
+    qubits: QuantumElements,
     amplitudes: QubitSweepPoints,
     # TODO: Update the type hint for the temporary_parameters argument when the new
     # qubit class is available. Same for other experiment workflows.
@@ -139,7 +139,7 @@ def experiment_workflow(
 @dsl.qubit_experiment
 def create_experiment(
     qpu: QPU,
-    qubits: Qubits,
+    qubits: QuantumElements,
     amplitudes: QubitSweepPoints,
     options: TuneupExperimentOptions | None = None,
 ) -> Experiment:

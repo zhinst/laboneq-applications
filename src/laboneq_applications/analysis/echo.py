@@ -43,13 +43,13 @@ if TYPE_CHECKING:
     from laboneq.workflow.tasks.run_experiment import RunExperimentResults
     from numpy.typing import ArrayLike
 
-    from laboneq_applications.typing import Qubits, QubitSweepPoints
+    from laboneq_applications.typing import QuantumElements, QubitSweepPoints
 
 
 @workflow.workflow
 def analysis_workflow(
     result: RunExperimentResults,
-    qubits: Qubits,
+    qubits: QuantumElements,
     delays: QubitSweepPoints,
     options: TuneUpAnalysisWorkflowOptions | None = None,
 ) -> None:
@@ -112,7 +112,7 @@ def analysis_workflow(
 
 @workflow.task
 def fit_data(
-    qubits: Qubits,
+    qubits: QuantumElements,
     processed_data_dict: dict[str, dict[str, ArrayLike]],
     options: TuneupAnalysisOptions | None = None,
 ) -> dict[str, lmfit.model.ModelResult]:
@@ -169,7 +169,7 @@ def fit_data(
 
 @workflow.task
 def extract_qubit_parameters(
-    qubits: Qubits,
+    qubits: QuantumElements,
     fit_results: dict[str, lmfit.model.ModelResult],
     options: TuneupAnalysisOptions | None = None,
 ) -> dict[str, dict[str, dict[str, int | float | unc.core.Variable | None]]]:
@@ -237,7 +237,7 @@ def extract_qubit_parameters(
 
 @workflow.task
 def plot_raw_complex_data_1d(
-    qubits: Qubits,
+    qubits: QuantumElements,
     result: RunExperimentResults | tuple[RunExperimentResults, Results],
     delays: QubitSweepPoints,
     options: TuneupAnalysisOptions | None = None,
@@ -294,7 +294,7 @@ def plot_raw_complex_data_1d(
 
 @workflow.task
 def plot_population(
-    qubits: Qubits,
+    qubits: QuantumElements,
     processed_data_dict: dict[str, dict[str, ArrayLike]],
     fit_results: dict[str, lmfit.model.ModelResult] | None,
     qubit_parameters: dict[

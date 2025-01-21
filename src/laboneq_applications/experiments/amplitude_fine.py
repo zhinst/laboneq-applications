@@ -52,14 +52,14 @@ if TYPE_CHECKING:
     from laboneq.dsl.quantum.qpu import QPU
     from laboneq.dsl.session import Session
 
-    from laboneq_applications.typing import Qubits, QubitSweepPoints
+    from laboneq_applications.typing import QuantumElements, QubitSweepPoints
 
 
 @workflow.workflow(name="amplitude_fine")
 def experiment_workflow(
     session: Session,
     qpu: QPU,
-    qubits: Qubits,
+    qubits: QuantumElements,
     amplification_qop: str,
     target_angle: float,
     phase_offset: float,
@@ -163,7 +163,7 @@ def experiment_workflow(
 @dsl.qubit_experiment
 def create_experiment(
     qpu: QPU,
-    qubits: Qubits,
+    qubits: QuantumElements,
     amplification_qop: str,
     repetitions: QubitSweepPoints,
     options: TuneupExperimentOptions | None = None,
@@ -311,7 +311,7 @@ def create_experiment(
 def experiment_workflow_x180(
     session: Session,
     qpu: QPU,
-    qubits: Qubits,
+    qubits: QuantumElements,
     repetitions: QubitSweepPoints[int],
     temporary_parameters: dict[str, dict | TransmonParameters] | None = None,
     options: TuneUpWorkflowOptions | None = None,
@@ -406,7 +406,7 @@ def experiment_workflow_x180(
 def experiment_workflow_x90(
     session: Session,
     qpu: QPU,
-    qubits: Qubits,
+    qubits: QuantumElements,
     repetitions: QubitSweepPoints[int],
     temporary_parameters: dict[str, dict | TransmonParameters] | None = None,
     options: TuneUpWorkflowOptions | None = None,

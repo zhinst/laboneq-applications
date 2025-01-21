@@ -15,7 +15,7 @@ used and guides us in building consistent interfaces.
 Type hints
 ----------
 
-* [Qubits]()
+* [QuantumElements]()
 
     Either a single qubit or a sequence of qubits.
 
@@ -37,12 +37,12 @@ from __future__ import annotations
 from collections.abc import Sequence
 from typing import Union
 
-from laboneq.workflow.typing import Qubits
+from laboneq.workflow.typing import QuantumElements
 from numpy.typing import ArrayLike
 from typing_extensions import TypeAlias
 
 __all__ = [
-    "Qubits",
+    "QuantumElements",
     "QubitSweepPoints",
 ]
 

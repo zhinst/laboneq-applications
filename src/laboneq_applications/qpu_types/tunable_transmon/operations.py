@@ -20,7 +20,7 @@ if TYPE_CHECKING:
     from laboneq.dsl.calibration import Calibration
     from laboneq.dsl.parameter import SweepParameter
 
-    from laboneq_applications.typing import Qubits
+    from laboneq_applications.typing import QuantumElements
 
 # TODO: Implement multistate 0-1-2 measurement operation
 
@@ -967,7 +967,7 @@ class TunableTransmonOperations(dsl.QuantumOperations):
     @dsl.quantum_operation(broadcast=False)
     def active_reset(
         self,
-        qubits: Qubits,
+        qubits: QuantumElements,
         active_reset_states: str | tuple = "ge",
         number_resets: int = 1,
         feedback_processing_delay: float = 0.0,
@@ -1036,7 +1036,7 @@ class TunableTransmonOperations(dsl.QuantumOperations):
     @dsl.quantum_operation(broadcast=False)
     def calibration_traces(
         self,
-        qubits: Qubits,
+        qubits: QuantumElements,
         states: str | tuple = "ge",
         active_reset: bool = False,  # noqa: FBT001, FBT002
         active_reset_states: str | tuple = "ge",

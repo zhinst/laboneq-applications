@@ -41,13 +41,13 @@ if TYPE_CHECKING:
     from laboneq.workflow.tasks import RunExperimentResults
     from numpy.typing import ArrayLike
 
-    from laboneq_applications.typing import Qubits, QubitSweepPoints
+    from laboneq_applications.typing import QuantumElements, QubitSweepPoints
 
 
 @workflow.workflow
 def analysis_workflow(
     result: RunExperimentResults,
-    qubits: Qubits,
+    qubits: QuantumElements,
     amplification_qop: str,
     repetitions: QubitSweepPoints,
     target_angle: float,
@@ -159,7 +159,7 @@ def xaxis_label(amplification_qop: str) -> str:
 
 @workflow.task
 def fit_data(
-    qubits: Qubits,
+    qubits: QuantumElements,
     processed_data_dict: dict[str, dict[str, ArrayLike]],
     target_angle: float,
     phase_offset: float,
@@ -220,7 +220,7 @@ def fit_data(
 
 @workflow.task
 def process_fit_results(
-    qubits: Qubits,
+    qubits: QuantumElements,
     fit_results: dict[str, lmfit.model.ModelResult] | None,
     target_angle: float,
     options: TuneupAnalysisOptions | None = None,
@@ -268,7 +268,7 @@ def process_fit_results(
 
 @workflow.task
 def extract_qubit_parameters(
-    qubits: Qubits,
+    qubits: QuantumElements,
     fit_results: dict[str, lmfit.model.ModelResult],
     processed_fit_results: dict[str, unc.core.Variable] | None,
     parameter_to_update: str | None = None,
@@ -355,7 +355,7 @@ def extract_qubit_parameters(
 
 @workflow.task
 def plot_population(
-    qubits: Qubits,
+    qubits: QuantumElements,
     processed_data_dict: dict[str, dict[str, ArrayLike]],
     amplification_qop: str,
     fit_results: dict[str, lmfit.model.ModelResult] | None,

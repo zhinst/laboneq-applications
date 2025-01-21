@@ -35,7 +35,7 @@ if TYPE_CHECKING:
     from laboneq.dsl.session import Session
     from numpy.typing import ArrayLike
 
-    from laboneq_applications.typing import Qubits, QubitSweepPoints
+    from laboneq_applications.typing import QuantumElements, QubitSweepPoints
 
 
 @workflow.task_options(base_class=TuneupExperimentOptions)
@@ -73,7 +73,7 @@ class SpinLockingWorkflowOptions:
 def experiment_workflow(
     session: Session,
     qpu: QPU,
-    qubits: Qubits,
+    qubits: QuantumElements,
     lengths: QubitSweepPoints,
     rel_amp: float | None = None,
     options: SpinLockingWorkflowOptions | None = None,
@@ -144,7 +144,7 @@ def experiment_workflow(
 @dsl.qubit_experiment
 def create_experiment(
     qpu: QPU,
-    qubits: Qubits,
+    qubits: QuantumElements,
     lengths: QubitSweepPoints,
     rel_amp: float | None = None,
     options: SpinLockingExperimentOptions | None = None,

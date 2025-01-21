@@ -40,7 +40,7 @@ if TYPE_CHECKING:
     from laboneq.workflow.tasks.run_experiment import RunExperimentResults
     from numpy.typing import ArrayLike
 
-    from laboneq_applications.typing import Qubits
+    from laboneq_applications.typing import QuantumElements
 
 
 @workflow.workflow_options
@@ -100,7 +100,7 @@ class IQBlobAnalysisOptions:
 @workflow.workflow
 def analysis_workflow(
     result: RunExperimentResults,
-    qubits: Qubits,
+    qubits: QuantumElements,
     states: Sequence[str],
     options: IQBlobAnalysisWorkflowOptions | None = None,
 ) -> None:
@@ -172,7 +172,7 @@ def analysis_workflow(
 
 @workflow.task
 def collect_shots(
-    qubits: Qubits,
+    qubits: QuantumElements,
     result: RunExperimentResults,
     states: Sequence[str],
 ) -> dict[str, dict[str, ArrayLike | dict]]:
@@ -231,7 +231,7 @@ def collect_shots(
 
 @workflow.task
 def fit_data(
-    qubits: Qubits,
+    qubits: QuantumElements,
     processed_data_dict: dict[str, dict[str, ArrayLike | dict]],
 ) -> dict | dict[str, None]:
     """Perform a classification of the shots using LinearDiscriminantAnalysis.
@@ -266,7 +266,7 @@ def fit_data(
 
 @workflow.task
 def calculate_assignment_matrices(
-    qubits: Qubits,
+    qubits: QuantumElements,
     processed_data_dict: dict[str, dict[str, ArrayLike | dict]],
     fit_results: dict[str, None] | dict,
 ) -> dict[str, None]:
@@ -301,7 +301,7 @@ def calculate_assignment_matrices(
 
 @workflow.task
 def calculate_assignment_fidelities(
-    qubits: Qubits,
+    qubits: QuantumElements,
     assignment_matrices: dict[str, None],
 ) -> dict[str, float]:
     """Calculate the correct assignment fidelity from the correct assignment matrices.
@@ -331,7 +331,7 @@ def calculate_assignment_fidelities(
 
 @workflow.task
 def plot_iq_blobs(
-    qubits: Qubits,
+    qubits: QuantumElements,
     states: Sequence[str],
     processed_data_dict: dict[str, dict[str, ArrayLike | dict]],
     fit_results: dict[str, None] | None,
@@ -413,7 +413,7 @@ def plot_iq_blobs(
 
 @workflow.task
 def plot_assignment_matrices(
-    qubits: Qubits,
+    qubits: QuantumElements,
     states: Sequence[str],
     assignment_matrices: dict[str, ArrayLike],
     assignment_fidelities: dict[str, float],

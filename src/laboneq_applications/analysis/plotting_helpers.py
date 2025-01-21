@@ -28,7 +28,7 @@ if TYPE_CHECKING:
     from laboneq.workflow.tasks.run_experiment import RunExperimentResults
     from numpy.typing import ArrayLike
 
-    from laboneq_applications.typing import Qubits, QubitSweepPoints
+    from laboneq_applications.typing import QuantumElements, QubitSweepPoints
 
 
 @workflow.options
@@ -96,7 +96,7 @@ def timestamped_title(title: str, dt: datetime | None = None) -> str:
 
 @workflow.task
 def plot_raw_complex_data_1d(
-    qubits: Qubits,
+    qubits: QuantumElements,
     result: RunExperimentResults | tuple[RunExperimentResults, Results],
     sweep_points: QubitSweepPoints,
     xlabel: str,
