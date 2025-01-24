@@ -7,7 +7,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from laboneq.dsl.calibration import AmplifierPump, CancellationSource, Oscillator
+from laboneq.dsl.calibration import CancellationSource, Oscillator
 from laboneq.dsl.enums import ModulationType
 from laboneq.dsl.experiment.builtins_dsl import QuantumOperations, quantum_operation
 from laboneq.simple import dsl
@@ -21,6 +21,7 @@ if TYPE_CHECKING:
 
 class TWPAOperations(QuantumOperations):
     """Operations for TWPA."""
+
     QUBIT_TYPES = TWPA
 
     @quantum_operation
@@ -83,8 +84,8 @@ class TWPAOperations(QuantumOperations):
             # LabOne Q would provide a set_frequency DSL method that removes the
             # need for setting the frequency on the experiment calibration.
             raise RuntimeError(
-                f"Frequency of {twpa.uid} {signal_line} line was set multiple times"
-                f" using the set_frequency operation.",
+                f"Readout frequency of twpa {twpa.uid} measure line was set multiple"
+                f" times using the set_readout_frequency operation.",
             )
 
         oscillator._set_frequency = True
@@ -177,25 +178,24 @@ class TWPAOperations(QuantumOperations):
                 active, for example when using
                 `@qubit_experiment(context=False)`, the calibration
                 object may be passed explicitly.
+
+        Raises:
+            RuntimeError:
+                If there is an attempt to call `set_pump_frequency` more than
+                once on the same signal.
         """
         if calibration is None:
             calibration = dsl.experiment_calibration()
         signal_calibration = calibration[twpa.signals["acquire"]]
-        signal_calibration.amplifier_pump = AmplifierPump(
-            pump_frequency=frequency,
-            pump_power=twpa.parameters.pump_power,
-            pump_on=twpa.parameters.pump_on,
-            pump_filter_on=twpa.parameters.pump_filter_on,
-            cancellation_on=twpa.parameters.cancellation_on,
-            cancellation_phase=twpa.parameters.cancellation_phase,
-            cancellation_attenuation=twpa.parameters.cancellation_attenuation,
-            cancellation_source=twpa.parameters.cancellation_source,
-            cancellation_source_frequency=twpa.parameters.pump_frequency,
-            alc_on=twpa.parameters.alc_on,
-            probe_on=twpa.parameters.probe_on,
-            probe_frequency=twpa.parameters.probe_frequency,
-            probe_power=twpa.parameters.probe_power,
-        )
+        if getattr(calibration, "_set_pump_frequency", False):
+            raise RuntimeError(
+                f"Pump frequency of twpa {twpa.uid}"
+                f" measure line was set multiple times"
+                f" using the set_pump_frequency operation.",
+            )
+
+        calibration._set_pump_frequency = True
+        signal_calibration.amplifier_pump.pump_frequency = frequency
 
     @quantum_operation
     def set_pump_power(
@@ -218,25 +218,24 @@ class TWPAOperations(QuantumOperations):
                 active, for example when using
                 `@qubit_experiment(context=False)`, the calibration
                 object may be passed explicitly.
+
+        Raises:
+            RuntimeError:
+                If there is an attempt to call `set_pump_power` more than
+                once on the same signal.
         """
         if calibration is None:
             calibration = dsl.experiment_calibration()
         signal_calibration = calibration[twpa.signals["acquire"]]
-        signal_calibration.amplifier_pump = AmplifierPump(
-            pump_frequency=twpa.parameters.pump_frequency,
-            pump_power=power,
-            pump_on=twpa.parameters.pump_on,
-            pump_filter_on=twpa.parameters.pump_filter_on,
-            cancellation_on=twpa.parameters.cancellation_on,
-            cancellation_phase=twpa.parameters.cancellation_phase,
-            cancellation_attenuation=twpa.parameters.cancellation_attenuation,
-            cancellation_source=twpa.parameters.cancellation_source,
-            cancellation_source_frequency=twpa.parameters.pump_frequency,
-            alc_on=twpa.parameters.alc_on,
-            probe_on=twpa.parameters.probe_on,
-            probe_frequency=twpa.parameters.probe_frequency,
-            probe_power=twpa.parameters.probe_power,
-        )
+        if getattr(calibration, "_set_pump_power", False):
+            raise RuntimeError(
+                f"Pump power of twpa {twpa.uid}"
+                f" measure line was set multiple times"
+                f" using the set_pump_power operation.",
+            )
+
+        calibration._set_pump_power = True
+        signal_calibration.amplifier_pump.pump_power = power
 
     @quantum_operation
     def set_pump_cancellation(
@@ -268,28 +267,31 @@ class TWPAOperations(QuantumOperations):
                 active, for example when using
                 `@qubit_experiment(context=False)`, the calibration
                 object may be passed explicitly.
+
+        Raises:
+            RuntimeError:
+                If there is an attempt to call `set_pump_cancellation` more than
+                once on the same signal.
         """
         if calibration is None:
             calibration = dsl.experiment_calibration()
         signal_calibration = calibration[twpa.signals["acquire"]]
-        signal_calibration.amplifier_pump = AmplifierPump(
-            pump_frequency=twpa.parameters.pump_frequency,
-            pump_power=twpa.parameters.pump_power,
-            pump_on=twpa.parameters.pump_on,
-            pump_filter_on=twpa.parameters.pump_filter_on,
-            cancellation_on=cancellation,
-            cancellation_phase=cancellation_phaseshift,
-            cancellation_attenuation=cancellation_attenuation,
-            cancellation_source=(
-                CancellationSource.INTERNAL
-                if cancellation
-                else CancellationSource.EXTERNAL
-            ),
-            cancellation_source_frequency=twpa.parameters.pump_frequency,
-            alc_on=twpa.parameters.alc_on,
-            probe_on=twpa.parameters.probe_on,
-            probe_frequency=twpa.parameters.probe_frequency,
-            probe_power=twpa.parameters.probe_power,
+        if getattr(calibration, "_set_pump_cancellation", False):
+            raise RuntimeError(
+                f"Pump cancellation of twpa {twpa.uid}"
+                f" measure line was set multiple times"
+                f" using the set_pump_cancellation operation.",
+            )
+
+        calibration._set_pump_cancellation = True
+
+        signal_calibration.amplifier_pump.cancellation_on = cancellation
+        signal_calibration.amplifier_pump.cancellation_phase = cancellation_phaseshift
+        signal_calibration.amplifier_pump.cancellation_attenuation = (
+            cancellation_attenuation
+        )
+        signal_calibration.amplifier_pump.cancellation_source = (
+            CancellationSource.INTERNAL if cancellation else CancellationSource.EXTERNAL
         )
 
     @quantum_operation
@@ -356,3 +358,15 @@ class TWPAOperations(QuantumOperations):
             handle=handle,
             length=twpa.parameters.readout_length,
         )
+
+    @dsl.quantum_operation
+    def twpa_delay(self, twpa: TWPA, time: float) -> None:
+        """Add a delay on the twpa signals.
+
+        Arguments:
+            twpa:
+                The qubit to delay on.
+            time:
+                The duration of the delay in seconds.
+        """
+        dsl.delay(twpa.signals["acquire"], time=time)

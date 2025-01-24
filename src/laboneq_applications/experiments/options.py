@@ -7,6 +7,7 @@ from __future__ import annotations
 
 from typing import Literal, TypeVar
 
+import attrs
 from laboneq.simple import AcquisitionType, AveragingMode, RepetitionMode
 from laboneq.workflow import (
     option_field,
@@ -315,3 +316,107 @@ class QubitSpectroscopyAnalysisWorkflowOptions:
     do_plotting_qubit_spectroscopy: bool = option_field(
         True, description="Whether to plot the final qubit spectroscopy plot."
     )
+
+
+@task_options(base_class=BaseExperimentOptions)
+class TWPASpectroscopyExperimentOptions:
+    """Base options for the TWPA spectroscopy experiment.
+
+    Additional attributes:
+        use_probe_from_ppc:
+            Use the probe tone from the SHFPPC instead of the QA out.
+            Default: False.
+        use_cw:
+            Perform a CW spectroscopy where no measure pulse is played.
+            Default: False.
+        spectroscopy_reset_delay:
+            How long to wait after an acquisition in seconds.
+            Default: 1e-6.
+        acquisition_type:
+            Acquisition type to use for the experiment.
+            Default: `AcquisitionType.SPECTROSCOPY`.
+
+    Raises:
+        ValueError:
+            If the acquisition_type is not AcquisitionType.SPECTROSCOPY
+            or AcquisitionType.SPECTROSCOPY_PSD.
+    """
+
+    use_probe_from_ppc: bool = option_field(
+        False, description="Use the probe tone from the SHFPPC instead of the QA out."
+    )
+    use_cw: bool = option_field(
+        False, description="Perform a CW spectroscopy where no measure pulse is played."
+    )
+    spectroscopy_reset_delay: float = option_field(
+        1e-6, description="How long to wait after an acquisition in seconds."
+    )
+    acquisition_type: AcquisitionType = option_field(
+        AcquisitionType.SPECTROSCOPY,
+        description="Acquisition type to use for the experiment.",
+        converter=_parse_acquisition_type,
+        validators=attrs.validators.in_(
+            [AcquisitionType.SPECTROSCOPY, AcquisitionType.SPECTROSCOPY_PSD]
+        ),
+    )
+
+
+@task_options(base_class=BaseExperimentOptions)
+class TWPATuneUpExperimentOptions:
+    """Base options for TWPA Tuneup experiments.
+
+    Additional attributes:
+        use_probe_from_ppc:
+            Use the probe tone from the SHFPPC instead of the QA out.
+            Default: False.
+        spectroscopy_reset_delay:
+            How long to wait after an acquisition in seconds.
+            Default: 1e-6.
+        acquisition_type:
+            Acquisition type to use for the experiment.
+            Default: `AcquisitionType.SPECTROSCOPY`.
+        averaging_mode:
+            Averaging mode to use for the experiment.
+            Default: `AveragingMode.SEQUENTIAL`.
+        do_snr (bool):
+            Whether to run SNR measurement.
+
+    Raises:
+        ValueError:
+            If the acquisition_type is not AcquisitionType.SPECTROSCOPY
+            or AcquisitionType.SPECTROSCOPY_PSD.
+    """
+
+    use_probe_from_ppc: bool = option_field(
+        False, description="Use the probe tone from the SHFPPC instead of the QA out."
+    )
+
+    spectroscopy_reset_delay: float = option_field(
+        1e-6, description="How long to wait after an acquisition in seconds."
+    )
+    acquisition_type: AcquisitionType = option_field(
+        AcquisitionType.SPECTROSCOPY,
+        description="Acquisition type to use for the experiment.",
+        converter=_parse_acquisition_type,
+        validators=attrs.validators.in_(
+            [AcquisitionType.SPECTROSCOPY, AcquisitionType.SPECTROSCOPY_PSD]
+        ),
+    )
+    averaging_mode: str | AveragingMode = option_field(
+        AveragingMode.SEQUENTIAL,
+        description="Averaging mode to use for the experiment.",
+        converter=_parse_averaging_mode,
+    )
+    do_snr: bool = option_field(False, description="Whether to run SNR measurement.")
+
+
+@workflow_options(base_class=TuneUpWorkflowOptions)
+class TWPATuneUpWorkflowOptions:
+    """Option class for tune-up experiment workflows.
+
+    Attributes:
+        do_snr (bool):
+            Whether to run SNR measurement.
+    """
+
+    do_snr: bool = option_field(False, description="Whether to run SNR measurement.")

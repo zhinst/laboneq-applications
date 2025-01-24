@@ -96,38 +96,98 @@ class TestTWPAOperations:
         signal_calibration = calibration[twpa.signals["measure"]]
         assert signal_calibration.oscillator.frequency == oscillator_freq
 
+        @dsl.qubit_experiment
+        def exp_set_freq_twice(q):
+            with dsl.acquire_loop_rt(count=10):
+                twpa_op.set_readout_frequency(q, freq, rf=rf)
+                twpa_op.set_readout_frequency(q, freq, rf=rf)
+
+        with pytest.raises(RuntimeError) as err:
+            exp_set_freq_twice(twpa)
+
+        assert str(err.value) == (
+            f"Readout frequency of twpa {twpa.uid}"
+            f" measure line was set multiple times"
+            f" using the set_readout_frequency operation."
+        )
+
     def test_set_readout_amplitude(self, twpa, twpa_op):
         @dsl.qubit_experiment
-        def exp_set_freq(q):
+        def exp_set_readout_amplitude(q):
             with dsl.acquire_loop_rt(count=10):
                 twpa_op.set_readout_amplitude(q, 0.6)
 
-        exp = exp_set_freq(twpa)
+        exp = exp_set_readout_amplitude(twpa)
         calibration = exp.get_calibration()
         signal_calibration = calibration[twpa.signals["measure"]]
         assert signal_calibration.amplitude == 0.6
 
+        @dsl.qubit_experiment
+        def exp_set_readout_amplitude_twice(q):
+            with dsl.acquire_loop_rt(count=10):
+                twpa_op.set_readout_amplitude(q, 0.5)
+                twpa_op.set_readout_amplitude(q, 0.6)
+
+        with pytest.raises(RuntimeError) as err:
+            exp_set_readout_amplitude_twice(twpa)
+
+        assert str(err.value) == (
+            f"Readout amplitude of twpa {twpa.uid}"
+            f" measure line was set multiple times"
+            f" using the set_readout_amplitude operation."
+        )
+
     def test_set_pump_frequency(self, twpa, twpa_op):
         @dsl.qubit_experiment
-        def exp_set_freq(q):
+        def exp_set_pump_freq(q):
             with dsl.acquire_loop_rt(count=10):
                 twpa_op.set_pump_frequency(q, 5.1e9)
 
-        exp = exp_set_freq(twpa)
+        exp = exp_set_pump_freq(twpa)
         calibration = exp.get_calibration()
         signal_calibration = calibration[twpa.signals["acquire"]]
         assert signal_calibration.amplifier_pump.pump_frequency == 5.1e9
 
+        @dsl.qubit_experiment
+        def exp_set_pump_freq_twice(q):
+            with dsl.acquire_loop_rt(count=10):
+                twpa_op.set_pump_frequency(q, 5.1e9)
+                twpa_op.set_pump_frequency(q, 5.2e9)
+
+        with pytest.raises(RuntimeError) as err:
+            exp_set_pump_freq_twice(twpa)
+
+        assert str(err.value) == (
+            f"Pump frequency of twpa {twpa.uid}"
+            f" measure line was set multiple times"
+            f" using the set_pump_frequency operation."
+        )
+
     def test_set_pump_power(self, twpa, twpa_op):
         @dsl.qubit_experiment
-        def exp_set_freq(q):
+        def exp_set_pump_power(q):
             with dsl.acquire_loop_rt(count=10):
                 twpa_op.set_pump_power(q, 1.1)
 
-        exp = exp_set_freq(twpa)
+        exp = exp_set_pump_power(twpa)
         calibration = exp.get_calibration()
         signal_calibration = calibration[twpa.signals["acquire"]]
         assert signal_calibration.amplifier_pump.pump_power == 1.1
+
+        @dsl.qubit_experiment
+        def exp_set_pump_power_twice(q):
+            with dsl.acquire_loop_rt(count=10):
+                twpa_op.set_pump_power(q, 1.1)
+                twpa_op.set_pump_power(q, 1.1)
+
+        with pytest.raises(RuntimeError) as err:
+            exp_set_pump_power_twice(twpa)
+
+        assert str(err.value) == (
+            f"Pump power of twpa {twpa.uid}"
+            f" measure line was set multiple times"
+            f" using the set_pump_power operation."
+        )
 
     @pytest.mark.parametrize(
         ("cancellation", "cancellation_source"),
@@ -140,7 +200,7 @@ class TestTWPAOperations:
         self, twpa, twpa_op, cancellation, cancellation_source
     ):
         @dsl.qubit_experiment
-        def exp_set_freq(q):
+        def exp_set_pump_cancel(q):
             with dsl.acquire_loop_rt(count=10):
                 twpa_op.set_pump_cancellation(
                     q,
@@ -149,13 +209,38 @@ class TestTWPAOperations:
                     cancellation=cancellation,
                 )
 
-        exp = exp_set_freq(twpa)
+        exp = exp_set_pump_cancel(twpa)
         calibration = exp.get_calibration()
         signal_calibration = calibration[twpa.signals["acquire"]]
         assert signal_calibration.amplifier_pump.cancellation_phase == 0.0
         assert signal_calibration.amplifier_pump.cancellation_attenuation == 1.0
         assert (
             signal_calibration.amplifier_pump.cancellation_source == cancellation_source
+        )
+
+        @dsl.qubit_experiment
+        def exp_set_pump_cancel_twice(q):
+            with dsl.acquire_loop_rt(count=10):
+                twpa_op.set_pump_cancellation(
+                    q,
+                    cancellation_attenuation=1.0,
+                    cancellation_phaseshift=0.0,
+                    cancellation=cancellation,
+                )
+                twpa_op.set_pump_cancellation(
+                    q,
+                    cancellation_attenuation=1.0,
+                    cancellation_phaseshift=0.0,
+                    cancellation=cancellation,
+                )
+
+        with pytest.raises(RuntimeError) as err:
+            exp_set_pump_cancel_twice(twpa)
+
+        assert str(err.value) == (
+            f"Pump cancellation of twpa {twpa.uid}"
+            f" measure line was set multiple times"
+            f" using the set_pump_cancellation operation."
         )
 
     def test_twpa_measure(self, twpa, twpa_op):
