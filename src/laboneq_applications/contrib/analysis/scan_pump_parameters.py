@@ -40,6 +40,7 @@ if TYPE_CHECKING:
 @workflow.workflow_options(base_class=TuneUpAnalysisWorkflowOptions)
 class TWPATuneUpAnalysisWorkflowOptions:
     """Options for the TWPA tune-up analysis workflow."""
+
     do_snr: bool = workflow.option_field(
         False, description="Whether to run SNR measurement."
     )
@@ -51,6 +52,7 @@ class TWPATuneUpAnalysisWorkflowOptions:
 @workflow.task_options(base_class=TuneupAnalysisOptions)
 class TWPATuneUpAnalysisOptions:
     """Options for the TWPA tune-up analysis."""
+
     do_snr: bool = workflow.option_field(
         False, description="Whether to run SNR measurement."
     )
@@ -214,7 +216,7 @@ def fit_data(
         for i, j in zip(*np.where(max_snr == z_snr)):
             fit_results["max_SNR_pump_freq"] = x[j]
             fit_results["max_SNR_pump_power"] = y[i]
-            fit_results["max_snr"] = z[i, j]
+            fit_results["max_snr"] = z_snr[i, j]
 
     return fit_results
 
@@ -243,8 +245,10 @@ def extract_parametric_amplifier_parameters(
         "pump_power": parametric_amplifier.parameters.pump_power,
     }
 
-    if not opts.do_snr:
-        parametric_amplifier["new_parameter_values"][parametric_amplifier.uid] = {
+    if opts.do_snr:
+        parametric_amplifier_parameters["new_parameter_values"][
+            parametric_amplifier.uid
+        ] = {
             "pump_frequency": fit_results["max_SNR_pump_freq"],
             "pump_power": fit_results["max_SNR_pump_power"],
         }
@@ -260,7 +264,7 @@ def extract_parametric_amplifier_parameters(
 
 
 @workflow.task
-def plot_2d( # noqa: PLR0915
+def plot_2d(  # noqa: PLR0915
     parametric_amplifier: TWPA,
     fit_results: dict,
     parametric_amplifier_parameters: TWPA,
@@ -355,8 +359,8 @@ def plot_2d( # noqa: PLR0915
         axs.set_title("Gain Landscape")
         if opts.do_fitting:
             axs.plot(
-                fit_results["gain_pump_freq"] / 1e9,
-                fit_results["gain_pump_power"],
+                fit_results["max_gain_pump_freq"] / 1e9,
+                fit_results["max_gain_pump_power"],
                 marker="+",
                 markersize=8,
                 color="green",

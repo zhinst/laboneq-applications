@@ -287,6 +287,10 @@ def create_experiment(
                     name=f"freq_{parametric_amplifier.uid}",
                     parameter=frequency,
                 ) as frequency:
+                    qop.set_readout_frequency(
+                        parametric_amplifier,
+                        parametric_amplifier.parameters.probe_frequency,
+                    )
                     qop.set_pump_frequency(parametric_amplifier, frequency)
                     qop.set_pump_power(parametric_amplifier, power)
                     qop.twpa_acquire(
@@ -303,6 +307,9 @@ def create_experiment(
             repetition_time=opts.repetition_time,
             reset_oscillator_phase=opts.reset_oscillator_phase,
         ):
+            qop.set_readout_frequency(
+                parametric_amplifier, parametric_amplifier.parameters.probe_frequency
+            )
             qop.twpa_acquire(
                 parametric_amplifier,
                 dsl.handles.result_handle(parametric_amplifier.uid),
@@ -311,10 +318,10 @@ def create_experiment(
 
     calibration = dsl.experiment_calibration()
 
-    if probe_on:
+    if opts.use_probe_from_ppc or not probe_on:
         qop.set_readout_amplitude(parametric_amplifier, 0)
 
     # TODO: Replace this by an operation to set the amplifier pump properties
     amplifier_pump = calibration[parametric_amplifier.signals["acquire"]].amplifier_pump
     amplifier_pump.pump_on = pump_on
-    amplifier_pump.probe_on = probe_on
+    amplifier_pump.probe_on = opts.use_probe_from_ppc and probe_on

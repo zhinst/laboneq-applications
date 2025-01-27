@@ -283,11 +283,13 @@ def plot_1D( # noqa: N802
     z = data - ref
 
     fig, axs = plt.subplots(figsize=(5.3, 3))
-
+    if selected_indexes is None:
+        axs.plot(x, z[0, :], label=f"Pump power = {y[0]} dBm")
     # Plot z vs x for each selected y value
-    for idx in selected_indexes:
-        # Find the index of the closest y value
-        axs.plot(x, z[idx, :], label=f"Pump power = {y[idx]} dBm")
+    else:
+        for idx in selected_indexes:
+            # Find the index of the closest y value
+            axs.plot(x, z[idx, :], label=f"Pump power = {y[idx]} dBm")
 
     axs.set_xlabel("Probe frequency (GHz)")
     axs.set_ylabel("Signal gain (dB)")
