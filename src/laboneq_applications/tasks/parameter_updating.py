@@ -8,7 +8,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 import attrs
-from laboneq.dsl.quantum import TransmonParameters
+from laboneq.dsl.quantum import QuantumParameters
 from laboneq.workflow import (
     comment,
     task,
@@ -61,33 +61,33 @@ def update_qubits(
 @task
 def temporary_modify(
     qubits: QuantumElements,
-    temporary_parameters: dict[str, dict | TransmonParameters] | None = None,
+    temporary_parameters: dict[str, dict | QuantumParameters] | None = None,
 ) -> QuantumElements:
-    """Modify the qubits temporarily with the given parameters.
+    """Modify the quantum elements temporarily with the given parameters.
 
     Args:
-        qubits: the qubits to be temporarily modified.
+        qubits: the quantum elements to be temporarily modified.
         temporary_parameters: the parameters to be temporarily modified.
-            If None, the qubits are returned as is.
+            If None, the quantum elements are returned as is.
             The dictionary has the following form:
             ```python
             {
-                qubit_uid: {
-                    "qubit_uid": param_value
+                quantum_element_uid: {
+                    "quantum_element_uid": param_value
                 }
             }
             ```
             or
             ```python
             {
-                "qubit_uid": TransmonParameters
+                "quantum_element_uid": QuantumParameters
             }
             ```
 
     Returns:
-        The list of qubits with the temporary parameters applied, including
-        the original qubits that were not modified.
-        If a single qubit is passed, returns the modified qubit.
+        The list of quantum elements with the temporary parameters applied, including
+        the original quantum elements that were not modified.
+        If a single quantum element is passed, returns the modified quantum element.
     """
     if not temporary_parameters:
         return qubits
@@ -100,7 +100,7 @@ def temporary_modify(
     for q in qubits:
         if q.uid in temporary_parameters:
             temp_param = temporary_parameters[q.uid]
-            if isinstance(temp_param, TransmonParameters):
+            if isinstance(temp_param, QuantumParameters):
                 temp_param = attrs.asdict(temp_param)
             new_q = q.replace(**temp_param)
             new_qubits.append(new_q)

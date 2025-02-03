@@ -6,6 +6,7 @@ from copy import deepcopy
 import pytest
 from laboneq.workflow import task, workflow
 
+from laboneq_applications.qpu_types.twpa import TWPA, TWPAParameters
 from laboneq_applications.tasks import temporary_modify
 
 
@@ -56,6 +57,19 @@ class TestTemporaryModify:
         assert len(new_q0) == 1
         assert new_q0[0].parameters.ge_drive_amplitude_pi == 0.55
         assert new_q0[0].parameters.ge_drive_amplitude_pi2 == 0.255
+
+    def test_twpa(self):
+        twpa0 = TWPA(
+            "twpa0",
+            {"measure": "q0/measure", "acquire": "q0/acquire"},
+            TWPAParameters(),
+        )
+        new_twpa0 = temporary_modify(
+            twpa0, {"twpa0": {"readout_range_out": -10, "readout_range_in": -10}}
+        )
+
+        assert new_twpa0.parameters.readout_range_out == -10
+        assert new_twpa0.parameters.readout_range_in == -10
 
     def test_partial_modify(self, two_tunable_transmon_platform, qubit_parameters):
         [q0, q1] = two_tunable_transmon_platform.qpu.qubits
