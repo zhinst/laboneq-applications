@@ -12,17 +12,19 @@ Zurich Instruments [LabOne Q](https://github.com/zhinst/laboneq) software framew
 
 The Applications Library currently contains the following:
 
-### Qubit types
+### Quantum Elements
 
 - Tunable Transmon qubits 
+- Travelling-Wave Parametric Amplifiers (TWPAs)
 
 ### Quantum Operations
 
 - common operations for Tunable Transmon Qubits, such as `measure`, `acquire`, `rx`, `ry`, `rz`, etc.
+- common operations for TWPAs: `twpa_measure`, `twpa_acquire`, `set_pump_power`, `set_pump_cancellation`, etc. 
 
 ### Pre-Built Experiments and Analyses 
 
-Single-qubit calibration measurements:
+Single-qubit gate calibration for transmons:
 
 - Resonator Spectroscopy
 - Qubit Spectroscopy
@@ -32,10 +34,18 @@ Single-qubit calibration measurements:
 - Lifetime measurement
 - Hahn echo
 - Amplitude Fine
+
+Read-out calibration for transmons:
+
 - Dispersive Shift
-- IQ Blobs
+- Single-Short Read-Out Characterization (IQ Blobs)
 - Raw Time Traces for Optimal Readout Weights
 
+Basic TWPA calibration using the Zurich Instruments SHF-PPC:
+
+- TWPA-Pump Cancellation Tone Calibration
+- Gain Curve Measurement
+- TWPA Spectroscopy Measurement
 
 ## How to Install and Use
 
