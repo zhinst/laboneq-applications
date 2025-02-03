@@ -637,6 +637,15 @@ def raw_data():
 
 
 @pytest.fixture
+def results_single_qubit_g(raw_data):
+    return RunExperimentResults(
+        data={
+            handles.result_handle("q0", suffix="g"): AcquiredResult(data=raw_data["g"]),
+        }
+    )
+
+
+@pytest.fixture
 def results_single_qubit_ge(raw_data):
     return RunExperimentResults(
         data={

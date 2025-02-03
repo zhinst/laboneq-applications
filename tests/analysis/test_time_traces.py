@@ -14,6 +14,7 @@ from test_time_traces_data import (  # noqa: F401
     integration_kernels_ge,
     integration_kernels_gef,
     raw_data,
+    results_single_qubit_g,
     results_single_qubit_ge,
     results_single_qubit_gef,
 )
@@ -378,3 +379,73 @@ class TestTimeTracesAnalysisSingleQubitGEF:
             new_qb_pars["readout_integration_discrimination_thresholds"],
             discrimination_thresholds_gef,
         )
+
+
+class TestTimeTracesAnalysisSingleQubitG:
+    def test_create_and_run(
+        self,
+        single_tunable_transmon_platform,
+        results_single_qubit_g,  # noqa: F811
+    ):
+        [q0] = single_tunable_transmon_platform.qpu.qubits
+        options = time_traces.analysis_workflow.options()
+        states = ["g"]
+        result = time_traces.analysis_workflow(
+            result=results_single_qubit_g,
+            qubits=q0,
+            states=states,
+            options=options,
+        ).run()
+
+        assert len(result.tasks) == 6
+        task_names = [t.name for t in result.tasks]
+        assert "filter_integration_kernels" not in task_names
+        assert len(result.tasks["truncate_time_traces"].output["q0"]) == 1
+        data_g = results_single_qubit_g[handles.result_handle("q0", suffix="g")].data
+        assert len(result.tasks["truncate_time_traces"].output["q0"][0]) == len(
+            data_g[: (len(data_g) // 16) * 16]
+        )
+
+        kernels, thresholds = result.tasks["extract_kernels_thresholds"].output
+        assert len(kernels) == 0
+        assert len(thresholds) == 0
+
+        qubit_parameters = result.tasks["extract_qubit_parameters"].output
+        old_qb_pars = qubit_parameters["old_parameter_values"]["q0"]
+        assert len(old_qb_pars) == 0
+        new_qb_pars = qubit_parameters["new_parameter_values"]["q0"]
+        assert len(new_qb_pars) == 0
+
+    def test_create_and_run_filter_kernels(
+        self,
+        single_tunable_transmon_platform,
+        results_single_qubit_g,  # noqa: F811
+    ):
+        [q0] = single_tunable_transmon_platform.qpu.qubits
+        options = time_traces.analysis_workflow.options()
+        options.filter_kernels(True)
+        options.granularity(16)
+        options.filter_cutoff_frequency(350e6)
+        options.sampling_rate(2e9)
+
+        states = ["g"]
+        result = time_traces.analysis_workflow(
+            result=results_single_qubit_g,
+            qubits=q0,
+            states=states,
+            options=options,
+        ).run()
+
+        assert len(result.tasks) == 7
+        task_names = [t.name for t in result.tasks]
+        assert "filter_integration_kernels" in task_names
+
+        kernels, thresholds = result.tasks["extract_kernels_thresholds"].output
+        assert len(kernels) == 0
+        assert len(thresholds) == 0
+
+        qubit_parameters = result.tasks["extract_qubit_parameters"].output
+        old_qb_pars = qubit_parameters["old_parameter_values"]["q0"]
+        assert len(old_qb_pars) == 0
+        new_qb_pars = qubit_parameters["new_parameter_values"]["q0"]
+        assert len(new_qb_pars) == 0

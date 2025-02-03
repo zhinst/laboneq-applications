@@ -17,6 +17,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Literal
 
+import matplotlib as mpl
 import matplotlib.pyplot as plt
 import numpy as np
 import scipy as sp
@@ -30,7 +31,6 @@ from laboneq_applications.core.validation import validate_and_convert_qubits_swe
 if TYPE_CHECKING:
     from collections.abc import Sequence
 
-    import matplotlib as mpl
     from laboneq.workflow.tasks.run_experiment import RunExperimentResults
     from numpy.typing import ArrayLike, NDArray
 
@@ -294,17 +294,23 @@ def extract_kernels_thresholds(
         corresponding discrimination thresholds.
     """
     opts = TimeTracesAnalysisOptions() if options is None else options
+    qubits = validate_and_convert_qubits_sweeps(qubits)
+    integration_kernels, discrimination_thresholds = {}, {}
     if not opts.do_fitting:
         return None, None
 
-    qubits = validate_and_convert_qubits_sweeps(qubits)
-    integration_kernels, discrimination_thresholds = {}, {}
     for q in qubits:
         # below, kernels is a list of PulseSampledComplex pulse functionals and
         # thresholds is a list of floats
-        kernels, thresholds = calculate_integration_kernels_thresholds(
-            truncated_time_traces[q.uid]
-        )
+        try:
+            kernels, thresholds = calculate_integration_kernels_thresholds(
+                truncated_time_traces[q.uid]
+            )
+        except ValueError as err:
+            workflow.comment(
+                f"The optimal kernels could not be calculated for " f"{q.uid}: {err}."
+            )
+            continue
         integration_kernels[q.uid] = [krn.samples for krn in kernels]
         discrimination_thresholds[q.uid] = thresholds
 
@@ -344,7 +350,13 @@ def filter_integration_kernels(
         raise ValueError("Please provide the filter_cutoff_frequency.")
     qubits = validate_and_convert_qubits_sweeps(qubits)
     integration_kernels_filtered = {q.uid: [] for q in qubits}
+    if not opts.do_fitting:
+        return None
+
     for q in qubits:
+        if q.uid not in integration_kernels:  # if kernel extraction failed
+            continue
+
         for krn in integration_kernels[q.uid]:
             poles = 5
             sos = sp.signal.butter(
@@ -365,6 +377,7 @@ def extract_qubit_parameters(
     discrimination_thresholds: dict[str, list] | None,
     integration_kernels: dict[str, list] | None,
     integration_kernels_filtered: dict[str, list] | None,
+    options: TimeTracesAnalysisOptions | None = None,
 ) -> dict[str, dict[str, dict[str, list]]]:
     """Extract the qubit parameters to be updated.
 
@@ -386,6 +399,10 @@ def extract_qubit_parameters(
         integration_kernels_filtered:
             The dictionary with the arrays of filtered integration kernels for each
             qubit as returned by filter_integration_kernels.
+        options:
+            The options for building the workflow as an instance of
+            [TimeTracesAnalysisOptions]. See the docstring of this class for more
+            details.
 
     Returns:
         dict with extracted qubit parameters and the previous values for those qubit
@@ -408,6 +425,7 @@ def extract_qubit_parameters(
         are all None, then the new_parameter_values are not extracted and the function
         only returns the old_parameter_values.
     """
+    opts = TimeTracesAnalysisOptions() if options is None else options
     qubits = validate_and_convert_qubits_sweeps(qubits)
     qubit_parameters = {
         "old_parameter_values": {q.uid: {} for q in qubits},
@@ -415,43 +433,44 @@ def extract_qubit_parameters(
     }
 
     for q in qubits:
-        # Store the old integration kernels and discrimination thresholds
-        old_kernels = q.parameters.readout_integration_kernels
-        old_kerneltype = q.parameters.readout_integration_kernels_type
-        old_thresholds = q.parameters.readout_integration_discrimination_thresholds
-        qubit_parameters["old_parameter_values"][q.uid] = {
-            "readout_integration_kernels": old_kernels,
-            "readout_integration_kernels_type": old_kerneltype,
-            "readout_integration_discrimination_thresholds": old_thresholds,
-        }
+        if opts.do_fitting and q.uid in integration_kernels:
+            # Store the old integration kernels and discrimination thresholds
+            old_kernels = q.parameters.readout_integration_kernels
+            old_kerneltype = q.parameters.readout_integration_kernels_type
+            old_thresholds = q.parameters.readout_integration_discrimination_thresholds
+            qubit_parameters["old_parameter_values"][q.uid] = {
+                "readout_integration_kernels": old_kernels,
+                "readout_integration_kernels_type": old_kerneltype,
+                "readout_integration_discrimination_thresholds": old_thresholds,
+            }
 
-        # Extract and store the new integration kernels and discrimination
-        # thresholds
-        if integration_kernels is not None:
-            qubit_parameters["new_parameter_values"][q.uid][
-                "readout_integration_kernels"
-            ] = [
-                {"function": "sampled_pulse", "samples": krn}
-                for krn in integration_kernels[q.uid]
-            ]
-            qubit_parameters["new_parameter_values"][q.uid][
-                "readout_integration_kernels_type"
-            ] = "optimal"
-        if integration_kernels_filtered is not None:
-            # Overwrite the integration kernels with the filtered ones
-            qubit_parameters["new_parameter_values"][q.uid][
-                "readout_integration_kernels"
-            ] = [
-                {"function": "sampled_pulse", "samples": krn}
-                for krn in integration_kernels_filtered[q.uid]
-            ]
-            qubit_parameters["new_parameter_values"][q.uid][
-                "readout_integration_kernels_type"
-            ] = "optimal"
-        if discrimination_thresholds is not None:
-            qubit_parameters["new_parameter_values"][q.uid][
-                "readout_integration_discrimination_thresholds"
-            ] = discrimination_thresholds[q.uid]
+            # Extract and store the new integration kernels and discrimination
+            # thresholds
+            if integration_kernels is not None:
+                qubit_parameters["new_parameter_values"][q.uid][
+                    "readout_integration_kernels"
+                ] = [
+                    {"function": "sampled_pulse", "samples": krn}
+                    for krn in integration_kernels[q.uid]
+                ]
+                qubit_parameters["new_parameter_values"][q.uid][
+                    "readout_integration_kernels_type"
+                ] = "optimal"
+            if integration_kernels_filtered is not None:
+                # Overwrite the integration kernels with the filtered ones
+                qubit_parameters["new_parameter_values"][q.uid][
+                    "readout_integration_kernels"
+                ] = [
+                    {"function": "sampled_pulse", "samples": krn}
+                    for krn in integration_kernels_filtered[q.uid]
+                ]
+                qubit_parameters["new_parameter_values"][q.uid][
+                    "readout_integration_kernels_type"
+                ] = "optimal"
+            if discrimination_thresholds is not None:
+                qubit_parameters["new_parameter_values"][q.uid][
+                    "readout_integration_discrimination_thresholds"
+                ] = discrimination_thresholds[q.uid]
 
     return qubit_parameters
 
@@ -490,11 +509,16 @@ def plot_time_traces(
     for q in qubits:
         # plot traces and kernel
         fig_size = plt.rcParams["figure.figsize"]
+        fig_height_scaling = 1.5 if len(states) > 1 else 1
         fig, axs = plt.subplots(
             nrows=len(states),
             sharex=True,
-            figsize=(fig_size[0], fig_size[1] * 1.5),
+            figsize=(fig_size[0], fig_size[1] * fig_height_scaling),
         )
+        if isinstance(axs, mpl.axes.Axes):
+            # in case len(states) == 1
+            axs = [axs]
+
         fig.align_ylabels()
         axs[0].set_title(timestamped_title(f"Time Traces {q.uid}"))
         axs[-1].set_xlabel("Samples, $N$")
@@ -561,6 +585,9 @@ def plot_kernels_traces(
     qubits = validate_and_convert_qubits_sweeps(qubits)
     figures = {}
     for q in qubits:
+        if q.uid not in integration_kernels:
+            continue
+
         thresholds = discrimination_thresholds[q.uid]
         kernels = integration_kernels[q.uid]
         kernels_to_plot = [kernels]
@@ -575,7 +602,7 @@ def plot_kernels_traces(
             sharex=True,
             figsize=(fig_size[0], fig_size[1] * len(kernels_to_plot)),
         )
-        if not isinstance(axs, np.ndarray):
+        if isinstance(axs, mpl.axes.Axes):
             axs = [axs]
         fig.align_ylabels()
         axs[0].set_title(timestamped_title(f"Integration Kernels {q.uid}"))
@@ -661,8 +688,12 @@ def plot_kernels_fft(
     qubits = validate_and_convert_qubits_sweeps(qubits)
     figures = {}
     for q in qubits:
+        if q.uid not in integration_kernels:  # if kernel calculation failed
+            continue
+
         fig, axs = plt.subplots(nrows=len(integration_kernels[q.uid]), sharex=True)
-        if not isinstance(axs, np.ndarray):
+        if isinstance(axs, mpl.axes.Axes):
+            # in case len(states) == 1
             axs = [axs]
 
         for i, ax in enumerate(axs):
