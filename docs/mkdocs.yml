@@ -62,6 +62,7 @@ nav:
             - Tune-Up Guides:
                 - Qubit Tune-Up: how-to-guides/sources/01_superconducting_qubits/03_tuneup_guides/00_tuneup_qubits.ipynb
                 - Active Reset: how-to-guides/sources/01_superconducting_qubits/03_tuneup_guides/01_tuneup_active_reset.ipynb
+                - TWPA Tune-Up: how-to-guides/sources/01_superconducting_qubits/03_tuneup_guides/02_tuneup_twpa.ipynb
         - Spin Qubits:
           - how-to-guides/sources/02_spin_qubits/index.md
           - how-to-guides/sources/02_spin_qubits/00_neartime_callback_sweeps.ipynb
