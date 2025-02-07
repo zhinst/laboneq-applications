@@ -6,14 +6,15 @@
     - docker
   variables:
     USE_LABONEQ_DEVELOP: "true"
-  script:
+  before_script:
     - pip install -r requirements-dev.txt
     - pip install -e .
     - |-
         if [[ $USE_LABONEQ_DEVELOP == "true" ]]; then
           pip install laboneq --upgrade --pre --extra-index-url=https://artifactory.zhinst.com/artifactory/api/pypi/ZIPyPI/simple
         fi
-    - pytest tests -vv
+  script:
+    - pytest tests -vv --ignore=tests/contrib
 
 test:python-3.9:
   extends: ".template_test"
@@ -42,13 +43,7 @@ test:coverage:
   extends: ".template_test"
   image: python:3.12
   script:
-    - pip install -r requirements-dev.txt
-    - pip install -e .
-    - |-
-        if [[ $USE_LABONEQ_DEVELOP == "true" ]]; then
-          pip install laboneq --upgrade --pre --extra-index-url=https://artifactory.zhinst.com/artifactory/api/pypi/ZIPyPI/simple
-        fi
-    - pytest tests -v --cov=laboneq_applications --cov=tests --cov-branch --cov-config=ci/coveragerc -n auto
+    - pytest tests -v --ignore=tests/contrib --cov=laboneq_applications --cov=tests --cov-branch --cov-config=ci/coveragerc -n auto
     - coverage xml -o coverage.xml
     - coverage html -d coverage_html
   artifacts:
@@ -64,14 +59,15 @@ test:coverage:
 test:docs_notebooks:python-3.9:
   extends: ".template_test"
   script:
-    - pip install -r requirements-dev.txt
     - pip install -r docs/requirements-ext.txt
-    - pip install -e .
-    - |-
-        if [[ $USE_LABONEQ_DEVELOP == "true" ]]; then
-          pip install laboneq --upgrade --pre --extra-index-url=https://artifactory.zhinst.com/artifactory/api/pypi/ZIPyPI/simple
-        fi
     - pytest --nbmake docs/sources --nbmake-kernel=python --nbmake-timeout=240 --durations=0
+
+test:contrib_smoke_test:
+  extends: ".template_test"
+  image: python:3.9
+  script:
+    - pytest tests/contrib -vv
+
 
 test:laboneq-feature-branch:
   when: manual
