@@ -21,12 +21,12 @@ from laboneq import workflow
 from laboneq.simple import dsl
 from scipy.ndimage import maximum_filter, minimum_filter
 
-from laboneq_applications.analysis.plotting_helpers import timestamped_title
-from laboneq_applications.core import validation
-from laboneq_applications.experiments.options import (
-    TuneupAnalysisOptions,
+from laboneq_applications.analysis.options import (
+    BasePlottingOptions,
     TuneUpAnalysisWorkflowOptions,
 )
+from laboneq_applications.analysis.plotting_helpers import timestamped_title
+from laboneq_applications.core import validation
 
 if TYPE_CHECKING:
     import matplotlib as mpl
@@ -49,15 +49,46 @@ class TWPATuneUpAnalysisWorkflowOptions:
     )
 
 
-@workflow.task_options(base_class=TuneupAnalysisOptions)
-class TWPATuneUpAnalysisOptions:
-    """Options for the TWPA tune-up analysis."""
+@workflow.task_options
+class DoSNROption:
+    """The `do_snr` option for the TWPA tune-up analysis.
+
+    Attributes:
+        do_snr:
+            Whether to run SNR measurement.
+            Default: `False`.
+    """
 
     do_snr: bool = workflow.option_field(
         False, description="Whether to run SNR measurement."
     )
-    use_probe_from_ppc: bool = workflow.option_field(
-        True, description="Whether to use the PPC for sending the probe tone."
+
+
+@workflow.task_options
+class Plot2DTWPAOptions(DoSNROption, BasePlottingOptions):
+    """Options for the `plot_2d` task of the TWPA tune-up analysis workflow.
+
+    Attributes:
+        do_fitting:
+            Whether to perform the fit.
+            Default: `True`.
+
+    Additional attributes from `TWPADoSNROption`:
+        do_snr:
+            Whether to run SNR measurement.
+            Default: `False`.
+
+    Additional attributes from `BasePlottingOptions`:
+        save_figures:
+            Whether to save the figures.
+            Default: `True`.
+        close_figures:
+            Whether to close the figures.
+            Default: `True`.
+    """
+
+    do_fitting: bool = workflow.option_field(
+        True, description="Whether to perform the fit."
     )
 
 
@@ -184,10 +215,10 @@ def fit_data(
     pump_power: ArrayLike,
     signal_dict: dict,
     noise_dict: dict | None = None,
-    options: TWPATuneUpAnalysisOptions | None = None,
+    options: DoSNROption | None = None,
 ) -> dict[str, ArrayLike]:
     """Fit the data to obtain the maximum gain and SNR."""
-    opts = TWPATuneUpAnalysisOptions() if options is None else options
+    opts = DoSNROption() if options is None else options
     fit_results = {}
     signal_pump_on = signal_dict["data_pump_on_dbm"]
     signal_pump_off = signal_dict["data_pump_off_dbm"]
@@ -225,10 +256,10 @@ def fit_data(
 def extract_parametric_amplifier_parameters(
     parametric_amplifier: TWPA,
     fit_results: dict,
-    options: TWPATuneUpAnalysisOptions | None = None,
+    options: DoSNROption | None = None,
 ) -> dict[str, dict[str, dict[str, int | float | unc.core.Variable | None]]]:
     """Extract the parametric amplifier parameters."""
-    opts = TWPATuneUpAnalysisOptions() if options is None else options
+    opts = DoSNROption() if options is None else options
     parametric_amplifier = validation.validate_and_convert_single_qubit_sweeps(
         parametric_amplifier
     )
@@ -272,10 +303,10 @@ def plot_2d(  # noqa: PLR0915
     pump_power: ArrayLike,
     signal_dict: dict,
     noise_dict: dict | None = None,
-    options: TWPATuneUpAnalysisOptions | None = None,
+    options: Plot2DTWPAOptions | None = None,
 ) -> mpl.figure.Figure | None:
     """Plot the 2D phase diagram of the TWPA."""
-    opts = TWPATuneUpAnalysisOptions() if options is None else options
+    opts = Plot2DTWPAOptions() if options is None else options
     signal_pump_on = signal_dict["data_pump_on_dbm"]
     signal_pump_off = signal_dict["data_pump_off_dbm"]
     x = pump_frequency / 1e9

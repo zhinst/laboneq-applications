@@ -24,11 +24,19 @@ from laboneq import workflow
 from laboneq.simple import dsl
 
 from laboneq_applications.analysis.calibration_traces_rotation import (
+    CalculateQubitPopulationOptions,
     calculate_population_1d,
+    extract_raw_data_dict,
 )
 from laboneq_applications.analysis.fitting_helpers import (
     fit_data_lmfit,
     linear,
+)
+from laboneq_applications.analysis.options import (
+    ExtractQubitParametersTransitionOptions,
+    FitDataOptions,
+    PlotPopulationOptions,
+    TuneUpAnalysisWorkflowOptions,
 )
 from laboneq_applications.analysis.plotting_helpers import (
     plot_raw_complex_data_1d,
@@ -37,10 +45,6 @@ from laboneq_applications.analysis.plotting_helpers import (
 from laboneq_applications.core.validation import (
     validate_and_convert_qubits_sweeps,
     validate_result,
-)
-from laboneq_applications.experiments.options import (
-    TuneupAnalysisOptions,
-    TuneUpAnalysisWorkflowOptions,
 )
 
 if TYPE_CHECKING:
@@ -82,11 +86,8 @@ def analysis_workflow(
             arrays.
         options:
             The options for building the workflow, passed as an instance of
-                [TuneUpAnalysisWorkflowOptions].
-            In addition to options from [WorkflowOptions], the following
-            custom options are supported: do_fitting, do_plotting, and the options of
-            the [TuneupAnalysisOptions] class. See the docstring of
-            [TuneUpAnalysisWorkflowOptions] for more details.
+            [TuneUpAnalysisWorkflowOptions]. See the docstring of this class for
+            more details.
 
     Returns:
         WorkflowBuilder:
@@ -135,7 +136,7 @@ def calculate_qubit_population_for_pulse_ids(
     qubits: QuantumElements,
     result: RunExperimentResults,
     q_scalings: QubitSweepPoints,
-    options: TuneupAnalysisOptions | None = None,
+    options: CalculateQubitPopulationOptions | None = None,
 ) -> dict[str, dict[str, dict[str, ArrayLike]]]:
     """Processes the raw data from the experiment result.
 
@@ -161,10 +162,7 @@ def calculate_qubit_population_for_pulse_ids(
             arrays.
         options:
             The options for processing the raw data.
-            See [TuneupAnalysisOptions], [TuneupExperimentOptions] and
-            [BaseExperimentOptions] for accepted options.
-            Overwrites the options from [TuneupAnalysisOptions],
-            [TuneupExperimentOptions] and [BaseExperimentOptions].
+            See [CalculateQubitPopulationOptions] for accepted options.
 
     Returns:
         dict with qubit UIDs as keys. The dictionary of processed data for each qubit
@@ -177,7 +175,7 @@ def calculate_qubit_population_for_pulse_ids(
             If result is not an instance of RunExperimentResults.
     """
     validate_result(result)
-    opts = TuneupAnalysisOptions() if options is None else options
+    opts = CalculateQubitPopulationOptions() if options is None else options
     qubits, q_scalings = validate_and_convert_qubits_sweeps(qubits, q_scalings)
     processed_data_dict = {}
     for q, qscales in zip(qubits, q_scalings):
@@ -191,14 +189,18 @@ def calculate_qubit_population_for_pulse_ids(
         else:
             calibration_traces = []
             do_pca = True
+
         for pulse_id in result[dsl.handles.result_handle(q.uid)]:
             raw_data = result[dsl.handles.result_handle(q.uid, suffix=pulse_id)].data
-            data_dict = calculate_population_1d(
-                raw_data,
-                qscales,
-                calibration_traces,
-                do_pca=do_pca,
-            )
+            if opts.do_rotation:
+                data_dict = calculate_population_1d(
+                    raw_data,
+                    qscales,
+                    calibration_traces,
+                    do_pca=do_pca,
+                )
+            else:
+                data_dict = extract_raw_data_dict(raw_data, qscales, calibration_traces)
             processed_data_dict[q.uid][pulse_id] = data_dict
     return processed_data_dict
 
@@ -207,7 +209,7 @@ def calculate_qubit_population_for_pulse_ids(
 def fit_data(
     qubits: QuantumElements,
     processed_data_dict: dict[str, dict[str, dict[str, ArrayLike]]],
-    options: TuneupAnalysisOptions | None = None,
+    options: FitDataOptions | None = None,
 ) -> dict[str, dict[str, lmfit.model.ModelResult]]:
     """Perform a fit of a linear model to the data.
 
@@ -218,15 +220,14 @@ def fit_data(
             processed_data_dict.
         processed_data_dict: the processed data dictionary returned by process_raw_data
         options:
-            The options for processing the raw data.
-            See [TuneupAnalysisOptions], [TuneupExperimentOptions] and
-            [BaseExperimentOptions] for accepted options.
+            The options class for this task as an instance of [FitDataOptions]. See
+            the docstring of this class for accepted options.
 
     Returns:
         dict with qubit UIDs as keys, "y180"/"my180" as subkeys and the fit results
         for each qubit as values.
     """
-    opts = TuneupAnalysisOptions() if options is None else options
+    opts = FitDataOptions() if options is None else options
     qubits = validate_and_convert_qubits_sweeps(qubits)
     fit_results = {}
     if not opts.do_fitting:
@@ -236,7 +237,9 @@ def fit_data(
         fit_results[q.uid] = {}
         for pulse_id in processed_data_dict[q.uid]:
             swpts_fit = processed_data_dict[q.uid][pulse_id]["sweep_points"]
-            data_to_fit = processed_data_dict[q.uid][pulse_id]["population"]
+            data_to_fit = processed_data_dict[q.uid][pulse_id][
+                "population" if opts.do_rotation else "data_raw"
+            ]
             if pulse_id == "xx":
                 param_hints = {
                     "gradient": {"value": 0, "vary": False},
@@ -272,7 +275,7 @@ def fit_data(
 def extract_qubit_parameters(
     qubits: QuantumElements,
     fit_results: dict[str, dict[str, lmfit.model.ModelResult]],
-    options: TuneupAnalysisOptions | None = None,
+    options: ExtractQubitParametersTransitionOptions | None = None,
 ) -> dict[str, dict[str, dict[str, int | float | unc.core.Variable | None]]]:
     """Extract the qubit parameters from the fit results.
 
@@ -284,8 +287,7 @@ def extract_qubit_parameters(
         fit_results: the fit-results dictionary returned by fit_data
         options:
             The options for extracting the qubit parameters.
-            See [TuneupAnalysisOptions], [TuneupExperimentOptions] and
-            [BaseExperimentOptions] for accepted options.
+            See [ExtractQubitParametersTransitionOptions] for accepted options.
 
     Returns:
         dict with extracted qubit parameters and the previous values for those qubit
@@ -309,7 +311,7 @@ def extract_qubit_parameters(
         If a qubit uid is not found in fit_results, the new_parameter_values entry for
         that qubit is left empty.
     """
-    opts = TuneupAnalysisOptions() if options is None else options
+    opts = ExtractQubitParametersTransitionOptions() if options is None else options
     qubits = validate_and_convert_qubits_sweeps(qubits)
     qubit_parameters = {
         "old_parameter_values": {q.uid: {} for q in qubits},
@@ -367,7 +369,7 @@ def plot_population(
         dict[str, dict[str, int | float | unc.core.Variable | None]],
     ]
     | None,
-    options: TuneupAnalysisOptions | None = None,
+    options: PlotPopulationOptions | None = None,
 ) -> dict[str, mpl.figure.Figure]:
     """Create the DRAG quadrature-scaling calibration plots.
 
@@ -381,9 +383,8 @@ def plot_population(
         qubit_parameters: the qubit-parameters dictionary returned by
             extract_qubit_parameters
         options:
-            The options for processing the raw data.
-            See [TuneupAnalysisOptions], [TuneupExperimentOptions] and
-            [BaseExperimentOptions] for accepted options.
+            The options class for this task as an instance of [PlotPopulationOptions].
+            See the docstring of this class for accepted options.
 
     Returns:
         dict with qubit UIDs as keys and the figures for each qubit as values.
@@ -391,7 +392,7 @@ def plot_population(
         If a qubit uid is not found in fit_results, the fit and the textbox with the
         extracted qubit parameters are not plotted.
     """
-    opts = TuneupAnalysisOptions() if options is None else options
+    opts = PlotPopulationOptions() if options is None else options
     qubits = validate_and_convert_qubits_sweeps(qubits)
     figures = {}
     for q in qubits:

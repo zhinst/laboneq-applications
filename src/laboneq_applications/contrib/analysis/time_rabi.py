@@ -35,12 +35,13 @@ from laboneq_applications.analysis.calibration_traces_rotation import (
 from laboneq_applications.analysis.fitting_helpers import (
     get_pi_pi2_xvalues_on_cos,
 )
-from laboneq_applications.analysis.plotting_helpers import plot_raw_complex_data_1d
-from laboneq_applications.core.validation import validate_and_convert_qubits_sweeps
-from laboneq_applications.experiments.options import (
-    TuneupAnalysisOptions,
+from laboneq_applications.analysis.options import (
+    ExtractQubitParametersTransitionOptions,
+    PlotPopulationOptions,
     TuneUpAnalysisWorkflowOptions,
 )
+from laboneq_applications.analysis.plotting_helpers import plot_raw_complex_data_1d
+from laboneq_applications.core.validation import validate_and_convert_qubits_sweeps
 
 if TYPE_CHECKING:
     import lmfit
@@ -81,17 +82,8 @@ def analysis_workflow(
             arrays.
         options:
             The options for building the workflow, passed as an instance of
-                TuneUpAnalysisWorkflowOptions.
-            In addition to options from [WorkflowOptions], the following
-            custom options are supported:
-                - process_raw_data: The options for creating the experiment as an
-                    instance of TuneupAnalysisOptions.
-                - fit_data: The options for performing a fit, passed as an
-                    instance of TuneupAnalysisOptions.
-                - extract_qubit_parameters: The options for extracting qubit parameters
-                    from the fit, passed as an instance of TuneupAnalysisOptions.
-                - plot_data: The options for plotting, passed as an instance of
-                    TuneupAnalysisOptions.
+            [TuneUpAnalysisWorkflowOptions]. See the docstring of this class for
+            more details.
 
     Returns:
         WorkflowBuilder:
@@ -134,7 +126,7 @@ def extract_qubit_parameters(
     qubits: QuantumElements,
     processed_data_dict: dict[str, dict[str, ArrayLike]],
     fit_results: dict[str, lmfit.model.ModelResult],
-    options: TuneupAnalysisOptions | None = None,
+    options: ExtractQubitParametersTransitionOptions | None = None,
 ) -> dict[str, dict[str, dict[str, int | float | unc.core.Variable | None]]]:
     """Extract the qubit parameters from the fit results.
 
@@ -147,10 +139,7 @@ def extract_qubit_parameters(
         fit_results: the fit-results dictionary returned by fit_data
         options:
             The options for extracting the qubit parameters.
-            See [TuneupAnalysisOptions], [TuneupExperimentOptions] and
-            [BaseExperimentOptions] for accepted options.
-            Overwrites the options from [TuneupAnalysisOptions],
-            [TuneupExperimentOptions] and [BaseExperimentOptions].
+            See [ExtractQubitParametersTransitionOptions] for accepted options.
 
     Returns:
         dict with extracted qubit parameters and the previous values for those qubit
@@ -173,7 +162,7 @@ def extract_qubit_parameters(
         ValueError:
             If fit_results are empty (have length 0).
     """
-    opts = TuneupAnalysisOptions() if options is None else options
+    opts = ExtractQubitParametersTransitionOptions() if options is None else options
     qubits = validate_and_convert_qubits_sweeps(qubits)
     qubit_parameters = {
         "old_parameter_values": {q.uid: {} for q in qubits},
@@ -240,7 +229,7 @@ def plot_population(
         dict[str, dict[str, int | float | unc.core.Variable | None]],
     ]
     | None,
-    options: TuneupAnalysisOptions | None = None,
+    options: PlotPopulationOptions | None = None,
 ) -> dict[str, mpl.figure.Figure]:
     """Create the time-Rabi plots.
 
@@ -254,16 +243,13 @@ def plot_population(
         qubit_parameters: the qubit-parameters dictionary returned by
             extract_qubit_parameters
         options:
-            The options for processing the raw data.
-            See [TuneupAnalysisOptions], [TuneupExperimentOptions] and
-            [BaseExperimentOptions] for accepted options.
-            Overwrites the options from [TuneupAnalysisOptions],
-            [TuneupExperimentOptions] and [BaseExperimentOptions].
+            The options class for this task as an instance of [PlotPopulationOptions].
+            See the docstring of this class for accepted options.
 
     Returns:
         dict with qubit UIDs as keys and the figures for each qubit as values.
     """
-    opts = TuneupAnalysisOptions() if options is None else options
+    opts = PlotPopulationOptions() if options is None else options
     qubits = validate_and_convert_qubits_sweeps(qubits)
     figures = {}
     for q in qubits:
@@ -310,7 +296,7 @@ def plot_population(
 
             if len(qubit_parameters["new_parameter_values"][q.uid]) > 0:
                 new_pi_length = qubit_parameters["new_parameter_values"][q.uid][
-                    f"{options.transition}_drive_length"
+                    f"{opts.transition}_drive_length"
                 ]
                 # point at pi-pulse length
                 ax.plot(
@@ -325,7 +311,7 @@ def plot_population(
                 )
                 # textbox
                 old_pi_length = qubit_parameters["old_parameter_values"][q.uid][
-                    f"{options.transition}_drive_length"
+                    f"{opts.transition}_drive_length"
                 ]
                 textstr = (
                     "$\\tau_{\\pi}$ = "

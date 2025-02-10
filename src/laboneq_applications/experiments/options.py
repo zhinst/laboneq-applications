@@ -155,77 +155,6 @@ class ResonatorSpectroscopyExperimentOptions:
     )
 
 
-@task_options(base_class=TuneupExperimentOptions)
-class TuneupAnalysisOptions(TuneupExperimentOptions):
-    """Base options for the analysis of a tune-up experiment.
-
-    Attributes:
-        do_rotation:
-            Whether to rotate the raw data based on calibration traces or principal
-            component analysis.
-            Default: `True`.
-        do_pca:
-            Whether to perform principal component analysis on the raw data independent
-            of whether there were calibration traces in the experiment.
-            Default: `False`.
-        do_fitting:
-            Whether to perform the fit.
-            Default: `True`.
-        fit_parameters_hints:
-            Parameters hints accepted by lmfit
-            Default: None.
-        save_figures:
-            Whether to save the figures.
-            Default: `True`.
-        close_figures:
-            Whether to close the figures.
-            Default: `True`.
-
-    """
-
-    do_rotation: bool = option_field(
-        True,
-        description="Whether to rotate the raw data based on calibration traces or "
-        "principal component analysis.",
-    )
-    do_pca: bool = option_field(
-        False,
-        description="Whether to perform principal component analysis on the raw data"
-        " independent of whether there were calibration traces in the experiment.",
-    )
-    do_fitting: bool = option_field(True, description="Whether to perform the fit.")
-    fit_parameters_hints: dict | None = option_field(
-        None, description="Parameters hints accepted by lmfit."
-    )
-    save_figures: bool = option_field(True, description="Whether to save the figures.")
-    close_figures: bool = option_field(
-        True, description="Whether to close the figures."
-    )
-
-
-@workflow_options
-class TuneUpAnalysisWorkflowOptions:
-    """Option class for tune-up analysis workflows.
-
-    Attributes:
-        do_fitting:
-            Whether to perform the fit.
-            Default: `True`.
-        do_plotting:
-            Whether to make plots.
-            Default: 'True'.
-    """
-
-    do_fitting: bool = option_field(True, description="Whether to perform the fit.")
-    do_plotting: bool = option_field(True, description="Whether to make plots.")
-    do_raw_data_plotting: bool = option_field(
-        True, description="Whether to plot the raw data."
-    )
-    do_qubit_population_plotting: bool = option_field(
-        True, description="Whether to plot the qubit population."
-    )
-
-
 @workflow_options
 class TuneUpWorkflowOptions:
     """Option class for tune-up experiment workflows.
@@ -261,60 +190,6 @@ class QubitSpectroscopyExperimentOptions:
 
     spectroscopy_reset_delay: float = option_field(
         1e-6, description="How long to wait after an acquisition in seconds."
-    )
-
-
-@task_options(base_class=QubitSpectroscopyExperimentOptions)
-class QubitSpectroscopyAnalysisOptions:
-    """Base options for the analysis of a qubit-spectroscopy experiment.
-
-    Attributes:
-        do_fitting:
-            Whether to perform the fit.
-            Default: `True`.
-        fit_parameters_hints:
-            Parameters hints accepted by lmfit
-            Default: None.
-        save_figures:
-            Whether to save the figures.
-            Default: `True`.
-        close_figures:
-            Whether to close the figures.
-            Default: `True`.
-    """
-
-    do_fitting: bool = option_field(True, description="Whether to perform the fit.")
-    fit_parameters_hints: dict | None = option_field(
-        None, description="Parameters hints accepted by lmfit."
-    )
-    save_figures: bool = option_field(True, description="Whether to save the figures.")
-    close_figures: bool = option_field(
-        True, description="Whether to close the figures."
-    )
-
-
-@workflow_options
-class QubitSpectroscopyAnalysisWorkflowOptions:
-    """Option class for qubit spectroscopy analysis workflows.
-
-    Attributes:
-        do_plotting:
-            Whether to make plots.
-            Default: 'True'.
-        do_raw_data_plotting:
-            Whether to plot the raw data.
-            Default: True.
-        do_plotting_qubit_spectroscopy:
-            Whether to plot the final qubit spectroscopy plot.
-            Default: True.
-    """
-
-    do_plotting: bool = option_field(True, description="Whether to make plots.")
-    do_raw_data_plotting: bool = option_field(
-        True, description="Whether to plot the raw data."
-    )
-    do_plotting_qubit_spectroscopy: bool = option_field(
-        True, description="Whether to plot the final qubit spectroscopy plot."
     )
 
 

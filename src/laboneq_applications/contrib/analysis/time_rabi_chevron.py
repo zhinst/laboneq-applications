@@ -18,19 +18,21 @@ import matplotlib.pyplot as plt
 import numpy as np
 from laboneq.workflow import (
     if_,
+    option_field,
     save_artifact,
     task,
+    task_options,
     workflow,
 )
 
+from laboneq_applications.analysis.options import (
+    BasePlottingOptions,
+    TuneUpAnalysisWorkflowOptions,
+)
 from laboneq_applications.contrib.analysis.amplitude_rabi_chevron import (
     calculate_qubit_population_2d,
 )
 from laboneq_applications.core.validation import validate_and_convert_qubits_sweeps
-from laboneq_applications.experiments.options import (
-    TuneupAnalysisOptions,
-    TuneUpAnalysisWorkflowOptions,
-)
 
 if TYPE_CHECKING:
     import matplotlib as mpl
@@ -38,6 +40,39 @@ if TYPE_CHECKING:
     from numpy.typing import ArrayLike
 
     from laboneq_applications.typing import QuantumElements, QubitSweepPoints
+
+
+@task_options(base_class=BasePlottingOptions)
+class PlotPopulationRabiChevronOptions:
+    """Options for the `calculate_qubit_population_2d` task.
+
+    Attributes:
+        cal_states:
+            The states to prepare in the calibration traces. Can be any
+            string or tuple made from combining the characters 'g', 'e', 'f'.
+            Default: same as transition
+        do_pca:
+            Whether to perform principal component analysis on the raw data independent
+            of whether there were calibration traces in the experiment.
+            Default: `False`.
+
+    Additional attributes from `BasePlottingOptions`:
+        save_figures:
+            Whether to save the figures.
+            Default: `True`.
+        close_figures:
+            Whether to close the figures.
+            Default: `True`.
+    """
+
+    cal_states: str | tuple = option_field(
+        "ge", description="The states to prepare in the calibration traces."
+    )
+    do_pca: bool = option_field(
+        False,
+        description="Whether to perform principal component analysis on the raw data"
+        " independent of whether there were calibration traces in the experiment.",
+    )
 
 
 @workflow
@@ -107,7 +142,7 @@ def analysis_workflow(
 def plot_population(
     qubits: QuantumElements,
     processed_data_dict: dict[str, dict[str, ArrayLike]],
-    options: TuneupAnalysisOptions | None = None,
+    options: PlotPopulationRabiChevronOptions | None = None,
 ) -> dict[str, mpl.figure.Figure]:
     """Create the time-Rabi plots.
 
@@ -118,16 +153,14 @@ def plot_population(
             processed_data_dict, fit_results and qubit_parameters.
         processed_data_dict: the processed data dictionary returned by process_raw_data
         options:
-            The options for processing the raw data.
-            See [TuneupAnalysisOptions], [TuneupExperimentOptions] and
-            [BaseExperimentOptions] for accepted options.
-            Overwrites the options from [TuneupAnalysisOptions],
-            [TuneupExperimentOptions] and [BaseExperimentOptions].
+            The options for this task as an instance of
+            [PlotPopulationRabiChevronOptions].
+            See the docstring of this class for more details.
 
     Returns:
         dict with qubit UIDs as keys and the figures for each qubit as values.
     """
-    opts = TuneupAnalysisOptions() if options is None else options
+    opts = PlotPopulationRabiChevronOptions() if options is None else options
     qubits = validate_and_convert_qubits_sweeps(qubits)
     figures = {}
     for q in qubits:

@@ -17,12 +17,15 @@ from typing import TYPE_CHECKING
 import numpy as np
 from laboneq import workflow
 from laboneq.simple import dsl
+from laboneq.workflow import (
+    option_field,
+    task_options,
+)
 
 from laboneq_applications.core.validation import (
     validate_and_convert_qubits_sweeps,
     validate_result,
 )
-from laboneq_applications.experiments.options import TuneupAnalysisOptions
 
 if TYPE_CHECKING:
     from laboneq.workflow.tasks.run_experiment import RunExperimentResults
@@ -249,12 +252,101 @@ def calculate_population_1d(
     }
 
 
+def extract_raw_data_dict(
+    raw_data: ArrayLike,
+    sweep_points: ArrayLike,
+    calibration_traces: list[ArrayLike | complex] | None = None,
+) -> dict:
+    """Extract the raw data information.
+
+    Arguments:
+        raw_data: array of complex data corresponding to the results of an
+            integrated average result, usually of dimension (nr_sweep_points, 1).
+        sweep_points: Sweep points of the acquisition.
+        calibration_traces: A list with two entries of the complex data corresponding to
+            the calibration traces, from the lowest transmon state to the highest.
+
+    Returns:
+        dictionary with the following data:
+            sweep_points,
+            sweep_points extended with as many points as there are cal traces,
+            the artificially added sweep_points for the cal traces,
+            raw data,
+            raw data with calibration traces appended,
+            raw data of the calibration traces.
+    """
+    if calibration_traces is None:
+        calibration_traces = []
+    num_cal_traces = len(calibration_traces)
+    if num_cal_traces == 0:
+        data_raw_w_cal_tr = raw_data
+    else:
+        raw_data_cal_pt_0 = calibration_traces[0]
+        raw_data_cal_pt_1 = calibration_traces[1]
+        cal_traces = np.array([raw_data_cal_pt_0, raw_data_cal_pt_1])
+        data_raw_w_cal_tr = np.concatenate([raw_data, cal_traces])
+    swpts_w_cal_tr = _extend_sweep_points_cal_traces(sweep_points, num_cal_traces)
+
+    return {
+        "sweep_points": np.array(sweep_points),
+        "sweep_points_with_cal_traces": swpts_w_cal_tr,
+        "sweep_points_cal_traces": swpts_w_cal_tr[
+            len(swpts_w_cal_tr) - num_cal_traces :
+        ],
+        "data_raw": raw_data,
+        "data_raw_with_cal_traces": data_raw_w_cal_tr,
+        "data_raw_cal_traces": data_raw_w_cal_tr[
+            len(data_raw_w_cal_tr) - num_cal_traces :
+        ],
+    }
+
+
+@task_options
+class CalculateQubitPopulationOptions:
+    """Options for the `calculate_qubit_population` task.
+
+    Attributes:
+        do_rotation:
+            Whether to rotate the raw data based on calibration traces or principal
+            component analysis.
+            Default: `True`.
+        do_pca:
+            Whether to perform principal component analysis on the raw data independent
+            of whether there were calibration traces in the experiment.
+            Default: `False`.
+        use_cal_traces:
+            Whether to include calibration traces in the experiment.
+            Default: `True`.
+        cal_states:
+            The states to prepare in the calibration traces. Can be any
+            string or tuple made from combining the characters 'g', 'e', 'f'.
+            Default: same as transition
+    """
+
+    do_rotation: bool = option_field(
+        True,
+        description="Whether to rotate the raw data based on calibration traces or "
+        "principal component analysis.",
+    )
+    do_pca: bool = option_field(
+        False,
+        description="Whether to perform principal component analysis on the raw data"
+        " independent of whether there were calibration traces in the experiment.",
+    )
+    use_cal_traces: bool = option_field(
+        True, description="Whether to include calibration traces in the experiment."
+    )
+    cal_states: str | tuple = option_field(
+        "ge", description="The states to prepare in the calibration traces."
+    )
+
+
 @workflow.task
 def calculate_qubit_population(
     qubits: QuantumElements,
     result: RunExperimentResults,
     sweep_points: QubitSweepPoints,
-    options: TuneupAnalysisOptions | None = None,
+    options: CalculateQubitPopulationOptions | None = None,
 ) -> dict[str, dict[str, ArrayLike]]:
     """Calculates the qubit population from the raw data.
 
@@ -279,7 +371,7 @@ def calculate_qubit_population(
             of arrays.
         options:
             The options for building the workflow as an instance of
-            [TuneupAnalysisOptions]. See the docstrings of this class for more
+            [CalculateQubitPopulationOptions]. See the docstrings of this class for more
             details.
 
     Returns:
@@ -293,7 +385,7 @@ def calculate_qubit_population(
         ValueError:
             If the conditions in validate_and_convert_qubits_sweeps are not met.
     """
-    opts = TuneupAnalysisOptions() if options is None else options
+    opts = CalculateQubitPopulationOptions() if options is None else options
     validate_result(result)
     qubits, sweep_points = validate_and_convert_qubits_sweeps(qubits, sweep_points)
     processed_data_dict = {}
@@ -308,11 +400,15 @@ def calculate_qubit_population(
         else:
             calibration_traces = []
             do_pca = True
-        data_dict = calculate_population_1d(
-            raw_data,
-            swpts,
-            calibration_traces,
-            do_pca=do_pca,
-        )
+
+        if opts.do_rotation:
+            data_dict = calculate_population_1d(
+                raw_data,
+                swpts,
+                calibration_traces,
+                do_pca=do_pca,
+            )
+        else:
+            data_dict = extract_raw_data_dict(raw_data, swpts, calibration_traces)
         processed_data_dict[q.uid] = data_dict
     return processed_data_dict

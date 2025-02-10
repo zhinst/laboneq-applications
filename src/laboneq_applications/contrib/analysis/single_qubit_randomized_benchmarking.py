@@ -23,25 +23,30 @@ from laboneq.analysis import fitting as fit_mods
 from laboneq.workflow import (
     comment,
     if_,
+    option_field,
     save_artifact,
     task,
+    task_options,
     workflow,
 )
 from uncertainties.umath import exp
 
 from laboneq_applications.analysis.calibration_traces_rotation import (
+    CalculateQubitPopulationOptions,
     calculate_population_1d,
+    extract_raw_data_dict,
 )
 from laboneq_applications.analysis.fitting_helpers import (
     fit_data_lmfit,
 )
+from laboneq_applications.analysis.options import (
+    BasePlottingOptions,
+    FitDataOptions,
+    TuneUpAnalysisWorkflowOptions,
+)
 from laboneq_applications.core.validation import (
     validate_and_convert_qubits_sweeps,
     validate_result,
-)
-from laboneq_applications.experiments.options import (
-    TuneupAnalysisOptions,
-    TuneUpAnalysisWorkflowOptions,
 )
 
 if TYPE_CHECKING:
@@ -51,6 +56,52 @@ if TYPE_CHECKING:
     from numpy.typing import ArrayLike
 
     from laboneq_applications.typing import QuantumElements
+
+
+@task_options(base_class = BasePlottingOptions)
+class PlotPopulationRBOptions:
+    """Options for the `plot_population` task of the RB analysis.
+
+    Attributes:
+        do_fitting:
+            Whether to perform the fit.
+            Default: `True`.
+        do_rotation:
+            Whether to rotate the raw data based on calibration traces or principal
+            component analysis.
+            Default: `True`.
+        do_pca:
+            Whether to perform principal component analysis on the raw data independent
+            of whether there were calibration traces in the experiment.
+            Default: `False`.
+        cal_states:
+            The states to prepare in the calibration traces. Can be any
+            string or tuple made from combining the characters 'g', 'e', 'f'.
+            Default: same as transition
+
+    Additional attributes from `BasePlottingOptions`:
+        save_figures:
+            Whether to save the figures.
+            Default: `True`.
+        close_figures:
+            Whether to close the figures.
+            Default: `True`.
+    """
+
+    do_fitting: bool = option_field(True, description="Whether to perform the fit.")
+    do_rotation: bool = option_field(
+        True,
+        description="Whether to rotate the raw data based on calibration traces or "
+        "principal component analysis.",
+    )
+    do_pca: bool = option_field(
+        False,
+        description="Whether to perform principal component analysis on the raw data"
+        " independent of whether there were calibration traces in the experiment.",
+    )
+    cal_states: str | tuple = option_field(
+        "ge", description="The states to prepare in the calibration traces."
+    )
 
 
 @workflow
@@ -104,7 +155,7 @@ def calculate_qubit_population_rb(
     result: RunExperimentResults,
     length_cliffords: list,
     variations: int,
-    options: TuneupAnalysisOptions | None = None,
+    options: CalculateQubitPopulationOptions | None = None,
 ) -> dict[str, dict[str, ArrayLike]]:
     """Processes the raw data.
 
@@ -128,11 +179,9 @@ def calculate_qubit_population_rb(
         variations:
             Number of random seeds for RB.
         options:
-            The options for processing the raw data.
-            See [TuneupAnalysisOptions], [TuneupExperimentOptions] and
-            [BaseExperimentOptions] for accepted options.
-            Overwrites the options from [TuneupAnalysisOptions],
-            [TuneupExperimentOptions] and [BaseExperimentOptions].
+            The options for building the workflow as an instance of
+            [CalculateQubitPopulationOptions]. See the docstrings of this class for more
+            details.
 
     Returns:
         dict with qubit UIDs as keys and the dictionary of processed data for each qubit
@@ -144,29 +193,33 @@ def calculate_qubit_population_rb(
             If result is not an instance of RunExperimentResults.
     """
     validate_result(result)
-    opts = TuneupAnalysisOptions() if options is None else options
+    opts = CalculateQubitPopulationOptions() if options is None else options
     cliffords = np.concatenate([length_cliffords for i in range(variations)])
     if isinstance(qubits, Sequence):
-        cliffords = [cliffords for q in qubits]
+        cliffords = [cliffords for _ in qubits]
 
     qubits, cliffords = validate_and_convert_qubits_sweeps(qubits, cliffords)
     processed_data_dict = {}
     for q, cliffs in zip(qubits, cliffords):
-        raw_data = result.result[q.uid].data
+        raw_data = result[q.uid].result.data
         if opts.use_cal_traces:
             calibration_traces = [
-                result.cal_trace[q.uid][cs].data for cs in opts.cal_states
+                result[q.uid].cal_trace[cs].data for cs in opts.cal_states
             ]
             do_pca = opts.do_pca
         else:
             calibration_traces = []
             do_pca = True
-        data_dict = calculate_population_1d(
-            raw_data,
-            cliffs,
-            calibration_traces,
-            do_pca=do_pca,
-        )
+
+        if opts.do_rotation:
+            data_dict = calculate_population_1d(
+                raw_data,
+                cliffs,
+                calibration_traces,
+                do_pca=do_pca,
+            )
+        else:
+            data_dict = extract_raw_data_dict(raw_data, cliffs, calibration_traces)
         processed_data_dict[q.uid] = data_dict
     return processed_data_dict
 
@@ -175,7 +228,7 @@ def calculate_qubit_population_rb(
 def fit_data(
     qubits: QuantumElements,
     processed_data_dict: dict[str, dict[str, ArrayLike]],
-    options: TuneupAnalysisOptions | None = None,
+    options: FitDataOptions | None = None,
 ) -> dict[str, lmfit.model.ModelResult]:
     """Perform a fit of an exponential-decay model to the qubit e-state population.
 
@@ -185,16 +238,13 @@ def fit_data(
             a list of qubits. The UIDs of these qubits must exist in processed_data_dict
         processed_data_dict: the processed data dictionary returned by process_raw_data
         options:
-            The options for processing the raw data.
-            See [TuneupAnalysisOptions], [TuneupExperimentOptions] and
-            [BaseExperimentOptions] for accepted options.
-            Overwrites the options from [TuneupAnalysisOptions],
-            [TuneupExperimentOptions] and [BaseExperimentOptions].
+            The options class for this task as an instance of [FitDataOptions]. See
+            the docstring of this class for accepted options.
 
     Returns:
         dict with qubit UIDs as keys and the fit results for each qubit as keys.
     """
-    opts = TuneupAnalysisOptions() if options is None else options
+    opts = FitDataOptions() if options is None else options
     qubits = validate_and_convert_qubits_sweeps(qubits)
     fit_results = {}
     if not opts.do_fitting:
@@ -205,8 +255,6 @@ def fit_data(
         data_to_fit = processed_data_dict[q.uid][
             "population" if opts.do_rotation else "data_raw"
         ]
-        if not opts.do_rotation:
-            data_to_fit = np.array(data_to_fit, dtype=np.int32)
 
         param_hints = {
             "amplitude": {"value": -0.5},
@@ -235,7 +283,7 @@ def plot_population(
     qubits: QuantumElements,
     processed_data_dict: dict[str, dict[str, ArrayLike]],
     fit_results: dict[str, lmfit.model.ModelResult] | None,
-    options: TuneupAnalysisOptions | None = None,
+    options: PlotPopulationRBOptions | None = None,
 ) -> dict[str, mpl.figure.Figure]:
     """Create the time-Rabi plots.
 
@@ -249,16 +297,13 @@ def plot_population(
         fit_results:
             The fit-results dictionary returned by fit_data.
         options:
-            The options for processing the raw data.
-            See [TuneupAnalysisOptions], [TuneupExperimentOptions] and
-            [BaseExperimentOptions] for accepted options.
-            Overwrites the options from [TuneupAnalysisOptions],
-            [TuneupExperimentOptions] and [BaseExperimentOptions].
+            The options class for this task as an instance of [PlotPopulationRBOptions].
+            See the docstring of this class for accepted options.
 
     Returns:
         dict with qubit UIDs as keys and the figures for each qubit as values.
     """
-    opts = TuneupAnalysisOptions() if options is None else options
+    opts = PlotPopulationRBOptions() if options is None else options
     qubits = validate_and_convert_qubits_sweeps(qubits)
     figures = {}
     for q in qubits:

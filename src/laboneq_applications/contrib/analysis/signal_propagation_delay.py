@@ -19,11 +19,13 @@ from laboneq.workflow import (
     if_,
     save_artifact,
     task,
+    task_options,
     workflow,
 )
 
-from laboneq_applications.experiments.options import (
-    TuneupAnalysisOptions,
+from laboneq_applications.analysis.options import (
+    BasePlottingOptions,
+    DoFittingOption,
     TuneUpAnalysisWorkflowOptions,
 )
 
@@ -32,6 +34,25 @@ if TYPE_CHECKING:
     from laboneq.workflow.tasks.run_experiment import RunExperimentResults
 
     from laboneq_applications.typing import Qubit, QubitSweepPoints
+
+
+@task_options
+class PlotDataOption(DoFittingOption, BasePlottingOptions):
+    """Option class for the `plot_data` task.
+
+    Attributes from `DoFittingOption`:
+        do_fitting:
+            Whether to perform the fit.
+            Default: `True`.
+
+    Attributes from `BasePlottingOptions`:
+        save_figures:
+            Whether to save the figures.
+            Default: `True`.
+        close_figures:
+            Whether to close the figures.
+            Default: `True`.
+    """
 
 
 @workflow
@@ -59,11 +80,8 @@ def analysis_workflow(
             `delays` must be a list of numbers or an array.
         options:
             The options for building the workflow, passed as an instance of
-                [TuneUpAnalysisWorkflowOptions].
-            In addition to options from [WorkflowOptions], the following
-            custom options are supported: do_fitting, do_plotting, and the options of
-            the [TuneupAnalysisOptions] class. See the docstring of
-            [TuneUpAnalysisWorkflowOptions] for more details.
+            [TuneUpAnalysisWorkflowOptions]. See the docstring of this class for
+            more details.
 
     Returns:
         WorkflowBuilder:
@@ -95,7 +113,7 @@ def analysis_workflow(
 def extract_qubit_parameters(
     qubit: Qubit,
     result: RunExperimentResults,
-    options: TuneupAnalysisOptions | None = None,
+    options: DoFittingOption | None = None,
 ) -> dict[str, dict[str, dict[str, int | float | None]]]:
     """Extract the optimal integration delay.
 
@@ -109,8 +127,7 @@ def extract_qubit_parameters(
             The experiment results returned by the run_experiment task.
         options:
             The options for extracting the qubit parameters.
-            See [TuneupAnalysisOptions], [TuneupExperimentOptions] and
-            [BaseExperimentOptions] for accepted options.
+            See [DoFittingOption] for accepted options.
 
     Returns:
         dict with extracted qubit parameters and the previous values for those qubit
@@ -132,7 +149,7 @@ def extract_qubit_parameters(
         If the do_fitting option is False, the new_parameter_values are not extracted
         and the function only returns the old_parameter_values.
     """
-    opts = TuneupAnalysisOptions() if options is None else options
+    opts = DoFittingOption() if options is None else options
     q = qubit
     qubit_parameters = {
         "old_parameter_values": {q.uid: {}},
@@ -144,9 +161,9 @@ def extract_qubit_parameters(
         "port_delay": old_port_delay,
     }
     if opts.do_fitting:
-        iq_data = result.result[q.uid].data
+        iq_data = result[q.uid].result.data
         abs_data = np.abs(iq_data)
-        swpts = result.result[q.uid].axis[0]
+        swpts = result[q.uid].result.axis[0]
         good_delay = swpts[np.argmax(abs_data)]
 
         qubit_parameters["new_parameter_values"][q.uid] = {
@@ -165,7 +182,7 @@ def plot_data(
         dict[str, dict[str, int | float | None]],
     ]
     | None,
-    options: TuneupAnalysisOptions | None = None,
+    options: PlotDataOption | None = None,
 ) -> dict[str, mpl.figure.Figure]:
     """Create the signal propagation delay plot.
 
@@ -177,18 +194,17 @@ def plot_data(
         qubit_parameters: the qubit-parameters dictionary returned by
             extract_qubit_parameters
         options:
-            The options for processing the raw data.
-            See [TuneupAnalysisOptions], [TuneupExperimentOptions] and
-            [BaseExperimentOptions] for accepted options.
+            The options for this task as an instance of [PlotDataOption].
+            See the docstring of this class for more details.
 
     Returns:
         dict with qubit UID as key and the figure as values.
     """
-    opts = TuneupAnalysisOptions() if options is None else options
+    opts = PlotDataOption() if options is None else options
     figures = {}
     q = qubit
-    swpts = result.result[q.uid].axis[0]
-    iq_data = result.result[q.uid].data
+    swpts = result[q.uid].result.axis[0]
+    iq_data = result[q.uid].result.data
     abs_data = np.abs(iq_data)
 
     fig, ax = plt.subplots()

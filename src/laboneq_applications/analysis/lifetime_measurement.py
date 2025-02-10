@@ -26,15 +26,17 @@ from laboneq_applications.analysis.calibration_traces_rotation import (
     calculate_qubit_population,
 )
 from laboneq_applications.analysis.fitting_helpers import exponential_decay_fit
+from laboneq_applications.analysis.options import (
+    ExtractQubitParametersTransitionOptions,
+    FitDataOptions,
+    PlotPopulationOptions,
+    TuneUpAnalysisWorkflowOptions,
+)
 from laboneq_applications.analysis.plotting_helpers import (
     plot_raw_complex_data_1d,
     timestamped_title,
 )
 from laboneq_applications.core.validation import validate_and_convert_qubits_sweeps
-from laboneq_applications.experiments.options import (
-    TuneupAnalysisOptions,
-    TuneUpAnalysisWorkflowOptions,
-)
 
 if TYPE_CHECKING:
     import lmfit
@@ -43,6 +45,32 @@ if TYPE_CHECKING:
     from numpy.typing import ArrayLike
 
     from laboneq_applications.typing import QuantumElements, QubitSweepPoints
+
+
+@workflow.task_options(base_class=FitDataOptions)
+class FitDataT1Options:
+    """Options for the `fit_data` task of the Ramsey analysis.
+
+    See [FitDataOptions] for additional accepted options.
+
+    Attributes:
+        do_pca:
+            Whether to perform principal component analysis on the raw data independent
+            of whether there were calibration traces in the experiment.
+            Default: `False`.
+        use_cal_traces:
+            Whether to include calibration traces in the experiment.
+            Default: `True`.
+    """
+
+    do_pca: bool = workflow.option_field(
+        False,
+        description="Whether to perform principal component analysis on the raw data"
+        " independent of whether there were calibration traces in the experiment.",
+    )
+    use_cal_traces: bool = workflow.option_field(
+        True, description="Whether to include calibration traces in the experiment."
+    )
 
 
 @workflow.workflow
@@ -75,11 +103,8 @@ def analysis_workflow(
             numbers. Otherwise, it must be a list of arrays of numbers.
         options:
             The options for building the workflow, passed as an instance of
-                [TuneUpAnalysisWorkflowOptions].
-            In addition to options from [WorkflowOptions], the following
-            custom options are supported: do_fitting, do_plotting, do_raw_data_plotting,
-            do_qubit_population_plotting and the options of the [TuneupAnalysisOptions]
-            class. See the docstring of [TuneUpAnalysisWorkflowOptions] for more details
+            [TuneUpAnalysisWorkflowOptions]. See the docstring of this class for
+            more details.
 
     Returns:
         WorkflowBuilder:
@@ -120,7 +145,7 @@ def analysis_workflow(
 def fit_data(
     qubits: QuantumElements,
     processed_data_dict: dict[str, dict[str, ArrayLike]],
-    options: TuneupAnalysisOptions | None = None,
+    options: FitDataT1Options | None = None,
 ) -> dict[str, lmfit.model.ModelResult]:
     """Perform a fit of an exponential-decay model to the qubit state population.
 
@@ -130,14 +155,13 @@ def fit_data(
             a list of qubits. The UIDs of these qubits must exist in processed_data_dict
         processed_data_dict: the processed data dictionary returned by process_raw_data
         options:
-            The options for processing the raw data.
-            See [TuneupAnalysisOptions], [TuneupExperimentOptions] and
-            [BaseExperimentOptions] for accepted options.
+            The options class for this task as an instance of [FitDataT1Options]. See
+            the docstring of this class for accepted options.
 
     Returns:
         dict with qubit UIDs as keys and the fit results for each qubit as keys.
     """
-    opts = TuneupAnalysisOptions() if options is None else options
+    opts = FitDataT1Options() if options is None else options
     qubits = validate_and_convert_qubits_sweeps(qubits)
     fit_results = {}
     if not opts.do_fitting:
@@ -145,7 +169,9 @@ def fit_data(
 
     for q in qubits:
         swpts_fit = processed_data_dict[q.uid]["sweep_points"]
-        data_to_fit = processed_data_dict[q.uid]["population"]
+        data_to_fit = processed_data_dict[q.uid][
+            "population" if opts.do_rotation else "data_raw"
+        ]
         param_hints = {
             "offset": {"value": 0, "vary": opts.do_pca or not opts.use_cal_traces},
         }
@@ -170,7 +196,7 @@ def fit_data(
 def extract_qubit_parameters(
     qubits: QuantumElements,
     fit_results: dict[str, lmfit.model.ModelResult],
-    options: TuneupAnalysisOptions | None = None,
+    options: ExtractQubitParametersTransitionOptions | None = None,
 ) -> dict[str, dict[str, dict[str, int | float | unc.core.Variable | None]]]:
     """Extract the qubit parameters from the fit results.
 
@@ -181,8 +207,7 @@ def extract_qubit_parameters(
         fit_results: the fit-results dictionary returned by fit_data
         options:
             The options for extracting the qubit parameters.
-            See [TuneupAnalysisOptions], [TuneupExperimentOptions] and
-            [BaseExperimentOptions] for accepted options.
+            See [ExtractQubitParametersTransitionOptions] for accepted options.
 
     Returns:
         dict with extracted qubit parameters and the previous values for those qubit
@@ -206,7 +231,7 @@ def extract_qubit_parameters(
         If a qubit uid is not found in fit_results, the new_parameter_values entry for
         that qubit is left empty.
     """
-    opts = TuneupAnalysisOptions() if options is None else options
+    opts = ExtractQubitParametersTransitionOptions() if options is None else options
     qubits = validate_and_convert_qubits_sweeps(qubits)
     qubit_parameters = {
         "old_parameter_values": {q.uid: {} for q in qubits},
@@ -245,7 +270,7 @@ def plot_population(
         dict[str, dict[str, int | float | unc.core.Variable | None]],
     ]
     | None,
-    options: TuneupAnalysisOptions | None = None,
+    options: PlotPopulationOptions | None = None,
 ) -> dict[str, mpl.figure.Figure]:
     """Create the lifetime_measurement plots.
 
@@ -259,9 +284,8 @@ def plot_population(
         qubit_parameters: the qubit-parameters dictionary returned by
             extract_qubit_parameters
         options:
-            The options for processing the raw data.
-            See [TuneupAnalysisOptions], [TuneupExperimentOptions] and
-            [BaseExperimentOptions] for accepted options.
+            The options class for this task as an instance of [PlotPopulationOptions].
+            See the docstring of this class for accepted options.
 
     Returns:
         dict with qubit UIDs as keys and the figures for each qubit as values.
@@ -269,7 +293,7 @@ def plot_population(
         If a qubit uid is not found in fit_results, the fit and the textbox with the
         extracted qubit parameters are not plotted.
     """
-    opts = TuneupAnalysisOptions() if options is None else options
+    opts = PlotPopulationOptions() if options is None else options
     qubits = validate_and_convert_qubits_sweeps(qubits)
     figures = {}
     for q in qubits:

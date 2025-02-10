@@ -15,7 +15,7 @@ qubit dephasing time T2 from the fit. Finally, we plot the data and the fit.
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Literal
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -27,13 +27,15 @@ from laboneq_applications.analysis.calibration_traces_rotation import (
     calculate_qubit_population,
 )
 from laboneq_applications.analysis.fitting_helpers import exponential_decay_fit
+from laboneq_applications.analysis.options import (
+    ExtractQubitParametersTransitionOptions,
+    FitDataOptions,
+    PlotPopulationOptions,
+    TuneUpAnalysisWorkflowOptions,
+)
 from laboneq_applications.core.validation import (
     validate_and_convert_qubits_sweeps,
     validate_result,
-)
-from laboneq_applications.experiments.options import (
-    TuneupAnalysisOptions,
-    TuneUpAnalysisWorkflowOptions,
 )
 
 if TYPE_CHECKING:
@@ -44,6 +46,61 @@ if TYPE_CHECKING:
     from numpy.typing import ArrayLike
 
     from laboneq_applications.typing import QuantumElements, QubitSweepPoints
+
+
+@workflow.task_options(base_class=FitDataOptions)
+class FitDataEchoOptions:
+    """Options for the `fit_data` task of the Ramsey analysis.
+
+    See [FitDataOptions] for additional accepted options.
+
+    Attributes:
+        transition:
+            Transition to perform the experiment on. May be any
+            transition supported by the quantum operations.
+            Default: `"ge"` (i.e. ground to first excited state).
+        do_pca:
+            Whether to perform principal component analysis on the raw data independent
+            of whether there were calibration traces in the experiment.
+            Default: `False`.
+        use_cal_traces:
+            Whether to include calibration traces in the experiment.
+            Default: `True`.
+    """
+
+    transition: Literal["ge", "ef"] = workflow.option_field(
+        "ge",
+        description="Transition to perform the experiment on. May be any"
+        " transition supported by the quantum operations.",
+    )
+    do_pca: bool = workflow.option_field(
+        False,
+        description="Whether to perform principal component analysis on the raw data"
+        " independent of whether there were calibration traces in the experiment.",
+    )
+    use_cal_traces: bool = workflow.option_field(
+        True, description="Whether to include calibration traces in the experiment."
+    )
+
+
+@workflow.task_options(base_class=plt_hlp.PlotRawDataOptions)
+class PlotRawDataEchoOptions:
+    """Options for the `plot_raw_complex_data_1d` task of the Echo analysis.
+
+    See [PlotRawDataOptions] for additional accepted options.
+
+    Attributes:
+        transition:
+            Transition to perform the experiment on. May be any
+            transition supported by the quantum operations.
+            Default: `"ge"` (i.e. ground to first excited state).
+    """
+
+    transition: Literal["ge", "ef"] = workflow.option_field(
+        "ge",
+        description="Transition to perform the experiment on. May be any"
+        " transition supported by the quantum operations.",
+    )
 
 
 @workflow.workflow
@@ -114,7 +171,7 @@ def analysis_workflow(
 def fit_data(
     qubits: QuantumElements,
     processed_data_dict: dict[str, dict[str, ArrayLike]],
-    options: TuneupAnalysisOptions | None = None,
+    options: FitDataEchoOptions | None = None,
 ) -> dict[str, lmfit.model.ModelResult]:
     """Perform a fit of an exponential-decay model to the qubit e-state population.
 
@@ -125,13 +182,13 @@ def fit_data(
         processed_data_dict: the processed data dictionary containing the qubit
             population to be fitted and the sweep points of the experiment.
         options:
-            The options for building the workflow as an instance of
-            [TuneupAnalysisOptions]. See the docstrings of this class for more details.
+            The options class for this task as an instance of [FitDataEchoOptions]. See
+            the docstring of this class for accepted options.
 
     Returns:
         dict with qubit UIDs as keys and the fit results for each qubit as values.
     """
-    opts = TuneupAnalysisOptions() if options is None else options
+    opts = FitDataEchoOptions() if options is None else options
     qubits = validate_and_convert_qubits_sweeps(qubits)
     fit_results = {}
     if not opts.do_fitting:
@@ -171,7 +228,7 @@ def fit_data(
 def extract_qubit_parameters(
     qubits: QuantumElements,
     fit_results: dict[str, lmfit.model.ModelResult],
-    options: TuneupAnalysisOptions | None = None,
+    options: ExtractQubitParametersTransitionOptions | None = None,
 ) -> dict[str, dict[str, dict[str, int | float | unc.core.Variable | None]]]:
     """Extract the new T2 values for each qubit from the fit results.
 
@@ -181,8 +238,8 @@ def extract_qubit_parameters(
             a list of qubits.
         fit_results: the fit-results dictionary returned by the task `fit_data`.
         options:
-            The options for building the workflow as an instance of
-            [TuneupAnalysisOptions]. See the docstrings of this class for more details.
+            The options for extracting the qubit parameters.
+            See [ExtractQubitParametersTransitionOptions] for accepted options.
 
     Returns:
         dict with extracted qubit parameters and the previous values for those qubit
@@ -206,7 +263,7 @@ def extract_qubit_parameters(
         If a qubit uid is not found in fit_results, the new_parameter_values entry for
         that qubit is left empty.
     """
-    opts = TuneupAnalysisOptions() if options is None else options
+    opts = ExtractQubitParametersTransitionOptions() if options is None else options
     qubits = validate_and_convert_qubits_sweeps(qubits)
     qubit_parameters = {
         "old_parameter_values": {q.uid: {} for q in qubits},
@@ -240,7 +297,7 @@ def plot_raw_complex_data_1d(
     qubits: QuantumElements,
     result: RunExperimentResults | tuple[RunExperimentResults, Results],
     delays: QubitSweepPoints,
-    options: TuneupAnalysisOptions | None = None,
+    options: PlotRawDataEchoOptions | None = None,
 ) -> dict[str, dict[str, ArrayLike]]:
     """Creates the raw-data plots for the Hahn Echo experiment.
 
@@ -262,13 +319,13 @@ def plot_raw_complex_data_1d(
             the pulse sequence in the file defining the experiment. Note that `delays`
             must be identical for qubits that use the same measure port.
         options:
-            The options for building the workflow as an instance of
-            [TuneupAnalysisOptions]. See the docstrings of this class for more details.
+            The options class for this task as an instance of [PlotRawDataEchoOptions].
+            See the docstring of this class for accepted options.
 
     Returns:
         dict with qubit UIDs as keys and the figures for each qubit as values.
     """
-    opts = TuneupAnalysisOptions() if options is None else options
+    opts = PlotRawDataEchoOptions() if options is None else options
     validate_result(result)
     qubits, delays = validate_and_convert_qubits_sweeps(qubits, delays)
 
@@ -302,7 +359,7 @@ def plot_population(
         dict[str, dict[str, int | float | unc.core.Variable | None]],
     ]
     | None,
-    options: TuneupAnalysisOptions | None = None,
+    options: PlotPopulationOptions | None = None,
 ) -> dict[str, mpl.figure.Figure]:
     """Create the Hahn echo plots.
 
@@ -316,11 +373,8 @@ def plot_population(
         qubit_parameters: the qubit-parameters dictionary returned by
             extract_qubit_parameters
         options:
-            The options for processing the raw data.
-            See [TuneupAnalysisOptions], [TuneupExperimentOptions] and
-            [BaseExperimentOptions] for accepted options.
-            Overwrites the options from [TuneupAnalysisOptions],
-            [TuneupExperimentOptions] and [BaseExperimentOptions].
+            The options class for this task as an instance of [PlotPopulationOptions].
+            See the docstring of this class for accepted options.
 
     Returns:
         dict with qubit UIDs as keys and the figures for each qubit as values.
@@ -328,7 +382,7 @@ def plot_population(
         If a qubit uid is not found in fit_results, the fit and the textbox with the
         extracted qubit parameters are not plotted.
     """
-    opts = TuneupAnalysisOptions() if options is None else options
+    opts = PlotPopulationOptions() if options is None else options
     qubits = validate_and_convert_qubits_sweeps(qubits)
     figures = {}
     for q in qubits:

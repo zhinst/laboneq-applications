@@ -23,6 +23,10 @@ from laboneq import workflow
 from laboneq.simple import dsl
 
 from laboneq_applications.analysis.fitting_helpers import lorentzian_fit
+from laboneq_applications.analysis.options import (
+    BasePlottingOptions,
+    DoFittingOption,
+)
 from laboneq_applications.analysis.plotting_helpers import (
     plot_raw_complex_data_1d,
     timestamped_title,
@@ -30,10 +34,6 @@ from laboneq_applications.analysis.plotting_helpers import (
 from laboneq_applications.core.validation import (
     validate_and_convert_qubits_sweeps,
     validate_result,
-)
-from laboneq_applications.experiments.options import (
-    QubitSpectroscopyAnalysisOptions,
-    QubitSpectroscopyAnalysisWorkflowOptions,
 )
 
 if TYPE_CHECKING:
@@ -43,6 +43,72 @@ if TYPE_CHECKING:
     from numpy.typing import ArrayLike
 
     from laboneq_applications.typing import QuantumElements, QubitSweepPoints
+
+
+@workflow.workflow_options
+class QubitSpectroscopyAnalysisWorkflowOptions:
+    """Option class for qubit spectroscopy analysis workflows.
+
+    Attributes:
+        do_plotting:
+            Whether to make plots.
+            Default: 'True'.
+        do_raw_data_plotting:
+            Whether to plot the raw data.
+            Default: True.
+        do_plotting_qubit_spectroscopy:
+            Whether to plot the final qubit spectroscopy plot.
+            Default: True.
+    """
+
+    do_plotting: bool = workflow.option_field(
+        True, description="Whether to make plots."
+    )
+    do_raw_data_plotting: bool = workflow.option_field(
+        True, description="Whether to plot the raw data."
+    )
+    do_plotting_qubit_spectroscopy: bool = workflow.option_field(
+        True, description="Whether to plot the final qubit spectroscopy plot."
+    )
+
+
+@workflow.task_options(base_class=DoFittingOption)
+class FitDataQubitSpecOptions:
+    """Options for the `fit_data` task of the qubit spectroscopy analysis.
+
+    Attributes:
+        fit_parameters_hints:
+            Parameters hints accepted by lmfit
+            Default: None.
+
+    Additional attributes from `DoFittingOption`:
+        do_fitting:
+            Whether to perform the fit.
+            Default: `True`.
+    """
+
+    fit_parameters_hints: dict | None = workflow.option_field(
+        None, description="Parameters hints accepted by lmfit."
+    )
+
+
+@workflow.task_options
+class PlotQubitSpectroscopyOptions(DoFittingOption, BasePlottingOptions):
+    """Options for the `plot_qubit_spectroscopy` task of the qubit spec. analysis.
+
+    Attributes from `DoFittingOption`:
+        do_fitting:
+            Whether to perform the fit.
+            Default: `True`.
+
+    Attributes from `BasePlottingOptions`:
+        save_figures:
+            Whether to save the figures.
+            Default: `True`.
+        close_figures:
+            Whether to close the figures.
+            Default: `True`.
+    """
 
 
 @workflow.workflow
@@ -163,7 +229,7 @@ def calculate_signal_magnitude_and_phase(
 def fit_data(
     qubits: QuantumElements,
     processed_data_dict: dict[str, dict[str, ArrayLike]],
-    options: QubitSpectroscopyAnalysisOptions | None = None,
+    options: FitDataQubitSpecOptions | None = None,
 ) -> dict[str, lmfit.model.ModelResult] | None:
     """Perform a fit of a Lorentzian model to the data.
 
@@ -175,13 +241,13 @@ def fit_data(
         processed_data_dict: the processed data dictionary returned by
             calculate_signal_magnitude_and_phase
         options:
-            The options for processing the raw data.
-            See [QubitSpectroscopyAnalysisOptions] for accepted options.
+            The options class for this task as an instance of [FitDataQubitSpecOptions].
+            See the docstring of this class for accepted options.
 
     Returns:
         dict with qubit UIDs as keys and the fit results for each qubit as keys.
     """
-    opts = QubitSpectroscopyAnalysisOptions() if options is None else options
+    opts = FitDataQubitSpecOptions() if options is None else options
     qubits = validate_and_convert_qubits_sweeps(qubits)
     fit_results = {}
     if not opts.do_fitting:
@@ -207,7 +273,7 @@ def fit_data(
 def extract_qubit_parameters(
     qubits: QuantumElements,
     fit_results: dict[str, lmfit.model.ModelResult] | None,
-    options: QubitSpectroscopyAnalysisOptions | None = None,
+    options: DoFittingOption | None = None,
 ) -> dict[str, dict[str, dict[str, int | float | unc.core.Variable | None]]]:
     """Extract the qubit parameters from the fit results.
 
@@ -218,8 +284,8 @@ def extract_qubit_parameters(
             processed_data_dict.
         fit_results: the fit-results dictionary returned by fit_data
         options:
-            The options for extracting the qubit parameters.
-            See [QubitSpectroscopyAnalysisOptions] for accepted options.
+            The options for this task as an instance of [DoFittingOption].
+            See the docstring of this class for more details.
 
     Returns:
         dict with extracted qubit parameters and the previous values for those qubit
@@ -243,7 +309,7 @@ def extract_qubit_parameters(
         If a qubit uid is not found in fit_results, the new_parameter_values entry for
         that qubit is left empty.
     """
-    opts = QubitSpectroscopyAnalysisOptions() if options is None else options
+    opts = DoFittingOption() if options is None else options
     qubits = validate_and_convert_qubits_sweeps(qubits)
     qubit_parameters = {
         "old_parameter_values": {q.uid: {} for q in qubits},
@@ -279,7 +345,7 @@ def plot_qubit_spectroscopy(
     qubit_parameters: dict[
         str, dict[str, dict[str, int | float | unc.core.Variable | None]]
     ],
-    options: QubitSpectroscopyAnalysisOptions | None = None,
+    options: PlotQubitSpectroscopyOptions | None = None,
 ) -> dict[str, mpl.figure.Figure]:
     """Create the qubit-spectroscopy plots.
 
@@ -294,13 +360,13 @@ def plot_qubit_spectroscopy(
         qubit_parameters: the qubit-parameters dictionary returned by
             extract_qubit_parameters
         options:
-            The options for extracting the qubit parameters.
-            See [QubitSpectroscopyAnalysisOptions] for accepted options.
+            The options for this task as an instance of [PlotQubitSpectroscopyOptions].
+            See the docstring of this class for more details.
 
     Returns:
         dict with qubit UIDs as keys and the figures for each qubit as values.
     """
-    opts = QubitSpectroscopyAnalysisOptions() if options is None else options
+    opts = PlotQubitSpectroscopyOptions() if options is None else options
     qubits = validate_and_convert_qubits_sweeps(qubits)
     figures = {}
 

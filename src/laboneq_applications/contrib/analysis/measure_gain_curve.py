@@ -19,12 +19,12 @@ from laboneq import workflow
 from laboneq.simple import dsl
 from scipy.ndimage import maximum_filter
 
-from laboneq_applications.analysis.plotting_helpers import timestamped_title
-from laboneq_applications.core import validation
-from laboneq_applications.experiments.options import (
-    TuneupAnalysisOptions,
+from laboneq_applications.analysis.options import (
+    BasePlottingOptions,
     TuneUpAnalysisWorkflowOptions,
 )
+from laboneq_applications.analysis.plotting_helpers import timestamped_title
+from laboneq_applications.core import validation
 
 if TYPE_CHECKING:
     import matplotlib as mpl
@@ -63,9 +63,7 @@ def analysis_workflow(
         signal_data = calculate_data(
             parametric_amplifier, result_pump_on, result_pump_off
         )
-    fit_results = fit_data(
-        parametric_amplifier, signal_data, probe_frequency, pump_power
-    )
+    fit_results = fit_data(signal_data, probe_frequency, pump_power)
     parametric_amplifier_parameters = extract_parametric_amplifier_parameters(
         parametric_amplifier, fit_results
     )
@@ -80,8 +78,6 @@ def analysis_workflow(
             pump_power,
         )
         plot_1D(
-            parametric_amplifier,
-            parametric_amplifier_parameters,
             signal_data,
             probe_frequency,
             pump_power,
@@ -148,11 +144,9 @@ def calculate_data(
 
 @workflow.task
 def fit_data(
-    parametric_amplifier: TWPAParameters,
     signal_dict: dict,
     probe_frequency: ArrayLike,
     pump_power: ArrayLike,
-    options: TuneupAnalysisOptions | None = None,
 ) -> dict[str, ArrayLike]:
     """Fit the data."""
     fit_results = {}
@@ -175,7 +169,6 @@ def fit_data(
 def extract_parametric_amplifier_parameters(
     parametric_amplifier: TWPAParameters,
     fit_results: dict,
-    options: TuneupAnalysisOptions | None = None,
 ) -> dict[str, dict[str, dict[str, int | float | unc.core.Variable | None]]]:
     """Extract the parametric amplifier parameters."""
     parametric_amplifier = validation.validate_and_convert_single_qubit_sweeps(
@@ -204,17 +197,17 @@ def extract_parametric_amplifier_parameters(
 
 
 @workflow.task
-def plot_2D( # noqa: N802
+def plot_2D(  # noqa: N802
     parametric_amplifier: TWPAParameters,
     parametric_amplifier_parameters: dict,
     fit_results: dict,
     signal_dict: dict,
     probe_frequency: ArrayLike,
     pump_power: ArrayLike,
-    options: TuneupAnalysisOptions | None = None,
+    options: BasePlottingOptions | None = None,
 ) -> mpl.figure.Figure | None:
     """Plot the 2D gain diagram."""
-    opts = TuneupAnalysisOptions() if options is None else options
+    opts = BasePlottingOptions() if options is None else options
 
     data = signal_dict["data_pump_on_dbm"]
     ref = signal_dict["data_pump_off_dbm"]
@@ -265,17 +258,15 @@ def plot_2D( # noqa: N802
 
 
 @workflow.task
-def plot_1D( # noqa: N802
-    parametric_amplifier: TWPAParameters,
-    parametric_amplifier_parameters: dict,
+def plot_1D(  # noqa: N802
     signal_dict: dict,
     probe_frequency: ArrayLike,
     pump_power: ArrayLike,
     selected_indexes: list | None = None,
-    options: TuneupAnalysisOptions | None = None,
+    options: BasePlottingOptions | None = None,
 ) -> mpl.figure.Figure | None:
     """Plot the 1D gain diagram."""
-    opts = TuneupAnalysisOptions() if options is None else options
+    opts = BasePlottingOptions() if options is None else options
     data = signal_dict["data_pump_on_dbm"]
     ref = signal_dict["data_pump_off_dbm"]
     x = np.array(probe_frequency) / 1e9

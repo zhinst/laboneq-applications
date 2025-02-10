@@ -25,15 +25,18 @@ from laboneq_applications.analysis.calibration_traces_rotation import (
     calculate_qubit_population,
 )
 from laboneq_applications.analysis.fitting_helpers import cosine_oscillatory_fit
+from laboneq_applications.analysis.options import (
+    DoFittingOption,
+    ExtractQubitParametersTransitionOptions,
+    FitDataOptions,
+    PlotPopulationOptions,
+    TuneUpAnalysisWorkflowOptions,
+)
 from laboneq_applications.analysis.plotting_helpers import (
     plot_raw_complex_data_1d,
     timestamped_title,
 )
 from laboneq_applications.core.validation import validate_and_convert_qubits_sweeps
-from laboneq_applications.experiments.options import (
-    TuneupAnalysisOptions,
-    TuneUpAnalysisWorkflowOptions,
-)
 
 if TYPE_CHECKING:
     import lmfit
@@ -163,7 +166,7 @@ def fit_data(
     processed_data_dict: dict[str, dict[str, ArrayLike]],
     target_angle: float,
     phase_offset: float,
-    options: TuneupAnalysisOptions | None = None,
+    options: FitDataOptions | None = None,
 ) -> dict[str, lmfit.model.ModelResult]:
     """Perform a fit of a cosine model to the data.
 
@@ -179,16 +182,13 @@ def fit_data(
         phase_offset:
             initial guess for phase_offset of fit.
         options:
-            The options for processing the raw data.
-            See [TuneupAnalysisOptions], [TuneupExperimentOptions] and
-            [BaseExperimentOptions] for accepted options.
-            Overwrites the options from [TuneupAnalysisOptions],
-            [TuneupExperimentOptions] and [BaseExperimentOptions].
+            The options class for this task as an instance of [FitDataOptions]. See
+            the docstring of this class for accepted options.
 
     Returns:
         dict with qubit UIDs as keys and the fit results for each qubit as keys.
     """
-    opts = TuneupAnalysisOptions() if options is None else options
+    opts = FitDataOptions() if options is None else options
     qubits = validate_and_convert_qubits_sweeps(qubits)
     fit_results = {}
     if not opts.do_fitting:
@@ -196,19 +196,25 @@ def fit_data(
 
     for q in qubits:
         swpts_fit = processed_data_dict[q.uid]["sweep_points"]
-        data_to_fit = processed_data_dict[q.uid]["population"]
+        data_to_fit = processed_data_dict[q.uid][
+            "population" if opts.do_rotation else "data_raw"
+        ]
         try:
-            if opts.fit_parameters_hints is None:
-                opts.fit_parameters_hints = {
-                    "frequency": {"value": target_angle, "min": 0},
-                    "phase": {"value": phase_offset},
-                    "amplitude": {"value": 0.5, "vary": False},
-                    "offset": {"value": 0.5, "vary": False},
-                }
+            param_hints = {
+                "frequency": {"value": target_angle, "min": 0},
+                "phase": {"value": phase_offset},
+                "amplitude": {"value": 0.5, "vary": False},
+                "offset": {"value": 0.5, "vary": False},
+            }
+            param_hints_user = opts.fit_parameters_hints
+            if param_hints_user is None:
+                param_hints_user = {}
+            param_hints.update(param_hints_user)
+
             fit_res = cosine_oscillatory_fit(
                 swpts_fit,
                 data_to_fit,
-                param_hints=opts.fit_parameters_hints,
+                param_hints=param_hints,
             )
             fit_results[q.uid] = fit_res
 
@@ -223,7 +229,7 @@ def process_fit_results(
     qubits: QuantumElements,
     fit_results: dict[str, lmfit.model.ModelResult] | None,
     target_angle: float,
-    options: TuneupAnalysisOptions | None = None,
+    options: DoFittingOption | None = None,
 ) -> dict[str, unc.core.Variable]:
     """Process fit results to extract correction factor.
 
@@ -238,17 +244,14 @@ def process_fit_results(
             target angle the specified quantum operation shuould rotate.
             The target_angle is used as initial guess for fitting.
         options:
-            The options for processing the raw data.
-            See [TuneupAnalysisOptions], [TuneupExperimentOptions] and
-            [BaseExperimentOptions] for accepted options.
-            Overwrites the options from [TuneupAnalysisOptions],
-            [TuneupExperimentOptions] and [BaseExperimentOptions].
+            The options class for this task as an instance of [DoFittingOption].
+            See the docstring of this class for accepted options.
 
     Returns:
         dict with qubit UIDs as keys and the processed fit results for each qubit
         as keys.
     """
-    opts = TuneupAnalysisOptions() if options is None else options
+    opts = DoFittingOption() if options is None else options
     qubits = validate_and_convert_qubits_sweeps(qubits)
     processed_fit_results = {}
     if not opts.do_fitting:
@@ -272,7 +275,7 @@ def extract_qubit_parameters(
     fit_results: dict[str, lmfit.model.ModelResult],
     processed_fit_results: dict[str, unc.core.Variable] | None,
     parameter_to_update: str | None = None,
-    options: TuneupAnalysisOptions | None = None,
+    options: ExtractQubitParametersTransitionOptions | None = None,
 ) -> dict[str, dict[str, dict[str, int | float | unc.core.Variable | None]]]:
     """Extract the qubit parameters from the fit results.
 
@@ -288,10 +291,7 @@ def extract_qubit_parameters(
             str that defines the parameter to be updated.
         options:
             The options for extracting the qubit parameters.
-            See [TuneupAnalysisOptions], [TuneupExperimentOptions] and
-            [BaseExperimentOptions] for accepted options.
-            Overwrites the options from [TuneupAnalysisOptions],
-            [TuneupExperimentOptions] and [BaseExperimentOptions].
+            See [ExtractQubitParametersTransitionOptions] for accepted options.
 
     Returns:
         dict with extracted qubit parameters and the previous values for those qubit
@@ -314,7 +314,7 @@ def extract_qubit_parameters(
         ValueError:
             If fit_results are empty (have length 0).
     """
-    opts = TuneupAnalysisOptions() if options is None else options
+    opts = ExtractQubitParametersTransitionOptions() if options is None else options
     qubits = validate_and_convert_qubits_sweeps(qubits)
     qubit_parameters = {
         "old_parameter_values": {q.uid: {} for q in qubits},
@@ -366,7 +366,7 @@ def plot_population(
         dict[str, dict[str, int | float | unc.core.Variable | None]],
     ]
     | None,
-    options: TuneupAnalysisOptions | None = None,
+    options: PlotPopulationOptions | None = None,
 ) -> dict[str, mpl.figure.Figure]:
     """Create the amplitude-Rabi plots.
 
@@ -388,16 +388,13 @@ def plot_population(
         qubit_parameters: the qubit-parameters dictionary returned by
             extract_qubit_parameters
         options:
-            The options for processing the raw data.
-            See [TuneupAnalysisOptions], [TuneupExperimentOptions] and
-            [BaseExperimentOptions] for accepted options.
-            Overwrites the options from [TuneupAnalysisOptions],
-            [TuneupExperimentOptions] and [BaseExperimentOptions].
+            The options class for this task as an instance of [PlotPopulationOptions].
+            See the docstring of this class for accepted options.
 
     Returns:
         dict with qubit UIDs as keys and the figures for each qubit as values.
     """
-    opts = TuneupAnalysisOptions() if options is None else options
+    opts = PlotPopulationOptions() if options is None else options
     qubits = validate_and_convert_qubits_sweeps(qubits)
     figures = {}
     for q in qubits:

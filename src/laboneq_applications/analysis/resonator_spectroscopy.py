@@ -24,14 +24,12 @@ from laboneq import workflow
 from laboneq.simple import dsl
 
 from laboneq_applications.analysis.fitting_helpers import lorentzian_fit
+from laboneq_applications.analysis.options import BasePlottingOptions
 from laboneq_applications.analysis.plotting_helpers import (
     plot_raw_complex_data_1d,
     timestamped_title,
 )
 from laboneq_applications.core import validation
-from laboneq_applications.experiments.options import (
-    ResonatorSpectroscopyExperimentOptions,
-)
 
 if TYPE_CHECKING:
     import lmfit
@@ -39,48 +37,6 @@ if TYPE_CHECKING:
     from laboneq.dsl.quantum.quantum_element import QuantumElement
     from laboneq.workflow.tasks.run_experiment import RunExperimentResults
     from numpy.typing import ArrayLike
-
-
-@workflow.task_options(base_class=ResonatorSpectroscopyExperimentOptions)
-class ResonatorSpectroscopyAnalysisOptions:
-    """Options for the analysis of the resonator spectroscopy experiment.
-
-    Attributes:
-        fit_lorentzian:
-            Whether to fit a Lorentzian model to the data.
-            Default: `False`.
-        fit_parameters_hints:
-            Parameters hints accepted by lmfit
-            Default: None.
-        find_peaks:
-            Whether to search for peaks (True) or dips (False) in the spectrum.
-            Default: `False`.
-        save_figures:
-            Whether to save the figures.
-            Default: `True`.
-        close_figures:
-            Whether to close the figures.
-            Default: `True`.
-
-    """
-
-    fit_lorentzian: bool = workflow.option_field(
-        False, description="Whether to fit a Lorentzian model to the data."
-    )
-    fit_parameters_hints: dict[str, dict[str, float | bool | str]] | None = (
-        workflow.option_field(None, description="Parameters hints accepted by lmfit")
-    )
-    find_peaks: bool = workflow.option_field(
-        False,
-        description="Whether to search for peaks (True) or dips (False) "
-        "in the spectrum.",
-    )
-    save_figures: bool = workflow.option_field(
-        True, description="Whether to save the figures."
-    )
-    close_figures: bool = workflow.option_field(
-        True, description="Whether to close the figures."
-    )
 
 
 @workflow.workflow_options
@@ -113,6 +69,76 @@ class ResonatorSpectroscopyAnalysisWorkflowOptions:
     )
     do_plotting_real_imaginary: bool = workflow.option_field(
         True, description="Whether to plot the real and imaginary data."
+    )
+
+
+@workflow.task_options
+class FitDataResSpecOptions:
+    """Options for the `fit_data` task of the resonator spectroscopy analysis.
+
+    Attributes:
+        fit_lorentzian:
+            Whether to fit a Lorentzian model to the data.
+            Default: `False`.
+        fit_parameters_hints:
+            Parameters hints accepted by lmfit
+            Default: None.
+    """
+
+    fit_lorentzian: bool = workflow.option_field(
+        False, description="Whether to fit a Lorentzian model to the data."
+    )
+    fit_parameters_hints: dict[str, dict[str, float | bool | str]] | None = (
+        workflow.option_field(None, description="Parameters hints accepted by lmfit")
+    )
+
+
+@workflow.task_options
+class ExtractQubitParametersResSpecOptions:
+    """Options for the `extract_qubit_parameters` task of the resonator spec. analysis.
+
+    Attributes:
+        find_peaks:
+            Whether to search for peaks (True) or dips (False) in the spectrum.
+            Default: `False`.
+    """
+
+    find_peaks: bool = workflow.option_field(
+        False,
+        description="Whether to search for peaks (True) or dips (False) "
+        "in the spectrum.",
+    )
+
+
+@workflow.task_options(base_class=BasePlottingOptions)
+class PlotMagnitudePhaseOptions:
+    """Options for the `plot_magnitude_phase` task of the resonator spec. analysis.
+
+    Attributes:
+        fit_lorentzian:
+            Whether to fit a Lorentzian model to the data.
+            Default: `False`.
+        find_peaks:
+            Whether to search for peaks (True) or dips (False) in the spectrum.
+            Default: `False`.
+
+    Additional attributes from `BasePlottingOptions`:
+        save_figures:
+            Whether to save the figures.
+            Default: `True`.
+        close_figures:
+            Whether to close the figures.
+            Default: `True`.
+
+    """
+
+    fit_lorentzian: bool = workflow.option_field(
+        False, description="Whether to fit a Lorentzian model to the data."
+    )
+    find_peaks: bool = workflow.option_field(
+        False,
+        description="Whether to search for peaks (True) or dips (False) "
+        "in the spectrum.",
     )
 
 
@@ -225,7 +251,7 @@ def calculate_signal_magnitude_and_phase(
 @workflow.task
 def fit_data(
     processed_data_dict: dict[str, ArrayLike],
-    options: ResonatorSpectroscopyAnalysisOptions | None = None,
+    options: FitDataResSpecOptions | None = None,
 ) -> lmfit.model.ModelResult | None:
     """Perform a fit of a Lorentzian model to the data if fit_lorentzian == True.
 
@@ -233,14 +259,13 @@ def fit_data(
         processed_data_dict: the processed data dictionary returned by
             calculate_signal_magnitude_and_phase
         options:
-            The options for processing the raw data.
-            See [ResonatorSpectroscopyAnalysisOptions] and
-            [BaseExperimentOptions] for accepted options.
+            The options for this task as an instance of [FitDataResSpecOptions].
+            See the docstring of this class for more details.
 
     Returns:
         dict with qubit UIDs as keys and the fit results for each qubit as keys.
     """
-    opts = ResonatorSpectroscopyAnalysisOptions() if options is None else options
+    opts = FitDataResSpecOptions() if options is None else options
     fit_result = None
 
     if opts.fit_lorentzian:
@@ -264,7 +289,7 @@ def extract_qubit_parameters(
     qubit: QuantumElement,
     processed_data_dict: dict[str, ArrayLike],
     fit_result: lmfit.model.ModelResult | None,
-    options: ResonatorSpectroscopyAnalysisOptions | None = None,
+    options: ExtractQubitParametersResSpecOptions | None = None,
 ) -> dict[str, dict[str, dict[str, int | float | unc.core.Variable | None]]]:
     """Extract the qubit parameters from the fit results.
 
@@ -275,9 +300,9 @@ def extract_qubit_parameters(
             calculate_signal_magnitude_and_phase.
         fit_result: the lmfit ModelResults returned by fit_data
         options:
-            The options for extracting the qubit parameters.
-            See [ResonatorSpectroscopyAnalysisOptions] and
-            [BaseExperimentOptions] for accepted options.
+            The options for this task as an instance of
+            [ExtractQubitParametersResSpecOptions].
+            See the docstring of this class for more details.
 
     Returns:
         dict with extracted qubit parameters and the previous values for those qubit
@@ -299,7 +324,7 @@ def extract_qubit_parameters(
         If the fit_results is None, the new_parameter_values entry for the qubit is
         left empty.
     """
-    opts = ResonatorSpectroscopyAnalysisOptions() if options is None else options
+    opts = ExtractQubitParametersResSpecOptions() if options is None else options
     qubit = validation.validate_and_convert_single_qubit_sweeps(qubit)
 
     qubit_parameters = {
@@ -343,7 +368,7 @@ def plot_magnitude_phase(
     qubit_parameters: dict[
         str, dict[str, dict[str, int | float | unc.core.Variable | None]]
     ],
-    options: ResonatorSpectroscopyAnalysisOptions | None = None,
+    options: PlotMagnitudePhaseOptions | None = None,
 ) -> mpl.figure.Figure | None:
     """Plot the magnitude and phase of the spectroscopy signal.
 
@@ -356,9 +381,8 @@ def plot_magnitude_phase(
         qubit_parameters: the qubit-parameters dictionary returned by
             extract_qubit_parameters
         options:
-            The options for extracting the qubit parameters.
-            See [ResonatorSpectroscopyAnalysisOptions] and
-            [BaseExperimentOptions] for accepted options.
+            The options for this task as an instance of [PlotMagnitudePhaseOptions].
+            See the docstring of this class for more details.
 
     Returns:
         the matplotlib figure
@@ -366,7 +390,7 @@ def plot_magnitude_phase(
         If there are no new_parameter_values for the qubit, then fit result and the
         textbox with the extracted readout resonator frequency are not plotted.
     """
-    opts = ResonatorSpectroscopyAnalysisOptions() if options is None else options
+    opts = PlotMagnitudePhaseOptions() if options is None else options
     qubit = validation.validate_and_convert_single_qubit_sweeps(qubit)
 
     sweep_points = processed_data_dict["sweep_points"]
@@ -472,7 +496,7 @@ def plot_magnitude_phase(
 def plot_real_imaginary(
     qubit: QuantumElement,
     result: RunExperimentResults,
-    options: ResonatorSpectroscopyAnalysisOptions | None = None,
+    options: BasePlottingOptions | None = None,
 ) -> mpl.figure.Figure | None:
     """Create the amplitude-Rabi plots.
 
@@ -482,14 +506,13 @@ def plot_real_imaginary(
         result:
             The experiment results returned by the run_experiment task.
         options:
-            The options for extracting the qubit parameters.
-            See [ResonatorSpectroscopyAnalysisOptions] and
-            [BaseExperimentOptions] for accepted options.
+            The options for this task as an instance of [BasePlottingOptions].
+            See the docstring for this class for more information.
 
     Returns:
         the matplotlib figure
     """
-    opts = ResonatorSpectroscopyAnalysisOptions() if options is None else options
+    opts = BasePlottingOptions() if options is None else options
     validation.validate_result(result)
     qubit = validation.validate_and_convert_single_qubit_sweeps(qubit)
 

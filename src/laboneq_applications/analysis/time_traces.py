@@ -25,6 +25,10 @@ from laboneq import workflow
 from laboneq.analysis import calculate_integration_kernels_thresholds
 from laboneq.simple import dsl
 
+from laboneq_applications.analysis.options import (
+    BasePlottingOptions,
+    DoFittingOption,
+)
 from laboneq_applications.analysis.plotting_helpers import timestamped_title
 from laboneq_applications.core.validation import validate_and_convert_qubits_sweeps
 
@@ -82,15 +86,32 @@ class TimeTracesAnalysisWorkflowOptions:
     )
 
 
-@workflow.task_options
-class TimeTracesAnalysisOptions:
-    """Option class for the tasks in the time-traces analysis workflows.
+@workflow.task_options(base_class=DoFittingOption)
+class TruncateTimeTracesOptions:
+    """Options class for the `truncate_time_traces` task.
 
     Attributes:
         granularity:
             The granularity of the acquisition instrument. Used to truncate the time
             traces to align them to the granularity grid.
             Default: 16.
+
+    Additional attributes from `DoFittingOption`:
+        do_fitting:
+            Whether to perform the fit.
+            Default: `True`.
+    """
+
+    granularity: int = workflow.option_field(
+        16, description="The granularity of the acquisition."
+    )
+
+
+@workflow.task_options(base_class=DoFittingOption)
+class FilterIntegrationKernelsOptions:
+    """Options class for the `filter_integration_kernels` task.
+
+    Attributes:
         filter_cutoff_frequency:
             The cut-off frequency of the low-pass filter for the kernels. Only used
             if filter_kernels is True in TimeTracesAnalysisWorkflowOptions.
@@ -100,9 +121,30 @@ class TimeTracesAnalysisOptions:
             time-traces. The sampling_rate is used when applying a low-pass filter to
             the kernels if filter_kernels is True in TimeTracesAnalysisWorkflowOptions.
             Default: 2e9.
+
+    Additional attributes from `DoFittingOption`:
         do_fitting:
             Whether to perform the fit.
             Default: `True`.
+    """
+
+    filter_cutoff_frequency: float | None = workflow.option_field(
+        None, description="The cut-off frequency."
+    )
+    sampling_rate: float = workflow.option_field(2e9, description="The sampling rate.")
+
+
+@workflow.task_options(base_class=BasePlottingOptions)
+class PlotKernelsFFTOptions:
+    """Options class for the `filter_integration_kernels` task.
+
+    Attributes:
+        filter_cutoff_frequency:
+            The cut-off frequency of the low-pass filter for the kernels. Only used
+            if filter_kernels is True in TimeTracesAnalysisWorkflowOptions.
+            Default: `None`.
+
+    Attributes from `BasePlottingOptions`:
         save_figures:
             Whether to save the figures.
             Default: `True`.
@@ -111,21 +153,8 @@ class TimeTracesAnalysisOptions:
             Default: `True`.
     """
 
-    granularity: int = workflow.option_field(
-        16, description="The granularity of the acquisition."
-    )
     filter_cutoff_frequency: float | None = workflow.option_field(
         None, description="The cut-off frequency."
-    )
-    sampling_rate: float = workflow.option_field(2e9, description="The sampling rate.")
-    do_fitting: bool = workflow.option_field(
-        True, description="Whether to perform the fit."
-    )
-    save_figures: bool = workflow.option_field(
-        True, description="Whether to save the figures."
-    )
-    close_figures: bool = workflow.option_field(
-        True, description="Whether to close the figures."
     )
 
 
@@ -230,7 +259,7 @@ def truncate_time_traces(
     qubits: QuantumElements,
     result: RunExperimentResults,
     states: Sequence[Literal["g", "e", "f"]],
-    options: TimeTracesAnalysisOptions | None = None,
+    options: TruncateTimeTracesOptions | None = None,
 ) -> dict[str, list[ArrayLike]]:
     """Truncate the time traces to align on the granularity grid.
 
@@ -246,16 +275,15 @@ def truncate_time_traces(
             The basis states the qubits should be prepared in. May be either a string,
             e.g. "gef", or a list of letters, e.g. ["g","e","f"].
         options:
-            The options for building the workflow as an instance of
-            [TimeTracesAnalysisOptions]. See the docstring of this class for more
-            details.
+            The options for this task as an instance of [TruncateTimeTracesOptions].
+            See the docstring of this class for more details.
 
     Returns:
         dict with qubit UIDs as keys and the list of truncated time-traces for each
         qubit as keys.
     """
     qubits = validate_and_convert_qubits_sweeps(qubits)
-    opts = TimeTracesAnalysisOptions() if options is None else options
+    opts = TruncateTimeTracesOptions() if options is None else options
 
     truncated_time_traces = {q.uid: [] for q in qubits}
     for q in qubits:
@@ -272,7 +300,7 @@ def truncate_time_traces(
 def extract_kernels_thresholds(
     qubits: QuantumElements,
     truncated_time_traces: dict[str, list[NDArray]],
-    options: TimeTracesAnalysisOptions | None = None,
+    options: DoFittingOption | None = None,
 ) -> tuple[dict[str, list[ArrayLike]] | None, dict[str, list[float]] | None]:
     """Extract the integration kernels and discrimination thresholds.
 
@@ -285,15 +313,14 @@ def extract_kernels_thresholds(
             The dictionary of truncated time traces for each qubit as returned by
             truncate_time_traces.
         options:
-            The options for building the workflow as an instance of
-            [TimeTracesAnalysisOptions]. See the docstring of this class for more
-            details.
+            The options for this task as an instance of [DoFittingOption].
+            See the docstring of this class for more details.
 
     Returns:
         a tuple with the list of integration kernel arrays and a list with the
         corresponding discrimination thresholds.
     """
-    opts = TimeTracesAnalysisOptions() if options is None else options
+    opts = DoFittingOption() if options is None else options
     qubits = validate_and_convert_qubits_sweeps(qubits)
     integration_kernels, discrimination_thresholds = {}, {}
     if not opts.do_fitting:
@@ -321,7 +348,7 @@ def extract_kernels_thresholds(
 def filter_integration_kernels(
     qubits: QuantumElements,
     integration_kernels: dict[str, list[ArrayLike]],
-    options: TimeTracesAnalysisOptions | None = None,
+    options: FilterIntegrationKernelsOptions | None = None,
 ) -> dict[str, list]:
     """Applies a low-pass filter to the kernels.
 
@@ -334,9 +361,9 @@ def filter_integration_kernels(
             A dictionary with qubit uids as keys and the list of arrays of optimal
             integration kernels as values.
         options:
-            The options for building the workflow as an instance of
-            [TimeTracesAnalysisOptions]. See the docstring of this class for more
-            details.
+            The options for this task as an instance of
+            [FilterIntegrationKernelsOptions].
+            See the docstring of this class for more details.
 
     Returns:
         a list with the arrays of filtered integration kernels
@@ -345,7 +372,7 @@ def filter_integration_kernels(
         ValueError:
             If the filter_cutoff_frequency is None.
     """
-    opts = TimeTracesAnalysisOptions() if options is None else options
+    opts = FilterIntegrationKernelsOptions() if options is None else options
     if opts.filter_cutoff_frequency is None:
         raise ValueError("Please provide the filter_cutoff_frequency.")
     qubits = validate_and_convert_qubits_sweeps(qubits)
@@ -377,7 +404,7 @@ def extract_qubit_parameters(
     discrimination_thresholds: dict[str, list] | None,
     integration_kernels: dict[str, list] | None,
     integration_kernels_filtered: dict[str, list] | None,
-    options: TimeTracesAnalysisOptions | None = None,
+    options: DoFittingOption | None = None,
 ) -> dict[str, dict[str, dict[str, list]]]:
     """Extract the qubit parameters to be updated.
 
@@ -400,9 +427,8 @@ def extract_qubit_parameters(
             The dictionary with the arrays of filtered integration kernels for each
             qubit as returned by filter_integration_kernels.
         options:
-            The options for building the workflow as an instance of
-            [TimeTracesAnalysisOptions]. See the docstring of this class for more
-            details.
+            The options for this task as an instance of [DoFittingOption].
+            See the docstring of this class for more details.
 
     Returns:
         dict with extracted qubit parameters and the previous values for those qubit
@@ -425,7 +451,7 @@ def extract_qubit_parameters(
         are all None, then the new_parameter_values are not extracted and the function
         only returns the old_parameter_values.
     """
-    opts = TimeTracesAnalysisOptions() if options is None else options
+    opts = DoFittingOption() if options is None else options
     qubits = validate_and_convert_qubits_sweeps(qubits)
     qubit_parameters = {
         "old_parameter_values": {q.uid: {} for q in qubits},
@@ -480,7 +506,7 @@ def plot_time_traces(
     qubits: QuantumElements,
     states: Sequence[str],
     truncated_time_traces: dict[str, list],
-    options: TimeTracesAnalysisOptions | None = None,
+    options: BasePlottingOptions | None = None,
 ) -> dict[str, mpl.figure.Figure]:
     """Create the time-traces plots.
 
@@ -496,14 +522,13 @@ def plot_time_traces(
             The dictionary of truncated time traces for each qubit as returned by
             truncate_time_traces.
         options:
-            The options for building the workflow as an instance of
-            [TimeTracesAnalysisOptions]. See the docstring of this class for more
-            details.
+            The options for this task as an instance of [BasePlottingOptions].
+            See the docstring of this class for more details.
 
     Returns:
         dict with qubit UIDs as keys and the figures for each qubit as values.
     """
-    opts = TimeTracesAnalysisOptions() if options is None else options
+    opts = BasePlottingOptions() if options is None else options
     qubits = validate_and_convert_qubits_sweeps(qubits)
     figures = {}
     for q in qubits:
@@ -553,7 +578,7 @@ def plot_kernels_traces(
     discrimination_thresholds: dict[str, list],
     integration_kernels: dict[str, list],
     integration_kernels_filtered: dict[str, list] | None = None,
-    options: TimeTracesAnalysisOptions | None = None,
+    options: BasePlottingOptions | None = None,
 ) -> dict[str, mpl.figure.Figure]:
     """Create the plots of the integration kernels.
 
@@ -574,14 +599,13 @@ def plot_kernels_traces(
             qubit as returned by filter_integration_kernels. If None, only the
             integration_kernels are plotted.
         options:
-            The options for building the workflow as an instance of
-            [TimeTracesAnalysisOptions]. See the docstring of this class for more
-            details.
+            The options for this task as an instance of [BasePlottingOptions].
+            See the docstring of this class for more details.
 
     Returns:
         dict with qubit UIDs as keys and the figures for each qubit as values.
     """
-    opts = TimeTracesAnalysisOptions() if options is None else options
+    opts = BasePlottingOptions() if options is None else options
     qubits = validate_and_convert_qubits_sweeps(qubits)
     figures = {}
     for q in qubits:
@@ -656,7 +680,7 @@ def plot_kernels_fft(
     discrimination_thresholds: dict[str, list],
     integration_kernels: dict[str, list],
     integration_kernels_filtered: dict[str, list] | None = None,
-    options: TimeTracesAnalysisOptions | None = None,
+    options: PlotKernelsFFTOptions | None = None,
 ) -> dict[str, mpl.figure.Figure]:
     """Create the plots of the FFT of the integration kernels.
 
@@ -677,14 +701,13 @@ def plot_kernels_fft(
             qubit as returned by filter_integration_kernels. If None, only the
             integration_kernels are plotted.
         options:
-            The options for building the workflow as an instance of
-            [TimeTracesAnalysisOptions]. See the docstring of this class for more
-            details.
+            The options for this task as an instance of [PlotKernelsFFTOptions].
+            See the docstring of this class for more details.
 
     Returns:
         dict with qubit UIDs as keys and the figures for each qubit as values.
     """
-    opts = TimeTracesAnalysisOptions() if options is None else options
+    opts = PlotKernelsFFTOptions() if options is None else options
     qubits = validate_and_convert_qubits_sweeps(qubits)
     figures = {}
     for q in qubits:

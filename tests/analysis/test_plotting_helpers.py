@@ -10,7 +10,6 @@ from laboneq.workflow.tasks.run_experiment import (
 )
 
 from laboneq_applications.analysis import plotting_helpers as plt_hlp
-from laboneq_applications.experiments.options import TuneupAnalysisOptions
 
 
 @pytest.fixture
@@ -156,7 +155,7 @@ class TestRawPlotting:
         # plot_raw_complex_data_1d contains is a task that contains a call to
         # save_artifact if options.save_figures == True, and save_artifacts
         # can only be run inside a workflow
-        options = TuneupAnalysisOptions()
+        options = plt_hlp.PlotRawDataOptions()
         options.save_figures = False
         figures = plt_hlp.plot_raw_complex_data_1d(q0, *result, "xlabel", 1, options)
 
@@ -171,7 +170,7 @@ class TestRawPlotting:
         # plot_raw_complex_data_1d contains is a task that contains a call to
         # save_artifact if options.save_figures == True, and save_artifacts
         # can only be run inside a workflow
-        options = TuneupAnalysisOptions()
+        options = plt_hlp.PlotRawDataOptions()
         options.save_figures = False
         figures = plt_hlp.plot_raw_complex_data_1d(
             qubits, *result_nested_two_qubits, "xlabel", 1, options

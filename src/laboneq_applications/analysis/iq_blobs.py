@@ -27,6 +27,7 @@ from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
 from sklearn.inspection import DecisionBoundaryDisplay
 from sklearn.metrics import confusion_matrix
 
+from laboneq_applications.analysis.options import BasePlottingOptions
 from laboneq_applications.analysis.plotting_helpers import timestamped_title
 from laboneq_applications.core.validation import (
     validate_and_convert_qubits_sweeps,
@@ -73,27 +74,6 @@ class IQBlobAnalysisWorkflowOptions:
     )
     do_plotting_assignment_matrices: bool = workflow.option_field(
         True, description="Whether to create the assignment matrix plots."
-    )
-
-
-@workflow.task_options
-class IQBlobAnalysisOptions:
-    """Option class for the tasks in the iq-blob analysis workflows.
-
-    Attributes:
-        save_figures:
-            Whether to save the figures.
-            Default: `True`.
-        close_figures:
-            Whether to close the figures.
-            Default: `True`.
-    """
-
-    save_figures: bool = workflow.option_field(
-        True, description="Whether to save the figures."
-    )
-    close_figures: bool = workflow.option_field(
-        True, description="Whether to close the figures."
     )
 
 
@@ -335,7 +315,7 @@ def plot_iq_blobs(
     states: Sequence[str],
     processed_data_dict: dict[str, dict[str, ArrayLike | dict]],
     fit_results: dict[str, None] | None,
-    options: IQBlobAnalysisOptions | None = None,
+    options: BasePlottingOptions | None = None,
 ) -> dict[str, mpl.figure.Figure]:
     """Create the IQ-blobs plots.
 
@@ -350,15 +330,15 @@ def plot_iq_blobs(
         processed_data_dict: the processed data dictionary returned by collect_shots.
         fit_results: the classification fit results returned by fit_data.
         options:
-            The options for building the workflow as an instance of
-            [IQBlobAnalysisOptions]. See the docstring of this class for more details.
+            The options class for this task as an instance of [BasePlottingOptions]. See
+            the docstring of this class for accepted options.
 
     Returns:
         dict with qubit UIDs as keys and the figures for each qubit as values.
 
         If a qubit uid is not found in fit_results, the fit is not plotted.
     """
-    opts = IQBlobAnalysisOptions() if options is None else options
+    opts = BasePlottingOptions() if options is None else options
     qubits = validate_and_convert_qubits_sweeps(qubits)
     figures = {}
     for q in qubits:
@@ -417,7 +397,7 @@ def plot_assignment_matrices(
     states: Sequence[str],
     assignment_matrices: dict[str, ArrayLike],
     assignment_fidelities: dict[str, float],
-    options: IQBlobAnalysisOptions | None = None,
+    options: BasePlottingOptions | None = None,
 ) -> dict[str, mpl.figure.Figure]:
     """Create the correct-assignment-matrices plots.
 
@@ -434,13 +414,13 @@ def plot_assignment_matrices(
         assignment_fidelities: the dictionary of assignment fidelities returned by
             calculate_assignment_matrices.
         options:
-            The options for building the workflow as an instance of
-            [IQBlobAnalysisOptions]. See the docstring of this class for more details.
+            The options class for this task as an instance of [BasePlottingOptions]. See
+            the docstring of this class for accepted options.
 
     Returns:
         dict with qubit UIDs as keys and the figures for each qubit as values.
     """
-    opts = IQBlobAnalysisOptions() if options is None else options
+    opts = BasePlottingOptions() if options is None else options
     qubits = validate_and_convert_qubits_sweeps(qubits)
     figures = {}
     for q in qubits:

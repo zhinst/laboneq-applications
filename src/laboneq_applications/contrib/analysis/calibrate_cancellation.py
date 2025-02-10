@@ -18,12 +18,12 @@ from laboneq import workflow
 from laboneq.simple import dsl
 from scipy.ndimage import minimum_filter
 
-from laboneq_applications.analysis.plotting_helpers import timestamped_title
-from laboneq_applications.core import validation
-from laboneq_applications.experiments.options import (
-    TuneupAnalysisOptions,
+from laboneq_applications.analysis.options import (
+    BasePlottingOptions,
     TuneUpAnalysisWorkflowOptions,
 )
+from laboneq_applications.analysis.plotting_helpers import timestamped_title
+from laboneq_applications.core import validation
 
 if TYPE_CHECKING:
     import matplotlib as mpl
@@ -32,6 +32,29 @@ if TYPE_CHECKING:
     from numpy.typing import ArrayLike
 
     from laboneq_applications.qpu_types.twpa import TWPA
+
+
+@workflow.task_options
+class Plot2DOptions(BasePlottingOptions):
+    """Options for the `plot_2D` task of the calibrate cancellation analysis workflow.
+
+    Attributes:
+        do_fitting:
+            Whether to perform the fit.
+            Default: `True`.
+
+    Attributes from `BasePlottingOptions`:
+        save_figures:
+            Whether to save the figures.
+            Default: `True`.
+        close_figures:
+            Whether to close the figures.
+            Default: `True`.
+    """
+
+    do_fitting: bool = workflow.option_field(
+        True, description="Whether to perform the fit."
+    )
 
 
 @workflow.workflow
@@ -152,10 +175,10 @@ def plot_2D(  # noqa: N802
     signal_dict: dict,
     cancel_phaseshift: ArrayLike,
     cancel_attenuation: ArrayLike,
-    options: TuneupAnalysisOptions | None = None,
+    options: Plot2DOptions | None = None,
 ) -> mpl.figure.Figure | None:
     """Plot the 2D plot of the pump tone residual."""
-    opts = TuneupAnalysisOptions() if options is None else options
+    opts = Plot2DOptions() if options is None else options
 
     data = signal_dict["data_dbm"]
     ref = signal_dict["ref_dbm"]

@@ -25,6 +25,7 @@ import numpy as np
 from laboneq import workflow
 from laboneq.simple import dsl
 
+from laboneq_applications.analysis.options import BasePlottingOptions
 from laboneq_applications.analysis.plotting_helpers import timestamped_title
 from laboneq_applications.core import validation
 
@@ -35,28 +36,6 @@ if TYPE_CHECKING:
     from laboneq.dsl.quantum.quantum_element import QuantumElement
     from laboneq.workflow.tasks.run_experiment import RunExperimentResults
     from numpy.typing import ArrayLike
-
-
-@workflow.task_options
-class DispersiveShiftAnalysisOptions:
-    """Base options for the analysis of a dispersive-shift experiment.
-
-    Attributes:
-        save_figures:
-            Whether to save the figures.
-            Default: `True`.
-        close_figures:
-            Whether to close the figures.
-            Default: `True`.
-
-    """
-
-    save_figures: bool = workflow.option_field(
-        True, description="Whether to save the figures."
-    )
-    close_figures: bool = workflow.option_field(
-        True, description="Whether to close the figures."
-    )
 
 
 @workflow.workflow_options
@@ -281,7 +260,7 @@ def plot_dispersive_shift(
     result: RunExperimentResults,
     frequencies: ArrayLike,
     states: Sequence[str],
-    options: DispersiveShiftAnalysisOptions | None = None,
+    options: BasePlottingOptions | None = None,
 ) -> mpl.figure.Figure | None:
     """Plot the magnitude of the transmission signals for each preparation state.
 
@@ -297,7 +276,7 @@ def plot_dispersive_shift(
             The basis states the qubits should be prepared in. May be either a string,
             e.g. "gef", or a list of letters, e.g. ["g","e","f"].
         options:
-            The options, passed as an instance of [DispersiveShiftAnalysisOptions]. See
+            The options, passed as an instance of [BasePlottingOptions]. See
             the docstring of this class for more details.
 
     Returns:
@@ -307,7 +286,7 @@ def plot_dispersive_shift(
         TypeError:
             If the result is not an instance of RunExperimentResults.
     """
-    opts = DispersiveShiftAnalysisOptions() if options is None else options
+    opts = BasePlottingOptions() if options is None else options
     qubit, frequencies = validation.validate_and_convert_single_qubit_sweeps(
         qubit, frequencies
     )
@@ -337,7 +316,7 @@ def plot_signal_distances(
     qubit: QuantumElement,
     frequencies: ArrayLike,
     processed_data_dict: dict[str, ArrayLike],
-    options: DispersiveShiftAnalysisOptions | None = None,
+    options: BasePlottingOptions | None = None,
 ) -> mpl.figure.Figure | None:
     """Plot the pair-wise differences between the signals acquired for each state.
 
@@ -352,13 +331,13 @@ def plot_signal_distances(
             containing the magnitudes of the pair-wise differences between the signals
             acquired for each state; returned by
         options:
-            The options, passed as an instance of [DispersiveShiftAnalysisOptions]. See
+            The options, passed as an instance of [BasePlottingOptions]. See
             the docstring of this class for more details.
 
     Returns:
         the matplotlib figure
     """
-    opts = DispersiveShiftAnalysisOptions() if options is None else options
+    opts = BasePlottingOptions() if options is None else options
     qubit, frequencies = validation.validate_and_convert_single_qubit_sweeps(
         qubit, frequencies
     )
