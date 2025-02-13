@@ -2,22 +2,26 @@
 # SPDX-License-Identifier: Apache-2.0
 
 
-"""Smoke-tests for the time_rabi experiments."""
+"""Smoke-tests for the test_time_rabi_chevron experiments."""
 
 import numpy as np
 
-from laboneq_applications.contrib.experiments import time_rabi
+from laboneq_applications.contrib.experiments import time_rabi_chevron
 
 
-class TestTimeRabi:
-    def test_time_rabi(self, two_tunable_transmon_platform):
+class TestTimeRabiChevron:
+    def test_time_rabi_chevron(self, two_tunable_transmon_platform):
         platform = two_tunable_transmon_platform
         qpu = platform.qpu
         qubits = platform.qpu.qubits
-        options = time_rabi.experiment_workflow.options()
+        options = time_rabi_chevron.experiment_workflow.options()
         options.do_analysis(True)
         session = platform.session(do_emulation=True)
-        wf = time_rabi.experiment_workflow(
+        frequencies = [
+            q.parameters.resonance_frequency_ge + np.linspace(-100e6, 100e6, 11)
+            for q in qubits
+        ]
+        wf = time_rabi_chevron.experiment_workflow(
             session=session,
             qpu=qpu,
             qubits=qubits,
@@ -25,6 +29,7 @@ class TestTimeRabi:
                 np.arange(0.1e-6, 1.05e-6, 0.1e-6),
                 np.arange(0.1e-6, 1.05e-6, 0.1e-6),
             ],
+            frequencies=frequencies,
             options=options,
         )
         wf.run()

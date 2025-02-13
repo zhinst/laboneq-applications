@@ -58,7 +58,7 @@ if TYPE_CHECKING:
     from laboneq_applications.typing import QuantumElements
 
 
-@task_options(base_class = BasePlottingOptions)
+@task_options(base_class=BasePlottingOptions)
 class PlotPopulationRBOptions:
     """Options for the `plot_population` task of the RB analysis.
 
