@@ -413,3 +413,31 @@ def linear_fit(
         data,
         param_hints=param_hints_default,
     )
+
+
+def is_data_convex(x: ArrayLike, y: ArrayLike) -> bool:
+    """Check if a data set is convex.
+
+    The check is done by comparing the data points y to the line
+    between the two end points of the data set (x[0], y[0]), (x[-1], y[-1]).
+
+    Args:
+        x: x values of the data set
+        y: y values of the data set
+
+    Returns:
+        True if the data set is convex, else False.
+    """
+    if len(x) < 2:  # noqa: PLR2004
+        raise ValueError("The x array must have at least two entries.")
+
+    if x[-1] - x[0] == 0:
+        raise ValueError(
+            "Division by zero: the secant gradient cannot be calculated because "
+            "x[-1] - x[0] == 0."
+        )
+
+    secant_gradient = (y[-1] - y[0]) / (x[-1] - x[0])
+    b = y[0] - secant_gradient * x[0]
+    data_line = secant_gradient * x + b
+    return np.all(y[1:-1] >= data_line[1:-1])

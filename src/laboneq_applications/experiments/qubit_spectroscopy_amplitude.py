@@ -26,6 +26,9 @@ from laboneq.workflow.tasks import (
     run_experiment,
 )
 
+from laboneq_applications.analysis.spectroscopy_two_dimensional_plotting import (
+    analysis_workflow,
+)
 from laboneq_applications.core.validation import validate_and_convert_qubits_sweeps
 from laboneq_applications.experiments.options import (
     QubitSpectroscopyExperimentOptions,
@@ -60,6 +63,7 @@ def experiment_workflow(
     - [create_experiment]()
     - [compile_experiment]()
     - [run_experiment]()
+    - [analysis_workflow]()
 
     Arguments:
         session:
@@ -119,6 +123,15 @@ def experiment_workflow(
     )
     compiled_exp = compile_experiment(session, exp)
     result = run_experiment(session, compiled_exp)
+    with workflow.if_(options.do_analysis):
+        analysis_workflow(
+            result=result,
+            qubits=qubits,
+            sweep_points_1d=frequencies,
+            sweep_points_2d=amplitudes,
+            label_sweep_points_1d="Qubit Frequency,\n$f_{\\mathrm{QB}}$ (GHz)",
+            label_sweep_points_2d="Spectroscopy-Drive Amp.,\n$A$ (a.u.)",
+        )
     workflow.return_(result)
 
 
