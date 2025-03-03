@@ -1,6 +1,6 @@
 # Deploy
 
-This document contains information about the release process.
+This document outlines how to release a new version of Applications Library. For consistency let's consider that we want to release version 1.4.0.
 
 ## Version bumping
 
@@ -21,11 +21,21 @@ https://github.com/your-tools/tbump.
   releases should happen on the appropriate existing release branch.
   
 - Release branch names should look like `release-<major>.<minor>.X`
-  where the `X` is a literal `X`. For example, `release-1.1.X`.
+  where the `X` is a literal `X`. For example, `release-1.4.X`.
+
+  ```
+  git checkout main
+  git pull origin main
+  git checkout -b release-1.4.X
+  ```
   
 - After creating the release branch, bump the version of `main` to the
-  development version for the next minor version. For example,
-  `tbump 1.3.0dev0 --no-tag`.
+  development version for the next minor version.
+  
+  ```
+  git checkout main
+  tbump 1.5.0dev0 --no-tag
+  ```
 
 ## Performing a release
 
@@ -37,11 +47,22 @@ https://github.com/your-tools/tbump.
 - Cherry pick changes from main and add fixes to the release branch
   as needed. Repeat as necessary.
 
-- Wait for LabOne Q to be released.
+- Wait for the new version of LabOne Q (e.g. 2.45) to be released.
+
+- In `pyproject.toml` change the version of LabOne Q to the released version.
+
+  ```python
+  "laboneq~=2.45.0"
+  ```
+  - please note that we lock the version of LabOne Q in the release branch, `release-1.4.X`, but not in `main` branch. 
+
 
 - Change `ci/gitlab/test.yml` to build against the latest LabOne Q by
-  switching `USE_LABONEQ_DEVELOP: "true"` to
-  `USE_LABONEQ_DEVELOP: "false"`.
+  setting `USE_LABONEQ_DEVELOP` to `fasle`.
+
+  ```python
+  USE_LABONEQ_DEVELOP: "false"
+  ```
 
 - Wait for the release branch builds to pass.
 
@@ -49,8 +70,16 @@ https://github.com/your-tools/tbump.
   will also create an appropriate tag and push the tag. Pushing the
   tag triggers the automated release pipeline (see next section).
 
+  ```
+  tbump 1.4.0
+  ```
+
 - Once the release has been published, bump the version on the release
-  branch to the next patch version. For example, `tbump 1.2.1dev0 --no-tag`.
+  branch to the next patch version.
+
+  ```
+  tbump 1.4.1dev0 --no-tag
+  ```
 
 - If this is a release on the latest release branch, manually push the `main`
   branch to GitHub. Make sure the commit pushed works with
