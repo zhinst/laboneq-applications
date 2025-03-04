@@ -1,6 +1,10 @@
 # Copyright 2024 Zurich Instruments AG
 # SPDX-License-Identifier: Apache-2.0
 
+"""Tests for the plotting_helpers.py module using the testing utilities."""
+
+import matplotlib as mpl
+import matplotlib.pyplot as plt
 import numpy as np
 import pytest
 from laboneq.simple import Results
@@ -12,7 +16,7 @@ from laboneq.workflow.tasks.run_experiment import (
 
 from laboneq_applications.analysis import plotting_helpers as plt_hlp
 
-rng = np.random.default_rng()
+rng = np.random.default_rng(42)
 
 
 @pytest.fixture
@@ -484,3 +488,103 @@ class TestPlotSignalMagnitudeAndPhase2D:
         assert len(figures) == 2
         assert len(figures["q0"]) == 1
         assert len(figures["q1"]) == 1
+
+
+class TestPlotData2D:
+    def test_run_simple(self):
+        figure, axis = plt_hlp.plot_data_2d(
+            x_values=np.linspace(0, 1, 20),
+            y_values=np.linspace(0, 1, 10),
+            z_values=rng.uniform(size=(10, 20)),
+        )
+        assert isinstance(figure, mpl.figure.Figure)
+        assert isinstance(axis, mpl.axes.Axes)
+
+    def test_run_with_fit_values(self):
+        figure, axis = plt_hlp.plot_data_2d(
+            x_values=np.linspace(0, 1, 20),
+            y_values=np.linspace(0, 1, 10),
+            z_values=rng.uniform(size=(10, 20)),
+            fit_x_values=np.linspace(0, 1, 7),
+            fit_y_values=np.linspace(0, 1, 7),
+        )
+        assert isinstance(figure, mpl.figure.Figure)
+        assert isinstance(axis, mpl.axes.Axes)
+
+    def test_run_with_fit_values_pass_lists(self):
+        figure, axis = plt_hlp.plot_data_2d(
+            x_values=np.linspace(0, 1, 20).tolist(),
+            y_values=np.linspace(0, 1, 10).tolist(),
+            z_values=rng.uniform(size=(10, 20)),
+            fit_x_values=[0, 1, 3, 4, 5],
+            fit_y_values=[0, 1, 3, 4, 5],
+        )
+        assert isinstance(figure, mpl.figure.Figure)
+        assert isinstance(axis, mpl.axes.Axes)
+
+    def test_run_with_other_input_parameters(self):
+        figure, axis = plt.subplots()
+        fig, ax = plt_hlp.plot_data_2d(
+            x_values=np.linspace(0, 1, 20),
+            y_values=np.linspace(0, 1, 10),
+            z_values=rng.uniform(size=(10, 20)),
+            label_x_values="xlabel",
+            label_y_values="ylabel",
+            label_z_values="zlabel",
+            scaling_x_values=2.0,
+            scaling_y_values=3.0,
+            plot_title="plot_title",
+            figure=figure,
+            axis=axis,
+        )
+        assert fig is figure
+        assert ax is axis
+        plt.close(figure)
+
+    def test_raises_error_x_values_wrong_shape(self):
+        with pytest.raises(ValueError) as err:
+            plt_hlp.plot_data_2d(
+                x_values=rng.uniform(size=(10, 20)),
+                y_values=np.linspace(0, 1, 10),
+                z_values=rng.uniform(size=(10, 20)),
+            )
+        assert str(err.value) == "x_values must be a 1D array."
+
+    def test_raises_error_y_values_wrong_shape(self):
+        with pytest.raises(ValueError) as err:
+            plt_hlp.plot_data_2d(
+                x_values=np.linspace(0, 1, 20),
+                y_values=rng.uniform(size=(10, 20)),
+                z_values=rng.uniform(size=(10, 20)),
+            )
+        assert str(err.value) == "y_values must be a 1D array."
+
+    def test_raises_error_z_values_wrong_type(self):
+        with pytest.raises(TypeError) as err:
+            plt_hlp.plot_data_2d(
+                x_values=np.linspace(0, 1, 20),
+                y_values=np.linspace(0, 1, 10),
+                z_values=rng.uniform(size=(10, 20)).tolist(),
+            )
+        assert str(err.value) == "z_values must be a numpy array."
+
+    def test_raises_error_z_values_wrong_shape(self):
+        with pytest.raises(ValueError) as err:
+            plt_hlp.plot_data_2d(
+                x_values=np.linspace(0, 1, 20),
+                y_values=np.linspace(0, 1, 10),
+                z_values=np.linspace(0, 1, 10),
+            )
+        assert str(err.value) == "z_values must be a 2D array."
+
+    def test_raises_error_shape_mismatch(self):
+        with pytest.raises(ValueError) as err:
+            plt_hlp.plot_data_2d(
+                x_values=np.linspace(0, 1, 20),
+                y_values=np.linspace(0, 1, 10),
+                z_values=rng.uniform(size=(3, 5)),
+            )
+        error_string = (
+            "z_values must have the shape " "(len(y_values), len(x_values)) = (10, 20)."
+        )
+        assert str(err.value) == error_string

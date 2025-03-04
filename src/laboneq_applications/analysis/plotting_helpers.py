@@ -22,6 +22,7 @@ from laboneq.workflow.timestamps import local_timestamp
 from laboneq_applications.analysis.options import BasePlottingOptions
 from laboneq_applications.core.validation import (
     validate_and_convert_qubits_sweeps,
+    validate_and_convert_sweeps_to_arrays,
     validate_result,
 )
 
@@ -624,15 +625,17 @@ def plot_signal_magnitude_and_phase_2d(
 
 
 @workflow.task
-def plot_data_2d(  # noqa: C901, PLR0913
+def plot_data_2d(  # noqa: C901, PLR0912, PLR0913
     x_values: ArrayLike,
     y_values: ArrayLike,
-    z_values: ArrayLike,
+    z_values: np.ndarray,
     label_x_values: str = "",
     label_y_values: str = "",
     label_z_values: str = "",
     scaling_x_values: float = 1.0,
     scaling_y_values: float = 1.0,
+    fit_x_values: ArrayLike | None = None,
+    fit_y_values: ArrayLike | None = None,
     plot_title: str = "",
     figure_name: str = "2D_Data",
     save_figures: bool = False,  # noqa: FBT001, FBT002
@@ -665,6 +668,12 @@ def plot_data_2d(  # noqa: C901, PLR0913
         scaling_y_values:
             The scaling factor of the y-values.
             Default: 1.0.
+        fit_x_values:
+            The 1D array with the fit points to plot on the x-axis.
+            Default: None.
+        fit_y_values:
+            The 1D array with the fit points to plot on the y-axis.
+            Default: None.
         plot_title:
             The plot title.
             Default: ""
@@ -694,14 +703,20 @@ def plot_data_2d(  # noqa: C901, PLR0913
     Returns:
         The matplotlib figure and axis.
     """
+    x_values, y_values = validate_and_convert_sweeps_to_arrays([x_values, y_values])
     if len(x_values.shape) > 1:
         raise ValueError("x_values must be a 1D array.")
     if len(y_values.shape) > 1:
         raise ValueError("y_values must be a 1D array.")
+    if not isinstance(z_values, np.ndarray):
+        raise TypeError("z_values must be a numpy array.")
     if len(z_values.shape) != 2:  # noqa: PLR2004
         raise ValueError("z_values must be a 2D array.")
-    if z_values.shape[0] != len(y_values) and z_values.shape[1] != len(x_values):
-        raise ValueError("z_values must have the shape (len(y_values), len(x_values)).")
+    if z_values.shape[0] != len(y_values) or z_values.shape[1] != len(x_values):
+        raise ValueError(
+            f"z_values must have the shape "
+            f"(len(y_values), len(x_values)) = {(len(y_values), len(x_values))}."
+        )
 
     x_values, y_values, z_values = sorted_mesh(
         x_values * scaling_x_values,
@@ -711,8 +726,19 @@ def plot_data_2d(  # noqa: C901, PLR0913
 
     if figure is None and axis is None:
         figure, axis = plt.subplots(constrained_layout=True)
-    mesh = axis.pcolormesh(x_values, y_values, z_values, cmap="magma")
+    mesh = axis.pcolormesh(x_values, y_values, z_values, cmap="magma", zorder=0)
     cbar = figure.colorbar(mesh)
+    if fit_x_values is not None and fit_y_values is not None:
+        fit_x_values, fit_y_values = validate_and_convert_sweeps_to_arrays(
+            [fit_x_values, fit_y_values]
+        )
+        axis.plot(
+            fit_x_values * scaling_x_values,
+            fit_y_values * scaling_y_values,
+            marker="o",
+            color="b",
+            zorder=1,
+        )
     if len(label_z_values) > 0:
         cbar.set_label(label_z_values)
     if len(label_x_values) > 0:
