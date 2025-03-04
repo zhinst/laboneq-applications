@@ -37,8 +37,12 @@ from laboneq_applications.core.validation import (
 )
 
 if TYPE_CHECKING:
+    from typing import Any, Literal
+
+    import attr
     import lmfit
     import matplotlib as mpl
+    from laboneq.dsl.quantum.quantum_element import QuantumElement
     from laboneq.workflow.tasks.run_experiment import RunExperimentResults
     from numpy.typing import ArrayLike
 
@@ -72,11 +76,55 @@ class QubitSpectroscopyAnalysisWorkflowOptions:
     )
 
 
+def _frequency_filters_validator(
+    inst: Any,  # noqa: ANN401
+    attr: attr.Attribute,
+    value: dict[str, tuple[float | None]] | None,
+) -> None:
+    if value is None:
+        return
+
+    if not isinstance(value, dict):
+        raise TypeError("frequency_filters must be a dictionary.")
+
+    for q_uid, freq_filter in value.items():
+        if freq_filter is not None and len(freq_filter) != 2:  # noqa: PLR2004
+            raise ValueError(
+                f"The frequency filter must have two entries, but that is not the "
+                f"case for qubit {q_uid}: {freq_filter}."
+            )
+
+
+def _spectral_feature_validator(
+    inst: Any,  # noqa: ANN401
+    attr: attr.Attribute,
+    value: Literal["peak", "dip"] | None,
+) -> None:
+    if value is None:
+        return
+
+    if value not in ["peak", "dip", "auto"]:
+        raise ValueError(
+            "Invalid spectral_feature. Please choose 'auto', 'peak', or 'dip'."
+        )
+
+
 @workflow.task_options(base_class=DoFittingOption)
 class FitDataQubitSpecOptions:
     """Options for the `fit_data` task of the qubit spectroscopy analysis.
 
     Attributes:
+        frequency_filters:
+            Information on how to filter the first-dimensional sweep points
+            (the frequency) for each qubit before performing the Lorentzian fit;
+            for example, to fit the data only in the range f < 6.8 GHz.
+            See the description in the options field for more details.
+        spectral_feature:
+            Whether to perform the fit assuming the Lorentzian is pointing
+            upwards ("peak") or downwards ("dip"). By default, this parameter is "auto",
+            in which case, the `lorentzian_fit` routine in `fitting_helpers.py` tries
+            to work out the orientation of the Lorentzian feature.
+            Default: None
         fit_parameters_hints:
             Parameters hints accepted by lmfit
             Default: None.
@@ -87,6 +135,27 @@ class FitDataQubitSpecOptions:
             Default: `True`.
     """
 
+    frequency_filters: dict[str, tuple[float | None]] | None = workflow.option_field(
+        None,
+        description="Information on how to filter the first-dimensional sweep points "
+        "(the frequency) for each qubit before performing the Lorentzian fit; for "
+        "example, to fit the data only in the range f < 6.8 GHz. The frequency_filters "
+        "option field is either None (in which case no filter is applied), or a "
+        "dictionary with qubit UIDs as keys and the corresponding filtering "
+        "information as values. The latter is specified as a tuple with two entries: "
+        "(None | lower limit, None | upper limit). The filter is applied as, "
+        "frequencies > lower limit, frequencies < upper limit. Set `None` for either "
+        "the upper or the lower limit to remove them from the filter.",
+        validators=[_frequency_filters_validator],
+    )
+    spectral_feature: Literal["peak", "dip", "auto"] = workflow.option_field(
+        "auto",
+        description="Whether to perform the fit assuming the Lorentzian is pointing "
+        "upwards ('peak') or downwards ('dip'). By default, this parameter is 'auto', "
+        "in which case, the `lorentzian_fit` routine in `fitting_helpers.py` tries to "
+        "work out the orientation of the Lorentzian feature.",
+        validators=[_spectral_feature_validator],
+    )
     fit_parameters_hints: dict | None = workflow.option_field(
         None, description="Parameters hints accepted by lmfit."
     )
@@ -225,6 +294,70 @@ def calculate_signal_magnitude_and_phase(
     return proc_data_dict
 
 
+def _get_data_to_fit(
+    qubit: QuantumElement,
+    processed_data_dict: dict[str, dict[str, ArrayLike]],
+    frequency_filters: dict[str, tuple[float | None]],
+) -> tuple[ArrayLike, ArrayLike]:
+    """Extracts the data for the fit and processes it based on frequency_filters.
+
+    Args:
+        qubit:
+            The qubit for which to filter the frequencies, which must be the ones that
+            were swept for this qubit.
+            If filtering of the frequencies for this qubit is desired, then the qubit
+            uid must exist in frequency_filters.
+        processed_data_dict: the processed data dictionary returned by
+            calculate_signal_magnitude_and_phase
+        frequency_filters:
+            A dict with qubit uids as keys and the filtering information as values.
+            The filtering information is passed as a tuple with two entries:
+            (None | lower limit, None | upper limit). The filter is applied as,
+            frequencies > lower limit, frequencies < upper limit. Set `None` for either
+            the upper or the lower limit to remove them from the filter.
+
+    Returns:
+        The arrays of independent variable (frequencies) and dependent variable (signal
+        magnitude) for the Lorentzian fit.
+
+        If the qubit uid is found in frequency_filters and the filtering information for
+        this qubit is not None, then the frequencies and signal magnitude array are
+        filtered based on the information in frequency_filters[qubit.uid].
+    """
+    if frequency_filters is None:
+        frequency_filters = {}
+
+    if not isinstance(frequency_filters, dict):
+        raise TypeError("frequency_filters must be a dictionary.")
+
+    frequencies = processed_data_dict[qubit.uid]["sweep_points"]
+    magnitude = processed_data_dict[qubit.uid]["magnitude"]
+
+    if qubit.uid in frequency_filters and frequency_filters.get(qubit.uid) is not None:
+        freq_filter = list(frequency_filters[qubit.uid])
+        if freq_filter[0] is None:
+            freq_filter[0] = min(frequencies)
+        if freq_filter[1] is None:
+            freq_filter[1] = max(frequencies)
+        if freq_filter[0] > freq_filter[1]:
+            raise ValueError(
+                f"The first entry in the frequency filter cannot be larger than the "
+                f"second entry, but this is so for qubit {qubit.uid}: {freq_filter}."
+            )
+        mask = np.logical_and(
+            frequencies > freq_filter[0]
+            if freq_filter[0] is not None
+            else frequencies >= min(frequencies),
+            frequencies < freq_filter[1]
+            if freq_filter[1] is not None
+            else frequencies <= max(frequencies),
+        )
+    else:
+        mask = np.ones_like(frequencies, dtype=bool)
+
+    return frequencies[mask], magnitude[mask]
+
+
 @workflow.task
 def fit_data(
     qubits: QuantumElements,
@@ -254,12 +387,14 @@ def fit_data(
         return fit_results
 
     for q in qubits:
-        swpts_fit = processed_data_dict[q.uid]["sweep_points"]
-        data_to_fit = processed_data_dict[q.uid]["magnitude"]
+        swpts_fit, data_to_fit = _get_data_to_fit(
+            q, processed_data_dict, opts.frequency_filters
+        )
         try:
             fit_res = lorentzian_fit(
                 swpts_fit,
                 data_to_fit,
+                spectral_feature=opts.spectral_feature,
                 param_hints=opts.fit_parameters_hints,
             )
             fit_results[q.uid] = fit_res
@@ -388,9 +523,10 @@ def plot_qubit_spectroscopy(
 
         if opts.do_fitting and q.uid in fit_results:
             fit_res = fit_results[q.uid]
+            swpts_fit = fit_res.userkws["x"]
 
             # Plot fit of the magnitude
-            swpts_fine = np.linspace(sweep_points[0], sweep_points[-1], 501)
+            swpts_fine = np.linspace(swpts_fit[0], swpts_fit[-1], 501)
             ax.plot(
                 swpts_fine / 1e9,
                 fit_res.model.func(swpts_fine, **fit_res.best_values),

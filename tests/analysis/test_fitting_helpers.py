@@ -785,6 +785,33 @@ def test_lorentzian_fit(fit_data_lorentzian):
     )
 
 
+def test_lorentzian_fit_spectral_feature(fit_data_lorentzian):
+    fit_res = fit_hlp.lorentzian_fit(*fit_data_lorentzian, spectral_feature="peak")
+    assert fit_res.model.name == "Model(lorentzian)"
+    np.testing.assert_allclose(
+        fit_res.best_values["position"], 6241483923.483863, rtol=1e-4
+    )
+    np.testing.assert_allclose(
+        fit_res.best_values["width"], 67111210.43146636, rtol=1e-4
+    )
+    np.testing.assert_allclose(
+        fit_res.best_values["amplitude"], 27300080.192143552, rtol=1e-4
+    )
+    np.testing.assert_allclose(
+        fit_res.best_values["offset"], 1.587935088800723, rtol=1e-4
+    )
+
+
+def test_lorentzian_fit_spectral_feature_invalid_input(fit_data_lorentzian):
+    with pytest.raises(ValueError) as err:
+        fit_hlp.lorentzian_fit(*fit_data_lorentzian, spectral_feature="zig-zag")
+    error_string = (
+        "Unrecognised spectral_feature 'zig-zag'. "
+        "This parameter can only be 'auto', 'peak', or 'dip'."
+    )
+    assert str(err.value) == error_string
+
+
 def test_linear_fit():
     x = np.linspace(0, 1, 31)
     data = fit_hlp.linear(x, gradient=10, intercept=2.34)

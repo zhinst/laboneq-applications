@@ -902,6 +902,46 @@ class TestQubitSpectroscopyAnalysisSingleQubit:
             rtol=1e-4,
         )
 
+    def test_create_and_run_specify_spectral_feature(
+        self, single_tunable_transmon_platform, results_single_qubit
+    ):
+        [q0] = single_tunable_transmon_platform.qpu.qubits
+        options = qubit_spectroscopy.analysis_workflow.options()
+        options.spectral_feature("peak")
+        result = qubit_spectroscopy.analysis_workflow(
+            result=results_single_qubit[0],
+            qubits=q0,
+            frequencies=results_single_qubit[1],
+            options=options,
+        ).run()
+
+        fit_values = result.tasks["fit_data"].output["q0"].best_values
+        np.testing.assert_allclose(fit_values["position"], 6141479733.959184, rtol=1e-4)
+        np.testing.assert_allclose(fit_values["width"], 67101602.53928327, rtol=1e-4)
+        np.testing.assert_allclose(
+            fit_values["amplitude"], 27290960.511352144, rtol=1e-4
+        )
+        np.testing.assert_allclose(fit_values["offset"], 1.5880166617175584, rtol=1e-4)
+
+    def test_create_and_run_frequency_filter(
+        self, single_tunable_transmon_platform, results_single_qubit
+    ):
+        [q0] = single_tunable_transmon_platform.qpu.qubits
+        options = qubit_spectroscopy.analysis_workflow.options()
+        options.frequency_filters({q0.uid: (None, 6.16e9)})
+        result = qubit_spectroscopy.analysis_workflow(
+            result=results_single_qubit[0],
+            qubits=q0,
+            frequencies=results_single_qubit[1],
+            options=options,
+        ).run()
+
+        fit_res = result.tasks["fit_data"].output["q0"]
+        np.testing.assert_allclose(
+            fit_res.best_values["position"], 6123903111.013932, rtol=1e-4
+        )
+        assert len(fit_res.userkws["x"]) == 92
+
     def test_create_and_run_no_fitting(
         self, single_tunable_transmon_platform, results_single_qubit
     ):
@@ -2694,6 +2734,79 @@ class TestQubitSpectroscopyAnalysisTwoQubit:
             27996.19904992496,
             rtol=1e-4,
         )
+
+    def test_create_and_run_frequency_filter_one_qubit(
+        self, two_tunable_transmon_platform, results_two_qubit
+    ):
+        qubits = two_tunable_transmon_platform.qpu.qubits
+        options = qubit_spectroscopy.analysis_workflow.options()
+        options.frequency_filters({qubits[0].uid: (None, 6.16e9)})
+
+        result = qubit_spectroscopy.analysis_workflow(
+            result=results_two_qubit[0],
+            qubits=qubits,
+            frequencies=results_two_qubit[1],
+            options=options,
+        ).run()
+
+        fit_res = result.tasks["fit_data"].output["q0"]
+        np.testing.assert_allclose(
+            fit_res.best_values["position"], 6123903111.013932, rtol=1e-4
+        )
+        assert len(fit_res.userkws["x"]) == 92
+        fit_res = result.tasks["fit_data"].output["q1"]
+        np.testing.assert_allclose(
+            fit_res.best_values["position"], 6677292271.346118, rtol=1e-4
+        )
+        assert len(fit_res.userkws["x"]) == 201
+
+        # other qubit has None as values
+        options.frequency_filters({qubits[0].uid: (None, 6.16e9), qubits[1].uid: None})
+        result = qubit_spectroscopy.analysis_workflow(
+            result=results_two_qubit[0],
+            qubits=qubits,
+            frequencies=results_two_qubit[1],
+            options=options,
+        ).run()
+
+        fit_res = result.tasks["fit_data"].output["q0"]
+        np.testing.assert_allclose(
+            fit_res.best_values["position"], 6123903111.013932, rtol=1e-4
+        )
+        assert len(fit_res.userkws["x"]) == 92
+        fit_res = result.tasks["fit_data"].output["q1"]
+        np.testing.assert_allclose(
+            fit_res.best_values["position"], 6677292271.346118, rtol=1e-4
+        )
+        assert len(fit_res.userkws["x"]) == 201
+
+    def test_create_and_run_frequency_filter_both_qubits(
+        self, two_tunable_transmon_platform, results_two_qubit
+    ):
+        qubits = two_tunable_transmon_platform.qpu.qubits
+        options = qubit_spectroscopy.analysis_workflow.options()
+        options.frequency_filters(
+            {qubits[0].uid: (None, 6.16e9), qubits[1].uid: (None, 6.64e9)}
+        )
+
+        result = qubit_spectroscopy.analysis_workflow(
+            result=results_two_qubit[0],
+            qubits=qubits,
+            frequencies=results_two_qubit[1],
+            options=options,
+        ).run()
+
+        fit_res = result.tasks["fit_data"].output["q0"]
+        np.testing.assert_allclose(
+            fit_res.best_values["position"], 6123903111.013932, rtol=1e-4
+        )
+        assert len(fit_res.userkws["x"]) == 92
+
+        fit_res = result.tasks["fit_data"].output["q1"]
+        np.testing.assert_allclose(
+            fit_res.best_values["position"], 6606385019.079187, rtol=1e-4
+        )
+        assert len(fit_res.userkws["x"]) == 102
 
     def test_create_and_run_no_fitting(
         self, two_tunable_transmon_platform, results_two_qubit

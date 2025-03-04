@@ -12,6 +12,8 @@ import numpy as np
 from laboneq.analysis import fitting as fit_mods
 
 if TYPE_CHECKING:
+    from typing import Literal
+
     from numpy.typing import ArrayLike
 
 
@@ -290,6 +292,7 @@ def cosine_oscillatory_decay_fit(
 def lorentzian_fit(
     x: ArrayLike,
     data: ArrayLike,
+    spectral_feature: Literal["peak", "dip", "auto"] = "auto",
     param_hints: dict[str, dict[str, float | bool | str]] | None = None,
 ) -> lmfit.model.ModelResult:
     """Fit a Lorentzian model to the data as a function of sweep_points.
@@ -303,6 +306,10 @@ def lorentzian_fit(
     Args:
         x: numpy array of the independent variable
         data: numpy array of data to fit
+        spectral_feature: whether to perform the fit assuming the Lorentzian is pointing
+            upwards ("peak") or downwards ("dip"). By default, this parameter is "auto",
+            in which case, the routine tries to work out the orientation of the
+            Lorentzian feature.
         param_hints: dict with parameter hints for the fit (see fit_data_lmfit)
 
     Returns:
@@ -310,6 +317,7 @@ def lorentzian_fit(
     """
     if param_hints is None:
         width_guess = 50e3
+
         # fit with guess values for a peak
         param_hints = {
             "amplitude": {"value": np.max(data) * width_guess},
@@ -323,6 +331,7 @@ def lorentzian_fit(
             data,
             param_hints=param_hints,
         )
+
         # fit with guess values for a dip
         param_hints["amplitude"]["value"] *= -1
         param_hints["position"]["value"] = x[np.argmin(data)]
@@ -332,25 +341,36 @@ def lorentzian_fit(
             data,
             param_hints=param_hints,
         )
-        # determine whether there is a peak or a dip: compare
-        # the distance between the value at the fitted peak/dip
-        # to the mean of the data array: the larger distance
-        # is the true spectroscopy signal
-        dpeak = abs(
-            fit_res_peak.model.func(
-                fit_res_peak.best_values["position"],
-                **fit_res_peak.best_values,
+
+        if spectral_feature == "auto":
+            # determine whether there is a peak or a dip: compare
+            # the distance between the value at the fitted peak/dip
+            # to the mean of the data array: the larger distance
+            # is the true spectroscopy signal
+            dpeak = abs(
+                fit_res_peak.model.func(
+                    fit_res_peak.best_values["position"],
+                    **fit_res_peak.best_values,
+                )
+                - np.mean(data)
             )
-            - np.mean(data)
-        )
-        ddip = abs(
-            fit_res_dip.model.func(
-                fit_res_dip.best_values["position"],
-                **fit_res_dip.best_values,
+            ddip = abs(
+                fit_res_dip.model.func(
+                    fit_res_dip.best_values["position"],
+                    **fit_res_dip.best_values,
+                )
+                - np.mean(data)
             )
-            - np.mean(data)
-        )
-        fit_res = fit_res_peak if dpeak > ddip else fit_res_dip
+            fit_res = fit_res_peak if dpeak > ddip else fit_res_dip
+        elif spectral_feature == "peak":
+            fit_res = fit_res_peak
+        elif spectral_feature == "dip":
+            fit_res = fit_res_dip
+        else:
+            raise ValueError(
+                f"Unrecognised spectral_feature '{spectral_feature}'. "
+                f"This parameter can only be 'auto', 'peak', or 'dip'."
+            )
     else:
         # do what the user asked
         fit_res = fit_data_lmfit(
