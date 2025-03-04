@@ -158,7 +158,7 @@ def extract_qubit_parameters(
 
     old_port_delay = q.parameters.readout_integration_delay
     qubit_parameters["old_parameter_values"][q.uid] = {
-        "port_delay": old_port_delay,
+        "readout_integration_delay": old_port_delay,
     }
     if opts.do_fitting:
         iq_data = result[q.uid].result.data
@@ -167,7 +167,7 @@ def extract_qubit_parameters(
         good_delay = swpts[np.argmax(abs_data)]
 
         qubit_parameters["new_parameter_values"][q.uid] = {
-            "port_delay": good_delay,
+            "readout_integration_delay": good_delay,
         }
 
     return qubit_parameters
@@ -214,7 +214,9 @@ def plot_data(
 
     ax.plot(1e9 * swpts, abs_data, "o", zorder=2, label="data")
     if opts.do_fitting and len(qubit_parameters["new_parameter_values"][q.uid]) > 0:
-        new_port_delay = qubit_parameters["new_parameter_values"][q.uid]["port_delay"]
+        new_port_delay = qubit_parameters["new_parameter_values"][q.uid][
+            "readout_integration_delay"
+        ]
         # point at pi-pulse amplitude
         ax.plot(
             1e9 * new_port_delay,
@@ -234,9 +236,11 @@ def plot_data(
         )
         ax.set_ylim(ylims)
         # textbox
-        old_port_delay = qubit_parameters["old_parameter_values"][q.uid]["port_delay"]
-        textstr = "port delay: " f"{1e9*new_port_delay:.1f} ns"
-        textstr += "\nOld port delay: " + f"{1e9*old_port_delay:.1f} ns"
+        old_port_delay = qubit_parameters["old_parameter_values"][q.uid][
+            "readout_integration_delay"
+        ]
+        textstr = f"Readout integration delay: {1e9*new_port_delay:.1f} ns"
+        textstr += "\nOld readout integration delay: " + f"{1e9*old_port_delay:.1f} ns"
         ax.text(0, -0.15, textstr, ha="left", va="top", transform=ax.transAxes)
         ax.legend(
             loc="center left",
