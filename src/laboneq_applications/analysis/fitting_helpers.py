@@ -5,6 +5,7 @@
 
 from __future__ import annotations
 
+import warnings
 from typing import TYPE_CHECKING, Callable
 
 import lmfit
@@ -184,8 +185,16 @@ def get_pi_pi2_xvalues_on_cos(
 
     """
     n = np.arange(-20, 20)
-    pi_xvals = (n * np.pi - phase) / frequency
-    pi2_xvals = (n * np.pi + np.pi / 2 - phase) / frequency
+    try:
+        pi_xvals = (n * np.pi - phase) / frequency
+        pi2_xvals = (n * np.pi + np.pi / 2 - phase) / frequency
+    except ZeroDivisionError:
+        warnings.warn(
+            "The frequency of the cosine function is zero. "
+            "Returning empty arrays for the pi and pi/2 x-values.",
+            stacklevel=2
+        )
+        return np.array([]), np.array([]), np.array([]), np.array([])
     pi_xvals_top = pi_xvals[0::2]
     pi_xvals_bottom = pi_xvals[1::2]
     pi2_xvals_rising = pi2_xvals[1::2]
