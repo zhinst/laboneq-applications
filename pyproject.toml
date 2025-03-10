@@ -30,13 +30,14 @@ classifiers = [
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
     "Topic :: Scientific/Engineering",
 ]
 dependencies = [
     "typing_extensions",
     "uncertainties==3.2.2",
     "laboneq",
-    "numpy~=1.26.3",  # TODO: Validate for Numpy 2.0
+    "numpy>=1.26",
     "scipy",
     "matplotlib",
     "lmfit",

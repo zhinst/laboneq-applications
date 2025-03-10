@@ -32,16 +32,20 @@ test:python-3.12:
   extends: ".template_test"
   image: python:3.12
 
-test:python-3.12:laboneq-release:
+test:python-3.13:
+  extends: ".template_test"
+  image: python:3.13
+
+test:python-3.9:laboneq-release:
   extends: ".template_test"
   variables:
     USE_LABONEQ_DEVELOP: "false"
-  image: python:3.12
+  image: python:3.9
   allow_failure: true
 
 test:coverage:
   extends: ".template_test"
-  image: python:3.12
+  image: python:3.9
   script:
     - pytest tests -v --ignore=tests/contrib --cov=laboneq_applications --cov=tests --cov-branch --cov-config=ci/coveragerc -n auto
     - coverage xml -o coverage.xml
