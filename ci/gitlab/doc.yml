@@ -21,6 +21,8 @@ doc:build:
     paths:
       - site
     expire_in: 1 day
+  rules:
+    - !reference [.non_triggered]
 
 pages:
   stage: doc
@@ -54,3 +56,5 @@ doc:trigger_hub_internal:
     PROJECT_PIPELINE: "qccs/laboneq-applications:${CI_PIPELINE_ID}"
   rules:
     - if: $CI_COMMIT_BRANCH == "main" && $CI_PIPELINE_SOURCE == "push"
+    - !reference [.non_triggered]
+

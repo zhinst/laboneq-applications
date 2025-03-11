@@ -15,7 +15,9 @@
         fi
   script:
     - pytest tests -vv --ignore=tests/contrib
-
+  rules:
+    - !reference [.non_triggered]
+    
 test:python-3.9:
   extends: ".template_test"
   image: python:3.9
@@ -87,3 +89,34 @@ test:laboneq-feature-branch:
     - pip install -e .
     - pip install --upgrade laboneq==${VERSION} --extra-index-url=$LABONEQ_INDEX_URL
     - pytest tests -vv
+
+
+.template_triggered_test:
+  stage: test
+  image: python:3.9
+  variables:
+    LABONEQ_INDEX_URL: https://gitlab.zhinst.com/api/v4/projects/251/packages/pypi
+  tags:
+    - linux
+    - docker
+  before_script:
+    - echo "Triggered by $UPSTREAM_PROJECT_PATH/$UPSTREAM_PROJECT_PATH"
+    - echo "Running tests with laboneq version $LABONEQ_VERSION"
+    - pip install -r requirements-dev.txt
+    - pip install -e .
+    - pip install --upgrade laboneq==${LABONEQ_VERSION} --extra-index-url=$LABONEQ_INDEX_URL
+  rules:
+    - !reference [.triggered]
+
+test:triggered-by-laboneq:
+  extends: ".template_triggered_test"
+  image: python:3.9
+  script:
+    - pytest tests -vv --ignore=tests/contrib
+
+test:docs-notebooks-triggered-by-laboneq:
+  extends: ".template_triggered_test"
+  image: python:3.9
+  script:
+    - pip install -r docs/requirements-ext.txt
+    - pytest --nbmake docs/sources --nbmake-kernel=python --nbmake-timeout=240 --durations=0

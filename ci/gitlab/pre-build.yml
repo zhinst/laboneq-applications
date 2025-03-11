@@ -7,6 +7,8 @@ lint:python:
   script:
     - pip install -r requirements-lint.txt
     - ruff check
+  rules:
+    - !reference [.non_triggered]
 
 lint:notebooks:docs:
   stage: pre-build
@@ -17,6 +19,8 @@ lint:notebooks:docs:
   script:
     - pip install -r requirements-lint.txt
     - nbqa ruff docs/sources
+  rules:
+    - !reference [.non_triggered]
 
 notebooks:check_no_outputs:
   stage: pre-build
@@ -26,6 +30,8 @@ notebooks:check_no_outputs:
     - docker
   script:
     - python3 ci/scripts/notebook_check.py docs
+  rules:
+    - !reference [.non_triggered]
 
 check:license:
   stage: pre-build
@@ -36,3 +42,5 @@ check:license:
   tags:
     - linux
     - docker
+  rules:
+    - !reference [.non_triggered]

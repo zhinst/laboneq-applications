@@ -20,6 +20,15 @@ variables:
     description: "Whether to release the documentation to the public website"
 
 # Execution rules:
+.non_triggered:
+  - if: $CI_PIPELINE_SOURCE == "pipeline"
+    when: never
+  - when: always
+
+.triggered:
+  - if: $CI_PIPELINE_SOURCE == "pipeline"
+    when: always
+  - when: never
 
 .release-docs:
   - if: $RELEASE_DOCS == "true" && $CI_COMMIT_REF_PROTECTED == "true"
