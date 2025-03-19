@@ -51,6 +51,11 @@ class TunableTransmonQubitParameters(TransmonParameters):
         ef_drive_pulse:
             Pulse parameters for e-f transition drive pulses.
 
+        qubit_resonator_coupling_strength_g:
+            Qubit resonator coupling strength.
+        ge_chi_shift:
+            Chi shift of the ground state and first excited state.
+
         readout_amplitude:
             Readout pulse amplitude.
         readout_length:
@@ -115,6 +120,10 @@ class TunableTransmonQubitParameters(TransmonParameters):
             "sigma": 0.25,
         },
     )
+
+    # Qubit-resonator coupling parameters
+    qubit_resonator_coupling_strength_g: float = 0
+    ge_chi_shift: float = 0
 
     # readout and integration parameters
 
