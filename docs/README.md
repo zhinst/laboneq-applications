@@ -1,6 +1,6 @@
 # LabOne Q Library documentation
 
-This subdirectory contains the documentation for LabOneQ Library.
+This subdirectory contains the documentation for LabOne Q Library.
 
 ## Development
 

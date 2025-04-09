@@ -1,6 +1,6 @@
 """Scripts for Jupyter Notebooks.
 
-* Checks whether the given directory has Notebooks with executed code cells not or not.
+* Checks whether the given directory has Notebooks with executed code cells or not.
 """
 
 import json

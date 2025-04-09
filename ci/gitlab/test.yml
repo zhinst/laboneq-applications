@@ -7,6 +7,7 @@
   variables:
     USE_LABONEQ_DEVELOP: "true"
   before_script:
+    - pip install --upgrade setuptools
     - pip install -r requirements-dev.txt
     - pip install -e .
     - |-

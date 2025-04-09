@@ -103,7 +103,7 @@ lint.ignore = [
   "TD",
   # Unused function arguments (function signatures are sometimes a fixed API)
   "ARG001",
-  # Multiple with statements (in the LabOneQ DSL, with statements specify
+  # Multiple with statements (in the LabOne Q DSL, with statements specify
   # program structure)
   "SIM117",
   # Static join to f-string (f-strings don't provide a nice way to write

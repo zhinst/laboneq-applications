@@ -2,3 +2,4 @@
 qiskit
 qiskit-experiments
 qcodes
+scikit-optimize

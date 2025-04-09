@@ -149,9 +149,6 @@ plugins:
         # NOTE: This object url is replaced and resolved to the correct one in the hub.
         #       Configured in 'zhinst-standalone' 'replace' section below
         import: ["http://qccs.pages.zhinst.com/qccs/manual/objects.inv"]
-  mkdocs-jupyter:
-    execute: true
-    allow_errors: false
   spellcheck:
     known_words: ../known_words.txt
   zhinst-standalone:

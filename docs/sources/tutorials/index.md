@@ -2,7 +2,7 @@
 
 ## Introduction
 
-This section of the documentation provides practical guides and examples on how to use the components of the LabOneQ Applications library.
+This section of the documentation provides practical guides and examples on how to use the components of the LabOne Q Applications library.
 
 ## Getting Started - Defining your Experimental Setup
 

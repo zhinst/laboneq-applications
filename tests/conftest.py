@@ -51,7 +51,7 @@ def _check_generated_files_root(request: pytest.FixtureRequest):
     else:
         root_path = Path.cwd()
         # NOTE: Any file check failed in CI image, restricted set should be enough for
-        # now, As the main culprit for this is LabOneQ pulse sheets and images.
+        # now, As the main culprit for this is LabOne Q pulse sheets and images.
         disallowed_file_extensions = [
             ".html",
             ".svg",
