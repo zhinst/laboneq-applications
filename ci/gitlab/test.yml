@@ -6,19 +6,20 @@
     - docker
   variables:
     USE_LABONEQ_DEVELOP: "true"
+    MPLBACKEND: "AGG"
   before_script:
     - pip install --upgrade setuptools
     - pip install -r requirements-dev.txt
     - pip install -e .
     - |-
-        if [[ $USE_LABONEQ_DEVELOP == "true" ]]; then
-          pip install laboneq --upgrade --pre --extra-index-url=https://artifactory.zhinst.com/artifactory/api/pypi/ZIPyPI/simple
-        fi
+      if [[ $USE_LABONEQ_DEVELOP == "true" ]]; then
+        pip install laboneq --upgrade --pre --extra-index-url=https://artifactory.zhinst.com/artifactory/api/pypi/ZIPyPI/simple
+      fi
   script:
-    - pytest tests -vv --ignore=tests/contrib
+    - pytest tests -n=auto -vv --ignore=tests/contrib
   rules:
     - !reference [.non_triggered]
-    
+
 test:python-3.9:
   extends: ".template_test"
   image: python:3.9
@@ -50,7 +51,7 @@ test:coverage:
   extends: ".template_test"
   image: python:3.9
   script:
-    - pytest tests -v --ignore=tests/contrib --cov=laboneq_applications --cov=tests --cov-branch --cov-config=ci/coveragerc -n auto
+    - pytest tests -v --ignore=tests/contrib --cov=laboneq_applications --cov=tests --cov-branch --cov-config=ci/coveragerc -n=auto
     - coverage xml -o coverage.xml
     - coverage html -d coverage_html
   artifacts:
@@ -65,16 +66,17 @@ test:coverage:
 
 test:docs_notebooks:python-3.9:
   extends: ".template_test"
+  variables:
+    NBMAKE_WORKERS: "8"
   script:
     - pip install -r docs/requirements-ext.txt
-    - pytest --nbmake docs/sources --nbmake-kernel=python --nbmake-timeout=240 --durations=0
+    - pytest --nbmake docs/sources --nbmake-kernel=python --nbmake-timeout=240 -n="$NBMAKE_WORKERS" --durations=0
 
 test:contrib_smoke_test:
   extends: ".template_test"
   image: python:3.9
   script:
-    - pytest tests/contrib -vv
-
+    - pytest tests/contrib -n=auto -vv
 
 test:laboneq-feature-branch:
   when: manual
@@ -89,8 +91,7 @@ test:laboneq-feature-branch:
     - pip install -r requirements-dev.txt
     - pip install -e .
     - pip install --upgrade laboneq==${VERSION} --extra-index-url=$LABONEQ_INDEX_URL
-    - pytest tests -vv
-
+    - pytest tests -n=auto -vv
 
 .template_triggered_test:
   stage: test
@@ -113,11 +114,13 @@ test:triggered-by-laboneq:
   extends: ".template_triggered_test"
   image: python:3.9
   script:
-    - pytest tests -vv --ignore=tests/contrib
+    - pytest tests -n=auto -vv --ignore=tests/contrib
 
 test:docs-notebooks-triggered-by-laboneq:
   extends: ".template_triggered_test"
   image: python:3.9
+  variables:
+    NBMAKE_WORKERS: "8"
   script:
     - pip install -r docs/requirements-ext.txt
-    - pytest --nbmake docs/sources --nbmake-kernel=python --nbmake-timeout=240 --durations=0
+    - pytest --nbmake docs/sources --nbmake-kernel=python --nbmake-timeout=240 -n="$NBMAKE_WORKERS" --durations=0
