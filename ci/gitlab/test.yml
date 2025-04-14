@@ -66,11 +66,9 @@ test:coverage:
 
 test:docs_notebooks:python-3.9:
   extends: ".template_test"
-  variables:
-    NBMAKE_WORKERS: "8"
   script:
     - pip install -r docs/requirements-ext.txt
-    - pytest --nbmake docs/sources --nbmake-kernel=python --nbmake-timeout=240 -n="$NBMAKE_WORKERS" --durations=0
+    - pytest --nbmake docs/sources --nbmake-kernel=python --nbmake-timeout=240 -n=auto --durations=0
 
 test:contrib_smoke_test:
   extends: ".template_test"
@@ -119,8 +117,6 @@ test:triggered-by-laboneq:
 test:docs-notebooks-triggered-by-laboneq:
   extends: ".template_triggered_test"
   image: python:3.9
-  variables:
-    NBMAKE_WORKERS: "8"
   script:
     - pip install -r docs/requirements-ext.txt
-    - pytest --nbmake docs/sources --nbmake-kernel=python --nbmake-timeout=240 -n="$NBMAKE_WORKERS" --durations=0
+    - pytest --nbmake docs/sources --nbmake-kernel=python --nbmake-timeout=240 -n=auto --durations=0

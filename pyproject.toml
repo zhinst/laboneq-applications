@@ -63,6 +63,7 @@ zip-safe = false
 testpaths = [
     "tests",
 ]
+asyncio_default_fixture_loop_scope = "function"
 
 [tool.ruff]
 include = [
@@ -140,6 +141,11 @@ lint.ignore = [
 # CI tool checks
 "ci/*" = [
   # part of an implicit namespace package
+  "INP001",
+]
+# Documentation notebooks conftest
+"docs/conftest.py" = [
+  # Missing __init__.py (notebooks don't have packages)
   "INP001",
 ]
 # Documentation notebooks (nbqa converts notebooks to .py)
