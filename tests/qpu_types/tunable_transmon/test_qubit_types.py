@@ -304,3 +304,48 @@ class TestTunableTransmonParameters:
 
         assert p.readout_range_out == 5
         assert p.readout_range_in == 10
+
+    def test_drive_frequency_ef(self):
+        p = TunableTransmonQubitParameters(
+            drive_lo_frequency=1.0e9,
+            resonance_frequency_ef=1.1e9,
+        )
+        assert p.drive_frequency_ef == 0.1e9
+
+    def test_drive_frequency_ef_none(self):
+        p0 = TunableTransmonQubitParameters()
+        assert p0.drive_frequency_ef is None
+        p1 = TunableTransmonQubitParameters(drive_lo_frequency=1.0e9)
+        assert p1.drive_frequency_ef is None
+        p2 = TunableTransmonQubitParameters(resonance_frequency_ef=1.1e9)
+        assert p2.drive_frequency_ef is None
+
+    def test_drive_frequency_ge(self):
+        p = TunableTransmonQubitParameters(
+            drive_lo_frequency=1.0e9,
+            resonance_frequency_ge=1.1e9,
+        )
+        assert p.drive_frequency_ge == 0.1e9
+
+    def test_drive_frequency_ge_none(self):
+        p0 = TunableTransmonQubitParameters()
+        assert p0.drive_frequency_ge is None
+        p1 = TunableTransmonQubitParameters(drive_lo_frequency=1.0e9)
+        assert p1.drive_frequency_ge is None
+        p2 = TunableTransmonQubitParameters(resonance_frequency_ge=1.1e9)
+        assert p2.drive_frequency_ge is None
+
+    def test_readout_frequency(self):
+        p = TunableTransmonQubitParameters(
+            readout_lo_frequency=1.0e9,
+            readout_resonator_frequency=1.1e9,
+        )
+        assert p.readout_frequency == 0.1e9
+
+    def test_readout_frequency_none(self):
+        p0 = TunableTransmonQubitParameters()
+        assert p0.readout_frequency is None
+        p1 = TunableTransmonQubitParameters(readout_lo_frequency=1.0e9)
+        assert p1.readout_frequency is None
+        p2 = TunableTransmonQubitParameters(readout_resonator_frequency=1.1e9)
+        assert p2.readout_frequency is None

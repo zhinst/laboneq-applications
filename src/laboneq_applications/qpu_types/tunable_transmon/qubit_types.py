@@ -13,15 +13,12 @@ from laboneq.dsl.calibration import Calibration, Oscillator, SignalCalibration
 from laboneq.dsl.enums import ModulationType
 from laboneq.dsl.quantum import (
     QuantumElement,
-    TransmonParameters,
+    QuantumParameters,
 )
 from laboneq.simple import dsl
 
 if TYPE_CHECKING:
     from laboneq.dsl.experiment.pulse import Pulse
-
-
-# TODO: Implement support for discrimination thresholds
 
 # TODO: Add support for specifying integration kernels as a list of sample
 #       values.
@@ -29,10 +26,22 @@ if TYPE_CHECKING:
 
 @classformatter
 @attrs.define()
-class TunableTransmonQubitParameters(TransmonParameters):
+class TunableTransmonQubitParameters(QuantumParameters):
     """Qubit parameters for `TunableTransmonQubit` instances.
 
     Attributes:
+        drive_lo_frequency:
+            Local oscillator frequency for the drive signals.
+        readout_lo_frequency:
+            Local oscillator frequency for the readout lines.
+
+        resonance_frequency_ge:
+            Resonance frequency of the qubits g-e transition.
+        resonance_frequency_ef:
+            Resonance frequency of the qubits e-f transition.
+        readout_resonator_frequency:
+            Readout resonantor frequency of the qubit.
+
         ge_drive_amplitude_pi:
             Amplitude for a pi pulse on the g-e transition.
         ge_drive_amplitude_pi2:
@@ -64,6 +73,9 @@ class TunableTransmonQubitParameters(TransmonParameters):
             Pulse parameters for the readout pulse.
         readout_integration_length:
             Duration of the weighted integration.
+        readout_integration_delay:
+            Integration delay between readout pulse and data acquisition.
+            Defaults to 20 ns.
         readout_integration_kernels_type:
             The type of integration kernel to use, either "default" or "optimal".
             Setting this parameter to "optimal" disables the modulation in the acquire
@@ -76,6 +88,13 @@ class TunableTransmonQubitParameters(TransmonParameters):
         reset_delay_length:
             Duration of the wait time for reset.
 
+        drive_range:
+            Drive power setting, defaults to 10 dBm.
+        readout_range_out:
+            Readout output power setting, defaults to 5 dBm.
+        readout_range_in:
+            Readout input power setting, defaults to 10 dBm.
+
         spectroscopy_length:
             Length of the qubit drive pulse in spectroscopy (seconds).
         spectroscopy_amplitude:
@@ -85,15 +104,29 @@ class TunableTransmonQubitParameters(TransmonParameters):
             Slot number on the DC source used for applying a DC voltage to the qubit.
         dc_voltage_parking:
             Qubit DC parking voltage.
+        flux_offset_voltage:
+            Offset voltage for flux control line - defaults to 0.
     """
 
-    # Qubit coherence times
+    # qubit coherence times
+
     ge_T1: float = 0  # noqa: N815
     ge_T2: float = 0  # noqa: N815
     ge_T2_star: float = 0  # noqa: N815
     ef_T1: float = 0  # noqa: N815
     ef_T2: float = 0  # noqa: N815
     ef_T2_star: float = 0  # noqa: N815
+
+    # local oscillators
+
+    drive_lo_frequency: float | None = None
+    readout_lo_frequency: float | None = None
+
+    # resonance frequencies
+
+    resonance_frequency_ge: float | None = None
+    resonance_frequency_ef: float | None = None
+    readout_resonator_frequency: float | None = None
 
     # g-e drive pulse parameters
 
@@ -121,15 +154,12 @@ class TunableTransmonQubitParameters(TransmonParameters):
         },
     )
 
-    # Qubit-resonator coupling parameters
+    # qubit-resonator coupling parameters
+
     qubit_resonator_coupling_strength_g: float = 0
     ge_chi_shift: float = 0
 
     # readout and integration parameters
-
-    # TODO: It would be nice to be able to change to the default const pulses
-    #       without losing any kernel pulse setting. Define a "kernels_type"?
-    # TODO: Use or remove discrimination thresholds.
 
     readout_amplitude: float = 1.0
     readout_length: float = 2e-6
@@ -139,6 +169,7 @@ class TunableTransmonQubitParameters(TransmonParameters):
         },
     )
     readout_integration_length: float = 2e-6
+    readout_integration_delay: float = 20e-9
     readout_integration_kernels_type: Literal["default", "optimal"] = "default"
     readout_integration_kernels: list[dict] | None = None
     readout_integration_discrimination_thresholds: list[float] | None = None
@@ -146,6 +177,12 @@ class TunableTransmonQubitParameters(TransmonParameters):
     # reset parameters
 
     reset_delay_length: float | None = 1e-6
+
+    # power range parameters
+
+    drive_range: float = 10
+    readout_range_out: float = 5
+    readout_range_in: float = 10
 
     # spectroscopy parameters
 
@@ -162,6 +199,31 @@ class TunableTransmonQubitParameters(TransmonParameters):
 
     dc_slot: int | None = 0
     dc_voltage_parking: float | None = 0.0
+    flux_offset_voltage: float = 0.0
+
+    @property
+    def drive_frequency_ge(self) -> float | None:
+        """Qubit drive frequency for the g-e transition."""
+        if self.drive_lo_frequency is None or self.resonance_frequency_ge is None:
+            return None
+        return self.resonance_frequency_ge - self.drive_lo_frequency
+
+    @property
+    def drive_frequency_ef(self) -> float | None:
+        """Qubit drive frequency for the e-f transition."""
+        if self.drive_lo_frequency is None or self.resonance_frequency_ef is None:
+            return None
+        return self.resonance_frequency_ef - self.drive_lo_frequency
+
+    @property
+    def readout_frequency(self) -> float | None:
+        """Readout baseband frequency."""
+        if (
+            self.readout_lo_frequency is None
+            or self.readout_resonator_frequency is None
+        ):
+            return None
+        return self.readout_resonator_frequency - self.readout_lo_frequency
 
 
 @classformatter
