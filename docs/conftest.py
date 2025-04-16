@@ -4,6 +4,8 @@
 """Configuration for pytest."""
 
 import pathlib
+from collections.abc import AsyncGenerator
+from contextlib import asynccontextmanager
 
 import filelock
 import nbmake.nb_run
@@ -23,10 +25,20 @@ class FileLockNotebookClient(NotebookClient):
         ".notebookclient.pytest.lock"
     )
 
-    async def async_start_new_kernel(self, **kwargs) -> None:
-        """Wrap the default .async_start_new_kernel with a file lock."""
-        with self._LOCK:
-            await super().async_start_new_kernel(**kwargs)
+    @asynccontextmanager
+    async def async_setup_kernel(self, **kwargs) -> AsyncGenerator[None, None]:
+        """Wrap the default .async_setup_kernel with a file lock."""
+        locked = True
+        self._LOCK.acquire()
+
+        try:
+            async with super().async_setup_kernel(**kwargs):
+                self._LOCK.release()
+                locked = False
+                yield
+        finally:
+            if locked:
+                self._LOCK.release()
 
 
 def pytest_configure(config: object) -> None:
