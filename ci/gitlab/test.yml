@@ -5,7 +5,7 @@
     - linux
     - docker
   variables:
-    USE_LABONEQ_DEVELOP: "true"
+    USE_LABONEQ_DEVELOP: "false"
     MPLBACKEND: "AGG"
   before_script:
     - pip install --upgrade setuptools
