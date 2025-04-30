@@ -660,7 +660,7 @@ def plot_data_2d(  # noqa: C901, PLR0912, PLR0913
             The label that will appear on the y-axis.
             Default: ""
         label_z_values:
-            The label that will appear on the colour bar of the z-axis.
+            The label that will appear on the color bar of the z-axis.
             Default: ""
         scaling_x_values:
             The scaling factor of the x-values.

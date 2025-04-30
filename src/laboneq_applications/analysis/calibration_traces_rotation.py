@@ -104,7 +104,7 @@ def rotate_data_to_cal_trace_results(
     """Rotates and projects the raw data.
 
     The raw data is projected onto the line in the IQ plane between
-    two calibration points, then normalised to the distance in the IQ plane between
+    two calibration points, then normalized to the distance in the IQ plane between
     the two calibration points.
     The calibration points are the results of preparing two transmon states.
 
@@ -126,7 +126,7 @@ def rotate_data_to_cal_trace_results(
             f if the cal traces measured were g and f or e an f
 
     Returns:
-        rotated, projected, and normalised real-data array with the same dimension as
+        rotated, projected, and normalized real-data array with the same dimension as
         raw_data.
     """
     data_iq = np.array([np.real(raw_data), np.imag(raw_data)])

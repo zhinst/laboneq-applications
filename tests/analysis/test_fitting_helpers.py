@@ -806,7 +806,7 @@ def test_lorentzian_fit_spectral_feature_invalid_input(fit_data_lorentzian):
     with pytest.raises(ValueError) as err:
         fit_hlp.lorentzian_fit(*fit_data_lorentzian, spectral_feature="zig-zag")
     error_string = (
-        "Unrecognised spectral_feature 'zig-zag'. "
+        "Unrecognized spectral_feature 'zig-zag'. "
         "This parameter can only be 'auto', 'peak', or 'dip'."
     )
     assert str(err.value) == error_string

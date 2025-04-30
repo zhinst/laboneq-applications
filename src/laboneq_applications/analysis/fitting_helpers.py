@@ -377,7 +377,7 @@ def lorentzian_fit(
             fit_res = fit_res_dip
         else:
             raise ValueError(
-                f"Unrecognised spectral_feature '{spectral_feature}'. "
+                f"Unrecognized spectral_feature '{spectral_feature}'. "
                 f"This parameter can only be 'auto', 'peak', or 'dip'."
             )
     else:
