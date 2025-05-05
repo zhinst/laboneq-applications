@@ -414,8 +414,8 @@ class TestTunableTransmonOperations:
             ),
             pytest.param(
                 False,
-                [1.5e9, 1.6e9, 1.7e9],
-                [1.5e9, 1.6e9, 1.7e9],
+                [0.5e9, 0.6e9, 0.7e9],
+                [0.5e9, 0.6e9, 0.7e9],
                 id="oscillator-positive",
             ),
             pytest.param(
@@ -474,15 +474,15 @@ class TestTunableTransmonOperations:
             ),
             pytest.param(
                 False,
-                [1.5e9, 1.6e9, 1.7e9],
-                [1.5e9, 1.6e9, 1.7e9],
+                [0.5e9, 0.6e9, 0.7e9],
+                [0.5e9, 0.6e9, 0.7e9],
                 id="oscillator-positive",
             ),
             pytest.param(
                 False,
                 [-0.1e9, -0.2e9, -0.3e9],
                 [-0.1e9, -0.2e9, -0.3e9],
-                id="oscillator-positive",
+                id="oscillator-negative",
             ),
         ],
     )
