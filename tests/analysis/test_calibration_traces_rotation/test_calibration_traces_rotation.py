@@ -59,11 +59,23 @@ def results_single_qubit_cal_traces(raw_data_q0, sweep_points):
     data_q0, cal_traces_g, cal_traces_e = raw_data_q0
     sp0, sp1 = sweep_points
     data_q0 = {
-        handles.result_handle("q0"): AcquiredResult(data=data_q0),
-        handles.calibration_trace_handle("q0", "g"): AcquiredResult(data=cal_traces_g),
-        handles.calibration_trace_handle("q0", "e"): AcquiredResult(data=cal_traces_e),
+        handles.result_handle("q0"): AcquiredResult(
+            data=data_q0,
+            axis_name=[],
+            axis=[],
+        ),
+        handles.calibration_trace_handle("q0", "g"): AcquiredResult(
+            data=cal_traces_g,
+            axis_name=[],
+            axis=[],
+        ),
+        handles.calibration_trace_handle("q0", "e"): AcquiredResult(
+            data=cal_traces_e,
+            axis_name=[],
+            axis=[],
+        ),
     }
-    return RunExperimentResults(data_q0), sp0, sp1
+    return RunExperimentResults(data=data_q0), sp0, sp1
 
 
 @pytest.fixture
@@ -71,9 +83,13 @@ def results_single_qubit_no_cal_traces(raw_data_q0, sweep_points):
     data_q0, _, _ = raw_data_q0
     sp0, sp1 = sweep_points
     data_q0 = {
-        handles.result_handle("q0"): AcquiredResult(data=data_q0),
+        handles.result_handle("q0"): AcquiredResult(
+            data=data_q0,
+            axis_name=[],
+            axis=[],
+        ),
     }
-    return RunExperimentResults(data_q0), sp0, sp1
+    return RunExperimentResults(data=data_q0), sp0, sp1
 
 
 @pytest.fixture
@@ -81,15 +97,23 @@ def results_single_qubit_one_cal_trace_per_state(raw_data_q0, sweep_points):
     data_q0, cal_traces_g, cal_traces_e = raw_data_q0
     sp0, sp1 = sweep_points
     data_q0 = {
-        handles.result_handle("q0"): AcquiredResult(data=data_q0),
+        handles.result_handle("q0"): AcquiredResult(
+            data=data_q0,
+            axis_name=[],
+            axis=[],
+        ),
         handles.calibration_trace_handle("q0", "g"): AcquiredResult(
-            data=cal_traces_g[0]
+            data=cal_traces_g[0],
+            axis_name=[],
+            axis=[],
         ),
         handles.calibration_trace_handle("q0", "e"): AcquiredResult(
-            data=cal_traces_e[0]
+            data=cal_traces_e[0],
+            axis_name=[],
+            axis=[],
         ),
     }
-    return RunExperimentResults(data_q0), sp0, sp1
+    return RunExperimentResults(data=data_q0), sp0, sp1
 
 
 @pytest.fixture
@@ -98,22 +122,38 @@ def results_two_qubits_cal_traces(raw_data_q0, raw_data_q1, sweep_points):
     data_q1, cal_traces_g_q1, cal_traces_e_q1 = raw_data_q1
     sp0, sp1 = sweep_points
     data = {
-        handles.result_handle("q0"): AcquiredResult(data=data_q0),
+        handles.result_handle("q0"): AcquiredResult(
+            data=data_q0,
+            axis_name=[],
+            axis=[],
+        ),
         handles.calibration_trace_handle("q0", "g"): AcquiredResult(
-            data=cal_traces_g_q0
+            data=cal_traces_g_q0,
+            axis_name=[],
+            axis=[],
         ),
         handles.calibration_trace_handle("q0", "e"): AcquiredResult(
-            data=cal_traces_e_q0
+            data=cal_traces_e_q0,
+            axis_name=[],
+            axis=[],
         ),
-        handles.result_handle("q1"): AcquiredResult(data=data_q1),
+        handles.result_handle("q1"): AcquiredResult(
+            data=data_q1,
+            axis_name=[],
+            axis=[],
+        ),
         handles.calibration_trace_handle("q1", "g"): AcquiredResult(
-            data=cal_traces_g_q1
+            data=cal_traces_g_q1,
+            axis_name=[],
+            axis=[],
         ),
         handles.calibration_trace_handle("q1", "e"): AcquiredResult(
-            data=cal_traces_e_q1
+            data=cal_traces_e_q1,
+            axis_name=[],
+            axis=[],
         ),
     }
-    return RunExperimentResults(data), sp0, sp1
+    return RunExperimentResults(data=data), sp0, sp1
 
 
 @pytest.fixture
@@ -122,10 +162,18 @@ def results_two_qubits_no_cal_traces(raw_data_q0, raw_data_q1, sweep_points):
     data_q1, _, _ = raw_data_q1
     sp0, sp1 = sweep_points
     data = {
-        handles.result_handle("q0"): AcquiredResult(data=data_q0),
-        handles.result_handle("q1"): AcquiredResult(data=data_q1),
+        handles.result_handle("q0"): AcquiredResult(
+            data=data_q0,
+            axis_name=[],
+            axis=[],
+        ),
+        handles.result_handle("q1"): AcquiredResult(
+            data=data_q1,
+            axis_name=[],
+            axis=[],
+        ),
     }
-    return RunExperimentResults(data), sp0, sp1
+    return RunExperimentResults(data=data), sp0, sp1
 
 
 @pytest.fixture
@@ -134,22 +182,38 @@ def results_two_qubits_one_cal_trace_per_state(raw_data_q0, raw_data_q1, sweep_p
     data_q1, cal_traces_g_q1, cal_traces_e_q1 = raw_data_q1
     sp0, sp1 = sweep_points
     data = {
-        handles.result_handle("q0"): AcquiredResult(data=data_q0),
+        handles.result_handle("q0"): AcquiredResult(
+            data=data_q0,
+            axis_name=[],
+            axis=[],
+        ),
         handles.calibration_trace_handle("q0", "g"): AcquiredResult(
-            data=cal_traces_g_q0[0]
+            data=cal_traces_g_q0[0],
+            axis_name=[],
+            axis=[],
         ),
         handles.calibration_trace_handle("q0", "e"): AcquiredResult(
-            data=cal_traces_e_q0[0]
+            data=cal_traces_e_q0[0],
+            axis_name=[],
+            axis=[],
         ),
-        handles.result_handle("q1"): AcquiredResult(data=data_q1),
+        handles.result_handle("q1"): AcquiredResult(
+            data=data_q1,
+            axis_name=[],
+            axis=[],
+        ),
         handles.calibration_trace_handle("q1", "g"): AcquiredResult(
-            data=cal_traces_g_q1[0]
+            data=cal_traces_g_q1[0],
+            axis_name=[],
+            axis=[],
         ),
         handles.calibration_trace_handle("q1", "e"): AcquiredResult(
-            data=cal_traces_e_q1[0]
+            data=cal_traces_e_q1[0],
+            axis_name=[],
+            axis=[],
         ),
     }
-    return RunExperimentResults(data), sp0, sp1
+    return RunExperimentResults(data=data), sp0, sp1
 
 
 population_q0_q1_cal_trace_rotation = np.load(

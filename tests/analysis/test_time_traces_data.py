@@ -640,7 +640,11 @@ def raw_data():
 def results_single_qubit_g(raw_data):
     return RunExperimentResults(
         data={
-            handles.result_handle("q0", suffix="g"): AcquiredResult(data=raw_data["g"]),
+            handles.result_handle("q0", suffix="g"): AcquiredResult(
+                data=raw_data["g"],
+                axis_name=[],
+                axis=[],
+            ),
         }
     )
 
@@ -649,8 +653,16 @@ def results_single_qubit_g(raw_data):
 def results_single_qubit_ge(raw_data):
     return RunExperimentResults(
         data={
-            handles.result_handle("q0", suffix="g"): AcquiredResult(data=raw_data["g"]),
-            handles.result_handle("q0", suffix="e"): AcquiredResult(data=raw_data["e"]),
+            handles.result_handle("q0", suffix="g"): AcquiredResult(
+                data=raw_data["g"],
+                axis_name=[],
+                axis=[],
+            ),
+            handles.result_handle("q0", suffix="e"): AcquiredResult(
+                data=raw_data["e"],
+                axis_name=[],
+                axis=[],
+            ),
         }
     )
 
@@ -659,9 +671,21 @@ def results_single_qubit_ge(raw_data):
 def results_single_qubit_gef(raw_data):
     return RunExperimentResults(
         data={
-            handles.result_handle("q0", suffix="g"): AcquiredResult(data=raw_data["g"]),
-            handles.result_handle("q0", suffix="e"): AcquiredResult(data=raw_data["e"]),
-            handles.result_handle("q0", suffix="f"): AcquiredResult(data=raw_data["f"]),
+            handles.result_handle("q0", suffix="g"): AcquiredResult(
+                data=raw_data["g"],
+                axis_name=[],
+                axis=[],
+            ),
+            handles.result_handle("q0", suffix="e"): AcquiredResult(
+                data=raw_data["e"],
+                axis_name=[],
+                axis=[],
+            ),
+            handles.result_handle("q0", suffix="f"): AcquiredResult(
+                data=raw_data["f"],
+                axis_name=[],
+                axis=[],
+            ),
         }
     )
 

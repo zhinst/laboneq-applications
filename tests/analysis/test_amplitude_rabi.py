@@ -46,6 +46,8 @@ def results_single_qubit():
                 0.15646681 + 0.76574749j,
             ]
         ),
+        axis_name=[],
+        axis=[],
     )
     data[handles.calibration_trace_handle("q0", "g")] = AcquiredResult(
         data=(0.05745863888207082 - 0.13026141779382786j),
@@ -335,6 +337,8 @@ def results_two_qubit():
                 0.15646681 + 0.76574749j,
             ]
         ),
+        axis_name=[],
+        axis=[],
     )
     data[handles.result_handle("q1")] = AcquiredResult(
         np.array(
@@ -362,6 +366,8 @@ def results_two_qubit():
                 0.25708916 + 0.93078653j,
             ]
         ),
+        axis_name=[],
+        axis=[],
     )
     data[handles.calibration_trace_handle("q0", "g")] = AcquiredResult(
         data=(0.05745863888207082 - 0.13026141779382786j),

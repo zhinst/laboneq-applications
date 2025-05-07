@@ -70,7 +70,9 @@ def results_single_qubit():
                 -0.60668187 - 1.18829886j,
                 -0.55594966 - 0.92351248j,
             ]
-        )
+        ),
+        axis_name=[],
+        axis=[],
     )
     data[handles.calibration_trace_handle("q0", "g")] = AcquiredResult(
         data=(-0.772875386725562 - 1.9347566625390387j),
@@ -467,7 +469,9 @@ def results_two_qubit():
                 -0.60668187 - 1.18829886j,
                 -0.55594966 - 0.92351248j,
             ]
-        )
+        ),
+        axis_name=[],
+        axis=[],
     )
     data[handles.calibration_trace_handle("q0", "g")] = AcquiredResult(
         data=(-0.772875386725562 - 1.9347566625390387j),
@@ -525,7 +529,9 @@ def results_two_qubit():
                 -0.32880129 - 0.64904714j,
                 -0.32547872 - 0.64817809j,
             ]
-        )
+        ),
+        axis_name=[],
+        axis=[],
     )
     data[handles.calibration_trace_handle("q1", "g")] = AcquiredResult(
         data=(-0.047990956067688245 + 0.01885716311907388j),

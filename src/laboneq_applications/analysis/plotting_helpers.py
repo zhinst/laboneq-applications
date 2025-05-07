@@ -550,7 +550,7 @@ def plot_signal_magnitude_and_phase_2d(
     )
     raw_result = result
     if isinstance(result, Results):
-        raw_result = RunExperimentResults(result.acquired_results)
+        raw_result = RunExperimentResults(data=result.acquired_results)
 
     figures = {}
     figure_size = opts.figure_size_magnitude_phase

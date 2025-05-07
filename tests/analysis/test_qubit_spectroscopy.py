@@ -231,7 +231,9 @@ def results_single_qubit():
                 -0.58153024 - 1.85752947j,
                 -0.58352255 - 1.86446984j,
             ]
-        )
+        ),
+        axis_name=[],
+        axis=[],
     )
     sweep_points = np.array(
         [
@@ -1204,7 +1206,9 @@ def results_two_qubit():
                 -0.58153024 - 1.85752947j,
                 -0.58352255 - 1.86446984j,
             ]
-        )
+        ),
+        axis_name=[],
+        axis=[],
     )
     data[handles.result_handle("q1")] = AcquiredResult(
         data=np.array(
@@ -1411,7 +1415,9 @@ def results_two_qubit():
                 0.14143726 - 0.09839994j,
                 0.15051491 - 0.09418631j,
             ]
-        )
+        ),
+        axis_name=[],
+        axis=[],
     )
 
     sweep_points = [

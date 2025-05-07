@@ -30,9 +30,13 @@ def results_large_voltage_sweep_range():
 
     sp0, sp1 = frequencies, voltages
     data_q0 = {
-        handles.result_handle("q0"): AcquiredResult(data=raw_data),
+        handles.result_handle("q0"): AcquiredResult(
+            data=raw_data,
+            axis_name=[],
+            axis=[],
+        ),
     }
-    return RunExperimentResults(data_q0), sp0, sp1
+    return RunExperimentResults(data=data_q0), sp0, sp1
 
 
 @pytest.fixture
@@ -44,9 +48,13 @@ def results_small_voltage_sweep_range():
 
     sp0, sp1 = frequencies, voltages
     data_q0 = {
-        handles.result_handle("q0"): AcquiredResult(data=raw_data),
+        handles.result_handle("q0"): AcquiredResult(
+            data=raw_data,
+            axis_name=[],
+            axis=[],
+        ),
     }
-    return RunExperimentResults(data_q0), sp0, sp1
+    return RunExperimentResults(data=data_q0), sp0, sp1
 
 
 ### Tests  ###

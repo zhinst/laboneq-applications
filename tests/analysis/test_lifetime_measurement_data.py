@@ -56,7 +56,9 @@ def raw_data_ge():
                 -0.06431914 - 0.03795923j,
                 -0.06447172 - 0.03919567j,
             ]
-        )
+        ),
+        axis_name=[],
+        axis=[],
     )
     data_q0[handles.calibration_trace_handle("q0", "g")] = AcquiredResult(
         data=(-0.03565303063567659 + 0.013210466140904797j),
@@ -141,7 +143,9 @@ def raw_data_ge():
                 1.08046267 - 0.01304732j,
                 1.07439737 - 0.03371405j,
             ]
-        )
+        ),
+        axis_name=[],
+        axis=[],
     )
     data_q1[handles.calibration_trace_handle("q1", "g")] = AcquiredResult(
         data=(1.0407949643102572 + 0.31812771722279526j),
@@ -196,7 +200,7 @@ def raw_data_ge():
 @pytest.fixture
 def results_single_qubit_ge(raw_data_ge):
     data_q0, sweep_points_q0, _, _ = raw_data_ge
-    return RunExperimentResults(data_q0), sweep_points_q0
+    return RunExperimentResults(data=data_q0), sweep_points_q0
 
 
 @pytest.fixture
@@ -205,7 +209,7 @@ def results_two_qubit_ge(raw_data_ge):
     data = {}
     data.update(data_q0)
     data.update(data_q1)
-    return RunExperimentResults(data), [sweep_points_q0, sweep_points_q1]
+    return RunExperimentResults(data=data), [sweep_points_q0, sweep_points_q1]
 
 
 @pytest.fixture

@@ -427,6 +427,7 @@ def result():
                         ]
                     )
                 ],
+                axis_name=[],
             )
         },
     }

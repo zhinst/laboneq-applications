@@ -23,7 +23,11 @@ rng = np.random.default_rng(42)
 def result_1d():
     """Results generated from random data."""
     data = {}
-    data[handles.result_handle("q0")] = AcquiredResult(data=rng.uniform(size=21))
+    data[handles.result_handle("q0")] = AcquiredResult(
+        data=rng.uniform(size=21),
+        axis_name=[],
+        axis=[],
+    )
     data[handles.calibration_trace_handle("q0", "g")] = AcquiredResult(
         data=rng.uniform(size=1),
         axis_name=[],
@@ -44,7 +48,9 @@ def result_1d_nested_two_qubits():
     """Results generated from random data."""
     data = {}
     data[handles.result_handle("q0", suffix="nest")] = AcquiredResult(
-        data=rng.uniform(size=21)
+        data=rng.uniform(size=21),
+        axis_name=[],
+        axis=[],
     )
     data[handles.calibration_trace_handle("q0", "g")] = AcquiredResult(
         data=rng.uniform(size=1),
@@ -57,7 +63,9 @@ def result_1d_nested_two_qubits():
         axis=[],
     )
     data[handles.result_handle("q1", suffix="nest")] = AcquiredResult(
-        data=rng.uniform(size=21)
+        data=rng.uniform(size=21),
+        axis_name=[],
+        axis=[],
     )
     data[handles.calibration_trace_handle("q1", "g")] = AcquiredResult(
         data=rng.uniform(size=1),
@@ -195,7 +203,11 @@ def result_2d():
     in the second dimension.
     """
     data = {}
-    data[handles.result_handle("q0")] = AcquiredResult(data=rng.uniform(size=(7, 10)))
+    data[handles.result_handle("q0")] = AcquiredResult(
+        data=rng.uniform(size=(7, 10)),
+        axis_name=[],
+        axis=[],
+    )
     data[handles.calibration_trace_handle("q0", "g")] = AcquiredResult(
         data=rng.uniform(size=7),
         axis_name=[],
@@ -220,7 +232,11 @@ def result_2d_two_cal_points():
     in the second dimension.
     """
     data = {}
-    data[handles.result_handle("q0")] = AcquiredResult(data=rng.uniform(size=(7, 10)))
+    data[handles.result_handle("q0")] = AcquiredResult(
+        data=rng.uniform(size=(7, 10)),
+        axis_name=[],
+        axis=[],
+    )
     data[handles.calibration_trace_handle("q0", "g")] = AcquiredResult(
         data=rng.uniform(size=1),
         axis_name=[],
@@ -246,7 +262,9 @@ def result_2d_nested_two_qubits():
     """
     data = {}
     data[handles.result_handle("q0", suffix="nest")] = AcquiredResult(
-        data=rng.uniform(size=(7, 10))
+        data=rng.uniform(size=(7, 10)),
+        axis_name=[],
+        axis=[],
     )
     data[handles.calibration_trace_handle("q0", "g")] = AcquiredResult(
         data=rng.uniform(size=7),
@@ -260,7 +278,9 @@ def result_2d_nested_two_qubits():
     )
 
     data[handles.result_handle("q1", suffix="nest")] = AcquiredResult(
-        data=rng.uniform(size=(7, 10))
+        data=rng.uniform(size=(7, 10)),
+        axis_name=[],
+        axis=[],
     )
     data[handles.calibration_trace_handle("q1", "g")] = AcquiredResult(
         data=rng.uniform(size=7),
@@ -585,6 +605,6 @@ class TestPlotData2D:
                 z_values=rng.uniform(size=(3, 5)),
             )
         error_string = (
-            "z_values must have the shape " "(len(y_values), len(x_values)) = (10, 20)."
+            "z_values must have the shape (len(y_values), len(x_values)) = (10, 20)."
         )
         assert str(err.value) == error_string

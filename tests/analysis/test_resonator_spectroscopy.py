@@ -130,7 +130,9 @@ def results_single_qubit():
                 1.49077786e-04 + 4.52455123e-04j,
                 3.53786568e-04 + 3.04725050e-04j,
             ]
-        )
+        ),
+        axis_name=[],
+        axis=[],
     )
     sweep_points = np.array(
         [
