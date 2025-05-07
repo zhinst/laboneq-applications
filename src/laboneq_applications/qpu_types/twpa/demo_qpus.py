@@ -40,7 +40,7 @@ def demo_platform(n_twpas: int) -> QuantumPlatform:
     setup = twpa_setup(n_twpas)
     twpas = travelling_wave_parameteric_amplifiers(n_twpas, setup)
     quantum_operations = TWPAOperations()
-    qpu = QPU(qubits=twpas, quantum_operations=quantum_operations)
+    qpu = QPU(twpas, quantum_operations=quantum_operations)
     return QuantumPlatform(setup=setup, qpu=qpu)
 
 

@@ -40,7 +40,7 @@ def demo_platform(n_qubits: int) -> QuantumPlatform:
     setup = tunable_transmon_setup(n_qubits)
     qubits = tunable_transmon_qubits(n_qubits, setup)
     quantum_operations = TunableTransmonOperations()
-    qpu = QPU(qubits=qubits, quantum_operations=quantum_operations)
+    qpu = QPU(qubits, quantum_operations=quantum_operations)
     return QuantumPlatform(setup=setup, qpu=qpu)
 
 
