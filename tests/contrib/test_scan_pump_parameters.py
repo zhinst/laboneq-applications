@@ -13,7 +13,7 @@ class TestScanPumpParameters:
     def test_scan_pump_parameters(self, single_twpa_platform):
         platform = single_twpa_platform
         qpu = platform.qpu
-        [twpa] = platform.qpu.qubits
+        [twpa] = platform.qpu.quantum_elements
         options = scan_pump_parameters.experiment_workflow.options()
         options.do_analysis(True)
         session = platform.session(do_emulation=True)

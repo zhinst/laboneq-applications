@@ -25,7 +25,7 @@ def qubit_parameters():
 
 class TestUpdateQubits:
     def test_run(self, two_tunable_transmon_platform, qubit_parameters):
-        [q0, q1] = two_tunable_transmon_platform.qpu.qubits
+        [q0, q1] = two_tunable_transmon_platform.qpu.quantum_elements
 
         assert q0.parameters.ge_drive_amplitude_pi != 0.55
         assert q0.parameters.ge_drive_amplitude_pi2 != 0.255

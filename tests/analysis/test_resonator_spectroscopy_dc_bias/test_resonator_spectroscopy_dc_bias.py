@@ -65,7 +65,7 @@ class TestResonatorSpectroscopyDcBias:
         results_large_voltage_sweep_range,
     ):
         result, frequencies, voltages = results_large_voltage_sweep_range
-        [q0] = single_tunable_transmon_platform.qpu.qubits
+        [q0] = single_tunable_transmon_platform.qpu.quantum_elements
         options = analysis_workflow.options()
         options.find_peaks(True)
         options.parking_sweet_spot("uss")
@@ -177,7 +177,7 @@ class TestResonatorSpectroscopyDcBias:
         results_large_voltage_sweep_range,
     ):
         result, frequencies, voltages = results_large_voltage_sweep_range
-        [q0] = single_tunable_transmon_platform.qpu.qubits
+        [q0] = single_tunable_transmon_platform.qpu.quantum_elements
         options = analysis_workflow.options()
         options.find_peaks(True)
         options.parking_sweet_spot("lss")
@@ -288,7 +288,7 @@ class TestResonatorSpectroscopyDcBias:
         results_large_voltage_sweep_range,
     ):
         result, frequencies, voltages = results_large_voltage_sweep_range
-        [q0] = single_tunable_transmon_platform.qpu.qubits
+        [q0] = single_tunable_transmon_platform.qpu.quantum_elements
         options = analysis_workflow.options()
         options.find_peaks(False)
         options.parking_sweet_spot("uss")
@@ -397,7 +397,7 @@ class TestResonatorSpectroscopyDcBias:
         results_large_voltage_sweep_range,
     ):
         result, frequencies, voltages = results_large_voltage_sweep_range
-        [q0] = single_tunable_transmon_platform.qpu.qubits
+        [q0] = single_tunable_transmon_platform.qpu.quantum_elements
         options = analysis_workflow.options()
         options.find_peaks(True)
         options.parking_sweet_spot("uss")
@@ -467,7 +467,7 @@ class TestResonatorSpectroscopyDcBias:
         results_small_voltage_sweep_range,
     ):
         result, frequencies, voltages = results_small_voltage_sweep_range
-        [q0] = single_tunable_transmon_platform.qpu.qubits
+        [q0] = single_tunable_transmon_platform.qpu.quantum_elements
         options = analysis_workflow.options()
         options.find_peaks(True)
         workflow_result = analysis_workflow(
@@ -556,7 +556,7 @@ class TestResonatorSpectroscopyDcBias:
         results_small_voltage_sweep_range,
     ):
         result, frequencies, voltages = results_small_voltage_sweep_range
-        [q0] = single_tunable_transmon_platform.qpu.qubits
+        [q0] = single_tunable_transmon_platform.qpu.quantum_elements
         options = analysis_workflow.options()
         options.parking_sweet_spot("lss")  # not in the voltage sweep range
         with pytest.raises(ValueError) as err:
@@ -579,7 +579,7 @@ class TestResonatorSpectroscopyDcBias:
         results_large_voltage_sweep_range,
     ):
         result, frequencies, voltages = results_large_voltage_sweep_range
-        [q0] = single_tunable_transmon_platform.qpu.qubits
+        [q0] = single_tunable_transmon_platform.qpu.quantum_elements
         options = analysis_workflow.options()
         options.find_peaks(True)
         options.parking_sweet_spot("uss")
@@ -608,7 +608,7 @@ class TestResonatorSpectroscopyDcBias:
         results_large_voltage_sweep_range,
     ):
         result, frequencies, voltages = results_large_voltage_sweep_range
-        [q0] = single_tunable_transmon_platform.qpu.qubits
+        [q0] = single_tunable_transmon_platform.qpu.quantum_elements
         options = analysis_workflow.options()
         options.find_peaks(True)
         options.parking_sweet_spot("uss")
@@ -637,7 +637,7 @@ class TestResonatorSpectroscopyDcBias:
         results_large_voltage_sweep_range,
     ):
         result, frequencies, voltages = results_large_voltage_sweep_range
-        [q0] = single_tunable_transmon_platform.qpu.qubits
+        [q0] = single_tunable_transmon_platform.qpu.quantum_elements
         options = analysis_workflow.options()
         options.find_peaks(True)
         options.parking_sweet_spot("uss")
@@ -666,7 +666,7 @@ class TestResonatorSpectroscopyDcBias:
         results_large_voltage_sweep_range,
     ):
         result, frequencies, voltages = results_large_voltage_sweep_range
-        [q0] = single_tunable_transmon_platform.qpu.qubits
+        [q0] = single_tunable_transmon_platform.qpu.quantum_elements
         options = analysis_workflow.options()
         options.find_peaks(True)
         options.parking_sweet_spot("uss")
@@ -695,7 +695,7 @@ class TestResonatorSpectroscopyDcBias:
         results_large_voltage_sweep_range,
     ):
         result, frequencies, voltages = results_large_voltage_sweep_range
-        [q0] = single_tunable_transmon_platform.qpu.qubits
+        [q0] = single_tunable_transmon_platform.qpu.quantum_elements
         options = analysis_workflow.options()
         options.find_peaks(True)
         options.frequency_filter((None, 7.025e9))
@@ -741,7 +741,7 @@ class TestResonatorSpectroscopyDcBias:
         results_large_voltage_sweep_range,
     ):
         result, frequencies, voltages = results_large_voltage_sweep_range
-        [q0] = single_tunable_transmon_platform.qpu.qubits
+        [q0] = single_tunable_transmon_platform.qpu.quantum_elements
         options = analysis_workflow.options()
         options.find_peaks(True)
         options.frequency_filter((7.01e9, None))
@@ -786,7 +786,7 @@ class TestResonatorSpectroscopyDcBias:
         results_large_voltage_sweep_range,
     ):
         result, frequencies, voltages = results_large_voltage_sweep_range
-        [q0] = single_tunable_transmon_platform.qpu.qubits
+        [q0] = single_tunable_transmon_platform.qpu.quantum_elements
         options = analysis_workflow.options()
         options.find_peaks(True)
         options.frequency_filter((7.01e9, 7.03e9))
@@ -831,7 +831,7 @@ class TestResonatorSpectroscopyDcBias:
         results_large_voltage_sweep_range,
     ):
         result, frequencies, voltages = results_large_voltage_sweep_range
-        [q0] = single_tunable_transmon_platform.qpu.qubits
+        [q0] = single_tunable_transmon_platform.qpu.quantum_elements
         options = analysis_workflow.options()
 
         # lower limit larger than upper limit

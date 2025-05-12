@@ -13,7 +13,7 @@ class TestMeasureGainCurve:
     def test_measure_gain_curve(self, single_twpa_platform):
         platform = single_twpa_platform
         qpu = platform.qpu
-        [twpa] = platform.qpu.qubits
+        [twpa] = platform.qpu.quantum_elements
         options = measure_gain_curve.experiment_workflow.options()
         options.do_analysis(True)
         session = platform.session(do_emulation=True)

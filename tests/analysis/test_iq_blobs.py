@@ -22,7 +22,7 @@ class TestIQBlobsAnalysisSingleQubitGEF:
         single_tunable_transmon_platform,
         results_single_qubit_gef,  # noqa: F811
     ):
-        [q0] = single_tunable_transmon_platform.qpu.qubits
+        [q0] = single_tunable_transmon_platform.qpu.quantum_elements
         options = iq_blobs.analysis_workflow.options()
         states = ["g", "e", "f"]
         result = iq_blobs.analysis_workflow(
@@ -77,7 +77,7 @@ class TestIQBlobsAnalysisSingleQubitGEF:
         single_tunable_transmon_platform,
         results_single_qubit_gef,  # noqa: F811
     ):
-        [q0] = single_tunable_transmon_platform.qpu.qubits
+        [q0] = single_tunable_transmon_platform.qpu.quantum_elements
         options = iq_blobs.analysis_workflow.options()
         options.do_fitting(False)
 
@@ -102,7 +102,7 @@ class TestIQBlobsAnalysisSingleQubitGEF:
         single_tunable_transmon_platform,
         results_single_qubit_gef,  # noqa: F811
     ):
-        [q0] = single_tunable_transmon_platform.qpu.qubits
+        [q0] = single_tunable_transmon_platform.qpu.quantum_elements
         options = iq_blobs.analysis_workflow.options()
 
         # No plotting of assignment matrices
@@ -162,7 +162,7 @@ class TestIQBlobsAnalysisSingleQubitGEF:
 
 class TestIQBlobsAnalysisTwoQubitGE:
     def test_create_and_run(self, two_tunable_transmon_platform, results_two_qubit_ge):  # noqa: F811
-        qubits = two_tunable_transmon_platform.qpu.qubits
+        qubits = two_tunable_transmon_platform.qpu.quantum_elements
         options = iq_blobs.analysis_workflow.options()
         states = ["g", "e"]
         result = iq_blobs.analysis_workflow(
@@ -240,7 +240,7 @@ class TestIQBlobsAnalysisTwoQubitGE:
         two_tunable_transmon_platform,
         results_two_qubit_ge,  # noqa: F811
     ):
-        qubits = two_tunable_transmon_platform.qpu.qubits
+        qubits = two_tunable_transmon_platform.qpu.quantum_elements
         options = iq_blobs.analysis_workflow.options()
 
         options.close_figures(True)

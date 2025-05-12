@@ -21,7 +21,7 @@ def create_res_spectroscopy_verifier(
     spectroscopy_reset_delay,
 ):
     """Create a CompiledExperimentVerifier for the resonator spectroscopy experiment."""
-    qubits = tunable_transmon_platform.qpu.qubits
+    qubits = tunable_transmon_platform.qpu.quantum_elements
     # for this specific experiment, I force just one qubit by default
     qubit = qubits[0]
     session = tunable_transmon_platform.session(do_emulation=True)

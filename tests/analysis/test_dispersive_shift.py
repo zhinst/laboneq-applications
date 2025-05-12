@@ -864,7 +864,7 @@ class TestDispersiveShiftAnalysisSingleQubit:
     def test_create_and_run_ge(
         self, single_tunable_transmon_platform, results_single_qubit
     ):
-        [q0] = single_tunable_transmon_platform.qpu.qubits
+        [q0] = single_tunable_transmon_platform.qpu.quantum_elements
         options = dispersive_shift.analysis_workflow.options()
 
         result = dispersive_shift.analysis_workflow(
@@ -1112,7 +1112,7 @@ class TestDispersiveShiftAnalysisSingleQubit:
     def test_create_and_run_gef(
         self, single_tunable_transmon_platform, results_single_qubit
     ):
-        [q0] = single_tunable_transmon_platform.qpu.qubits
+        [q0] = single_tunable_transmon_platform.qpu.quantum_elements
         options = dispersive_shift.analysis_workflow.options()
 
         result = dispersive_shift.analysis_workflow(
@@ -1358,7 +1358,7 @@ class TestDispersiveShiftAnalysisSingleQubit:
     def test_create_and_run_no_plotting(
         self, single_tunable_transmon_platform, results_single_qubit
     ):
-        [q0] = single_tunable_transmon_platform.qpu.qubits
+        [q0] = single_tunable_transmon_platform.qpu.quantum_elements
         options = dispersive_shift.analysis_workflow.options()
 
         # Disable signal distances plotting
@@ -1413,7 +1413,7 @@ class TestDispersiveShiftAnalysisSingleQubit:
     def test_create_and_run_close_figures(
         self, single_tunable_transmon_platform, results_single_qubit
     ):
-        [q0] = single_tunable_transmon_platform.qpu.qubits
+        [q0] = single_tunable_transmon_platform.qpu.quantum_elements
         options = dispersive_shift.analysis_workflow.options()
         options.close_figures(True)
 

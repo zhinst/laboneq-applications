@@ -246,7 +246,7 @@ class TestResonatorSpectroscopyAnalysisSingleQubit:
     def test_create_and_run_find_dips(
         self, single_tunable_transmon_platform, results_single_qubit
     ):
-        [q0] = single_tunable_transmon_platform.qpu.qubits
+        [q0] = single_tunable_transmon_platform.qpu.quantum_elements
         options = resonator_spectroscopy.analysis_workflow.options()
         options.find_peaks(False)
 
@@ -500,7 +500,7 @@ class TestResonatorSpectroscopyAnalysisSingleQubit:
     def test_create_and_run_find_peaks(
         self, single_tunable_transmon_platform, results_single_qubit
     ):
-        [q0] = single_tunable_transmon_platform.qpu.qubits
+        [q0] = single_tunable_transmon_platform.qpu.quantum_elements
         options = resonator_spectroscopy.analysis_workflow.options()
         options.find_peaks(True)
 
@@ -534,7 +534,7 @@ class TestResonatorSpectroscopyAnalysisSingleQubit:
     def test_create_and_run_no_plotting(
         self, single_tunable_transmon_platform, results_single_qubit
     ):
-        [q0] = single_tunable_transmon_platform.qpu.qubits
+        [q0] = single_tunable_transmon_platform.qpu.quantum_elements
         options = resonator_spectroscopy.analysis_workflow.options()
         options.do_plotting(False)
 
@@ -557,7 +557,7 @@ class TestResonatorSpectroscopyAnalysisSingleQubit:
     def test_create_and_run_close_figures(
         self, single_tunable_transmon_platform, results_single_qubit
     ):
-        [q0] = single_tunable_transmon_platform.qpu.qubits
+        [q0] = single_tunable_transmon_platform.qpu.quantum_elements
         options = resonator_spectroscopy.analysis_workflow.options()
         options.close_figures(True)
 

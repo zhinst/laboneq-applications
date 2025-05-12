@@ -13,7 +13,7 @@ class TestSingleQubitRandomizedBenchmarking:
     def test_single_qubit_randomized_benchmarking(self, two_tunable_transmon_platform):
         platform = two_tunable_transmon_platform
         qpu = platform.qpu
-        qubits = platform.qpu.qubits
+        qubits = platform.qpu.quantum_elements
         options = single_qubit_randomized_benchmarking.experiment_workflow.options()
         options.do_analysis(True)
         session = platform.session(do_emulation=True)

@@ -88,7 +88,7 @@ class TestAmplitudeFineAnalysisSingleQubit:
     def test_create_and_run(
         self, single_tunable_transmon_platform, results_single_qubit
     ):
-        [q0] = single_tunable_transmon_platform.qpu.qubits
+        [q0] = single_tunable_transmon_platform.qpu.quantum_elements
         options = amplitude_fine.analysis_workflow.options()
 
         result = amplitude_fine.analysis_workflow(
@@ -258,7 +258,7 @@ def results_two_qubit():
 
 class TestAmplitudeFineAnalysisTwoQubit:
     def test_create_and_run(self, two_tunable_transmon_platform, results_two_qubit):
-        qubits = two_tunable_transmon_platform.qpu.qubits
+        qubits = two_tunable_transmon_platform.qpu.quantum_elements
         options = amplitude_fine.analysis_workflow.options()
 
         result = amplitude_fine.analysis_workflow(

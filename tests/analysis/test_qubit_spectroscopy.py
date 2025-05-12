@@ -447,7 +447,7 @@ class TestQubitSpectroscopyAnalysisSingleQubit:
     def test_create_and_run(
         self, single_tunable_transmon_platform, results_single_qubit
     ):
-        [q0] = single_tunable_transmon_platform.qpu.qubits
+        [q0] = single_tunable_transmon_platform.qpu.quantum_elements
         options = qubit_spectroscopy.analysis_workflow.options()
         result = qubit_spectroscopy.analysis_workflow(
             result=results_single_qubit[0],
@@ -907,7 +907,7 @@ class TestQubitSpectroscopyAnalysisSingleQubit:
     def test_create_and_run_specify_spectral_feature(
         self, single_tunable_transmon_platform, results_single_qubit
     ):
-        [q0] = single_tunable_transmon_platform.qpu.qubits
+        [q0] = single_tunable_transmon_platform.qpu.quantum_elements
         options = qubit_spectroscopy.analysis_workflow.options()
         options.spectral_feature("peak")
         result = qubit_spectroscopy.analysis_workflow(
@@ -928,7 +928,7 @@ class TestQubitSpectroscopyAnalysisSingleQubit:
     def test_create_and_run_frequency_filter(
         self, single_tunable_transmon_platform, results_single_qubit
     ):
-        [q0] = single_tunable_transmon_platform.qpu.qubits
+        [q0] = single_tunable_transmon_platform.qpu.quantum_elements
         options = qubit_spectroscopy.analysis_workflow.options()
         options.frequency_filters({q0.uid: (None, 6.16e9)})
         result = qubit_spectroscopy.analysis_workflow(
@@ -947,7 +947,7 @@ class TestQubitSpectroscopyAnalysisSingleQubit:
     def test_create_and_run_no_fitting(
         self, single_tunable_transmon_platform, results_single_qubit
     ):
-        [q0] = single_tunable_transmon_platform.qpu.qubits
+        [q0] = single_tunable_transmon_platform.qpu.quantum_elements
         options = qubit_spectroscopy.analysis_workflow.options()
         options.do_fitting(False)
 
@@ -971,7 +971,7 @@ class TestQubitSpectroscopyAnalysisSingleQubit:
     def test_create_and_run_no_plotting(
         self, single_tunable_transmon_platform, results_single_qubit
     ):
-        [q0] = single_tunable_transmon_platform.qpu.qubits
+        [q0] = single_tunable_transmon_platform.qpu.quantum_elements
         options = qubit_spectroscopy.analysis_workflow.options()
         options.do_plotting(False)
 
@@ -1837,7 +1837,7 @@ def results_two_qubit():
 
 class TestQubitSpectroscopyAnalysisTwoQubit:
     def test_create_and_run(self, two_tunable_transmon_platform, results_two_qubit):
-        qubits = two_tunable_transmon_platform.qpu.qubits
+        qubits = two_tunable_transmon_platform.qpu.quantum_elements
         options = qubit_spectroscopy.analysis_workflow.options()
         result = qubit_spectroscopy.analysis_workflow(
             result=results_two_qubit[0],
@@ -2744,7 +2744,7 @@ class TestQubitSpectroscopyAnalysisTwoQubit:
     def test_create_and_run_frequency_filter_one_qubit(
         self, two_tunable_transmon_platform, results_two_qubit
     ):
-        qubits = two_tunable_transmon_platform.qpu.qubits
+        qubits = two_tunable_transmon_platform.qpu.quantum_elements
         options = qubit_spectroscopy.analysis_workflow.options()
         options.frequency_filters({qubits[0].uid: (None, 6.16e9)})
 
@@ -2789,7 +2789,7 @@ class TestQubitSpectroscopyAnalysisTwoQubit:
     def test_create_and_run_frequency_filter_both_qubits(
         self, two_tunable_transmon_platform, results_two_qubit
     ):
-        qubits = two_tunable_transmon_platform.qpu.qubits
+        qubits = two_tunable_transmon_platform.qpu.quantum_elements
         options = qubit_spectroscopy.analysis_workflow.options()
         options.frequency_filters(
             {qubits[0].uid: (None, 6.16e9), qubits[1].uid: (None, 6.64e9)}
@@ -2817,7 +2817,7 @@ class TestQubitSpectroscopyAnalysisTwoQubit:
     def test_create_and_run_no_fitting(
         self, two_tunable_transmon_platform, results_two_qubit
     ):
-        qubits = two_tunable_transmon_platform.qpu.qubits
+        qubits = two_tunable_transmon_platform.qpu.quantum_elements
         options = qubit_spectroscopy.analysis_workflow.options()
         options.do_fitting(False)
 
@@ -2843,7 +2843,7 @@ class TestQubitSpectroscopyAnalysisTwoQubit:
     def test_create_and_run_no_plotting(
         self, two_tunable_transmon_platform, results_two_qubit
     ):
-        qubits = two_tunable_transmon_platform.qpu.qubits
+        qubits = two_tunable_transmon_platform.qpu.quantum_elements
         options = qubit_spectroscopy.analysis_workflow.options()
         options.do_plotting(False)
 
@@ -2865,7 +2865,7 @@ class TestQubitSpectroscopyAnalysisTwoQubit:
     def test_create_and_run_close_figures(
         self, two_tunable_transmon_platform, results_two_qubit
     ):
-        qubits = two_tunable_transmon_platform.qpu.qubits
+        qubits = two_tunable_transmon_platform.qpu.quantum_elements
         options = qubit_spectroscopy.analysis_workflow.options()
 
         options.close_figures(True)

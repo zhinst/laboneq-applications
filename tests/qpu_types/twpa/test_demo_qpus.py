@@ -11,7 +11,7 @@ from laboneq_applications.qpu_types.twpa import demo_platform
 class TestDemoPlatform:
     def test_single_twpa_qpu(self):
         qp = demo_platform(1)
-        [twpa0] = qp.qpu.qubits
+        [twpa0] = qp.qpu.quantum_elements
 
         assert qp.setup.uid == "TravellingWaveParametericAmplifiers_1"
         assert qp.setup.qubits == {}
@@ -26,7 +26,7 @@ class TestDemoPlatform:
 
     def test_two_twpas_qpu(self):
         qp = demo_platform(2)
-        [twpa0, twpa1] = qp.qpu.qubits
+        [twpa0, twpa1] = qp.qpu.quantum_elements
 
         assert qp.setup.uid == "TravellingWaveParametericAmplifiers_2"
         assert qp.setup.qubits == {}

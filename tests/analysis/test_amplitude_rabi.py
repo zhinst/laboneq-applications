@@ -108,7 +108,7 @@ class TestRabiAnalysisSingleQubit:
     def test_create_and_run_no_pca(
         self, single_tunable_transmon_platform, results_single_qubit
     ):
-        [q0] = single_tunable_transmon_platform.qpu.qubits
+        [q0] = single_tunable_transmon_platform.qpu.quantum_elements
         options = amplitude_rabi.analysis_workflow.options()
         options.do_pca(value=False)
 
@@ -186,7 +186,7 @@ class TestRabiAnalysisSingleQubit:
         single_tunable_transmon_platform,
         results_single_qubit,
     ):
-        [q0] = single_tunable_transmon_platform.qpu.qubits
+        [q0] = single_tunable_transmon_platform.qpu.quantum_elements
         options = amplitude_rabi.analysis_workflow.options()
         options.do_pca(True)
 
@@ -266,7 +266,7 @@ class TestRabiAnalysisSingleQubit:
     def test_create_and_run_no_fitting(
         self, single_tunable_transmon_platform, results_single_qubit
     ):
-        [q0] = single_tunable_transmon_platform.qpu.qubits
+        [q0] = single_tunable_transmon_platform.qpu.quantum_elements
         options = amplitude_rabi.analysis_workflow.options()
         options.do_fitting(value=False)
 
@@ -287,7 +287,7 @@ class TestRabiAnalysisSingleQubit:
     def test_create_and_run_no_plotting(
         self, single_tunable_transmon_platform, results_single_qubit
     ):
-        [q0] = single_tunable_transmon_platform.qpu.qubits
+        [q0] = single_tunable_transmon_platform.qpu.quantum_elements
         options = amplitude_rabi.analysis_workflow.options()
         options.do_plotting(value=False)
 
@@ -449,7 +449,7 @@ class TestRabiAnalysisTwoQubit:
     def test_create_and_run_no_pca(
         self, two_tunable_transmon_platform, results_two_qubit
     ):
-        qubits = two_tunable_transmon_platform.qpu.qubits
+        qubits = two_tunable_transmon_platform.qpu.quantum_elements
         options = amplitude_rabi.analysis_workflow.options()
         options.do_pca(value=False)
 
@@ -577,7 +577,7 @@ class TestRabiAnalysisTwoQubit:
         )
 
     def test_create_and_run_pca(self, two_tunable_transmon_platform, results_two_qubit):
-        qubits = two_tunable_transmon_platform.qpu.qubits
+        qubits = two_tunable_transmon_platform.qpu.quantum_elements
         options = amplitude_rabi.analysis_workflow.options()
         options.do_pca(value=True)
 
@@ -703,7 +703,7 @@ class TestRabiAnalysisTwoQubit:
     def test_create_and_run_no_fitting(
         self, two_tunable_transmon_platform, results_two_qubit
     ):
-        qubits = two_tunable_transmon_platform.qpu.qubits
+        qubits = two_tunable_transmon_platform.qpu.quantum_elements
         options = amplitude_rabi.analysis_workflow.options()
         options.do_fitting(value=False)
 
@@ -726,7 +726,7 @@ class TestRabiAnalysisTwoQubit:
     def test_create_and_run_no_plotting(
         self, two_tunable_transmon_platform, results_two_qubit
     ):
-        qubits = two_tunable_transmon_platform.qpu.qubits
+        qubits = two_tunable_transmon_platform.qpu.quantum_elements
         options = amplitude_rabi.analysis_workflow.options()
         options.do_plotting(value=False)
 
@@ -748,7 +748,7 @@ class TestRabiAnalysisTwoQubit:
     def test_create_and_run_close_figures(
         self, two_tunable_transmon_platform, results_two_qubit
     ):
-        qubits = two_tunable_transmon_platform.qpu.qubits
+        qubits = two_tunable_transmon_platform.qpu.quantum_elements
         options = amplitude_rabi.analysis_workflow.options()
         options.close_figures(value=True)
 

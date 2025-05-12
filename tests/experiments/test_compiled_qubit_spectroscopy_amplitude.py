@@ -22,7 +22,7 @@ def create_qubitspec_verifier(
     readout_lengths=None,
 ):
     """Create a CompiledExperimentVerifier for the amplitude rabi experiment."""
-    qubits = tunable_transmon_platform.qpu.qubits
+    qubits = tunable_transmon_platform.qpu.quantum_elements
     if len(qubits) == 1:
         qubits = qubits[0]
     if readout_lengths is not None:

@@ -28,7 +28,7 @@ def qubit_parameters():
 
 class TestTemporaryModify:
     def test_run_standalone(self, two_tunable_transmon_platform, qubit_parameters):
-        [q0, q1] = two_tunable_transmon_platform.qpu.qubits
+        [q0, q1] = two_tunable_transmon_platform.qpu.quantum_elements
 
         [new_q0, new_q1] = temporary_modify([q0, q1], qubit_parameters)
         assert new_q0.parameters.ge_drive_amplitude_pi == 0.55
@@ -72,7 +72,7 @@ class TestTemporaryModify:
         assert new_twpa0.parameters.readout_range_in == -10
 
     def test_partial_modify(self, two_tunable_transmon_platform, qubit_parameters):
-        [q0, q1] = two_tunable_transmon_platform.qpu.qubits
+        [q0, q1] = two_tunable_transmon_platform.qpu.quantum_elements
 
         partial_parameters = {"q0": qubit_parameters["q0"]}
         [new_q0, new_q1] = temporary_modify([q0, q1], partial_parameters)
@@ -86,7 +86,7 @@ class TestTemporaryModify:
         assert new_q1 == q1
 
     def test_run_in_workflow(self, two_tunable_transmon_platform, qubit_parameters):
-        qubits = two_tunable_transmon_platform.qpu.qubits
+        qubits = two_tunable_transmon_platform.qpu.quantum_elements
 
         @task
         def dumb_task(qubits):

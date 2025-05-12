@@ -35,7 +35,7 @@ from laboneq_applications.testing.experiment_verifier import (
 def rabi_compiled(single_tunable_transmon_platform):
     session = Session(single_tunable_transmon_platform.setup)
     session.connect(do_emulation=True)
-    [q0] = single_tunable_transmon_platform.qpu.qubits
+    [q0] = single_tunable_transmon_platform.qpu.quantum_elements
     amplitudes = [0.1, 0.2, 0.3]
     options = amplitude_rabi.experiment_workflow.options()
     options.count(2)

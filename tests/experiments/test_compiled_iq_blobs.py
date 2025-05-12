@@ -26,7 +26,7 @@ def create_iq_blobs_verifier(
     readout_lengths=None,
 ):
     """Create a CompiledExperimentVerifier for the iq_blobs experiment."""
-    qubits = tunable_transmon_platform.qpu.qubits
+    qubits = tunable_transmon_platform.qpu.quantum_elements
     for q in qubits:
         q.parameters.ge_drive_length = _LENGTH_GE
         q.parameters.ef_drive_length = _LENGTH_EF
@@ -359,7 +359,7 @@ def test_single_qubit_run_with_active_reset(
     options.active_reset_states(active_reset_states)
     options.active_reset_repetitions(active_reset_repetitions)
     options.do_analysis(False)
-    [q0] = single_tunable_transmon_platform.qpu.qubits
+    [q0] = single_tunable_transmon_platform.qpu.quantum_elements
     workflow_result = iq_blobs.experiment_workflow(
         session=single_tunable_transmon_platform.session(do_emulation=True),
         qubits=q0,
@@ -406,7 +406,7 @@ def test_two_qubit_run_with_active_reset(
     options.active_reset_states(active_reset_states)
     options.active_reset_repetitions(active_reset_repetitions)
     options.do_analysis(False)
-    qubits = two_tunable_transmon_platform.qpu.qubits
+    qubits = two_tunable_transmon_platform.qpu.quantum_elements
     workflow_result = iq_blobs.experiment_workflow(
         session=two_tunable_transmon_platform.session(do_emulation=True),
         qubits=qubits,

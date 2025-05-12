@@ -55,7 +55,7 @@ class TestTunableTransmonOperations:
                 with maybe_sweep:
                     dsl.add(section)
 
-        exp = build(exp_with_section, platform.qpu.qubits)
+        exp = build(exp_with_section, platform.qpu.quantum_elements)
 
         session = Session(platform.setup)
         session.connect(do_emulation=True)
@@ -242,7 +242,7 @@ class TestTunableTransmonOperations:
         )
 
     def test_barrier(self, qops, single_tunable_transmon_platform):
-        [q0] = single_tunable_transmon_platform.qpu.qubits
+        [q0] = single_tunable_transmon_platform.qpu.quantum_elements
         section = qops.barrier(q0)
 
         assert section == tsl.section(
@@ -255,7 +255,7 @@ class TestTunableTransmonOperations:
         self.check_op_builds_and_compiles(section, single_tunable_transmon_platform)
 
     def test_delay(self, qops, single_tunable_transmon_platform):
-        [q0] = single_tunable_transmon_platform.qpu.qubits
+        [q0] = single_tunable_transmon_platform.qpu.quantum_elements
         section = qops.delay(q0, 1e-6)
 
         assert section == tsl.section(
@@ -289,7 +289,7 @@ class TestTunableTransmonOperations:
         oscillator_freq,
         single_tunable_transmon_platform,
     ):
-        [q0] = single_tunable_transmon_platform.qpu.qubits
+        [q0] = single_tunable_transmon_platform.qpu.quantum_elements
 
         @dsl.qubit_experiment
         def exp_set_freq(q):
@@ -309,7 +309,7 @@ class TestTunableTransmonOperations:
     def test_set_frequency_no_experiment_context(
         self, qops, single_tunable_transmon_platform
     ):
-        [q0] = single_tunable_transmon_platform.qpu.qubits
+        [q0] = single_tunable_transmon_platform.qpu.quantum_elements
 
         @dsl.qubit_experiment(context=False)
         def exp_set_frequency(exp, q):
@@ -330,7 +330,7 @@ class TestTunableTransmonOperations:
         self.check_exp_compiles(exp, single_tunable_transmon_platform)
 
     def test_set_frequency_twice(self, qops, single_tunable_transmon_platform):
-        [q0] = single_tunable_transmon_platform.qpu.qubits
+        [q0] = single_tunable_transmon_platform.qpu.quantum_elements
 
         @dsl.qubit_experiment
         def exp_set_freq(q):
@@ -348,7 +348,7 @@ class TestTunableTransmonOperations:
         )
 
     def test_set_frequency_transition(self, qops, single_tunable_transmon_platform):
-        [q0] = single_tunable_transmon_platform.qpu.qubits
+        [q0] = single_tunable_transmon_platform.qpu.quantum_elements
 
         @dsl.qubit_experiment
         def exp_set_freq(q):
@@ -380,7 +380,7 @@ class TestTunableTransmonOperations:
         oscillator_freq,
         single_tunable_transmon_platform,
     ):
-        [q0] = single_tunable_transmon_platform.qpu.qubits
+        [q0] = single_tunable_transmon_platform.qpu.quantum_elements
 
         @dsl.qubit_experiment
         def exp_set_freq(q):
@@ -435,7 +435,7 @@ class TestTunableTransmonOperations:
         single_tunable_transmon_platform,
     ):
         # TODO: Why do the rf=True cases not fail here?
-        [q0] = single_tunable_transmon_platform.qpu.qubits
+        [q0] = single_tunable_transmon_platform.qpu.quantum_elements
 
         @dsl.qubit_experiment
         def exp_set_freq(q, frequencies):
@@ -494,7 +494,7 @@ class TestTunableTransmonOperations:
         oscillator_freqs,
         single_tunable_transmon_platform,
     ):
-        [q0] = single_tunable_transmon_platform.qpu.qubits
+        [q0] = single_tunable_transmon_platform.qpu.quantum_elements
 
         @dsl.qubit_experiment
         def exp_set_freq(q):
@@ -532,7 +532,7 @@ class TestTunableTransmonOperations:
         amplitudes,
         single_tunable_transmon_platform,
     ):
-        [q0] = single_tunable_transmon_platform.qpu.qubits
+        [q0] = single_tunable_transmon_platform.qpu.quantum_elements
 
         @dsl.qubit_experiment
         def exp_set_amplitude(q, amplitudes):
@@ -560,7 +560,7 @@ class TestTunableTransmonOperations:
         amplitudes,
         single_tunable_transmon_platform,
     ):
-        [q0] = single_tunable_transmon_platform.qpu.qubits
+        [q0] = single_tunable_transmon_platform.qpu.quantum_elements
 
         @dsl.qubit_experiment
         def exp_set_amplitude(q, amplitudes):
@@ -584,7 +584,7 @@ class TestTunableTransmonOperations:
     def test_set_readout_amplitude_no_experiment_context(
         self, qops, single_tunable_transmon_platform
     ):
-        [q0] = single_tunable_transmon_platform.qpu.qubits
+        [q0] = single_tunable_transmon_platform.qpu.quantum_elements
 
         @dsl.qubit_experiment(context=False)
         def exp_set_readout_amplitude(exp, q):
@@ -603,7 +603,7 @@ class TestTunableTransmonOperations:
         self.check_exp_compiles(exp, single_tunable_transmon_platform)
 
     def test_set_readout_amplitude_twice(self, qops, single_tunable_transmon_platform):
-        [q0] = single_tunable_transmon_platform.qpu.qubits
+        [q0] = single_tunable_transmon_platform.qpu.quantum_elements
 
         @dsl.qubit_experiment
         def exp_set_freq(q):
@@ -620,7 +620,7 @@ class TestTunableTransmonOperations:
         )
 
     def test_measure(self, qops, single_tunable_transmon_platform):
-        [q0] = single_tunable_transmon_platform.qpu.qubits
+        [q0] = single_tunable_transmon_platform.qpu.quantum_elements
         section = qops.measure(q0, "result")
 
         assert section == tsl.section(
@@ -663,7 +663,7 @@ class TestTunableTransmonOperations:
         self.check_op_builds_and_compiles(section, single_tunable_transmon_platform)
 
     def test_measure_with_readout_pulse(self, qops, single_tunable_transmon_platform):
-        [q0] = single_tunable_transmon_platform.qpu.qubits
+        [q0] = single_tunable_transmon_platform.qpu.quantum_elements
         section = qops.measure(q0, "result", readout_pulse={"amplitude": 0.5})
 
         assert section == tsl.section(
@@ -691,7 +691,7 @@ class TestTunableTransmonOperations:
         self.check_op_builds_and_compiles(section, single_tunable_transmon_platform)
 
     def test_measure_with_kernel_pulses(self, qops, single_tunable_transmon_platform):
-        [q0] = single_tunable_transmon_platform.qpu.qubits
+        [q0] = single_tunable_transmon_platform.qpu.quantum_elements
         kernel_pulses = [
             {"function": "const", "amplitude": 0.5},
             {"function": "const", "amplitude": 0.6},
@@ -730,7 +730,7 @@ class TestTunableTransmonOperations:
 
     def test_measure_twice(self, qops, single_tunable_transmon_platform):
         # if the integration kernels are created twice, this will fail to compile.
-        [q0] = single_tunable_transmon_platform.qpu.qubits
+        [q0] = single_tunable_transmon_platform.qpu.quantum_elements
         with dsl.section(name="measure_twice") as section:
             qops.measure(q0, "result_1")
             qops.measure(q0, "result_2")
@@ -738,7 +738,7 @@ class TestTunableTransmonOperations:
         self.check_op_builds_and_compiles(section, single_tunable_transmon_platform)
 
     def test_acquire(self, qops, single_tunable_transmon_platform):
-        [q0] = single_tunable_transmon_platform.qpu.qubits
+        [q0] = single_tunable_transmon_platform.qpu.quantum_elements
         section = qops.acquire(q0, "result")
 
         assert section == tsl.section(
@@ -766,7 +766,7 @@ class TestTunableTransmonOperations:
         self.check_op_builds_and_compiles(section, single_tunable_transmon_platform)
 
     def test_acquire_with_kernel_pulses(self, qops, single_tunable_transmon_platform):
-        [q0] = single_tunable_transmon_platform.qpu.qubits
+        [q0] = single_tunable_transmon_platform.qpu.quantum_elements
         kernel_pulses = [
             {"function": "const", "amplitude": 0.5},
             {"function": "const", "amplitude": 0.6},
@@ -804,7 +804,7 @@ class TestTunableTransmonOperations:
 
     def test_acquire_twice(self, qops, single_tunable_transmon_platform):
         # if the integration kernels are created twice, this will fail to compile.
-        [q0] = single_tunable_transmon_platform.qpu.qubits
+        [q0] = single_tunable_transmon_platform.qpu.quantum_elements
         with dsl.section(name="measure_twice") as section:
             qops.acquire(q0, "result_1")
             qops.acquire(q0, "result_2")
@@ -812,7 +812,7 @@ class TestTunableTransmonOperations:
         self.check_op_builds_and_compiles(section, single_tunable_transmon_platform)
 
     def test_prepare_state_g(self, qops, single_tunable_transmon_platform):
-        [q0] = single_tunable_transmon_platform.qpu.qubits
+        [q0] = single_tunable_transmon_platform.qpu.quantum_elements
         section = qops.prepare_state(q0, "g")
 
         assert section == tsl.section(
@@ -825,7 +825,7 @@ class TestTunableTransmonOperations:
         self.check_op_builds_and_compiles(section, single_tunable_transmon_platform)
 
     def test_prepare_state_e(self, qops, single_tunable_transmon_platform):
-        [q0] = single_tunable_transmon_platform.qpu.qubits
+        [q0] = single_tunable_transmon_platform.qpu.quantum_elements
         section = qops.prepare_state(q0, "e")
 
         assert section == tsl.section(
@@ -845,7 +845,7 @@ class TestTunableTransmonOperations:
         self.check_op_builds_and_compiles(section, single_tunable_transmon_platform)
 
     def test_prepare_state_f(self, qops, single_tunable_transmon_platform):
-        [q0] = single_tunable_transmon_platform.qpu.qubits
+        [q0] = single_tunable_transmon_platform.qpu.quantum_elements
         section = qops.prepare_state(q0, "f")
 
         assert section == tsl.section(
@@ -872,7 +872,7 @@ class TestTunableTransmonOperations:
         self.check_op_builds_and_compiles(section, single_tunable_transmon_platform)
 
     def test_prepare_state_passive_reset(self, qops, single_tunable_transmon_platform):
-        [q0] = single_tunable_transmon_platform.qpu.qubits
+        [q0] = single_tunable_transmon_platform.qpu.quantum_elements
         section = qops.prepare_state(q0, "g", reset="passive")
 
         assert section == tsl.section(
@@ -893,14 +893,14 @@ class TestTunableTransmonOperations:
         self.check_op_builds_and_compiles(section, single_tunable_transmon_platform)
 
     def test_prepare_state_active_reset(self, qops, single_tunable_transmon_platform):
-        [q0] = single_tunable_transmon_platform.qpu.qubits
+        [q0] = single_tunable_transmon_platform.qpu.quantum_elements
         with pytest.raises(ValueError) as err:
             qops.prepare_state(q0, "g", reset="active")
 
         assert str(err.value) == "The active reset operation is not yet implemented."
 
     def test_prepare_state_invalid_reset(self, qops, single_tunable_transmon_platform):
-        [q0] = single_tunable_transmon_platform.qpu.qubits
+        [q0] = single_tunable_transmon_platform.qpu.quantum_elements
         with pytest.raises(ValueError) as err:
             qops.prepare_state(q0, "g", reset="moo")
 
@@ -910,13 +910,13 @@ class TestTunableTransmonOperations:
         )
 
     def test_prepare_state_invalid(self, qops, single_tunable_transmon_platform):
-        [q0] = single_tunable_transmon_platform.qpu.qubits
+        [q0] = single_tunable_transmon_platform.qpu.quantum_elements
         with pytest.raises(ValueError) as err:
             qops.prepare_state(q0, "z")
         assert str(err.value) == "Only states g, e and f can be prepared, not 'z'"
 
     def test_passive_reset(self, qops, single_tunable_transmon_platform):
-        [q0] = single_tunable_transmon_platform.qpu.qubits
+        [q0] = single_tunable_transmon_platform.qpu.quantum_elements
         section = qops.passive_reset(q0)
 
         assert section == tsl.section(
@@ -944,7 +944,7 @@ class TestTunableTransmonOperations:
         ],
     )
     def test_passive_reset_delay(self, delay, qops, single_tunable_transmon_platform):
-        [q0] = single_tunable_transmon_platform.qpu.qubits
+        [q0] = single_tunable_transmon_platform.qpu.quantum_elements
         section = qops.passive_reset(q0, delay=delay)
 
         assert section == tsl.section(
@@ -981,7 +981,7 @@ class TestTunableTransmonOperations:
         qops,
         single_tunable_transmon_platform,
     ):
-        [q0] = single_tunable_transmon_platform.qpu.qubits
+        [q0] = single_tunable_transmon_platform.qpu.quantum_elements
         section = qops.rx(q0, angle)
 
         assert section == tsl.section(
@@ -1014,7 +1014,7 @@ class TestTunableTransmonOperations:
         def amp(section):
             return section.children[-1].amplitude
 
-        [q0] = single_tunable_transmon_platform.qpu.qubits
+        [q0] = single_tunable_transmon_platform.qpu.quantum_elements
         my_qubit: TunableTransmonQubit = copy.deepcopy(q0)
         my_qubit.update(
             ge_drive_amplitude_pi=4,
@@ -1055,7 +1055,7 @@ class TestTunableTransmonOperations:
         qops,
         single_tunable_transmon_platform,
     ):
-        [q0] = single_tunable_transmon_platform.qpu.qubits
+        [q0] = single_tunable_transmon_platform.qpu.quantum_elements
         section = qops.rx(q0, np.pi / 2, transition=transition)
 
         on_system_grid = transition == "ef"
@@ -1085,7 +1085,7 @@ class TestTunableTransmonOperations:
         qops,
         single_tunable_transmon_platform,
     ):
-        [q0] = single_tunable_transmon_platform.qpu.qubits
+        [q0] = single_tunable_transmon_platform.qpu.quantum_elements
         section = qops.rx(q0, np.pi / 2, amplitude=amplitude)
 
         assert section == tsl.section(uid="__rx_q0_0").children(
@@ -1119,7 +1119,7 @@ class TestTunableTransmonOperations:
         qops,
         single_tunable_transmon_platform,
     ):
-        [q0] = single_tunable_transmon_platform.qpu.qubits
+        [q0] = single_tunable_transmon_platform.qpu.quantum_elements
         section = qops.rx(q0, np.pi / 2, phase=phase)
 
         assert section == tsl.section(uid="__rx_q0_0").children(
@@ -1153,7 +1153,7 @@ class TestTunableTransmonOperations:
         qops,
         single_tunable_transmon_platform,
     ):
-        [q0] = single_tunable_transmon_platform.qpu.qubits
+        [q0] = single_tunable_transmon_platform.qpu.quantum_elements
         section = qops.rx(q0, np.pi / 2, length=length)
 
         assert section == tsl.section(uid="__rx_q0_0").children(
@@ -1187,7 +1187,7 @@ class TestTunableTransmonOperations:
         qops,
         single_tunable_transmon_platform,
     ):
-        [q0] = single_tunable_transmon_platform.qpu.qubits
+        [q0] = single_tunable_transmon_platform.qpu.quantum_elements
         section = qops.rx(q0, np.pi / 2, pulse={"beta": beta})
 
         assert section == tsl.section(uid="__rx_q0_0").children(
@@ -1220,7 +1220,7 @@ class TestTunableTransmonOperations:
                     ) as beta:
                         qops.rx(q, np.pi / 2, pulse={"beta": beta})
 
-        qubits = q0, q1 = two_tunable_transmon_platform.qpu.qubits
+        qubits = q0, q1 = two_tunable_transmon_platform.qpu.quantum_elements
         beta_values = [1.0, 2.0, 3.0]
 
         exp = beta_exp(qubits, beta_values)
@@ -1258,7 +1258,7 @@ class TestTunableTransmonOperations:
         self.check_exp_compiles(exp, two_tunable_transmon_platform)
 
     def test_x90(self, qops, single_tunable_transmon_platform):
-        [q0] = single_tunable_transmon_platform.qpu.qubits
+        [q0] = single_tunable_transmon_platform.qpu.quantum_elements
         section = qops.x90(q0)
 
         assert section == tsl.section(
@@ -1286,7 +1286,7 @@ class TestTunableTransmonOperations:
         self.check_op_builds_and_compiles(section, single_tunable_transmon_platform)
 
     def test_x90_overrides(self, qops, single_tunable_transmon_platform):
-        [q0] = single_tunable_transmon_platform.qpu.qubits
+        [q0] = single_tunable_transmon_platform.qpu.quantum_elements
         section = qops.x90(
             q0,
             transition="ef",
@@ -1321,7 +1321,7 @@ class TestTunableTransmonOperations:
         self.check_op_builds_and_compiles(section, single_tunable_transmon_platform)
 
     def test_x180(self, qops, single_tunable_transmon_platform):
-        [q0] = single_tunable_transmon_platform.qpu.qubits
+        [q0] = single_tunable_transmon_platform.qpu.quantum_elements
         section = qops.x180(q0)
 
         assert section == tsl.section(
@@ -1349,7 +1349,7 @@ class TestTunableTransmonOperations:
         self.check_op_builds_and_compiles(section, single_tunable_transmon_platform)
 
     def test_x180_overrides(self, qops, single_tunable_transmon_platform):
-        [q0] = single_tunable_transmon_platform.qpu.qubits
+        [q0] = single_tunable_transmon_platform.qpu.quantum_elements
         section = qops.x180(
             q0,
             transition="ef",
@@ -1398,7 +1398,7 @@ class TestTunableTransmonOperations:
         qops,
         single_tunable_transmon_platform,
     ):
-        [q0] = single_tunable_transmon_platform.qpu.qubits
+        [q0] = single_tunable_transmon_platform.qpu.quantum_elements
         section = qops.ry(q0, angle)
 
         assert section == tsl.section(
@@ -1440,7 +1440,7 @@ class TestTunableTransmonOperations:
         qops,
         single_tunable_transmon_platform,
     ):
-        [q0] = single_tunable_transmon_platform.qpu.qubits
+        [q0] = single_tunable_transmon_platform.qpu.quantum_elements
         section = qops.ry(q0, np.pi / 2, transition=transition)
 
         on_system_grid = transition == "ef"
@@ -1473,7 +1473,7 @@ class TestTunableTransmonOperations:
         qops,
         single_tunable_transmon_platform,
     ):
-        [q0] = single_tunable_transmon_platform.qpu.qubits
+        [q0] = single_tunable_transmon_platform.qpu.quantum_elements
         section = qops.ry(q0, np.pi / 2, amplitude=amplitude)
 
         assert section == tsl.section(uid="__ry_q0_0").children(
@@ -1508,7 +1508,7 @@ class TestTunableTransmonOperations:
         qops,
         single_tunable_transmon_platform,
     ):
-        [q0] = single_tunable_transmon_platform.qpu.qubits
+        [q0] = single_tunable_transmon_platform.qpu.quantum_elements
         section = qops.ry(q0, np.pi / 2, phase=phase)
 
         assert section == tsl.section(uid="__ry_q0_0").children(
@@ -1542,7 +1542,7 @@ class TestTunableTransmonOperations:
         qops,
         single_tunable_transmon_platform,
     ):
-        [q0] = single_tunable_transmon_platform.qpu.qubits
+        [q0] = single_tunable_transmon_platform.qpu.quantum_elements
         section = qops.ry(q0, np.pi / 2, length=length)
 
         assert section == tsl.section(uid="__ry_q0_0").children(
@@ -1577,7 +1577,7 @@ class TestTunableTransmonOperations:
         qops,
         single_tunable_transmon_platform,
     ):
-        [q0] = single_tunable_transmon_platform.qpu.qubits
+        [q0] = single_tunable_transmon_platform.qpu.quantum_elements
         section = qops.ry(q0, np.pi / 2, pulse={"beta": beta})
 
         assert section == tsl.section(uid="__ry_q0_0").children(
@@ -1597,7 +1597,7 @@ class TestTunableTransmonOperations:
         )
 
     def test_ry_broadcast(self, qops, two_tunable_transmon_platform):
-        [q0, q1] = two_tunable_transmon_platform.qpu.qubits
+        [q0, q1] = two_tunable_transmon_platform.qpu.quantum_elements
 
         with dsl.section(name="ry_broadcast") as section:
             qops.ry([q0, q1], [np.pi / 2, np.pi / 4])
@@ -1627,7 +1627,7 @@ class TestTunableTransmonOperations:
         )
 
     def test_y90(self, qops, single_tunable_transmon_platform):
-        [q0] = single_tunable_transmon_platform.qpu.qubits
+        [q0] = single_tunable_transmon_platform.qpu.quantum_elements
         section = qops.y90(q0)
 
         assert section == tsl.section(
@@ -1655,7 +1655,7 @@ class TestTunableTransmonOperations:
         self.check_op_builds_and_compiles(section, single_tunable_transmon_platform)
 
     def test_y90_overrides(self, qops, single_tunable_transmon_platform):
-        [q0] = single_tunable_transmon_platform.qpu.qubits
+        [q0] = single_tunable_transmon_platform.qpu.quantum_elements
         section = qops.y90(
             q0,
             transition="ef",
@@ -1690,7 +1690,7 @@ class TestTunableTransmonOperations:
         self.check_op_builds_and_compiles(section, single_tunable_transmon_platform)
 
     def test_y180(self, qops, single_tunable_transmon_platform):
-        [q0] = single_tunable_transmon_platform.qpu.qubits
+        [q0] = single_tunable_transmon_platform.qpu.quantum_elements
         section = qops.y180(q0)
 
         assert section == tsl.section(
@@ -1718,7 +1718,7 @@ class TestTunableTransmonOperations:
         self.check_op_builds_and_compiles(section, single_tunable_transmon_platform)
 
     def test_y180_overrides(self, qops, single_tunable_transmon_platform):
-        [q0] = single_tunable_transmon_platform.qpu.qubits
+        [q0] = single_tunable_transmon_platform.qpu.quantum_elements
         section = qops.y180(
             q0,
             transition="ef",
@@ -1761,7 +1761,7 @@ class TestTunableTransmonOperations:
         ],
     )
     def test_rz(self, angle, qops, single_tunable_transmon_platform):
-        [q0] = single_tunable_transmon_platform.qpu.qubits
+        [q0] = single_tunable_transmon_platform.qpu.quantum_elements
         section = qops.rz(q0, angle)
 
         assert section == tsl.section(
@@ -1796,7 +1796,7 @@ class TestTunableTransmonOperations:
         qops,
         single_tunable_transmon_platform,
     ):
-        [q0] = single_tunable_transmon_platform.qpu.qubits
+        [q0] = single_tunable_transmon_platform.qpu.quantum_elements
         section = qops.rz(q0, np.pi / 2, transition=transition)
 
         assert section == tsl.section(uid="__rz_q0_0").children(
@@ -1810,7 +1810,7 @@ class TestTunableTransmonOperations:
         self.check_op_builds_and_compiles(section, single_tunable_transmon_platform)
 
     def test_rz_broadcast(self, qops, two_tunable_transmon_platform):
-        [q0, q1] = two_tunable_transmon_platform.qpu.qubits
+        [q0, q1] = two_tunable_transmon_platform.qpu.quantum_elements
 
         with dsl.section(name="rz_broadcast") as section:
             qops.rz([q0, q1], [np.pi / 2, np.pi / 4])
@@ -1838,7 +1838,7 @@ class TestTunableTransmonOperations:
         )
 
     def test_z90(self, qops, single_tunable_transmon_platform):
-        [q0] = single_tunable_transmon_platform.qpu.qubits
+        [q0] = single_tunable_transmon_platform.qpu.quantum_elements
         section = qops.z90(q0)
 
         assert section == tsl.section(
@@ -1860,7 +1860,7 @@ class TestTunableTransmonOperations:
         self.check_op_builds_and_compiles(section, single_tunable_transmon_platform)
 
     def test_z180(self, qops, single_tunable_transmon_platform):
-        [q0] = single_tunable_transmon_platform.qpu.qubits
+        [q0] = single_tunable_transmon_platform.qpu.quantum_elements
         section = qops.z180(q0)
 
         assert section == tsl.section(
@@ -1886,7 +1886,7 @@ class TestTunableTransmonOperations:
         ["ge", "ef"],
     )
     def test_ramsey(self, qops, single_tunable_transmon_platform, transition):
-        [q0] = single_tunable_transmon_platform.qpu.qubits
+        [q0] = single_tunable_transmon_platform.qpu.quantum_elements
         section = qops.ramsey(q0, 1e-06, 0.1, transition=transition)
         if transition == "ef":
             on_system_grid = True
@@ -1959,7 +1959,7 @@ class TestTunableTransmonOperations:
         ["ge", "ef"],
     )
     def test_ramsey_with_echo(self, qops, single_tunable_transmon_platform, transition):
-        [q0] = single_tunable_transmon_platform.qpu.qubits
+        [q0] = single_tunable_transmon_platform.qpu.quantum_elements
         section = qops.ramsey(q0, 1e-06, 0.1, echo_pulse="x180", transition=transition)
         if transition == "ef":
             on_system_grid = True
@@ -2072,7 +2072,7 @@ class TestTunableTransmonOperations:
         qops,
         single_tunable_transmon_platform,
     ):
-        [q0] = single_tunable_transmon_platform.qpu.qubits
+        [q0] = single_tunable_transmon_platform.qpu.quantum_elements
         section = qops.qubit_spectroscopy_drive(q0, amplitude=amplitude)
 
         assert section == tsl.section(uid="__qubit_spectroscopy_drive_q0_0").children(
@@ -2106,7 +2106,7 @@ class TestTunableTransmonOperations:
         qops,
         single_tunable_transmon_platform,
     ):
-        [q0] = single_tunable_transmon_platform.qpu.qubits
+        [q0] = single_tunable_transmon_platform.qpu.quantum_elements
         section = qops.qubit_spectroscopy_drive(q0, phase=phase)
 
         assert section == tsl.section(uid="__qubit_spectroscopy_drive_q0_0").children(
@@ -2125,7 +2125,7 @@ class TestTunableTransmonOperations:
         )
 
     def test_calibration_traces_ge(self, qops, single_tunable_transmon_platform):
-        [q0] = single_tunable_transmon_platform.qpu.qubits
+        [q0] = single_tunable_transmon_platform.qpu.quantum_elements
         section = qops.calibration_traces(q0, states="ge")
 
         truth_section = tsl.section(
@@ -2247,7 +2247,7 @@ class TestTunableTransmonOperations:
         self.check_op_builds_and_compiles(section, single_tunable_transmon_platform)
 
     def test_calibration_traces_ef(self, qops, single_tunable_transmon_platform):
-        [q0] = single_tunable_transmon_platform.qpu.qubits
+        [q0] = single_tunable_transmon_platform.qpu.quantum_elements
         section = qops.calibration_traces(q0, states="ef")
 
         truth_section = tsl.section(
@@ -2403,7 +2403,7 @@ class TestTunableTransmonOperations:
         self.check_op_builds_and_compiles(section, single_tunable_transmon_platform)
 
     def test_x180_ef_reset_pulse(self, qops, single_tunable_transmon_platform):
-        [q0] = single_tunable_transmon_platform.qpu.qubits
+        [q0] = single_tunable_transmon_platform.qpu.quantum_elements
         section = qops.x180_ef_reset(q0)
 
         truth_section = tsl.section(
@@ -2456,7 +2456,7 @@ class TestTunableTransmonOperations:
         states,
         repeats,
     ):
-        qubits = tunable_transmon_platform.qpu.qubits
+        qubits = tunable_transmon_platform.qpu.quantum_elements
         section = qops.active_reset(
             qubits,
             active_reset_states=states,
@@ -2471,7 +2471,7 @@ class TestTunableTransmonOperations:
         self.check_op_builds_and_compiles(section, tunable_transmon_platform)
 
     def test_invalid_active_reset_states(self, qops, single_tunable_transmon_platform):
-        [q0] = single_tunable_transmon_platform.qpu.qubits
+        [q0] = single_tunable_transmon_platform.qpu.quantum_elements
 
         # no failure
         qops.active_reset(q0, active_reset_states="gef")

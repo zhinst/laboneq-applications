@@ -30,7 +30,7 @@ class TestTimeTracesAnalysisSingleQubitGE:
         integration_kernels_ge,  # noqa: F811
         discrimination_thresholds_ge,  # noqa: F811
     ):
-        [q0] = single_tunable_transmon_platform.qpu.qubits
+        [q0] = single_tunable_transmon_platform.qpu.quantum_elements
         options = time_traces.analysis_workflow.options()
         options.granularity(16)
         states = ["g", "e"]
@@ -83,7 +83,7 @@ class TestTimeTracesAnalysisSingleQubitGE:
         single_tunable_transmon_platform,
         results_single_qubit_ge,  # noqa: F811
     ):
-        [q0] = single_tunable_transmon_platform.qpu.qubits
+        [q0] = single_tunable_transmon_platform.qpu.quantum_elements
         options = time_traces.analysis_workflow.options()
         options.do_fitting(False)
 
@@ -116,7 +116,7 @@ class TestTimeTracesAnalysisSingleQubitGE:
         single_tunable_transmon_platform,
         results_single_qubit_ge,  # noqa: F811
     ):
-        [q0] = single_tunable_transmon_platform.qpu.qubits
+        [q0] = single_tunable_transmon_platform.qpu.quantum_elements
         options = time_traces.analysis_workflow.options()
 
         options.do_plotting_time_traces(False)
@@ -141,7 +141,7 @@ class TestTimeTracesAnalysisSingleQubitGE:
         single_tunable_transmon_platform,
         results_single_qubit_ge,  # noqa: F811
     ):
-        [q0] = single_tunable_transmon_platform.qpu.qubits
+        [q0] = single_tunable_transmon_platform.qpu.quantum_elements
         options = time_traces.analysis_workflow.options()
 
         options.do_plotting_kernels_traces(False)
@@ -166,7 +166,7 @@ class TestTimeTracesAnalysisSingleQubitGE:
         single_tunable_transmon_platform,
         results_single_qubit_ge,  # noqa: F811
     ):
-        [q0] = single_tunable_transmon_platform.qpu.qubits
+        [q0] = single_tunable_transmon_platform.qpu.quantum_elements
         options = time_traces.analysis_workflow.options()
 
         options.do_plotting_kernels_fft(False)
@@ -191,7 +191,7 @@ class TestTimeTracesAnalysisSingleQubitGE:
         single_tunable_transmon_platform,
         results_single_qubit_ge,  # noqa: F811
     ):
-        [q0] = single_tunable_transmon_platform.qpu.qubits
+        [q0] = single_tunable_transmon_platform.qpu.quantum_elements
         options = time_traces.analysis_workflow.options()
 
         options.do_plotting(False)
@@ -216,7 +216,7 @@ class TestTimeTracesAnalysisSingleQubitGE:
         single_tunable_transmon_platform,
         results_single_qubit_ge,  # noqa: F811
     ):
-        [q0] = single_tunable_transmon_platform.qpu.qubits
+        [q0] = single_tunable_transmon_platform.qpu.quantum_elements
         options = time_traces.analysis_workflow.options()
 
         options.close_figures(True)
@@ -267,7 +267,7 @@ class TestTimeTracesAnalysisSingleQubitGEF:
         integration_kernels_gef,  # noqa: F811
         discrimination_thresholds_gef,  # noqa: F811
     ):
-        [q0] = single_tunable_transmon_platform.qpu.qubits
+        [q0] = single_tunable_transmon_platform.qpu.quantum_elements
         options = time_traces.analysis_workflow.options()
         states = ["g", "e", "f"]
         result = time_traces.analysis_workflow(
@@ -328,7 +328,7 @@ class TestTimeTracesAnalysisSingleQubitGEF:
         integration_kernels_filtered_gef,  # noqa: F811
         discrimination_thresholds_gef,  # noqa: F811
     ):
-        [q0] = single_tunable_transmon_platform.qpu.qubits
+        [q0] = single_tunable_transmon_platform.qpu.quantum_elements
         options = time_traces.analysis_workflow.options()
         options.filter_kernels(True)
         options.granularity(16)
@@ -387,7 +387,7 @@ class TestTimeTracesAnalysisSingleQubitG:
         single_tunable_transmon_platform,
         results_single_qubit_g,  # noqa: F811
     ):
-        [q0] = single_tunable_transmon_platform.qpu.qubits
+        [q0] = single_tunable_transmon_platform.qpu.quantum_elements
         options = time_traces.analysis_workflow.options()
         states = ["g"]
         result = time_traces.analysis_workflow(
@@ -421,7 +421,7 @@ class TestTimeTracesAnalysisSingleQubitG:
         single_tunable_transmon_platform,
         results_single_qubit_g,  # noqa: F811
     ):
-        [q0] = single_tunable_transmon_platform.qpu.qubits
+        [q0] = single_tunable_transmon_platform.qpu.quantum_elements
         options = time_traces.analysis_workflow.options()
         options.filter_kernels(True)
         options.granularity(16)

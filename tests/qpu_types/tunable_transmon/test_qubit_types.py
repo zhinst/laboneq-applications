@@ -17,12 +17,12 @@ import tests.helpers.dsl as tsl
 
 @pytest.fixture
 def q0(single_tunable_transmon_platform):
-    return single_tunable_transmon_platform.qpu.qubits[0]
+    return single_tunable_transmon_platform.qpu.quantum_elements[0]
 
 
 @pytest.fixture
 def multi_qubits(two_tunable_transmon_platform):
-    return two_tunable_transmon_platform.qpu.qubits
+    return two_tunable_transmon_platform.qpu.quantum_elements
 
 
 class TestTunableTransmonQubit:

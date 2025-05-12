@@ -100,15 +100,17 @@ def reference_rabi_exp(qubits, count, amplitudes, transition):
 def test_update_qubits(two_tunable_transmon_platform):
     qpu = two_tunable_transmon_platform.qpu
 
-    np.testing.assert_almost_equal(qpu.qubits[0].parameters.ge_drive_amplitude_pi, 0.8)
     np.testing.assert_almost_equal(
-        qpu.qubits[0].parameters.resonance_frequency_ge, 6.5e9
+        qpu.quantum_elements[0].parameters.ge_drive_amplitude_pi, 0.8
     )
     np.testing.assert_almost_equal(
-        qpu.qubits[1].parameters.ge_drive_amplitude_pi2, 0.41
+        qpu.quantum_elements[0].parameters.resonance_frequency_ge, 6.5e9
     )
     np.testing.assert_almost_equal(
-        qpu.qubits[1].parameters.resonance_frequency_ef, 6.31e9
+        qpu.quantum_elements[1].parameters.ge_drive_amplitude_pi2, 0.41
+    )
+    np.testing.assert_almost_equal(
+        qpu.quantum_elements[1].parameters.resonance_frequency_ef, 6.31e9
     )
 
     qubit_parameters = {
@@ -118,22 +120,22 @@ def test_update_qubits(two_tunable_transmon_platform):
     amplitude_rabi.update_qubits(qpu, qubit_parameters)
 
     np.testing.assert_almost_equal(
-        qpu.qubits[0].parameters.ge_drive_amplitude_pi, 0.345
+        qpu.quantum_elements[0].parameters.ge_drive_amplitude_pi, 0.345
     )
     np.testing.assert_almost_equal(
-        qpu.qubits[0].parameters.resonance_frequency_ge, 6.61e9
+        qpu.quantum_elements[0].parameters.resonance_frequency_ge, 6.61e9
     )
     np.testing.assert_almost_equal(
-        qpu.qubits[1].parameters.ge_drive_amplitude_pi2, 0.2355
+        qpu.quantum_elements[1].parameters.ge_drive_amplitude_pi2, 0.2355
     )
     np.testing.assert_almost_equal(
-        qpu.qubits[1].parameters.resonance_frequency_ef, 6.01e9
+        qpu.quantum_elements[1].parameters.resonance_frequency_ef, 6.01e9
     )
 
 
 class TestWorkflow:
     def test_create_and_run(self, single_tunable_transmon_platform):
-        [q0] = single_tunable_transmon_platform.qpu.qubits
+        [q0] = single_tunable_transmon_platform.qpu.quantum_elements
         amplitudes = np.linspace(0, 1, 21)
         options = amplitude_rabi.experiment_workflow.options()
         options.count(10)
@@ -173,7 +175,7 @@ class TestWorkflow:
         assert len(traces) == 2
 
     def test_create_and_run_no_analysis(self, single_tunable_transmon_platform):
-        [q0] = single_tunable_transmon_platform.qpu.qubits
+        [q0] = single_tunable_transmon_platform.qpu.quantum_elements
         amplitudes = np.linspace(0, 1, 21)
         options = amplitude_rabi.experiment_workflow.options()
         options.count(10)
@@ -191,7 +193,7 @@ class TestWorkflow:
         assert len(result.tasks) == 4
 
     def test_create_and_run_update(self, single_tunable_transmon_platform):
-        [q0] = single_tunable_transmon_platform.qpu.qubits
+        [q0] = single_tunable_transmon_platform.qpu.quantum_elements
         amplitudes = np.linspace(0, 1, 21)
         options = amplitude_rabi.experiment_workflow.options()
         options.count(10)
@@ -209,7 +211,7 @@ class TestWorkflow:
         assert len(result.tasks) == 5
 
     def test_create_and_run_two_qubits(self, two_tunable_transmon_platform):
-        [q0, q1] = two_tunable_transmon_platform.qpu.qubits
+        [q0, q1] = two_tunable_transmon_platform.qpu.quantum_elements
         amplitudes = [np.linspace(0, 1, 21), np.linspace(0, 0.5, 21)]
         options = amplitude_rabi.experiment_workflow.options()
         options.count(10)
@@ -273,7 +275,7 @@ class TestAmplitudeRabiSingleQubit:
     def _setup(self, single_tunable_transmon_platform, transition, count):
         self.platform = single_tunable_transmon_platform
         self.qpu = self.platform.qpu
-        [self.q0] = self.qpu.qubits
+        [self.q0] = self.qpu.quantum_elements
         self.amplitude = np.linspace(0, 1, 21)
         self.options = TuneupExperimentOptions(
             count=count, transition=transition, cal_states=transition
@@ -342,7 +344,7 @@ class TestAmplitudeRabiTwoQubit:
     def _setup(self, two_tunable_transmon_platform, transition, count):
         self.platform = two_tunable_transmon_platform
         self.qpu = self.platform.qpu
-        self.q0, self.q1 = self.qpu.qubits
+        self.q0, self.q1 = self.qpu.quantum_elements
         self.amplitudes = [np.linspace(0, 1, 21), np.linspace(0, 0.5, 21)]
         self.options = TuneupExperimentOptions(
             count=count, transition=transition, cal_states=transition

@@ -13,7 +13,7 @@ class TestSpinLocking:
     def test_spin_locking(self, two_tunable_transmon_platform):
         platform = two_tunable_transmon_platform
         qpu = platform.qpu
-        qubits = platform.qpu.qubits
+        qubits = platform.qpu.quantum_elements
         options = spin_locking.experiment_workflow.options()
         session = platform.session(do_emulation=True)
         wf = spin_locking.experiment_workflow(

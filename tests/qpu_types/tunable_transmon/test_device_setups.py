@@ -11,7 +11,7 @@ from laboneq_applications.qpu_types.tunable_transmon import demo_platform
 class TestDemoPlatform:
     def test_single_transmon_qpu(self):
         qp = demo_platform(1)
-        [q0] = qp.qpu.qubits
+        [q0] = qp.qpu.quantum_elements
 
         assert qp.setup.uid == "tunable_transmons_1"
         assert qp.setup.qubits == {}
@@ -27,7 +27,7 @@ class TestDemoPlatform:
 
     def test_two_transmon_qpu(self):
         qp = demo_platform(2)
-        [q0, q1] = qp.qpu.qubits
+        [q0, q1] = qp.qpu.quantum_elements
 
         assert qp.setup.uid == "tunable_transmons_2"
         assert qp.setup.qubits == {}

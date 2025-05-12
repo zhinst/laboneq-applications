@@ -115,7 +115,7 @@ class TestDRAGQScalingAnalysisSingleQubit:
     def test_create_and_run_no_pca(
         self, single_tunable_transmon_platform, results_single_qubit
     ):
-        [q0] = single_tunable_transmon_platform.qpu.qubits
+        [q0] = single_tunable_transmon_platform.qpu.quantum_elements
         options = drag_q_scaling.analysis_workflow.options()
         options.do_pca(False)
 
@@ -208,7 +208,7 @@ class TestDRAGQScalingAnalysisSingleQubit:
     def test_create_and_run_pca(
         self, single_tunable_transmon_platform, results_single_qubit
     ):
-        [q0] = single_tunable_transmon_platform.qpu.qubits
+        [q0] = single_tunable_transmon_platform.qpu.quantum_elements
         options = drag_q_scaling.analysis_workflow.options()
         options.do_pca(True)
 
@@ -290,7 +290,7 @@ class TestDRAGQScalingAnalysisSingleQubit:
     def test_create_and_run_no_fitting(
         self, single_tunable_transmon_platform, results_single_qubit
     ):
-        [q0] = single_tunable_transmon_platform.qpu.qubits
+        [q0] = single_tunable_transmon_platform.qpu.quantum_elements
         options = drag_q_scaling.analysis_workflow.options()
         options.do_fitting(False)
 
@@ -311,7 +311,7 @@ class TestDRAGQScalingAnalysisSingleQubit:
     def test_create_and_run_no_plotting(
         self, single_tunable_transmon_platform, results_single_qubit
     ):
-        [q0] = single_tunable_transmon_platform.qpu.qubits
+        [q0] = single_tunable_transmon_platform.qpu.quantum_elements
         options = drag_q_scaling.analysis_workflow.options()
 
         options.do_qubit_population_plotting(False)
@@ -544,7 +544,7 @@ class TestDRAGQScalingAnalysisTwoQubit:
     def test_create_and_run_no_pca(
         self, two_tunable_transmon_platform, results_two_qubit
     ):
-        qubits = two_tunable_transmon_platform.qpu.qubits
+        qubits = two_tunable_transmon_platform.qpu.quantum_elements
         options = drag_q_scaling.analysis_workflow.options()
         options.do_pca(False)
 
@@ -706,7 +706,7 @@ class TestDRAGQScalingAnalysisTwoQubit:
         )
 
     def test_create_and_run_pca(self, two_tunable_transmon_platform, results_two_qubit):
-        qubits = two_tunable_transmon_platform.qpu.qubits
+        qubits = two_tunable_transmon_platform.qpu.quantum_elements
         options = drag_q_scaling.analysis_workflow.options()
         options.do_pca(True)
 
@@ -859,7 +859,7 @@ class TestDRAGQScalingAnalysisTwoQubit:
     def test_create_and_run_no_fitting(
         self, two_tunable_transmon_platform, results_two_qubit
     ):
-        qubits = two_tunable_transmon_platform.qpu.qubits
+        qubits = two_tunable_transmon_platform.qpu.quantum_elements
         options = drag_q_scaling.analysis_workflow.options()
         options.do_fitting(False)
 
@@ -881,7 +881,7 @@ class TestDRAGQScalingAnalysisTwoQubit:
     def test_create_and_run_close_figures(
         self, two_tunable_transmon_platform, results_two_qubit
     ):
-        qubits = two_tunable_transmon_platform.qpu.qubits
+        qubits = two_tunable_transmon_platform.qpu.quantum_elements
         options = drag_q_scaling.analysis_workflow.options()
         options.close_figures(True)
 

@@ -27,7 +27,7 @@ def create_dispers_shift_verifier(
     states,
 ):
     """Create a CompiledExperimentVerifier for the amplitude rabi experiment."""
-    qubits = tunable_transmon_platform.qpu.qubits
+    qubits = tunable_transmon_platform.qpu.quantum_elements
     for q in qubits:
         q.parameters.ge_drive_length = _LENGTH_GE
         q.parameters.ef_drive_length = _LENGTH_EF

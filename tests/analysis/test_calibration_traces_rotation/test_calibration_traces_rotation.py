@@ -235,7 +235,7 @@ class TestCalculateQubitPopulation2DSingleQubit:
         results_single_qubit_cal_traces,
     ):
         result, sp1d, sp2d = results_single_qubit_cal_traces
-        [q0] = single_tunable_transmon_platform.qpu.qubits
+        [q0] = single_tunable_transmon_platform.qpu.quantum_elements
         proc_data_dict = calculate_qubit_population_2d(
             qubits=q0,
             result=result,
@@ -257,7 +257,7 @@ class TestCalculateQubitPopulation2DSingleQubit:
         results_single_qubit_no_cal_traces,
     ):
         result, sp1d, sp2d = results_single_qubit_no_cal_traces
-        [q0] = single_tunable_transmon_platform.qpu.qubits
+        [q0] = single_tunable_transmon_platform.qpu.quantum_elements
         options = CalculateQubitPopulationOptions()
         options.use_cal_traces = False
         proc_data_dict = calculate_qubit_population_2d(
@@ -282,7 +282,7 @@ class TestCalculateQubitPopulation2DSingleQubit:
         results_single_qubit_cal_traces,
     ):
         result, sp1d, sp2d = results_single_qubit_cal_traces
-        [q0] = single_tunable_transmon_platform.qpu.qubits
+        [q0] = single_tunable_transmon_platform.qpu.quantum_elements
         options = CalculateQubitPopulationOptions()
         options.do_pca = True
         proc_data_dict = calculate_qubit_population_2d(
@@ -307,7 +307,7 @@ class TestCalculateQubitPopulation2DSingleQubit:
         results_single_qubit_one_cal_trace_per_state,
     ):
         result, sp1d, sp2d = results_single_qubit_one_cal_trace_per_state
-        [q0] = single_tunable_transmon_platform.qpu.qubits
+        [q0] = single_tunable_transmon_platform.qpu.quantum_elements
         proc_data_dict = calculate_qubit_population_2d(
             qubits=q0,
             result=result,
@@ -331,7 +331,7 @@ class TestCalculateQubitPopulation2DTwoQubit:
         results_two_qubits_cal_traces,
     ):
         result, sp1d, sp2d = results_two_qubits_cal_traces
-        [q0, q1] = two_tunable_transmon_platform.qpu.qubits
+        [q0, q1] = two_tunable_transmon_platform.qpu.quantum_elements
         proc_data_dict = calculate_qubit_population_2d(
             qubits=[q0, q1],
             result=result,
@@ -361,7 +361,7 @@ class TestCalculateQubitPopulation2DTwoQubit:
         results_two_qubits_no_cal_traces,
     ):
         result, sp1d, sp2d = results_two_qubits_no_cal_traces
-        [q0, q1] = two_tunable_transmon_platform.qpu.qubits
+        [q0, q1] = two_tunable_transmon_platform.qpu.quantum_elements
         options = CalculateQubitPopulationOptions()
         options.use_cal_traces = False
         proc_data_dict = calculate_qubit_population_2d(
@@ -394,7 +394,7 @@ class TestCalculateQubitPopulation2DTwoQubit:
         results_two_qubits_cal_traces,
     ):
         result, sp1d, sp2d = results_two_qubits_cal_traces
-        [q0, q1] = two_tunable_transmon_platform.qpu.qubits
+        [q0, q1] = two_tunable_transmon_platform.qpu.quantum_elements
         options = CalculateQubitPopulationOptions()
         options.do_pca = True
         proc_data_dict = calculate_qubit_population_2d(
@@ -427,7 +427,7 @@ class TestCalculateQubitPopulation2DTwoQubit:
         results_two_qubits_one_cal_trace_per_state,
     ):
         result, sp1d, sp2d = results_two_qubits_one_cal_trace_per_state
-        [q0, q1] = two_tunable_transmon_platform.qpu.qubits
+        [q0, q1] = two_tunable_transmon_platform.qpu.quantum_elements
         proc_data_dict = calculate_qubit_population_2d(
             qubits=[q0, q1],
             result=result,

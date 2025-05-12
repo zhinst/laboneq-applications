@@ -44,7 +44,7 @@ class TestAmplitudeFine:
     def _setup(self, two_tunable_transmon_platform, readout_lengths):
         self.platform = two_tunable_transmon_platform
         self.qpu = self.platform.qpu
-        self.qubits = self.platform.qpu.qubits
+        self.qubits = self.platform.qpu.quantum_elements
         assert len(readout_lengths) == len(self.qubits)
         for i, rl in enumerate(readout_lengths):
             self.qubits[i].parameters.readout_length = rl
@@ -225,7 +225,7 @@ def test_single_qubit_run_with_active_reset(
     options.active_reset_states(active_reset_states)
     options.active_reset_repetitions(active_reset_repetitions)
     options.do_analysis(False)
-    [q0] = single_tunable_transmon_platform.qpu.qubits
+    [q0] = single_tunable_transmon_platform.qpu.quantum_elements
     repetitions = np.arange(21)
     workflow_result = amplitude_fine.experiment_workflow_x180(
         session=single_tunable_transmon_platform.session(do_emulation=True),
@@ -279,7 +279,7 @@ def test_two_qubit_run_with_active_reset(
     options.active_reset_states(active_reset_states)
     options.active_reset_repetitions(active_reset_repetitions)
     options.do_analysis(False)
-    qubits = two_tunable_transmon_platform.qpu.qubits
+    qubits = two_tunable_transmon_platform.qpu.quantum_elements
     repetitions = np.arange(21)
     workflow_result = amplitude_fine.experiment_workflow_x180(
         session=two_tunable_transmon_platform.session(do_emulation=True),
@@ -315,7 +315,7 @@ def test_two_qubit_run_with_active_reset(
 
 
 def test_invalid_averaging_mode(single_tunable_transmon_platform):
-    [q0] = single_tunable_transmon_platform.qpu.qubits
+    [q0] = single_tunable_transmon_platform.qpu.quantum_elements
     session = single_tunable_transmon_platform.session(do_emulation=True)
     options = amplitude_fine.experiment_workflow.options()
     options.averaging_mode("sequential")

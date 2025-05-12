@@ -25,7 +25,7 @@ class TestLifetimeMeasurementAnalysisSingleQubit:
         results_single_qubit_ge,  # noqa: F811
         population_q0_q1_no_pca,  # noqa: F811
     ):
-        [q0] = single_tunable_transmon_platform.qpu.qubits
+        [q0] = single_tunable_transmon_platform.qpu.quantum_elements
         options = lifetime_measurement.analysis_workflow.options()
         options.do_pca(False)
         result = lifetime_measurement.analysis_workflow(
@@ -79,7 +79,7 @@ class TestLifetimeMeasurementAnalysisSingleQubit:
         results_single_qubit_ge,  # noqa: F811
         population_q0_q1_pca,  # noqa: F811
     ):
-        [q0] = single_tunable_transmon_platform.qpu.qubits
+        [q0] = single_tunable_transmon_platform.qpu.quantum_elements
         options = lifetime_measurement.analysis_workflow.options()
         options.do_pca(True)
         result = lifetime_measurement.analysis_workflow(
@@ -137,7 +137,7 @@ class TestLifetimeMeasurementAnalysisSingleQubit:
         single_tunable_transmon_platform,
         results_single_qubit_ge,  # noqa: F811
     ):
-        [q0] = single_tunable_transmon_platform.qpu.qubits
+        [q0] = single_tunable_transmon_platform.qpu.quantum_elements
         options = lifetime_measurement.analysis_workflow.options()
         options.do_fitting(False)
 
@@ -160,7 +160,7 @@ class TestLifetimeMeasurementAnalysisSingleQubit:
         single_tunable_transmon_platform,
         results_single_qubit_ge,  # noqa: F811
     ):
-        [q0] = single_tunable_transmon_platform.qpu.qubits
+        [q0] = single_tunable_transmon_platform.qpu.quantum_elements
         options = lifetime_measurement.analysis_workflow.options()
         options.do_plotting(False)
 
@@ -187,7 +187,7 @@ class TestLifetimeMeasurementAnalysisTwoQubit:
         results_two_qubit_ge,  # noqa: F811
         population_q0_q1_no_pca,  # noqa: F811
     ):
-        qubits = two_tunable_transmon_platform.qpu.qubits
+        qubits = two_tunable_transmon_platform.qpu.quantum_elements
         options = lifetime_measurement.analysis_workflow.options()
         options.do_pca(False)
         result = lifetime_measurement.analysis_workflow(
@@ -273,7 +273,7 @@ class TestLifetimeMeasurementAnalysisTwoQubit:
         results_two_qubit_ge,  # noqa: F811
         population_q0_q1_pca,  # noqa: F811
     ):
-        qubits = two_tunable_transmon_platform.qpu.qubits
+        qubits = two_tunable_transmon_platform.qpu.quantum_elements
         options = lifetime_measurement.analysis_workflow.options()
         options.do_pca(True)
 
@@ -361,7 +361,7 @@ class TestLifetimeMeasurementAnalysisTwoQubit:
         two_tunable_transmon_platform,
         results_two_qubit_ge,  # noqa: F811
     ):
-        qubits = two_tunable_transmon_platform.qpu.qubits
+        qubits = two_tunable_transmon_platform.qpu.quantum_elements
         options = lifetime_measurement.analysis_workflow.options()
         options.do_fitting(False)
 
@@ -386,7 +386,7 @@ class TestLifetimeMeasurementAnalysisTwoQubit:
         two_tunable_transmon_platform,
         results_two_qubit_ge,  # noqa: F811
     ):
-        qubits = two_tunable_transmon_platform.qpu.qubits
+        qubits = two_tunable_transmon_platform.qpu.quantum_elements
         options = lifetime_measurement.analysis_workflow.options()
         options.do_plotting(False)
 
@@ -410,7 +410,7 @@ class TestLifetimeMeasurementAnalysisTwoQubit:
         two_tunable_transmon_platform,
         results_two_qubit_ge,  # noqa: F811
     ):
-        qubits = two_tunable_transmon_platform.qpu.qubits
+        qubits = two_tunable_transmon_platform.qpu.quantum_elements
         options = lifetime_measurement.analysis_workflow.options()
         options.close_figures(True)
 

@@ -84,7 +84,7 @@ def result_1d_nested_two_qubits():
 
 class TestRawPlotting1D:
     def test_run_no_cal_traces(self, single_tunable_transmon_platform, result_1d):
-        [q0] = single_tunable_transmon_platform.qpu.qubits
+        [q0] = single_tunable_transmon_platform.qpu.quantum_elements
 
         raw_data, sweep_points = result_1d
         result = RunExperimentResults(data=raw_data)
@@ -105,7 +105,7 @@ class TestRawPlotting1D:
         assert "q0" in figures
 
     def test_run_with_cal_traces(self, single_tunable_transmon_platform, result_1d):
-        [q0] = single_tunable_transmon_platform.qpu.qubits
+        [q0] = single_tunable_transmon_platform.qpu.quantum_elements
 
         raw_data, sweep_points = result_1d
         result = RunExperimentResults(data=raw_data)
@@ -129,7 +129,7 @@ class TestRawPlotting1D:
     def test_run_nested_two_qubit_no_cal_traces(
         self, two_tunable_transmon_platform, result_1d_nested_two_qubits
     ):
-        qubits = two_tunable_transmon_platform.qpu.qubits
+        qubits = two_tunable_transmon_platform.qpu.quantum_elements
 
         raw_data, sweep_points = result_1d_nested_two_qubits
         result = RunExperimentResults(data=raw_data)
@@ -153,7 +153,7 @@ class TestRawPlotting1D:
     def test_run_nested_two_qubit_with_cal_traces(
         self, two_tunable_transmon_platform, result_1d_nested_two_qubits
     ):
-        qubits = two_tunable_transmon_platform.qpu.qubits
+        qubits = two_tunable_transmon_platform.qpu.quantum_elements
 
         raw_data, sweep_points = result_1d_nested_two_qubits
         result = RunExperimentResults(data=raw_data)
@@ -175,7 +175,7 @@ class TestRawPlotting1D:
     def test_run_nested_two_qubit_with_cal_traces_legacy_results(
         self, two_tunable_transmon_platform, result_1d_nested_two_qubits
     ):
-        qubits = two_tunable_transmon_platform.qpu.qubits
+        qubits = two_tunable_transmon_platform.qpu.quantum_elements
 
         raw_data, sweep_points = result_1d_nested_two_qubits
         result = Results(acquired_results=raw_data)
@@ -304,7 +304,7 @@ def result_2d_nested_two_qubits():
 
 class TestRawPlotting2D:
     def test_run_no_cal_traces(self, single_tunable_transmon_platform, result_2d):
-        [q0] = single_tunable_transmon_platform.qpu.qubits
+        [q0] = single_tunable_transmon_platform.qpu.quantum_elements
 
         raw_data, sweep_points_1d, sweep_points_2d = result_2d
         result = RunExperimentResults(data=raw_data)
@@ -324,7 +324,7 @@ class TestRawPlotting2D:
         assert "q0" in figures
 
     def test_run_with_cal_traces(self, single_tunable_transmon_platform, result_2d):
-        [q0] = single_tunable_transmon_platform.qpu.qubits
+        [q0] = single_tunable_transmon_platform.qpu.quantum_elements
 
         raw_data, sweep_points_1d, sweep_points_2d = result_2d
         result = RunExperimentResults(data=raw_data)
@@ -347,7 +347,7 @@ class TestRawPlotting2D:
     def test_run_with_cal_traces_2_points(
         self, single_tunable_transmon_platform, result_2d_two_cal_points
     ):
-        [q0] = single_tunable_transmon_platform.qpu.qubits
+        [q0] = single_tunable_transmon_platform.qpu.quantum_elements
 
         raw_data, sweep_points_1d, sweep_points_2d = result_2d_two_cal_points
         result = RunExperimentResults(data=raw_data)
@@ -370,7 +370,7 @@ class TestRawPlotting2D:
     def test_run_nested_two_qubit_no_cal_traces(
         self, two_tunable_transmon_platform, result_2d_nested_two_qubits
     ):
-        qubits = two_tunable_transmon_platform.qpu.qubits
+        qubits = two_tunable_transmon_platform.qpu.quantum_elements
 
         raw_data, sweep_points_1d, sweep_points_2d = result_2d_nested_two_qubits
         result = RunExperimentResults(data=raw_data)
@@ -393,7 +393,7 @@ class TestRawPlotting2D:
     def test_run_nested_two_qubit_with_cal_traces(
         self, two_tunable_transmon_platform, result_2d_nested_two_qubits
     ):
-        qubits = two_tunable_transmon_platform.qpu.qubits
+        qubits = two_tunable_transmon_platform.qpu.quantum_elements
 
         raw_data, sweep_points_1d, sweep_points_2d = result_2d_nested_two_qubits
         result = RunExperimentResults(data=raw_data)
@@ -417,7 +417,7 @@ class TestRawPlotting2D:
     def test_run_nested_two_qubit_with_cal_traces_legacy_results(
         self, two_tunable_transmon_platform, result_2d_nested_two_qubits
     ):
-        qubits = two_tunable_transmon_platform.qpu.qubits
+        qubits = two_tunable_transmon_platform.qpu.quantum_elements
 
         raw_data, sweep_points_1d, sweep_points_2d = result_2d_nested_two_qubits
         result = Results(acquired_results=raw_data)
@@ -441,7 +441,7 @@ class TestRawPlotting2D:
 
 class TestPlotSignalMagnitudeAndPhase2D:
     def test_run_single_qubit(self, single_tunable_transmon_platform, result_2d):
-        [q0] = single_tunable_transmon_platform.qpu.qubits
+        [q0] = single_tunable_transmon_platform.qpu.quantum_elements
 
         raw_data, sweep_points_1d, sweep_points_2d = result_2d
         result = RunExperimentResults(data=raw_data)
@@ -464,7 +464,7 @@ class TestPlotSignalMagnitudeAndPhase2D:
     def test_run_nested_two_qubit(
         self, two_tunable_transmon_platform, result_2d_nested_two_qubits
     ):
-        qubits = two_tunable_transmon_platform.qpu.qubits
+        qubits = two_tunable_transmon_platform.qpu.quantum_elements
 
         raw_data, sweep_points_1d, sweep_points_2d = result_2d_nested_two_qubits
         result = RunExperimentResults(data=raw_data)
@@ -488,7 +488,7 @@ class TestPlotSignalMagnitudeAndPhase2D:
     def test_run_two_qubit_with_legacy_results(
         self, two_tunable_transmon_platform, result_2d_nested_two_qubits
     ):
-        qubits = two_tunable_transmon_platform.qpu.qubits
+        qubits = two_tunable_transmon_platform.qpu.quantum_elements
 
         raw_data, sweep_points_1d, sweep_points_2d = result_2d_nested_two_qubits
         result = Results(acquired_results=raw_data)
