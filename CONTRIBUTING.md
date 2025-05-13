@@ -24,11 +24,19 @@ The following tests are executed:
 - Linting
 - Examples are run in emulated mode
 
-Installing the development requirements:
+Project is managed using `uv`. You can get it from
+[https://docs.astral.sh/uv/](https://docs.astral.sh/uv/). Once you have that,
+you can create a virtual environment and activate it via:
 
+``` sh
+uv sync && source .venv/bin/activate
 ```
-pip install -e requirements-dev.txt
-```
+
+!!! note
+
+    If you are using a shell different than bash, you need to source the
+    appropriate script. E.g. if you have fish, that would be
+    `.venv/bin/activate.fish`.
 
 ### Tests
 

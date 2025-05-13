@@ -24,3 +24,8 @@ search = '__version__ = "{current_version}"'
 
 [[file]]
 src = "tests/test_pkg.py"
+
+
+[[before_commit]]
+name = "Update lockfile"
+cmd = "uv lock --upgrade-package=laboneq-applications"

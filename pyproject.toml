@@ -1,55 +1,82 @@
 [build-system]
-requires = [ "setuptools>=65.0.0", "wheel",]
+requires = ["setuptools>=65.0.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "laboneq_applications"
 description = "Library of LabOne Q experiments, analysis functions, and more."
 version = "2.6.0dev0"
-license = {text = "Apache 2.0"}
+license = { text = "Apache 2.0" }
 requires-python = ">=3.9"
 readme = "README.md"
 authors = [
-    { name = "Zurich Instruments Development Team", email = "info@zhinst.com" },
+  { name = "Zurich Instruments Development Team", email = "info@zhinst.com" },
 ]
-keywords = [
-    "quantum",
-    "sdk",
-    "zhinst",
-]
+keywords = ["quantum", "sdk", "zhinst"]
 classifiers = [
-    "Development Status :: 3 - Alpha",
-    "Environment :: Console",
-    "Intended Audience :: Developers",
-    "Intended Audience :: Science/Research",
-    "License :: OSI Approved :: Apache Software License",
-    "Operating System :: MacOS",
-    "Operating System :: Microsoft :: Windows",
-    "Operating System :: POSIX :: Linux",
-    "Programming Language :: Python :: 3.9",
-    "Programming Language :: Python :: 3.10",
-    "Programming Language :: Python :: 3.11",
-    "Programming Language :: Python :: 3.12",
-    "Programming Language :: Python :: 3.13",
-    "Topic :: Scientific/Engineering",
+  "Development Status :: 3 - Alpha",
+  "Environment :: Console",
+  "Intended Audience :: Developers",
+  "Intended Audience :: Science/Research",
+  "License :: OSI Approved :: Apache Software License",
+  "Operating System :: MacOS",
+  "Operating System :: Microsoft :: Windows",
+  "Operating System :: POSIX :: Linux",
+  "Programming Language :: Python :: 3.9",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Topic :: Scientific/Engineering",
 ]
 dependencies = [
-    "typing_extensions",
-    "uncertainties==3.2.2",
-    "laboneq",
-    "numpy>=1.26",
-    "scipy",
-    "matplotlib",
-    "lmfit",
-    "scikit-learn~=1.5.2",
-    "qiskit",
-    "qiskit_experiments",
+  "typing_extensions",
+  "uncertainties==3.2.2",
+  "laboneq",
+  "numpy>=1.26",
+  "scipy",
+  "matplotlib",
+  "lmfit",
+  "scikit-learn~=1.5.2",
+  "qiskit",
+  "qiskit_experiments",
 ]
 
 [project.urls]
 Changelog = "https://docs.zhinst.com/labone_q_user_manual/release_notes/"
 Documentation = "https://docs.zhinst.com/labone_q_user_manual/applications_library/"
 GitHub = "https://github.com/zhinst/laboneq-applications"
+
+
+[dependency-groups]
+# Libraries used during development.
+dev = [
+  "filelock",
+  "freezegun",
+  "ipython",
+  "nbmake",
+  "pytest",
+  "pytest-cov",
+  "pytest-xdist",
+  "tbump",
+]
+# Packages providing executables used during development.
+tools = [
+  "nbqa",
+  "jupytext",
+  "ruff==0.7.1", # must match the version used in .pre-commit-config.yaml
+]
+
+# Dependencies of example notebooks
+notebooks = [
+  "qcodes>=0.46.0",
+  "qiskit>=2.0.0",
+  "qiskit-experiments>=0.10.0",
+  "scikit-optimize>=0.10.2",
+]
+
+[tool.uv]
+default-groups = ["dev", "tools", "notebooks"]
 
 [tool.setuptools.packages.find]
 where = ["src"]
@@ -60,18 +87,11 @@ namespaces = false
 zip-safe = false
 
 [tool.pytest.ini_options]
-testpaths = [
-    "tests",
-]
+testpaths = ["tests"]
 asyncio_default_fixture_loop_scope = "function"
 
 [tool.ruff]
-include = [
-    "pyproject.toml",
-    "src/**/*.py",
-    "tests/**/*.py",
-    "ci/**/*.py",
-]
+include = ["pyproject.toml", "src/**/*.py", "tests/**/*.py", "ci/**/*.py"]
 target-version = "py39"
 
 lint.select = ["ALL"]
@@ -111,7 +131,9 @@ lint.ignore = [
   # multiline strings)
   "FLY002",
   # Strings in exception class instantiation
-  "EM101", "EM102", "TRY003",
+  "EM101",
+  "EM102",
+  "TRY003",
   # Private class member access (rule raises false positives)
   "SLF001",
   # Pandas .values (rule raises false positivies even when pandas is not used)
@@ -136,7 +158,7 @@ lint.ignore = [
   # Pytest raises Exception
   "PT011",
   # part of an implicit namespace package
-  "INP001"
+  "INP001",
 ]
 # CI tool checks
 "ci/*" = [
@@ -209,6 +231,3 @@ convention = "google"
 
 [tool.ruff.lint.pylint]
 max-args = 10
-
-[tool.black]
-target-version = ["py39"]

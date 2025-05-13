@@ -1,5 +1,0 @@
-# External dependencies for executing the documentation examples
-qiskit
-qiskit-experiments
-qcodes
-scikit-optimize

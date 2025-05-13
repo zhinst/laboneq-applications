@@ -1,12 +1,7 @@
 deploy:build-distribution:
   stage: deploy
-  image: $DEFAULT_PYTHON_IMAGE
-  tags:
-    - linux
-    - docker
   script:
-    - pip install build
-    - python -m build --sdist --wheel
+    - uv build -o ./dist
   only:
     variables:
       - $CI_COMMIT_TAG =~ /^v\d+.\d+.\d+-?.*$/
@@ -17,28 +12,23 @@ deploy:build-distribution:
 
 deploy:deploy-internal:
   stage: deploy
-  image: $DEFAULT_PYTHON_IMAGE
-  tags:
-    - linux
-    - docker
   needs: ["deploy:build-distribution"]
   script:
-    - pip install twine
-    - TWINE_PASSWORD=${CI_JOB_TOKEN} TWINE_USERNAME=gitlab-ci-token python -m twine upload --repository-url ${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/pypi dist/*
+    - |
+      uv publish \
+        --publish-url "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/pypi" \
+        --check-url "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/pypi/simple" \
+        --username "gitlab-ci-token" \
+        --password "$CI_JOB_TOKEN"
   only:
     variables:
       - $CI_COMMIT_TAG =~ /^v\d+.\d+.\d+-?.*$/
 
 deploy:deploy-pypi:
   stage: deploy
-  image: $DEFAULT_PYTHON_IMAGE
-  tags:
-    - linux
-    - docker
   needs: ["deploy:build-distribution"]
   script:
-    - pip install twine
-    - twine upload dist/*
+    - uv publish ./dist/* --token $PYPI_TOKEN
   only:
     variables:
       - $CI_COMMIT_TAG =~ /^v\d+.\d+.\d+-?.*$/

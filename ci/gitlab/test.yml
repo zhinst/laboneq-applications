@@ -1,59 +1,65 @@
 .template_test:
   stage: test
-  image: python:3.9
   tags:
     - linux
     - docker
   variables:
     USE_LABONEQ_DEVELOP: "true"
     MPLBACKEND: "AGG"
+    UV_NO_SYNC: "1" # don't implicitly sync during "uv run"
   before_script:
-    - pip install --upgrade setuptools
-    - pip install -r requirements-dev.txt
-    - pip install -e .
     - |-
       if [[ $USE_LABONEQ_DEVELOP == "true" ]]; then
-        pip install laboneq --upgrade --pre --extra-index-url=https://artifactory.zhinst.com/artifactory/api/pypi/ZIPyPI/simple
+        uv lock --prerelease allow --upgrade-package laboneq --extra-index-url=https://artifactory.zhinst.com/artifactory/api/pypi/ZIPyPI/simple
+        uv sync --prerelease allow
+      else
+        uv sync
       fi
   script:
-    - pytest tests -n=auto -vv --ignore=tests/contrib
+    - uv run pytest tests -n=auto -vv --ignore=tests/contrib
   rules:
     - !reference [.non_triggered]
 
 test:python-3.9:
   extends: ".template_test"
-  image: python:3.9
+  variables:
+    UV_PYTHON: "3.9"
 
 test:python-3.10:
   extends: ".template_test"
-  image: python:3.10
+  variables:
+    UV_PYTHON: "3.10"
 
 test:python-3.11:
   extends: ".template_test"
-  image: python:3.11
+  variables:
+    UV_PYTHON: "3.11"
 
 test:python-3.12:
   extends: ".template_test"
-  image: python:3.12
+  variables:
+    UV_PYTHON: "3.12"
 
 test:python-3.13:
   extends: ".template_test"
-  image: python:3.13
+  variables:
+    UV_PYTHON: "3.13"
 
 test:python-3.9:laboneq-release:
   extends: ".template_test"
   variables:
+    UV_PYTHON: "3.9"
     USE_LABONEQ_DEVELOP: "false"
-  image: python:3.9
   allow_failure: true
 
 test:coverage:
   extends: ".template_test"
-  image: python:3.9
+  variables:
+    UV_PYTHON: "3.9"
   script:
-    - pytest tests -v --ignore=tests/contrib --cov=laboneq_applications --cov=tests --cov-branch --cov-config=ci/coveragerc -n=auto
-    - coverage xml -o coverage.xml
-    - coverage html -d coverage_html
+    - uv run pytest tests -v --ignore=tests/contrib --cov=laboneq_applications --cov=tests --cov-branch --cov-config=ci/coveragerc -n=auto
+    - uv run coverage xml -o coverage.xml
+    - uv run coverage html -d coverage_html
   artifacts:
     paths:
       - coverage_html
@@ -66,57 +72,44 @@ test:coverage:
 
 test:docs_notebooks:python-3.9:
   extends: ".template_test"
+  variables:
+    UV_PYTHON: "3.9"
   script:
-    - pip install -r docs/requirements-ext.txt
-    - pytest --nbmake docs/sources --nbmake-kernel=python --nbmake-timeout=240 -n=auto --durations=0
+    - uv run pytest --nbmake docs/sources --nbmake-kernel=python --nbmake-timeout=240 -n=auto --durations=0
 
 test:contrib_smoke_test:
   extends: ".template_test"
-  image: python:3.9
   script:
-    - pytest tests/contrib -n=auto -vv
+    - uv run pytest tests/contrib -n=auto -vv
 
 test:laboneq-feature-branch:
   when: manual
   variables:
     VERSION: "OVERRIDE WITH LABONEQ VERSION"
+    UV_NO_SYNC: "1" # don't implicitly sync during "uv run"
   stage: test
-  image: python:3.9
-  tags:
-    - linux
-    - docker
   script:
-    - pip install -r requirements-dev.txt
-    - pip install -e .
-    - pip install --upgrade laboneq==${VERSION} --extra-index-url=$LABONEQ_INDEX_URL
-    - pytest tests -n=auto -vv
+    - uv sync --prerelease=allow --upgrade-package laboneq==${VERSION} --index=$LABONEQ_INDEX_URL
+    - uv run pytest tests -n=auto -vv
 
 .template_triggered_test:
   stage: test
-  image: python:3.9
   variables:
     LABONEQ_INDEX_URL: https://gitlab.zhinst.com/api/v4/projects/251/packages/pypi
-  tags:
-    - linux
-    - docker
+    UV_NO_SYNC: "1" # don't implicitly sync during "uv run"
   before_script:
     - echo "Triggered by $UPSTREAM_PROJECT_PATH/$UPSTREAM_PROJECT_PATH"
     - echo "Running tests with laboneq version $LABONEQ_VERSION"
-    - pip install -r requirements-dev.txt
-    - pip install -e .
-    - pip install --upgrade laboneq==${LABONEQ_VERSION} --extra-index-url=$LABONEQ_INDEX_URL
+    - uv sync --prerelease=allow --upgrade-package laboneq==${LABONEQ_VERSION} --extra-index-url=$LABONEQ_INDEX_URL
   rules:
     - !reference [.triggered]
 
 test:triggered-by-laboneq:
   extends: ".template_triggered_test"
-  image: python:3.9
   script:
-    - pytest tests -n=auto -vv --ignore=tests/contrib
+    - uv run pytest tests -n=auto -vv --ignore=tests/contrib
 
 test:docs-notebooks-triggered-by-laboneq:
   extends: ".template_triggered_test"
-  image: python:3.9
   script:
-    - pip install -r docs/requirements-ext.txt
-    - pytest --nbmake docs/sources --nbmake-kernel=python --nbmake-timeout=240 -n=auto --durations=0
+    - uv run pytest --nbmake docs/sources --nbmake-kernel=python --nbmake-timeout=240 -n=auto --durations=0

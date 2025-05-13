@@ -143,12 +143,15 @@ nav:
 
 plugins:
   mkdocstrings:
-    enabled: !ENV [ENABLE_MKDOCSTRINGS, false]
     handlers:
       python:
         # NOTE: This object url is replaced and resolved to the correct one in the hub.
         #       Configured in 'zhinst-standalone' 'replace' section below
         import: ["http://qccs.pages.zhinst.com/qccs/manual/objects.inv"]
+        # Providing paths here helps mkdocstrings to use the source files for
+        # producing reference API, without importing them in case they are not
+        # importable.
+        paths: [../src]
   spellcheck:
     known_words: ../known_words.txt
   zhinst-standalone:

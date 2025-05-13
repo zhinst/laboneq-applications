@@ -4,18 +4,13 @@ variables:
 doc:build:
   needs: []
   stage: doc
-  image: $DEFAULT_PYTHON_IMAGE
-  tags:
-    - linux
-    - docker
-  variables:
-    ENABLE_MKDOCSTRINGS: "true"
   script:
-    - pip install -e .
-    - cd docs
-    - pip install -r requirements.txt --constraint constraints.txt
-    - mkdocs-zhinst build --strict
-    - cd ..
+    # NOTE: The 'handlers: python: paths: ...' configuration for mkdocstring
+    # ensures `laboneq-applications` is found for api documentation.
+    # If you want to use introspection (i.e. have laboneq-applications
+    # installed as package), explicitly create and activate venv. Doing `uv run
+    # --with ..` kind of stuff didn't make mkdocs happy.
+    - uv run --directory docs mkdocs-zhinst build --strict
     - find site -name "*.md" -type f -delete
   artifacts:
     paths:
@@ -26,10 +21,6 @@ doc:build:
 
 pages:
   stage: doc
-  image: $DEFAULT_CLI_IMAGE
-  tags:
-    - linux
-    - docker
   needs:
     - job: doc:build
     - job: test:coverage

@@ -1,3 +1,0 @@
-nbqa
-jupytext
-ruff==0.7.1 # must match the version used in .pre-commit-config.yaml

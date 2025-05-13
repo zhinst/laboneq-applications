@@ -1,46 +1,27 @@
 lint:python:
   stage: pre-build
-  image: $DEFAULT_PYTHON_IMAGE
-  tags:
-    - linux
-    - docker
   script:
-    - pip install -r requirements-lint.txt
-    - ruff check
+    - uv run --only-group tools ruff check .
   rules:
     - !reference [.non_triggered]
 
 lint:notebooks:docs:
   stage: pre-build
-  image: $DEFAULT_PYTHON_IMAGE
-  tags:
-    - linux
-    - docker
   script:
-    - pip install -r requirements-lint.txt
-    - nbqa ruff docs/sources
+    - uv run --only-group tools -- nbqa ruff docs/sources
   rules:
     - !reference [.non_triggered]
 
 notebooks:check_no_outputs:
   stage: pre-build
-  image: $DEFAULT_PYTHON_IMAGE
-  tags:
-    - linux
-    - docker
   script:
-    - python3 ci/scripts/notebook_check.py docs
+    - uv run --no-project ci/scripts/notebook_check.py docs
   rules:
     - !reference [.non_triggered]
 
 check:license:
   stage: pre-build
-  image:
-    name: $DEFAULT_PYTHON_IMAGE
   script:
-    - python ci/scripts/check_license.py src/ tests/
-  tags:
-    - linux
-    - docker
+    - uv run --no-project ci/scripts/check_license.py src/ tests/
   rules:
     - !reference [.non_triggered]
