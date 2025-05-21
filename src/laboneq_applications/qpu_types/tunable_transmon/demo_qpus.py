@@ -94,8 +94,8 @@ def tunable_transmon_setup(n_qubits: int) -> DeviceSetup:
 
     setup.add_connections(
         "device_pqsc",
-        create_connection(to_instrument="device_shfqc", ports="ZSYNCS/0"),
-        create_connection(to_instrument="device_hdawg", ports="ZSYNCS/1"),
+        create_connection(to_instrument="device_shfqc"),
+        create_connection(to_instrument="device_hdawg"),
     )
 
     for i, qubit in enumerate(qubit_ids):
