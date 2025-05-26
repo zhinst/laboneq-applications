@@ -20,11 +20,6 @@
   rules:
     - !reference [.non_triggered]
 
-test:python-3.9:
-  extends: ".template_test"
-  variables:
-    UV_PYTHON: "3.9"
-
 test:python-3.10:
   extends: ".template_test"
   variables:
@@ -45,17 +40,17 @@ test:python-3.13:
   variables:
     UV_PYTHON: "3.13"
 
-test:python-3.9:laboneq-release:
+test:python-3.10:laboneq-release:
   extends: ".template_test"
   variables:
-    UV_PYTHON: "3.9"
+    UV_PYTHON: "3.10"
     USE_LABONEQ_DEVELOP: "false"
   allow_failure: true
 
 test:coverage:
   extends: ".template_test"
   variables:
-    UV_PYTHON: "3.9"
+    UV_PYTHON: "3.10"
   script:
     - uv run pytest tests -v --ignore=tests/contrib --cov=laboneq_applications --cov=tests --cov-branch --cov-config=ci/coveragerc -n=auto
     - uv run coverage xml -o coverage.xml
@@ -70,10 +65,10 @@ test:coverage:
     expire_in: 1 day
   coverage: '/(?i)total.*? (100(?:\.0+)?\%|[1-9]?\d(?:\.\d+)?\%)$/'
 
-test:docs_notebooks:python-3.9:
+test:docs_notebooks:python-3.10:
   extends: ".template_test"
   variables:
-    UV_PYTHON: "3.9"
+    UV_PYTHON: "3.10"
   script:
     - uv run pytest --nbmake docs/sources --nbmake-kernel=python --nbmake-timeout=240 -n=auto --durations=0
 

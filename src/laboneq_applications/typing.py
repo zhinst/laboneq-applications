@@ -32,10 +32,7 @@ Type hints
     a sequence of such values, one for each qubit.
 """
 
-from __future__ import annotations
-
 from collections.abc import Sequence
-from typing import Union
 
 from laboneq.workflow.typing import QuantumElements
 from numpy.typing import ArrayLike
@@ -46,7 +43,4 @@ __all__ = [
     "QubitSweepPoints",
 ]
 
-# Use of Union is to support Python 3.9.
-# Use of typing_extensions TypeAlias is to support Python 3.9.
-
-QubitSweepPoints: TypeAlias = Union[ArrayLike, Sequence[ArrayLike]]
+QubitSweepPoints: TypeAlias = ArrayLike | Sequence[ArrayLike]
