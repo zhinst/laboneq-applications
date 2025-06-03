@@ -161,8 +161,8 @@ class CompiledExperimentVerifier:
             and pulse.parameterized_with != parameterized_with
         ):
             raise AssertionError(
-                f"Parameterized with mismatch, expected {pulse.parameterized_with} "
-                f"got {parameterized_with}",
+                f"Parameterized with mismatch, expected {parameterized_with} "
+                f"got {pulse.parameterized_with}",
             )
 
     def assert_pulse_pair(

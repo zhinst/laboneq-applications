@@ -156,7 +156,7 @@ def create_experiment(
     detunings: float | Sequence[float] | None = None,
     options: TuneupExperimentOptions | None = None,
 ) -> Experiment:
-    """Creates a Ramsey Experiment.
+    """Creates a Ramsey Experiment where the phase of the second pulse is swept.
 
     Arguments:
         qpu:
@@ -169,9 +169,13 @@ def create_experiment(
             qubit. If `qubits` is a single qubit, `delays` must be a list of numbers
             or an array. Otherwise, it must be a list of lists of numbers or arrays.
         detunings:
-            The detuning in Hz introduced in order to generate oscillations of the qubit
-            state vector around the Bloch sphere. This detuning and the frequency of the
-            fitted oscillations is used to calculate the true qubit resonance frequency.
+            The effective detuning in Hz used to calculate the phase increment
+            of the second pulse in the Ramsey sequence.
+            For perfectly resonant excitation pulses,
+            this simulates oscillations of the qubit state vector
+            around the Bloch sphere at the given frequency.
+            This parameter and the fitted frequency of the oscillations
+            can then be used to calculate the true qubit resonance frequency.
             `detunings` is a list of float values for each qubit following the order
             in `qubits`.
         options:
