@@ -1911,6 +1911,7 @@ class TestTunableTransmonOperations:
                         amplitude=amplitude,
                         length=pulse_length,
                         phase=0.0,
+                        increment_oscillator_phase=None,
                         pulse_parameters=None,
                         pulse=tsl.pulse(
                             function="drag",
@@ -1937,7 +1938,8 @@ class TestTunableTransmonOperations:
                         signal=drive_signal,
                         amplitude=amplitude,
                         length=pulse_length,
-                        phase=0.1,
+                        phase=0.0,
+                        increment_oscillator_phase=0.1,
                         pulse_parameters=None,
                         pulse=tsl.pulse(
                             function="drag",
@@ -1986,6 +1988,7 @@ class TestTunableTransmonOperations:
                         amplitude=amplitude,
                         length=pulse_length,
                         phase=0.0,
+                        increment_oscillator_phase=None,
                         pulse_parameters=None,
                         pulse=tsl.pulse(
                             function="drag",
@@ -2013,6 +2016,7 @@ class TestTunableTransmonOperations:
                         amplitude=amplitude_ef,
                         length=pulse_length,
                         phase=0.0,
+                        increment_oscillator_phase=None,
                         pulse_parameters=None,
                         pulse=tsl.pulse(
                             function="drag",
@@ -2039,7 +2043,8 @@ class TestTunableTransmonOperations:
                         signal=drive_signal,
                         amplitude=amplitude,
                         length=pulse_length,
-                        phase=0.1,
+                        phase=0.0,
+                        increment_oscillator_phase=0.1,
                         pulse_parameters=None,
                         pulse=tsl.pulse(
                             function="drag",

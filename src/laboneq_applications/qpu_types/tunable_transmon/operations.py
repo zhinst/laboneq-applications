@@ -410,6 +410,7 @@ class TunableTransmonOperations(dsl.QuantumOperations):
         transition: str | None = None,
         amplitude: float | SweepParameter | None = None,
         phase: float = 0.0,
+        increment_oscillator_phase: float | SweepParameter | None = None,
         length: float | SweepParameter | None = None,
         pulse: dict | None = None,
     ) -> None:
@@ -428,8 +429,11 @@ class TunableTransmonOperations(dsl.QuantumOperations):
                 is determined by the angle and the π pulse amplitude
                 qubit parameter "amplitude_pi" by linear interpolation.
             phase:
-                The phase of the rotation pulse in radians. By default
-                this is 0.0.
+                The phase of the rotation pulse in radians, applied as a
+                baseband rotation of the waveform. By default this is 0.0.
+            increment_oscillator_phase:
+                The phase of the rotation pulse in radians applied as phase
+                increment on the baseband oscillator. By default this is 0.0.
             length:
                 The duration of the rotation pulse. By default this
                 is determined by the qubit parameters.
@@ -464,6 +468,7 @@ class TunableTransmonOperations(dsl.QuantumOperations):
             q.signals[drive_line],
             amplitude=amplitude,
             phase=phase,
+            increment_oscillator_phase=increment_oscillator_phase,
             length=length,
             pulse=rx_pulse,
         )
@@ -475,6 +480,7 @@ class TunableTransmonOperations(dsl.QuantumOperations):
         transition: str | None = None,
         amplitude: float | None = None,
         phase: float = 0.0,
+        increment_oscillator_phase: float | SweepParameter | None = None,
         length: float | None = None,
         pulse: dict | None = None,
     ) -> None:
@@ -492,8 +498,11 @@ class TunableTransmonOperations(dsl.QuantumOperations):
                 The amplitude of the rotation pulse. By default this
                 is determined from the qubit parameter "amplitude_pi2".
             phase:
-                The phase of the rotation pulse in radians. By default
-                this is 0.0.
+                The phase of the rotation pulse in radians, applied as a
+                baseband rotation of the waveform. By default this is 0.0.
+            increment_oscillator_phase:
+                The phase of the rotation pulse in radians applied as phase
+                increment on the baseband oscillator. By default this is 0.0.
             length:
                 The duration of the rotation pulse. By default this
                 is determined by the qubit parameters.
@@ -519,6 +528,7 @@ class TunableTransmonOperations(dsl.QuantumOperations):
             transition=transition,
             amplitude=amplitude,
             phase=phase,
+            increment_oscillator_phase=increment_oscillator_phase,
             length=length,
             pulse=pulse,
         )
@@ -530,6 +540,7 @@ class TunableTransmonOperations(dsl.QuantumOperations):
         transition: str | None = None,
         amplitude: float | None = None,
         phase: float = 0.0,
+        increment_oscillator_phase: float | SweepParameter | None = None,
         length: float | None = None,
         pulse: dict | None = None,
     ) -> None:
@@ -547,8 +558,11 @@ class TunableTransmonOperations(dsl.QuantumOperations):
                 The amplitude of the rotation pulse. By default this
                 is determined from the qubit parameter "amplitude_pi".
             phase:
-                The phase of the rotation pulse in radians. By default
-                this is 0.0.
+                The phase of the rotation pulse in radians, applied as a
+                baseband rotation of the waveform. By default this is 0.0.
+            increment_oscillator_phase:
+                The phase of the rotation pulse in radians applied as phase
+                increment on the baseband oscillator. By default this is 0.0.
             length:
                 The duration of the rotation pulse. By default this
                 is determined by the qubit parameters.
@@ -574,6 +588,7 @@ class TunableTransmonOperations(dsl.QuantumOperations):
             transition=transition,
             amplitude=amplitude,
             phase=phase,
+            increment_oscillator_phase=increment_oscillator_phase,
             length=length,
             pulse=pulse,
         )
@@ -586,6 +601,7 @@ class TunableTransmonOperations(dsl.QuantumOperations):
         transition: str | None = None,
         amplitude: float | SweepParameter | None = None,
         phase: float = _PI_BY_2,
+        increment_oscillator_phase: float | SweepParameter | None = None,
         length: float | SweepParameter | None = None,
         pulse: dict | None = None,
     ) -> None:
@@ -604,8 +620,11 @@ class TunableTransmonOperations(dsl.QuantumOperations):
                 is determined by the angle and the π pulse amplitude
                 qubit parameter "amplitude_pi" by linear interpolation.
             phase:
-                The phase of the rotation pulse in radians. By default
-                this is `π / 2`.
+                The phase of the rotation pulse in radians, applied as a
+                baseband rotation of the waveform. By default this is `π / 2`.
+            increment_oscillator_phase:
+                The phase of the rotation pulse in radians applied as phase
+                increment on the baseband oscillator. By default this is 0.0.
             length:
                 The duration of the rotation pulse. By default this
                 is determined by the qubit parameters.
@@ -640,6 +659,7 @@ class TunableTransmonOperations(dsl.QuantumOperations):
             q.signals[drive_line],
             amplitude=amplitude,
             phase=phase,
+            increment_oscillator_phase=increment_oscillator_phase,
             length=length,
             pulse=ry_pulse,
         )
@@ -651,6 +671,7 @@ class TunableTransmonOperations(dsl.QuantumOperations):
         transition: str | None = None,
         amplitude: float | None = None,
         phase: float = _PI_BY_2,
+        increment_oscillator_phase: float | SweepParameter | None = None,
         length: float | None = None,
         pulse: dict | None = None,
     ) -> None:
@@ -668,8 +689,11 @@ class TunableTransmonOperations(dsl.QuantumOperations):
                 The amplitude of the rotation pulse. By default this
                 is determined from the qubit parameter "amplitude_pi2".
             phase:
-                The phase of the rotation pulse in radians. By default
-                this is `π / 2`.
+                The phase of the rotation pulse in radians, applied as a
+                baseband rotation of the waveform. By default this is `π / 2`.
+            increment_oscillator_phase:
+                The phase of the rotation pulse in radians applied as phase
+                increment on the baseband oscillator. By default this is 0.0.
             length:
                 The duration of the rotation pulse. By default this
                 is determined by the qubit parameters.
@@ -695,6 +719,7 @@ class TunableTransmonOperations(dsl.QuantumOperations):
             transition=transition,
             amplitude=amplitude,
             phase=phase,
+            increment_oscillator_phase=increment_oscillator_phase,
             length=length,
             pulse=pulse,
         )
@@ -706,6 +731,7 @@ class TunableTransmonOperations(dsl.QuantumOperations):
         transition: str | None = None,
         amplitude: float | None = None,
         phase: float = _PI_BY_2,
+        increment_oscillator_phase: float | SweepParameter | None = None,
         length: float | None = None,
         pulse: dict | None = None,
     ) -> None:
@@ -723,8 +749,11 @@ class TunableTransmonOperations(dsl.QuantumOperations):
                 The amplitude of the rotation pulse. By default this
                 is determined from the qubit parameter "amplitude_pi".
             phase:
-                The phase of the rotation pulse in radians. By default
-                this is `π / 2`.
+                The phase of the rotation pulse in radians, applied as a
+                baseband rotation of the waveform. By default this is `π / 2`.
+            increment_oscillator_phase:
+                The phase of the rotation pulse in radians applied as phase
+                increment on the baseband oscillator. By default this is 0.0.
             length:
                 The duration of the rotation pulse. By default this
                 is determined by the qubit parameters.
@@ -750,6 +779,7 @@ class TunableTransmonOperations(dsl.QuantumOperations):
             transition=transition,
             amplitude=amplitude,
             phase=phase,
+            increment_oscillator_phase=increment_oscillator_phase,
             length=length,
             pulse=pulse,
         )
@@ -868,7 +898,7 @@ class TunableTransmonOperations(dsl.QuantumOperations):
         self,
         q: TunableTransmonQubit,
         delay: float,
-        phase: float,
+        ramsey_phase: float,
         echo_pulse: Literal["x180", "y180"] | None = None,
         transition: str | None = None,
     ) -> None:
@@ -883,8 +913,9 @@ class TunableTransmonOperations(dsl.QuantumOperations):
             delay:
                 The duration between two rotations, excluding the
                 echo pulse length if an echo pulse is included.
-            phase:
-                The phase of the second rotation
+            ramsey_phase:
+                The phase of the second x90 rotation,
+                this will be applied as a phase increment for the second pulse
             echo_pulse:
                 The echo pulse to include.
             transition:
@@ -925,7 +956,9 @@ class TunableTransmonOperations(dsl.QuantumOperations):
                 self.delay(q, time=delay / 2)
             else:
                 self.delay(q, time=delay)
-            sec_x90_2 = self.x90(q, phase=phase, transition=transition)
+            sec_x90_2 = self.x90(
+                q, increment_oscillator_phase=ramsey_phase, transition=transition
+            )
             sec_x90_2.alignment = SectionAlignment.RIGHT
 
         # to remove the gap due to oscillator switching for driving ef transitions.

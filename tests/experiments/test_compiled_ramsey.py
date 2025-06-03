@@ -157,7 +157,7 @@ class TestRamseySingleQubit:
                 index=1,
                 start=_LENGTH_GE + self._DELAYS[0],
                 end=2 * _LENGTH_GE + self._DELAYS[0],
-                parameterized_with=["x90_phases_q0"],
+                parameterized_with=[],
             )
         elif transition == "ef":
             start_ef = _LENGTH_GE
@@ -173,7 +173,7 @@ class TestRamseySingleQubit:
                 index=1,
                 start=start_ef + _LENGTH_EF + self._DELAYS[0],
                 end=start_ef + 2 * _LENGTH_EF + self._DELAYS[0],
-                parameterized_with=["x90_phases_q0"],
+                parameterized_with=[],
             )
 
     def test_pulse_measure(
@@ -360,7 +360,7 @@ class TestRamseyTwoQubits:
                 index=1,
                 start=_LENGTH_GE + self._DELAYS[0][0],
                 end=2 * _LENGTH_GE + self._DELAYS[0][0],
-                parameterized_with=["x90_phases_q0"],
+                parameterized_with=[],
             )
             verifier.assert_pulse(
                 signal="q1/drive",
@@ -373,7 +373,7 @@ class TestRamseyTwoQubits:
                 index=1,
                 start=_LENGTH_GE + self._DELAYS[0][0],
                 end=2 * _LENGTH_GE + self._DELAYS[0][0],
-                parameterized_with=["x90_phases_q1"],
+                parameterized_with=[],
             )
         elif transition == "ef":
             start_ef_q0 = _LENGTH_GE
@@ -389,7 +389,7 @@ class TestRamseyTwoQubits:
                 index=1,
                 start=start_ef_q0 + _LENGTH_EF + self._DELAYS[0][0],
                 end=start_ef_q0 + 2 * _LENGTH_EF + self._DELAYS[0][0],
-                parameterized_with=["x90_phases_q0"],
+                parameterized_with=[],
             )
             verifier.assert_pulse(
                 signal="q1/drive_ef",
@@ -403,7 +403,7 @@ class TestRamseyTwoQubits:
                 index=1,
                 start=start_ef_q1 + _LENGTH_EF + self._DELAYS[1][0],
                 end=start_ef_q1 + 2 * _LENGTH_EF + self._DELAYS[0][0],
-                parameterized_with=["x90_phases_q1"],
+                parameterized_with=[],
             )
 
     def test_pulse_measure(
