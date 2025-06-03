@@ -106,6 +106,8 @@ class TunableTransmonQubitParameters(QuantumParameters):
             Qubit DC parking voltage.
         flux_offset_voltage:
             Offset voltage for flux control line - defaults to 0.
+        user_defined:
+            Free-form dictionary of user-defined parameters.
     """
 
     # qubit coherence times
@@ -200,6 +202,9 @@ class TunableTransmonQubitParameters(QuantumParameters):
     dc_slot: int | None = 0
     dc_voltage_parking: float | None = 0.0
     flux_offset_voltage: float = 0.0
+
+    # free-form dictionary of user-defined parameters
+    user_defined: dict = attrs.field(factory=dict)
 
     @property
     def drive_frequency_ge(self) -> float | None:
