@@ -8,7 +8,7 @@
     MPLBACKEND: "AGG"
     UV_NO_SYNC: "1" # don't implicitly sync during "uv run"
   before_script:
-    - |-
+    - |
       if [[ $USE_LABONEQ_DEVELOP == "true" ]]; then
         # WARNING: Below will pick the latest pre-release ONLY if the supplied index
         # contains exclusively pre-release versions. Currently, LabOne Q is using internal artifactory index
