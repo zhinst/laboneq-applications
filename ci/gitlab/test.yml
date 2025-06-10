@@ -101,7 +101,8 @@ test:laboneq-feature-branch:
   before_script:
     - echo "Triggered by $UPSTREAM_PROJECT_PATH/$UPSTREAM_PROJECT_PATH"
     - echo "Running tests with laboneq version $LABONEQ_VERSION"
-    - uv sync --prerelease=if-necessary-or-explicit \
+    - |
+      uv sync --prerelease=if-necessary-or-explicit \
               --upgrade-package laboneq==${LABONEQ_VERSION} \
               --index=$LABONEQ_INDEX_URL
   rules:
