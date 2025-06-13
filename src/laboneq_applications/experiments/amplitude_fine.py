@@ -46,9 +46,7 @@ from laboneq_applications.tasks import (
 )
 
 if TYPE_CHECKING:
-    from laboneq.dsl.quantum import (
-        TransmonParameters,
-    )
+    from laboneq.dsl.quantum import QuantumParameters
     from laboneq.dsl.quantum.qpu import QPU
     from laboneq.dsl.session import Session
 
@@ -65,7 +63,7 @@ def experiment_workflow(
     phase_offset: float,
     repetitions: QubitSweepPoints[int],
     parameter_to_update: str | None = None,
-    temporary_parameters: dict[str, dict | TransmonParameters] | None = None,
+    temporary_parameters: dict[str, dict | QuantumParameters] | None = None,
     options: TuneUpWorkflowOptions | None = None,
 ) -> None:
     """The amplitude fine experiment workflow.
@@ -313,7 +311,7 @@ def experiment_workflow_x180(
     qpu: QPU,
     qubits: QuantumElements,
     repetitions: QubitSweepPoints[int],
-    temporary_parameters: dict[str, dict | TransmonParameters] | None = None,
+    temporary_parameters: dict[str, dict | QuantumParameters] | None = None,
     options: TuneUpWorkflowOptions | None = None,
 ) -> None:
     """The amplitude fine experiment workflow for a x180 gate.
@@ -408,7 +406,7 @@ def experiment_workflow_x90(
     qpu: QPU,
     qubits: QuantumElements,
     repetitions: QubitSweepPoints[int],
-    temporary_parameters: dict[str, dict | TransmonParameters] | None = None,
+    temporary_parameters: dict[str, dict | QuantumParameters] | None = None,
     options: TuneUpWorkflowOptions | None = None,
 ) -> None:
     """The amplitude fine experiment workflow for a x90 gate.

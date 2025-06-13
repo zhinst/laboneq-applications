@@ -45,9 +45,7 @@ from laboneq_applications.tasks.parameter_updating import (
 if TYPE_CHECKING:
     from collections.abc import Sequence
 
-    from laboneq.dsl.quantum import (
-        TransmonParameters,
-    )
+    from laboneq.dsl.quantum import QuantumParameters
     from laboneq.dsl.quantum.qpu import QPU
     from laboneq.dsl.quantum.quantum_element import QuantumElement
     from laboneq.dsl.session import Session
@@ -81,7 +79,7 @@ def experiment_workflow(
     qubit: QuantumElement,
     frequencies: QubitSweepPoints,
     states: Sequence[str],
-    temporary_parameters: dict[str, dict | TransmonParameters] | None = None,
+    temporary_parameters: dict[str, dict | QuantumParameters] | None = None,
     options: TuneUpWorkflowOptions | None = None,
 ) -> None:
     """The Dispersive Shift Workflow.

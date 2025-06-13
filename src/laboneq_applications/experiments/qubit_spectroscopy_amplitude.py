@@ -37,9 +37,7 @@ from laboneq_applications.experiments.options import (
 from laboneq_applications.tasks.parameter_updating import temporary_modify
 
 if TYPE_CHECKING:
-    from laboneq.dsl.quantum import (
-        TransmonParameters,
-    )
+    from laboneq.dsl.quantum import QuantumParameters
     from laboneq.dsl.quantum.qpu import QPU
     from laboneq.dsl.session import Session
 
@@ -53,7 +51,7 @@ def experiment_workflow(
     qubits: QuantumElements,
     frequencies: QubitSweepPoints,
     amplitudes: QubitSweepPoints,
-    temporary_parameters: dict[str, dict | TransmonParameters] | None = None,
+    temporary_parameters: dict[str, dict | QuantumParameters] | None = None,
     options: TuneUpWorkflowOptions | None = None,
 ) -> None:
     """The Qubit Spectroscopy Workflow.

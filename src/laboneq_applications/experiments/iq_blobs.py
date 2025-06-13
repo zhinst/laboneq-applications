@@ -33,9 +33,7 @@ from laboneq_applications.tasks.parameter_updating import temporary_modify
 if TYPE_CHECKING:
     from collections.abc import Sequence
 
-    from laboneq.dsl.quantum import (
-        TransmonParameters,
-    )
+    from laboneq.dsl.quantum import QuantumParameters
     from laboneq.dsl.quantum.qpu import QPU
     from laboneq.dsl.session import Session
 
@@ -81,7 +79,7 @@ def experiment_workflow(
     qpu: QPU,
     qubits: QuantumElements,
     states: Sequence[str],
-    temporary_parameters: dict[str, dict | TransmonParameters] | None = None,
+    temporary_parameters: dict[str, dict | QuantumParameters] | None = None,
     options: IQBlobExperimentWorkflowOptions | None = None,
 ) -> None:
     """The IQ-blob experiment Workflow.

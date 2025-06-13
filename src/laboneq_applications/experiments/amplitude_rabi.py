@@ -43,9 +43,7 @@ from laboneq_applications.tasks import (
 )
 
 if TYPE_CHECKING:
-    from laboneq.dsl.quantum import (
-        TransmonParameters,
-    )
+    from laboneq.dsl.quantum import QuantumParameters
     from laboneq.dsl.quantum.qpu import QPU
     from laboneq.dsl.session import Session
 
@@ -60,7 +58,7 @@ def experiment_workflow(
     amplitudes: QubitSweepPoints,
     # TODO: Update the type hint for the temporary_parameters argument when the new
     # qubit class is available. Same for other experiment workflows.
-    temporary_parameters: dict[str, dict | TransmonParameters] | None = None,
+    temporary_parameters: dict[str, dict | QuantumParameters] | None = None,
     options: TuneUpWorkflowOptions | None = None,
 ) -> None:
     """The Amplitude Rabi Workflow.
