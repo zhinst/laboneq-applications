@@ -25,6 +25,12 @@ def demo_platform(n_qubits: int) -> QuantumPlatform:
     - 1 SHFQC (for the qubit drive and measurement lines)
     - 1 HDAWG (for the qubit flux lines)
 
+    with device options:
+
+    - 1 PQSC
+    - 1 SHFQC/QC6CH
+    - 1 HDAWG8/MF/ME/SKW/PC
+
     The maximum number of qubits is 6 (which is the number of drive lines on
     the SHFQC).
 
@@ -52,6 +58,12 @@ def tunable_transmon_setup(n_qubits: int) -> DeviceSetup:
     - 1 PQSC
     - 1 SHFQC (for the qubit drive and measurement lines)
     - 1 HDAWG (for the qubit flux lines)
+
+    with device options:
+
+    - 1 PQSC
+    - 1 SHFQC/QC6CH
+    - 1 HDAWG8/MF/ME/SKW/PC
 
     The maximum number of qubits is 6 (which is the number of drive lines on
     the SHFQC).
@@ -90,7 +102,9 @@ def tunable_transmon_setup(n_qubits: int) -> DeviceSetup:
             device_options="HDAWG8/MF/ME/SKW/PC",
         ),
     )
-    setup.add_instruments(PQSC(uid="device_pqsc", address="dev125"))
+    setup.add_instruments(
+        PQSC(uid="device_pqsc", address="dev125", device_options="PQSC")
+    )
 
     setup.add_connections(
         "device_pqsc",

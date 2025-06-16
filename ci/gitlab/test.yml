@@ -16,6 +16,7 @@
         uv sync --prerelease=if-necessary-or-explicit --upgrade-package laboneq \
                 --index=https://artifactory.zhinst.com/artifactory/api/pypi/ZIPyPI/simple
       else
+        uv lock --upgrade-package laboneq
         uv sync
       fi
   script:
