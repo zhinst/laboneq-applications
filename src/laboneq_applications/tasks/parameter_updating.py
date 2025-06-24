@@ -8,17 +8,33 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 import attrs
-from laboneq.dsl.quantum import QuantumParameters
+from laboneq.dsl.quantum import QPU, QuantumElement, QuantumParameters
 from laboneq.workflow import (
     comment,
     task,
 )
+from typing_extensions import deprecated
 
 if TYPE_CHECKING:
     import uncertainties as unc
-    from laboneq.dsl.quantum.qpu import QPU
 
     from laboneq_applications.typing import QuantumElements
+
+
+def _valid_temporary_parameters(
+    temporary_parameters: dict[str, dict | QuantumParameters] | None,
+) -> bool:
+    """Returns True if temporary parameters are of the correct type, False otherwise."""
+    if temporary_parameters is None:
+        return True
+    if not isinstance(temporary_parameters, dict):
+        return False
+    for key, value in temporary_parameters.items():
+        if not isinstance(key, str):
+            return False
+        if not isinstance(value, dict | QuantumParameters):
+            return False
+    return True
 
 
 @task
@@ -59,6 +75,118 @@ def update_qubits(
 
 
 @task
+def temporary_qpu(
+    qpu: QPU, temporary_parameters: dict[str, dict | QuantumParameters] | None = None
+) -> QPU:
+    """Modify the QPU temporarily with the given parameters.
+
+    Args:
+        qpu: The QPU to be temporarily modified.
+        temporary_parameters: The parameters to be temporarily modified.
+            If None, the QPU is returned as is.
+            The dictionary has the following form:
+            ```python
+            {
+                quantum_element_uid: {
+                    "param": param_value
+                }
+            }
+            ```
+            or
+            ```python
+            {
+                "quantum_element_uid": QuantumParameters
+            }
+            ```
+
+    Returns:
+        QPU: The QPU with the temporary parameters applied to each quantum element.
+
+    Raises:
+        TypeError: If the temporary parameters have invalid type.
+    """
+    if not _valid_temporary_parameters(temporary_parameters):
+        raise TypeError(
+            f"The temporary parameters have invalid type: {type(temporary_parameters)}."
+            f" Expected type: dict[str, dict | QuantumParameters] | None."
+        )
+
+    if temporary_parameters:
+        new_quantum_elements = []
+        for q in qpu.quantum_elements:
+            if q.uid in temporary_parameters:
+                temp_param = temporary_parameters[q.uid]
+                if isinstance(temp_param, QuantumParameters):
+                    temp_param = attrs.asdict(temp_param)
+                new_q = q.replace(**temp_param)
+                new_quantum_elements.append(new_q)
+            else:
+                new_quantum_elements.append(q)
+    else:
+        new_quantum_elements = [q.copy() for q in qpu.quantum_elements]
+
+    new_quantum_operations = qpu.quantum_operations.copy()
+
+    return QPU(
+        quantum_elements=new_quantum_elements, quantum_operations=new_quantum_operations
+    )
+
+
+@task
+def temporary_quantum_elements_from_qpu(
+    qpu: QPU,
+    quantum_elements: QuantumElements | list[str] | str | None = None,
+) -> QuantumElements:
+    """Return temporarily-modified quantum elements from the QPU.
+
+    Args:
+        qpu: The temporarily-modified QPU.
+        quantum_elements: The quantum elements to return. Either the QuantumElement
+            objects or the UIDs may be provided.
+
+    Returns:
+        The temporarily-modified quantum elements.
+
+    Raises:
+        TypeError: If the quantum elements have invalid type.
+    """
+    if quantum_elements is None:
+        return qpu.quantum_elements
+
+    if isinstance(quantum_elements, QuantumElement):
+        return qpu.quantum_element_by_uid(quantum_elements.uid)
+
+    if isinstance(quantum_elements, str):
+        return qpu.quantum_element_by_uid(quantum_elements)
+
+    if isinstance(quantum_elements, list):
+        quantum_elements_uids = []
+        for q in quantum_elements:
+            if isinstance(q, QuantumElement):
+                quantum_elements_uids.append(q.uid)
+            elif isinstance(q, str):
+                quantum_elements_uids.append(q)
+            else:
+                raise TypeError(
+                    f"The quantum elements list items have invalid type: {type(q)}. "
+                    f"Expected type: QuantumElement | str."
+                )
+
+        return [qpu.quantum_element_by_uid(q) for q in quantum_elements_uids]
+
+    raise TypeError(
+        f"The quantum elements have invalid type: {type(quantum_elements)}. "
+        f"Expected type: QuantumElements | list[str] | str | None."
+    )
+
+
+@task
+@deprecated(
+    "The temporary_modify method is deprecated. Use `temporary_qpu` instead. "
+    "Instead of passing temporary qubits to an experiment, we now pass a temporary "
+    "QPU.",
+    category=FutureWarning,
+)
 def temporary_modify(
     qubits: QuantumElements,
     temporary_parameters: dict[str, dict | QuantumParameters] | None = None,
@@ -88,9 +216,24 @@ def temporary_modify(
         The list of quantum elements with the temporary parameters applied, including
         the original quantum elements that were not modified.
         If a single quantum element is passed, returns the modified quantum element.
+
+    Raises:
+        TypeError: If the temporary parameters have invalid type.
+
+    !!! version-changed "Deprecated in version 2.54.0."
+            The method `temporary_modify` was deprecated and replaced with the method
+            `temporary_qpu`. Instead of passing temporary qubits to an experiment, we
+            now pass a temporary QPU.
     """
     if not temporary_parameters:
         return qubits
+
+    if not _valid_temporary_parameters(temporary_parameters):
+        raise TypeError(
+            f"The temporary parameters have invalid type: {type(temporary_parameters)}."
+            f" Expected type: dict[str, dict | QuantumParameters] | None."
+        )
+
     _single_qubit = False
     if not isinstance(qubits, list):
         qubits = [qubits]

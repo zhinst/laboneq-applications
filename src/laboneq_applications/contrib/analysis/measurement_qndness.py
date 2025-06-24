@@ -35,6 +35,7 @@ if TYPE_CHECKING:
 
     from laboneq_applications.typing import QuantumElements
 
+
 @workflow
 def analysis_workflow(
     result: RunExperimentResults,
@@ -75,18 +76,16 @@ def analysis_workflow(
         ```
     """
     processed_data_dict = collect_shots(qubits, result)
-    assignment_matrices = calculate_assignment_matrices(
-        qubits, processed_data_dict
-        )
+    assignment_matrices = calculate_assignment_matrices(qubits, processed_data_dict)
     qnd_assignment_fidelities = calculate_assignment_fidelities(
         qubits, assignment_matrices
-        )
+    )
 
-    states = ["g","e"]
+    states = ["g", "e"]
     with if_(options.do_plotting):
         plot_assignment_matrices(
-                qubits, states, assignment_matrices, qnd_assignment_fidelities
-                )
+            qubits, states, assignment_matrices, qnd_assignment_fidelities
+        )
 
     return_(qnd_assignment_fidelities)
 
@@ -118,7 +117,9 @@ def collect_shots(
     for q in qubits:
         processed_data_dict[q.uid] = {
             "first_measurement": np.real(result[f"measure_1_{q.uid}"].data).astype(int),
-            "second_measurement": np.real(result[f"measure_2_{q.uid}"].data).astype(int)
+            "second_measurement": np.real(result[f"measure_2_{q.uid}"].data).astype(
+                int
+            ),
         }
 
     return processed_data_dict

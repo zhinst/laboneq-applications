@@ -57,6 +57,7 @@ class QNDnessExperimentOptions:
             Averaging mode to use for the experiment.
             Default: `AveragingMode.SINGLE_SHOT`.
     """
+
     acquisition_type: AcquisitionType = option_field(
         AcquisitionType.DISCRIMINATION,
         description="Acquisition type to use for the experiment.",
@@ -192,12 +193,12 @@ def create_experiment(
     qop = qpu.quantum_operations
 
     with dsl.acquire_loop_rt(
-    count=opts.count,
-    averaging_mode=opts.averaging_mode,
-    acquisition_type=opts.acquisition_type,
-    repetition_mode=opts.repetition_mode,
-    repetition_time=opts.repetition_time,
-    reset_oscillator_phase=opts.reset_oscillator_phase,
+        count=opts.count,
+        averaging_mode=opts.averaging_mode,
+        acquisition_type=opts.acquisition_type,
+        repetition_mode=opts.repetition_mode,
+        repetition_time=opts.repetition_time,
+        reset_oscillator_phase=opts.reset_oscillator_phase,
     ):
         with dsl.section(name="main", alignment=SectionAlignment.RIGHT):
             with dsl.section(name="main_drive", alignment=SectionAlignment.RIGHT):

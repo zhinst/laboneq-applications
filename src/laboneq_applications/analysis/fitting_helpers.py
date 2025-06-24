@@ -192,7 +192,7 @@ def get_pi_pi2_xvalues_on_cos(
         warnings.warn(
             "The frequency of the cosine function is zero. "
             "Returning empty arrays for the pi and pi/2 x-values.",
-            stacklevel=2
+            stacklevel=2,
         )
         return np.array([]), np.array([]), np.array([]), np.array([])
     pi_xvals_top = pi_xvals[0::2]
