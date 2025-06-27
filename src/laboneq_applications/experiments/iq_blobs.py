@@ -28,7 +28,10 @@ from laboneq_applications.core import validation
 from laboneq_applications.experiments.options import (
     BaseExperimentOptions,
 )
-from laboneq_applications.tasks.parameter_updating import temporary_modify
+from laboneq_applications.tasks.parameter_updating import (
+    temporary_qpu,
+    temporary_quantum_elements_from_qpu,
+)
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
@@ -129,9 +132,10 @@ def experiment_workflow(
         )
         ```
     """
-    qubits = temporary_modify(qubits, temporary_parameters)
+    temp_qpu = temporary_qpu(qpu, temporary_parameters)
+    qubits = temporary_quantum_elements_from_qpu(qpu, qubits)
     exp = create_experiment(
-        qpu,
+        temp_qpu,
         qubits,
         states,
     )

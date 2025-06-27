@@ -41,7 +41,8 @@ from laboneq_applications.experiments.options import (
     TuneUpWorkflowOptions,
 )
 from laboneq_applications.tasks import (
-    temporary_modify,
+    temporary_qpu,
+    temporary_quantum_elements_from_qpu,
     update_qubits,
 )
 
@@ -135,9 +136,10 @@ def experiment_workflow(
         ).run()
         ```
     """
-    qubits = temporary_modify(qubits, temporary_parameters)
+    temp_qpu = temporary_qpu(qpu, temporary_parameters)
+    qubits = temporary_quantum_elements_from_qpu(qpu, qubits)
     exp = create_experiment(
-        qpu,
+        temp_qpu,
         qubits,
         amplification_qop,
         repetitions=repetitions,
@@ -375,9 +377,10 @@ def experiment_workflow_x180(
     phase_offset = -np.pi / 2
     parameter_to_update = "drive_amplitude_pi"
 
-    qubits = temporary_modify(qubits, temporary_parameters)
+    temp_qpu = temporary_qpu(qpu, temporary_parameters)
+    qubits = temporary_quantum_elements_from_qpu(qpu, qubits)
     exp = create_experiment(
-        qpu,
+        temp_qpu,
         qubits,
         amplification_qop,
         repetitions=repetitions,
@@ -470,9 +473,10 @@ def experiment_workflow_x90(
     phase_offset = -np.pi / 2
     parameter_to_update = "drive_amplitude_pi2"
 
-    qubits = temporary_modify(qubits, temporary_parameters)
+    temp_qpu = temporary_qpu(qpu, temporary_parameters)
+    qubits = temporary_quantum_elements_from_qpu(qpu, qubits)
     exp = create_experiment(
-        qpu,
+        temp_qpu,
         qubits,
         amplification_qop,
         repetitions=repetitions,

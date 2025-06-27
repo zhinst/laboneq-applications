@@ -38,7 +38,8 @@ from laboneq_applications.experiments.options import (
     TuneUpWorkflowOptions,
 )
 from laboneq_applications.tasks.parameter_updating import (
-    temporary_modify,
+    temporary_qpu,
+    temporary_quantum_elements_from_qpu,
     update_qubits,
 )
 
@@ -136,9 +137,10 @@ def experiment_workflow(
         ).run()
         ```
     """
-    qubit = temporary_modify(qubit, temporary_parameters)
+    temp_qpu = temporary_qpu(qpu, temporary_parameters)
+    qubit = temporary_quantum_elements_from_qpu(qpu, qubit)
     exp = create_experiment(
-        qpu,
+        temp_qpu,
         qubit,
         frequencies=frequencies,
         states=states,

@@ -35,7 +35,8 @@ from laboneq_applications.experiments.options import (
     TuneUpWorkflowOptions,
 )
 from laboneq_applications.tasks.parameter_updating import (
-    temporary_modify,
+    temporary_qpu,
+    temporary_quantum_elements_from_qpu,
     update_qubits,
 )
 
@@ -130,12 +131,13 @@ def experiment_workflow(
         ).run()
         ```
     """
-    qubits = temporary_modify(qubits, temporary_parameters)
+    temp_qpu = temporary_qpu(qpu, temporary_parameters)
+    qubits = temporary_quantum_elements_from_qpu(qpu, qubits)
     qubits = validation.validate_and_convert_qubits_sweeps(qubits)
     results = []
     with workflow.for_(qubits, lambda q: q.uid) as qubit:
         with workflow.for_(states, lambda s: s) as state:
-            exp = create_experiment(qpu, qubit, state)
+            exp = create_experiment(temp_qpu, qubit, state)
             compiled_exp = compile_experiment(session, exp)
             # Below, we disable saving for the inputs and outputs of the run_experiment
             # task. The interface for doing this will be cleaned up later.

@@ -34,7 +34,10 @@ from laboneq_applications.experiments.options import (
     ResonatorSpectroscopyExperimentOptions,
     TuneUpWorkflowOptions,
 )
-from laboneq_applications.tasks.parameter_updating import temporary_modify
+from laboneq_applications.tasks.parameter_updating import (
+    temporary_qpu,
+    temporary_quantum_elements_from_qpu,
+)
 
 if TYPE_CHECKING:
     from laboneq.dsl.quantum import QuantumParameters
@@ -108,9 +111,10 @@ def experiment_workflow(
         )
         ```
     """
-    qubit = temporary_modify(qubit, temporary_parameters)
+    temp_qpu = temporary_qpu(qpu, temporary_parameters)
+    qubit = temporary_quantum_elements_from_qpu(qpu, qubit)
     exp = create_experiment(
-        qpu,
+        temp_qpu,
         qubit,
         frequencies=frequencies,
         amplitudes=amplitudes,
