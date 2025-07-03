@@ -1136,7 +1136,7 @@ wheels = [
 
 [[package]]
 name = "laboneq"
-version = "2.54.0"
+version = "2.55.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "attrs" },
@@ -1172,15 +1172,15 @@ dependencies = [
     { name = "zhinst-utils" },
 ]
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/c7/59/6336868467e22219de08781fbb3b275b84915399e33eaf9a2997a7fea5ef/laboneq-2.54.0-cp39-abi3-macosx_10_12_x86_64.macosx_11_0_arm64.macosx_10_12_universal2.whl", hash = "sha256:5aceefe79cdacc4f50d84c8324d7d5b6cc76fb78a1d9e77d9458987857ce2912", size = 3018389, upload-time = "2025-06-19T12:08:59.641Z" },
-    { url = "https://files.pythonhosted.org/packages/12/7d/a4176bbf3c5bd9c71d871445413165812e6329b816993ac76dd540f8fd0a/laboneq-2.54.0-cp39-abi3-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:948a13a4d0517dfa5862506f23d98648bd4d8b377360ffafa87d5414168edd2c", size = 2041812, upload-time = "2025-06-19T12:09:01.881Z" },
-    { url = "https://files.pythonhosted.org/packages/0b/be/9d2f68fe4c68ae9e1a99d4a4fad2455946b2ed5cc241dd7a6670e4aaa8c1/laboneq-2.54.0-cp39-abi3-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:d0726699dd17d5b9546ef721303e024d4a0131bb8cd2209f05b34f189c1a41c1", size = 2091124, upload-time = "2025-06-19T12:09:03.421Z" },
-    { url = "https://files.pythonhosted.org/packages/c5/74/e7556fc98c5dc4d8f3ab9dc595bac3b5eb2e2a0130767763e69fe673868b/laboneq-2.54.0-cp39-abi3-win_amd64.whl", hash = "sha256:d732a440497f1a8e70765298f0ff981c0d50d567885e8d71c249bc587fc800e7", size = 1983210, upload-time = "2025-06-19T12:09:05.097Z" },
+    { url = "https://files.pythonhosted.org/packages/d3/7f/79c976eb77a8d2ea35b76425b0e31752c528cc7f147ec35ca727d04e7177/laboneq-2.55.0-cp39-abi3-macosx_10_12_x86_64.macosx_11_0_arm64.macosx_10_12_universal2.whl", hash = "sha256:330bb96fb560554906ec25efa5f2252c23804e46daebddb328f2dd461274fed7", size = 2915635, upload-time = "2025-07-03T22:49:39.811Z" },
+    { url = "https://files.pythonhosted.org/packages/fd/14/cce9a1bcac0b5d9f85693f2359730d5548b27da7d9921016223cd5af65cb/laboneq-2.55.0-cp39-abi3-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:159843eabe3a5c0071827443abbe7c92588fe6f0a078d5cac35458643e143cc6", size = 1999224, upload-time = "2025-07-03T22:49:41.898Z" },
+    { url = "https://files.pythonhosted.org/packages/2b/9d/3191cbb2beefe5705a2ba4f414be1f46e17199a8fc1bd5fec10fdbed6b71/laboneq-2.55.0-cp39-abi3-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:9e1d86db77066c38bb0cfebeb3097dd0f80a06fe95d077ba68cc5ae3373c1b03", size = 2048206, upload-time = "2025-07-03T22:49:43.553Z" },
+    { url = "https://files.pythonhosted.org/packages/bc/31/229c64c138bd4d2b5994d52cedbfc0e8a9c1b90664241eb02d182c27d681/laboneq-2.55.0-cp39-abi3-win_amd64.whl", hash = "sha256:a2b9a89c9d6993c0866a82f95f8daf09b2169055113016a15cf7277a6bbdea19", size = 1939735, upload-time = "2025-07-03T22:49:45.42Z" },
 ]
 
 [[package]]
 name = "laboneq-applications"
-version = "2.9.0.dev0"
+version = "2.9.0"
 source = { editable = "." }
 dependencies = [
     { name = "laboneq" },
@@ -1221,7 +1221,7 @@ tools = [
 
 [package.metadata]
 requires-dist = [
-    { name = "laboneq" },
+    { name = "laboneq", specifier = "~=2.55.0" },
     { name = "lmfit" },
     { name = "matplotlib" },
     { name = "numpy", specifier = ">=1.26" },
