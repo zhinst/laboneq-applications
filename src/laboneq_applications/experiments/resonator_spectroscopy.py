@@ -107,7 +107,7 @@ def experiment_workflow(
         ```
     """
     temp_qpu = temporary_qpu(qpu, temporary_parameters)
-    qubit = temporary_quantum_elements_from_qpu(qpu, qubit)
+    qubit = temporary_quantum_elements_from_qpu(temp_qpu, qubit)
 
     exp = create_experiment(
         temp_qpu,

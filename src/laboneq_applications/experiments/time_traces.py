@@ -132,7 +132,7 @@ def experiment_workflow(
         ```
     """
     temp_qpu = temporary_qpu(qpu, temporary_parameters)
-    qubits = temporary_quantum_elements_from_qpu(qpu, qubits)
+    qubits = temporary_quantum_elements_from_qpu(temp_qpu, qubits)
     qubits = validation.validate_and_convert_qubits_sweeps(qubits)
     results = []
     with workflow.for_(qubits, lambda q: q.uid) as qubit:

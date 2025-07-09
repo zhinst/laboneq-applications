@@ -137,7 +137,7 @@ def experiment_workflow(
         ```
     """
     temp_qpu = temporary_qpu(qpu, temporary_parameters)
-    qubits = temporary_quantum_elements_from_qpu(qpu, qubits)
+    qubits = temporary_quantum_elements_from_qpu(temp_qpu, qubits)
     exp = create_experiment(
         temp_qpu,
         qubits,
@@ -378,7 +378,7 @@ def experiment_workflow_x180(
     parameter_to_update = "drive_amplitude_pi"
 
     temp_qpu = temporary_qpu(qpu, temporary_parameters)
-    qubits = temporary_quantum_elements_from_qpu(qpu, qubits)
+    qubits = temporary_quantum_elements_from_qpu(temp_qpu, qubits)
     exp = create_experiment(
         temp_qpu,
         qubits,
@@ -474,7 +474,7 @@ def experiment_workflow_x90(
     parameter_to_update = "drive_amplitude_pi2"
 
     temp_qpu = temporary_qpu(qpu, temporary_parameters)
-    qubits = temporary_quantum_elements_from_qpu(qpu, qubits)
+    qubits = temporary_quantum_elements_from_qpu(temp_qpu, qubits)
     exp = create_experiment(
         temp_qpu,
         qubits,
