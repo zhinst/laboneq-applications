@@ -22,7 +22,8 @@ if TYPE_CHECKING:
 
 
 def _valid_temporary_parameters(
-    temporary_parameters: dict[str, dict | QuantumParameters] | None,
+    temporary_parameters: dict[str | tuple[str, str, str], dict | QuantumParameters]
+    | None,
 ) -> bool:
     """Returns True if temporary parameters are of the correct type, False otherwise."""
     if temporary_parameters is None:
@@ -30,8 +31,14 @@ def _valid_temporary_parameters(
     if not isinstance(temporary_parameters, dict):
         return False
     for key, value in temporary_parameters.items():
-        if not isinstance(key, str):
+        if not isinstance(key, str | tuple):
             return False
+        if isinstance(key, tuple):
+            edge_key_tuple_length = 3
+            if len(key) != edge_key_tuple_length:
+                return False
+            if not all(isinstance(item, str) for item in key):
+                return False
         if not isinstance(value, dict | QuantumParameters):
             return False
     return True
@@ -76,7 +83,9 @@ def update_qubits(
 
 @task
 def temporary_qpu(
-    qpu: QPU, temporary_parameters: dict[str, dict | QuantumParameters] | None = None
+    qpu: QPU,
+    temporary_parameters: dict[str | tuple[str, str, str], dict | QuantumParameters]
+    | None = None,
 ) -> QPU:
     """Modify the QPU temporarily with the given parameters.
 
@@ -87,7 +96,7 @@ def temporary_qpu(
             The dictionary has the following form:
             ```python
             {
-                quantum_element_uid: {
+                key: {
                     "param": param_value
                 }
             }
@@ -95,12 +104,18 @@ def temporary_qpu(
             or
             ```python
             {
-                "quantum_element_uid": QuantumParameters
+                key: QuantumParameters
             }
             ```
+            where `key` may be either a quantum element UID string or edge key tuple of
+            the form `(tag, source node UID, target node UID)`.
+
+    !!! note
+        The quantum element attached to a topology edge cannot be temporarily modified.
 
     Returns:
-        QPU: The QPU with the temporary parameters applied to each quantum element.
+        QPU: The QPU with the temporary parameters applied to each quantum element or
+            edge.
 
     Raises:
         TypeError: If the temporary parameters have invalid type.
@@ -108,7 +123,8 @@ def temporary_qpu(
     if not _valid_temporary_parameters(temporary_parameters):
         raise TypeError(
             f"The temporary parameters have invalid type: {type(temporary_parameters)}."
-            f" Expected type: dict[str, dict | QuantumParameters] | None."
+            f" Expected type:"
+            f" dict[str | tuple[str, str, str], dict | QuantumParameters] | None."
         )
 
     if temporary_parameters:
@@ -122,14 +138,40 @@ def temporary_qpu(
                 new_quantum_elements.append(new_q)
             else:
                 new_quantum_elements.append(q)
+        new_topology_edges = []
+        for e in qpu.topology.edges():
+            edge_key = (e.tag, e.source_node.uid, e.target_node.uid)
+            if edge_key in temporary_parameters:
+                temp_param = temporary_parameters[edge_key]
+                if isinstance(temp_param, QuantumParameters):
+                    temp_param = attrs.asdict(temp_param)
+                new_topology_edges.append(
+                    (edge_key, e.parameters.replace(**temp_param), e.quantum_element),
+                )
+            else:
+                new_topology_edges.append((edge_key, e.parameters, e.quantum_element))
     else:
         new_quantum_elements = [q.copy() for q in qpu.quantum_elements]
-
+        new_topology_edges = [
+            (
+                (e.tag, e.source_node.uid, e.target_node.uid),
+                e.parameters,
+                e.quantum_element,
+            )
+            for e in qpu.topology.edges()
+        ]
     new_quantum_operations = qpu.quantum_operations.copy()
 
-    return QPU(
+    new_qpu = QPU(
         quantum_elements=new_quantum_elements, quantum_operations=new_quantum_operations
     )
+    for edge_key, parameters, quantum_element in new_topology_edges:
+        new_qpu.topology.add_edge(
+            *edge_key,
+            parameters=parameters,
+            quantum_element=quantum_element,
+        )
+    return new_qpu
 
 
 @task
@@ -154,10 +196,10 @@ def temporary_quantum_elements_from_qpu(
         return qpu.quantum_elements
 
     if isinstance(quantum_elements, QuantumElement):
-        return qpu.quantum_element_by_uid(quantum_elements.uid)
+        return qpu[quantum_elements.uid]
 
     if isinstance(quantum_elements, str):
-        return qpu.quantum_element_by_uid(quantum_elements)
+        return qpu[quantum_elements]
 
     if isinstance(quantum_elements, list):
         quantum_elements_uids = []
@@ -172,7 +214,7 @@ def temporary_quantum_elements_from_qpu(
                     f"Expected type: QuantumElement | str."
                 )
 
-        return [qpu.quantum_element_by_uid(q) for q in quantum_elements_uids]
+        return [qpu[q] for q in quantum_elements_uids]
 
     raise TypeError(
         f"The quantum elements have invalid type: {type(quantum_elements)}. "
