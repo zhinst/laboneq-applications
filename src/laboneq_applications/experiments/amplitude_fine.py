@@ -90,7 +90,7 @@ def experiment_workflow(
             amplification. The quantum operation must exist in
             qop.keys().
         target_angle:
-            target angle the specified quantum operation shuould rotate.
+            target angle the specified quantum operation should rotate.
             The target_angle is used as initial guess for fitting.
         phase_offset:
             initial guess for phase_offset of fit.
@@ -128,6 +128,8 @@ def experiment_workflow(
             qpu=qpu,
             qubits=temp_qubits,
             amplification_qop='x180',
+            target_angle=1.0,
+            phase_offset=0.0,
             repetitions=[
                 [1,2,3,4],
                 [1,2,3,4],

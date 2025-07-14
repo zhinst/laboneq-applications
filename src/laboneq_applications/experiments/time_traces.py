@@ -125,7 +125,7 @@ def experiment_workflow(
         result = experiment_workflow(
             session=session,
             qpu=qpu,
-            qubit=temp_qubits[0],
+            qubits=temp_qubits[0],
             states="gef",
             options=options,
         ).run()
