@@ -79,7 +79,8 @@ def experiment_workflow(
     qpu: QPU,
     qubits: QuantumElements,
     delays: QubitSweepPoints,
-    temporary_parameters: dict[str, dict | QuantumParameters] | None = None,
+    temporary_parameters: dict[str | tuple[str, str, str], dict | QuantumParameters]
+    | None = None,
     options: TuneUpWorkflowOptions | None = None,
 ) -> None:
     """The Hahn echo experiment workflow.
@@ -106,7 +107,10 @@ def experiment_workflow(
             the pulse sequence at the top of the file. Note that `delays` must be
             identical for qubits that use the same measure port.
         temporary_parameters:
-            The temporary parameters to update the qubits with.
+            The temporary parameters with which to update the quantum elements and
+            topology edges. For quantum elements, the dictionary key is the quantum
+            element UID. For topology edges, the dictionary key is the edge tuple
+            `(tag, source node UID, target node UID)`.
         options:
             The options for building the workflow as an instance of
             [TuneUpWorkflowOptions]. See the docstrings of this class for more details.
@@ -121,10 +125,10 @@ def experiment_workflow(
         options.count(10)
         options.transition("ge")
         qpu = QPU(
-            qubits=[TunableTransmonQubit("q0"), TunableTransmonQubit("q1")],
+            quantum_elements=[TunableTransmonQubit("q0"), TunableTransmonQubit("q1")],
             quantum_operations=TunableTransmonOperations(),
         )
-        temp_qubits = qpu.copy_qubits()
+        temp_qubits = qpu.copy_quantum_elements()
         result = run(
             session=session,
             qpu=qpu,
@@ -195,12 +199,12 @@ def create_experiment(
         options = TuneupExperimentOptions()
         options.count = 10
         options.cal_traces = True
-        setup = DeviceSetup()
+        setup = DeviceSetup("my_device")
         qpu = QPU(
-            qubits=[TunableTransmonQubit("q0"), TunableTransmonQubit("q1")],
+            quantum_elements=[TunableTransmonQubit("q0"), TunableTransmonQubit("q1")],
             quantum_operations=TunableTransmonOperations(),
         )
-        temp_qubits = qpu.copy_qubits()
+        temp_qubits = qpu.copy_quantum_elements()
         create_experiment(
             qpu=qpu,
             qubits=temp_qubits,

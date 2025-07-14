@@ -51,7 +51,8 @@ def experiment_workflow(
     qpu: QPU,
     qubits: QuantumElements,
     frequencies: QubitSweepPoints,
-    temporary_parameters: dict[str, dict | QuantumParameters] | None = None,
+    temporary_parameters: dict[str | tuple[str, str, str], dict | QuantumParameters]
+    | None = None,
     options: TuneUpWorkflowOptions | None = None,
 ) -> None:
     """The Qubit Spectroscopy Workflow.
@@ -77,7 +78,10 @@ def experiment_workflow(
             is a single qubit, `frequencies` must be a list of numbers or an array.
             Otherwise, it must be a list of lists of numbers or arrays.
         temporary_parameters:
-            The temporary parameters to update the qubits with.
+            The temporary parameters with which to update the quantum elements and
+            topology edges. For quantum elements, the dictionary key is the quantum
+            element UID. For topology edges, the dictionary key is the edge tuple
+            `(tag, source node UID, target node UID)`.
         options:
             The options for building the workflow.
             In addition to options from [WorkflowOptions], the following
@@ -93,10 +97,10 @@ def experiment_workflow(
         options = experiment_workflow.options()
         options.create_experiment.count(10)
         qpu = QPU(
-            qubits=[TunableTransmonQubit("q0"), TunableTransmonQubit("q1")],
+            quantum_elements=[TunableTransmonQubit("q0"), TunableTransmonQubit("q1")],
             quantum_operations=TunableTransmonOperations(),
         )
-        temp_qubits = qpu.copy_qubits()
+        temp_qubits = qpu.copy_quantum_elements()
         result = experiment_workflow(
             session=session,
             qpu=qpu,
@@ -174,10 +178,10 @@ def create_experiment(
         options = QubitSpectroscopyExperimentOptions()
         options.count = 10
         qpu = QPU(
-            qubits=[TunableTransmonQubit("q0"), TunableTransmonQubit("q1")],
+            quantum_elements=[TunableTransmonQubit("q0"), TunableTransmonQubit("q1")],
             quantum_operations=TunableTransmonOperations(),
         )
-        temp_qubits = qpu.copy_qubits()
+        temp_qubits = qpu.copy_quantum_elements()
         create_experiment(
             qpu=qpu,
             qubits=temp_qubits,

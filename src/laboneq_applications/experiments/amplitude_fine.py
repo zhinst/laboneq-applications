@@ -64,7 +64,8 @@ def experiment_workflow(
     phase_offset: float,
     repetitions: QubitSweepPoints[int],
     parameter_to_update: str | None = None,
-    temporary_parameters: dict[str, dict | QuantumParameters] | None = None,
+    temporary_parameters: dict[str | tuple[str, str, str], dict | QuantumParameters]
+    | None = None,
     options: TuneUpWorkflowOptions | None = None,
 ) -> None:
     """The amplitude fine experiment workflow.
@@ -102,7 +103,10 @@ def experiment_workflow(
         parameter_to_update:
             str that defines the qubit parameter to be updated.
         temporary_parameters:
-            The temporary parameters to update the qubits with.
+            The temporary parameters with which to update the quantum elements and
+            topology edges. For quantum elements, the dictionary key is the quantum
+            element UID. For topology edges, the dictionary key is the edge tuple
+            `(tag, source node UID, target node UID)`.
         options:
             The options for building the workflow.
             In addition to options from [WorkflowOptions], the following
@@ -119,10 +123,10 @@ def experiment_workflow(
         options.count(10)
         options.transition("ge")
         qpu = QPU(
-            qubits=[TunableTransmonQubit("q0"), TunableTransmonQubit("q1")],
+            quantum_elements=[TunableTransmonQubit("q0"), TunableTransmonQubit("q1")],
             quantum_operations=TunableTransmonOperations(),
         )
-        temp_qubits = qpu.copy_qubits()
+        temp_qubits = qpu.copy_quantum_elements()
         result = experiment_workflow(
             session=session,
             qpu=qpu,
@@ -217,10 +221,10 @@ def create_experiment(
         options.count(10)
         options.cal_traces(True)
         qpu = QPU(
-            qubits=[TunableTransmonQubit("q0"), TunableTransmonQubit("q1")],
+            quantum_elements=[TunableTransmonQubit("q0"), TunableTransmonQubit("q1")],
             quantum_operations=TunableTransmonOperations(),
         )
-        temp_qubits = qpu.copy_qubits()
+        temp_qubits = qpu.copy_quantum_elements()
         create_experiment(
             qpu=qpu,
             qubits=temp_qubits,
@@ -315,7 +319,8 @@ def experiment_workflow_x180(
     qpu: QPU,
     qubits: QuantumElements,
     repetitions: QubitSweepPoints[int],
-    temporary_parameters: dict[str, dict | QuantumParameters] | None = None,
+    temporary_parameters: dict[str | tuple[str, str, str], dict | QuantumParameters]
+    | None = None,
     options: TuneUpWorkflowOptions | None = None,
 ) -> None:
     """The amplitude fine experiment workflow for a x180 gate.
@@ -341,7 +346,10 @@ def experiment_workflow_x180(
             `repetitions` must be a list of integers. Otherwise it must be a list of
             lists of integers.
         temporary_parameters:
-            The temporary parameters to update the qubits with.
+            The temporary parameters with which to update the quantum elements and
+            topology edges. For quantum elements, the dictionary key is the quantum
+            element UID. For topology edges, the dictionary key is the edge tuple
+            `(tag, source node UID, target node UID)`.
         options:
             The options for building the workflow.
             In addition to options from [WorkflowOptions], the following
@@ -358,10 +366,10 @@ def experiment_workflow_x180(
         options.create_experiment.count = 10
         options.create_experiment.transition = "ge"
         qpu = QPU(
-            qubits=[TunableTransmonQubit("q0"), TunableTransmonQubit("q1")],
+            quantum_elements=[TunableTransmonQubit("q0"), TunableTransmonQubit("q1")],
             quantum_operations=TunableTransmonOperations(),
         )
-        temp_qubits = qpu.copy_qubits()
+        temp_qubits = qpu.copy_quantum_elements()
         result = experiment_workflow(
             session=session,
             qpu=qpu,
@@ -411,7 +419,8 @@ def experiment_workflow_x90(
     qpu: QPU,
     qubits: QuantumElements,
     repetitions: QubitSweepPoints[int],
-    temporary_parameters: dict[str, dict | QuantumParameters] | None = None,
+    temporary_parameters: dict[str | tuple[str, str, str], dict | QuantumParameters]
+    | None = None,
     options: TuneUpWorkflowOptions | None = None,
 ) -> None:
     """The amplitude fine experiment workflow for a x90 gate.
@@ -437,7 +446,10 @@ def experiment_workflow_x90(
             `repetitions` must be a list of integers. Otherwise it must be a list of
             lists of integers.
         temporary_parameters:
-            The temporary parameters to update the qubits with.
+            The temporary parameters with which to update the quantum elements and
+            topology edges. For quantum elements, the dictionary key is the quantum
+            element UID. For topology edges, the dictionary key is the edge tuple
+            `(tag, source node UID, target node UID)`.
         options:
             The options for building the workflow.
             In addition to options from [WorkflowOptions], the following
@@ -454,10 +466,10 @@ def experiment_workflow_x90(
         options.create_experiment.count = 10
         options.create_experiment.transition = "ge"
         qpu = QPU(
-            qubits=[TunableTransmonQubit("q0"), TunableTransmonQubit("q1")],
+            quantum_elements=[TunableTransmonQubit("q0"), TunableTransmonQubit("q1")],
             quantum_operations=TunableTransmonOperations(),
         )
-        temp_qubits = qpu.copy_qubits()
+        temp_qubits = qpu.copy_quantum_elements()
         result = experiment_workflow(
             session=session,
             qpu=qpu,
