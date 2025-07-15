@@ -351,10 +351,10 @@ def plot_population(
                 ]
                 textstr = (
                     "$T_1$: "
-                    f"{new_t1.nominal_value*1e6:.4f} $\\mu$s $\\pm$ "
-                    f"{new_t1.std_dev*1e6:.4f} $\\mu$s"
+                    f"{new_t1.nominal_value * 1e6:.4f} $\\mu$s $\\pm$ "
+                    f"{new_t1.std_dev * 1e6:.4f} $\\mu$s"
                 )
-                textstr += "\nPrevious value: " + f"{old_t1*1e6:.4f} $\\mu$s"
+                textstr += "\nPrevious value: " + f"{old_t1 * 1e6:.4f} $\\mu$s"
                 ax.text(0, -0.15, textstr, ha="left", va="top", transform=ax.transAxes)
 
         # Add legend

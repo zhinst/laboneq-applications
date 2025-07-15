@@ -353,7 +353,7 @@ def plot_signal_distances(
         opt_freq,
     ) in processed_data_dict.items():
         legend_label = (
-            f"{state_pairs}: $f_{{\\mathrm{{max}}}}$ = " f"{opt_freq / 1e9:.4f} GHz"
+            f"{state_pairs}: $f_{{\\mathrm{{max}}}}$ = {opt_freq / 1e9:.4f} GHz"
         )
         (line,) = ax.plot(frequencies / 1e9, s21_dist, label=legend_label)
         # add point at optimal frequency

@@ -373,9 +373,9 @@ def plot_2d(  # noqa: PLR0915
         rr_power = parametric_amplifier_parameters["new_parameter_values"][
             parametric_amplifier.uid
         ]["pump_power"]
-        textstr = f"Pump frequency: " f"{rr_freq / 1e9:.4f} GHz "
+        textstr = f"Pump frequency: {rr_freq / 1e9:.4f} GHz "
         textstr += f"\nPrevious value: {old_rr_freq / 1e9:.4f} GHz"
-        textstr += f"\nPump power: " f"{rr_power:.2f} dBm "
+        textstr += f"\nPump power: {rr_power:.2f} dBm "
         textstr += f"\nPrevious value: {old_rr_power:.2f} dBm"
         axs[2].text(0, -0.35, textstr, ha="left", va="top", transform=axs[2].transAxes)
 
@@ -409,9 +409,9 @@ def plot_2d(  # noqa: PLR0915
         rr_power = parametric_amplifier_parameters["new_parameter_values"][
             parametric_amplifier.uid
         ]["pump_power"]
-        textstr = f"Pump frequency: " f"{rr_freq / 1e9:.4f} GHz "
+        textstr = f"Pump frequency: {rr_freq / 1e9:.4f} GHz "
         textstr += f"\nPrevious value: {old_rr_freq / 1e9:.4f} GHz"
-        textstr += f"\nPump power: " f"{rr_power:.2f} dBm  "
+        textstr += f"\nPump power: {rr_power:.2f} dBm  "
         textstr += f"\nPrevious value: {old_rr_power:.2f} dBm"
         axs.text(0, -0.35, textstr, ha="left", va="top", transform=axs.transAxes)
 

@@ -243,9 +243,9 @@ def plot_2D(  # noqa: N802
     rr_power = parametric_amplifier_parameters["new_parameter_values"][
         parametric_amplifier.uid
     ]["pump_power"]
-    textstr = f"Probe frequency: " f"{rr_freq / 1e9:.4f} GHz "
+    textstr = f"Probe frequency: {rr_freq / 1e9:.4f} GHz "
     textstr += f"\nPrevious value: {old_rr_freq / 1e9:.4f} GHz"
-    textstr += f"\nProbe power: " f"{rr_power:.4f} dBm "
+    textstr += f"\nProbe power: {rr_power:.4f} dBm "
     textstr += f"\nPrevious value: {old_rr_power:.4f} dBm"
     axs.text(0, -0.35, textstr, ha="left", va="top", transform=axs.transAxes)
     if opts.save_figures:

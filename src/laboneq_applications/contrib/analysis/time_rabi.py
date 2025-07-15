@@ -315,10 +315,10 @@ def plot_population(
                 ]
                 textstr = (
                     "$\\tau_{\\pi}$ = "
-                    f"{new_pi_length.nominal_value*1e9:.4f} $\\pm$ "
-                    f"{new_pi_length.std_dev*1e9:.4f} ns"
+                    f"{new_pi_length.nominal_value * 1e9:.4f} $\\pm$ "
+                    f"{new_pi_length.std_dev * 1e9:.4f} ns"
                 )
-                textstr += "\nOld $\\tau_{\\pi}$ = " + f"{old_pi_length*1e9:.4f} ns"
+                textstr += "\nOld $\\tau_{\\pi}$ = " + f"{old_pi_length * 1e9:.4f} ns"
                 ax.text(0, -0.15, textstr, ha="left", va="top", transform=ax.transAxes)
 
         ax.legend(

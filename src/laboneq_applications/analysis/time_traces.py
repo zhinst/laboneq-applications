@@ -335,7 +335,7 @@ def extract_kernels_thresholds(
             )
         except ValueError as err:
             workflow.comment(
-                f"The optimal kernels could not be calculated for " f"{q.uid}: {err}."
+                f"The optimal kernels could not be calculated for {q.uid}: {err}."
             )
             continue
         integration_kernels[q.uid] = [krn.samples for krn in kernels]

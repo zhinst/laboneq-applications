@@ -464,9 +464,7 @@ def plot_population(
                 f"{opts.transition}_drive_pulse.beta"
             ]
             textstr = (
-                "$\\beta$: "
-                f"{new_beta.nominal_value:.4f} $\\pm$ "
-                f"{new_beta.std_dev:.4f}"
+                f"$\\beta$: {new_beta.nominal_value:.4f} $\\pm$ {new_beta.std_dev:.4f}"
             )
             textstr += "\nPrevious value: " + f"{old_beta:.4f}"
             ax.text(0, -0.15, textstr, ha="left", va="top", transform=ax.transAxes)

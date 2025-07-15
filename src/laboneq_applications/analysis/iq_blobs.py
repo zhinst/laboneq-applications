@@ -433,8 +433,7 @@ def plot_assignment_matrices(
         fig, ax = plt.subplots()
         ax.set_ylabel("Prepared State")
         ax.set_xlabel(
-            "Assigned State"
-            f"\n$F_{{avg}}$ = {assignment_fidelities[q.uid] * 100:0.2f}%"
+            f"Assigned State\n$F_{{avg}}$ = {assignment_fidelities[q.uid] * 100:0.2f}%"
             if q.uid in assignment_fidelities
             else ""
         )

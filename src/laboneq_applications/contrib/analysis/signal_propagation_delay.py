@@ -239,8 +239,10 @@ def plot_data(
         old_port_delay = qubit_parameters["old_parameter_values"][q.uid][
             "readout_integration_delay"
         ]
-        textstr = f"Readout integration delay: {1e9*new_port_delay:.1f} ns"
-        textstr += "\nOld readout integration delay: " + f"{1e9*old_port_delay:.1f} ns"
+        textstr = f"Readout integration delay: {1e9 * new_port_delay:.1f} ns"
+        textstr += (
+            "\nOld readout integration delay: " + f"{1e9 * old_port_delay:.1f} ns"
+        )
         ax.text(0, -0.15, textstr, ha="left", va="top", transform=ax.transAxes)
         ax.legend(
             loc="center left",
