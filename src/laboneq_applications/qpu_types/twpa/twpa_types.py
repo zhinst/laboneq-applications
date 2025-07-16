@@ -65,7 +65,7 @@ class TWPAParameters(QuantumParameters):
     # Cancellation tone phaseshift
     cancellation_phase: float | None = None
     # Cancellation Source
-    cancellation_source: CancellationSource | None = CancellationSource.EXTERNAL
+    cancellation_source: CancellationSource | str | None = CancellationSource.EXTERNAL
     # Flag for turning on the pump
     pump_on: bool = True
     # Flag for the cancellation state
@@ -76,6 +76,17 @@ class TWPAParameters(QuantumParameters):
     probe_on: bool = False
     # Flag for the alc state
     alc_on: bool = True
+
+    def __attrs_post_init__(self):
+        """Post initialization to convert cancellation source to enum."""
+        if isinstance(self.cancellation_source, str):
+            try:
+                self.cancellation_source = CancellationSource(self.cancellation_source)
+            except ValueError as err:
+                raise ValueError(
+                    f"Invalid cancellation source: {self.cancellation_source}. "
+                    f"Expected one of {list(CancellationSource)}."
+                ) from err
 
     @property
     def readout_frequency(self) -> float | None:
