@@ -5,7 +5,7 @@
 
 import pytest
 from laboneq.dsl.calibration import CancellationSource
-from laboneq.simple import Calibration
+from laboneq.simple import Calibration, load, save
 
 from laboneq_applications.qpu_types.twpa.twpa_types import TWPA, TWPAParameters
 
@@ -13,6 +13,11 @@ from laboneq_applications.qpu_types.twpa.twpa_types import TWPA, TWPAParameters
 @pytest.fixture
 def twpa() -> TWPA:
     return TWPA("twpa0", signals={"acquire": "acquire", "measure": "measure"})
+
+
+@pytest.fixture
+def temporary_path(tmp_path):
+    return tmp_path / "twpa_test.json"
 
 
 class TestTWPAParameters:
@@ -41,6 +46,16 @@ class TestTWPAParameters:
         assert not twpa_param.probe_on
         assert twpa_param.alc_on
 
+    def test_create_cancellation_source(self):
+        twpa_param = TWPAParameters(cancellation_source="internal")
+        assert twpa_param.cancellation_source == CancellationSource.INTERNAL
+
+        twpa_param = TWPAParameters(cancellation_source="external")
+        assert twpa_param.cancellation_source == CancellationSource.EXTERNAL
+
+        with pytest.raises(ValueError, match="Invalid cancellation source"):
+            TWPAParameters(cancellation_source="invalid_source")
+
     def test_readout_frequency(self):
         twpa_param = TWPAParameters()
         assert twpa_param.readout_frequency is None
@@ -49,6 +64,18 @@ class TestTWPAParameters:
         twpa_param.readout_lo_frequency = 6e9
 
         assert twpa_param.readout_frequency == 0.1e9
+
+    @pytest.mark.parametrize(
+        "cancellation_source", [CancellationSource.INTERNAL, "internal"]
+    )
+    def test_serialization(self, temporary_path, cancellation_source):
+        twpa_param = TWPAParameters(
+            cancellation_source=cancellation_source,
+        )
+        save(twpa_param, temporary_path)
+        de = load(temporary_path)
+        assert isinstance(de, TWPAParameters)
+        assert de == twpa_param
 
 
 class TestTWPA:
@@ -107,3 +134,9 @@ class TestTWPA:
         new_twpa = twpa.replace(readout_lo_frequency=6.5e9)
         assert isinstance(new_twpa, TWPA)
         assert new_twpa.parameters.readout_lo_frequency == 6.5e9
+
+    def test_serialization(self, twpa, temporary_path):
+        save(twpa, temporary_path)
+        de = load(temporary_path)
+        assert isinstance(de, TWPA)
+        assert de == twpa
