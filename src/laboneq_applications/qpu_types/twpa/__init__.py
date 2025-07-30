@@ -4,10 +4,10 @@
 """Traveling Wave Parametric Amplifier (TWPA), parameters and operations."""
 
 __all__ = [
-    "demo_platform",
     "TWPA",
     "TWPAOperations",
     "TWPAParameters",
+    "demo_platform",
 ]
 
 from .demo_qpus import demo_platform

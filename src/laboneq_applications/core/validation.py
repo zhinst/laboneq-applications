@@ -15,18 +15,16 @@ from numpy import ndarray
 
 
 def _is_sequence_of_numbers_or_nparray(obj: object) -> bool:
-    return (
-        isinstance(obj, ndarray)
-        or bool(obj)
+    return isinstance(obj, ndarray) or (
+        bool(obj)
         and isinstance(obj, Sequence)
         and all(isinstance(item, (float, int)) for item in obj)
     )
 
 
 def _is_sequence_of_numbers_or_sequences_or_nparrays(obj: object) -> bool:
-    return (
-        isinstance(obj, ndarray)
-        or bool(obj)
+    return isinstance(obj, ndarray) or (
+        bool(obj)
         and isinstance(obj, Sequence)
         and all(isinstance(item, (float, int)) for item in obj)
     )
@@ -286,8 +284,10 @@ def validate_result(result: RunExperimentResults) -> None:
     """
     if not (
         isinstance(result, RunExperimentResults)
-        or isinstance(result, Sequence)
-        and all(isinstance(item, RunExperimentResults) for item in result)
+        or (
+            isinstance(result, Sequence)
+            and all(isinstance(item, RunExperimentResults) for item in result)
+        )
     ):
         raise TypeError(
             "The result must be either an instance of RunExperimentResults "

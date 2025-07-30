@@ -35,7 +35,7 @@ def on_system_grid(time, system_grid=8):
     return round(time_ns * 1e-9, 12)
 
 
-@pytest.mark.parametrize("transition, cal_states", [("ge", "ge"), ("ef", "ef")])
+@pytest.mark.parametrize(("transition", "cal_states"), [("ge", "ge"), ("ef", "ef")])
 @pytest.mark.parametrize("readout_lengths", [[1e-6, 1e-6], [100e-9, 200e-9]])
 class TestAmplitudeFine:
     """Test for fine-amplitude on a single/two qubit"""

@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 """Utility to check for presence of the correct license boilerplate."""
 
-# ruff: noqa
 import argparse
 import re
 import sys
@@ -32,7 +31,8 @@ REPLACEMENT = "".join(
 SEARCH_RE = re.compile(SEARCH)
 
 
-def main():
+def main() -> None:
+    """Check that all Python and Rust files contain licensing header lines."""
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("path", help="Root path to scan", nargs="+")
     parser.add_argument(
@@ -73,7 +73,9 @@ def main():
                     REPLACEMENT.replace(r"\g<comment>", comment_char)
                     .replace(
                         r"\g<copyright>",
-                        f"{comment_char} Copyright {datetime.now().year} Zurich Instruments AG\n",
+                        f"{comment_char} Copyright"
+                        f" {datetime.now(tz=datetime.timezone.utc).year}"
+                        " Zurich Instruments AG\n",
                     )
                     .replace(r"\g<license>", "Apache-2.0")
                     .replace("\n\\g<newlines>", "\n")

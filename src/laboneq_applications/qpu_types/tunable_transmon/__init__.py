@@ -4,10 +4,10 @@
 """Tunable transmon qubits, parameters and operations."""
 
 __all__ = [
-    "demo_platform",
     "TunableTransmonOperations",
     "TunableTransmonQubit",
     "TunableTransmonQubitParameters",
+    "demo_platform",
 ]
 
 from .demo_qpus import demo_platform

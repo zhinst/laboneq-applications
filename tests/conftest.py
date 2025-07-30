@@ -10,8 +10,8 @@ import pytest
 __all__ = [
     "reset_uids",  # autouse fixture
     "single_tunable_transmon_platform",  # fixture
-    "two_tunable_transmon_platform",  # fixture
     "single_twpa_platform",  # fixture
+    "two_tunable_transmon_platform",  # fixture
 ]
 
 from tests.helpers.demo_qpus import (

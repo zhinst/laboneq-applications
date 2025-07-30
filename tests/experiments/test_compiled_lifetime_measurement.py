@@ -67,8 +67,8 @@ def create_T1_verifier(  # noqa: N802
 
 @pytest.mark.parametrize("transition", ["ge", "ef"], ids=["trans_ge", "trans_ef"])
 @pytest.mark.parametrize(
-    ["use_cal_traces", "cal_states"],
-    [[True, "ge"], [False, "ge"]],
+    ("use_cal_traces", "cal_states"),
+    [(True, "ge"), (False, "ge")],
     ids=["use_cal_traces_ge", "no_cal_traces_ge"],
 )
 class TestT1SingleQubit:
@@ -222,8 +222,8 @@ class TestT1SingleQubit:
 )
 @pytest.mark.parametrize("transition", ["ge", "ef"], ids=["trans_ge", "trans_ef"])
 @pytest.mark.parametrize(
-    ["use_cal_traces", "cal_states"],
-    [[True, "ge"], [False, "ge"]],
+    ("use_cal_traces", "cal_states"),
+    [(True, "ge"), (False, "ge")],
     ids=["use_cal_traces_ge", "no_cal_traces_ge"],
 )
 class TestT1TwoQubits:

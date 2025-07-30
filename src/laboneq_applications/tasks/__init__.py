@@ -6,10 +6,10 @@
 from __future__ import annotations
 
 __all__ = [
-    "update_qubits",
     "temporary_modify",
     "temporary_qpu",
     "temporary_quantum_elements_from_qpu",
+    "update_qubits",
 ]
 
 

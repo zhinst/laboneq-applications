@@ -89,8 +89,8 @@ def results_single_qubit():
 
 @pytest.fixture
 def monkeypatch_tzlocal(monkeypatch):
-    import dateutil.tz
-    import laboneq.workflow.timestamps
+    import dateutil.tz  # noqa: PLC0415
+    import laboneq.workflow.timestamps  # noqa: PLC0415
 
     fake_local_tz = dateutil.tz.tzoffset("GMT+2", 7200)
 

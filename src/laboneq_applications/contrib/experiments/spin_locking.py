@@ -255,7 +255,7 @@ def gaussian_square_sweep(
     x: ArrayLike,
     risefall_in_samples: int | None = None,
     sigma: float | None = 1 / 3,
-    zero_boundaries: bool | None = False,  # noqa: FBT002
+    zero_boundaries: bool | None = False,  # noqa: FBT001, FBT002
     **_,
 ) -> None:
     """Create a square waveform with gaussian sides.

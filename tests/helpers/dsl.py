@@ -114,6 +114,9 @@ class ExpectedDSLStructure:
 
         return True
 
+    def __hash__(self):
+        raise RuntimeError(f"{self.__class__.__name__} is not intended to be hashable.")
+
     def _dsl_children(self, obj):
         """Return the children of the given DSL object."""
         if isinstance(obj, Experiment):

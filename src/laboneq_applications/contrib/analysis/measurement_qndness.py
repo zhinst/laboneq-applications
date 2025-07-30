@@ -22,7 +22,7 @@ from laboneq_applications.analysis.iq_blobs import (
     plot_assignment_matrices,
 )
 from laboneq_applications.analysis.options import (
-    TuneUpAnalysisWorkflowOptions,  # noqa: TCH001
+    TuneUpAnalysisWorkflowOptions,  # noqa: TC001
 )
 from laboneq_applications.core.validation import (
     validate_and_convert_qubits_sweeps,

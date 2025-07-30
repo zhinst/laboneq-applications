@@ -63,7 +63,7 @@ dev = [
 tools = [
   "nbqa",
   "jupytext",
-  "ruff==0.7.1", # must match the version used in .pre-commit-config.yaml
+  "ruff==0.12.4", # must match the version used in .pre-commit-config.yaml
 ]
 
 # Dependencies of example notebooks
@@ -95,16 +95,12 @@ target-version = "py39"
 
 lint.select = ["ALL"]
 lint.ignore = [
-  # Type annotation for self
-  "ANN101",
   # Missing trailing comma (interferes with ruff format)
   "COM812",
   # Implicitly concatenate strings on same line (interferes with ruff format)
   "ISC001",
   # Missing docstring in `__init__`
   "D107",
-  # Missing type annotation for `cls` in classmethod
-  "ANN102",
   # Missing docstring in magic method
   "D105",
   # Missing type annotation for `*args`
@@ -163,6 +159,13 @@ lint.ignore = [
 "ci/*" = [
   # part of an implicit namespace package
   "INP001",
+]
+# License check script
+"ci/scripts/check_license.py" = [
+  # print are allowed in this script
+  "T201",
+  # main function is too long / complex
+  "C901",
 ]
 # Documentation notebooks conftest
 "docs/conftest.py" = [
