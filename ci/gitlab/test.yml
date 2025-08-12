@@ -4,7 +4,7 @@
     - linux
     - docker
   variables:
-    USE_LABONEQ_DEVELOP: "true"
+    USE_LABONEQ_DEVELOP: "false"
     MPLBACKEND: "AGG"
     UV_NO_SYNC: "1" # don't implicitly sync during "uv run"
   before_script:
