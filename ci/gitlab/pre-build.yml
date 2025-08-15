@@ -25,3 +25,16 @@ check:license:
     - uv run --no-project ci/scripts/check_license.py src/ tests/
   rules:
     - !reference [.non_triggered]
+
+lint:renovate_config:
+  stage: pre-build
+  image:
+    name: docker-registry.zhinst.com/devops/dockerfiles/renovate:latest
+  script:
+    - | 
+      RENOVATE_ENDPOINT="$CI_API_V4_URL" \
+      RENOVATE_PLATFORM="gitlab" \
+      renovate-config-validator --strict
+  rules:
+    - changes:
+        - renovate.json5

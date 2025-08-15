@@ -1,0 +1,51 @@
+// # Configuration summary
+// * Every month, create two separate MRs that:
+//   * Updates the versions in the lockfile to latest ones available
+//   * Updates internal dependencies to be "greater than latest available 6 months ago"
+//     * E.g. `yada>=1.0.0` becomes `>=1.1.0` only if 1.1.0 was released 180+ days ago.
+// * Update the build image version to latest together with the internal dependency update.
+// * Update the versions in the pre-commit file together with the internal dependency update.
+{
+  $schema: "https://docs.renovatebot.com/renovate-schema.json",
+  extends: [
+    "config:recommended",
+    "schedule:monthly",
+    ":semanticCommitsDisabled",
+  ],
+  lockFileMaintenance: {
+    enabled: true,
+    commitMessageAction: "Update",
+    commitMessageTopic: "versions in lock file(s) to the latest available",
+    commitMessageExtra: null,
+  },
+  major: {
+    dependencyDashboardApproval: true,
+  },
+  packageRules: [
+    {
+      matchDatasources: ["docker"],
+      matchPackageNames: ["ghcr.io/astral-sh/uv"],
+      groupName: "devDependencies",
+    },
+    {
+      matchJsonata: [
+          "(depType = 'dependency-groups') and (managerData.depGroup = 'dev')",
+          "(depType = 'dependency-groups') and (managerData.depGroup = 'tools')",
+          "(depType = 'dependency-groups') and (managerData.depGroup = 'notebooks')",
+        ],
+      groupName: "devDependencies",
+      rangeStrategy: "bump", // If >= 1.0.0, but there is 1.2.0, convert to >=1.2.0
+      minimumReleaseAge: "180 days",  // The new version has to be at least this much old
+    },
+  ],
+  "pre-commit": {
+    enabled: true,
+    groupName: "devDependencies",
+  },
+  poetry: {enabled: false,},
+  reviewers: [
+    "caglark",
+    "simonc",
+    "barta"
+  ]
+}
