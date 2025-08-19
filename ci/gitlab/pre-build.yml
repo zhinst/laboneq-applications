@@ -36,5 +36,6 @@ lint:renovate_config:
       RENOVATE_PLATFORM="gitlab" \
       renovate-config-validator --strict
   rules:
+    - !reference [.non_triggered]
     - changes:
         - renovate.json5
