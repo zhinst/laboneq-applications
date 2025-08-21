@@ -29,6 +29,10 @@ if TYPE_CHECKING:
 class TunableTransmonQubitParameters(QuantumParameters):
     """Qubit parameters for `TunableTransmonQubit` instances.
 
+    !!! version-changed "Deprecated in version 2.12.0."
+        The `user_defined` attribute is deprecated. Use the `custom` attribute from
+        the `QuantumParameters` parent class instead.
+
     Attributes:
         drive_lo_frequency:
             Local oscillator frequency for the drive signals.
@@ -107,7 +111,7 @@ class TunableTransmonQubitParameters(QuantumParameters):
         flux_offset_voltage:
             Offset voltage for flux control line - defaults to 0.
         user_defined:
-            Free-form dictionary of user-defined parameters.
+            Free-form dictionary of user-defined parameters (deprecated).
     """
 
     # qubit coherence times
@@ -203,7 +207,7 @@ class TunableTransmonQubitParameters(QuantumParameters):
     dc_voltage_parking: float | None = 0.0
     flux_offset_voltage: float = 0.0
 
-    # free-form dictionary of user-defined parameters
+    # free-form dictionary of user-defined parameters (deprecated)
     user_defined: dict = attrs.field(factory=dict)
 
     @property

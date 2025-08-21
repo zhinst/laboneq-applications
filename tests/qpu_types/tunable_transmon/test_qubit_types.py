@@ -178,11 +178,11 @@ class TestTunableTransmonQubit:
             " should be either 'default' or 'optimal'."
         )
 
-    def test_set_user_defined_parameters(self, q0):
-        assert q0.parameters.user_defined == {}
+    def test_set_custom_parameters(self, q0):
+        assert q0.parameters.custom == {}
 
-        q0.parameters.user_defined["my_cool_parameter"] = 1.0
-        assert q0.parameters.user_defined == {"my_cool_parameter": 1.0}
+        q0.parameters.custom["my_cool_parameter"] = 1.0
+        assert q0.parameters.custom == {"my_cool_parameter": 1.0}
 
     def test_update(self, q0):
         q0.update(readout_range_out=10)
@@ -356,7 +356,7 @@ class TestTunableTransmonParameters:
         p2 = TunableTransmonQubitParameters(readout_resonator_frequency=1.1e9)
         assert p2.readout_frequency is None
 
-    def test_user_defined(self):
+    def test_custom(self):
         p = TunableTransmonQubitParameters()
 
-        assert p.user_defined == {}
+        assert p.custom == {}
