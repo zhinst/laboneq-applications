@@ -3,4 +3,4 @@
 
 """LabOne Q Applications Library."""
 
-__version__ = "2.12.0"
+__version__ = "2.12.1dev0"
