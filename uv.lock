@@ -1207,7 +1207,8 @@ dev = [
     { name = "tbump" },
 ]
 notebooks = [
-    { name = "qcodes" },
+    { name = "qcodes", version = "0.52.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
+    { name = "qcodes", version = "0.53.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
     { name = "qiskit" },
     { name = "qiskit-experiments" },
     { name = "scikit-optimize" },
@@ -1244,7 +1245,7 @@ dev = [
     { name = "tbump" },
 ]
 notebooks = [
-    { name = "qcodes", specifier = ">=0.46.0" },
+    { name = "qcodes", specifier = ">=0.51.0" },
     { name = "qiskit", specifier = ">=2.0.0" },
     { name = "qiskit-experiments", specifier = ">=0.10.0" },
     { name = "scikit-optimize", specifier = ">=0.10.2" },
@@ -2507,39 +2508,84 @@ wheels = [
 name = "qcodes"
 version = "0.52.0"
 source = { registry = "https://pypi.org/simple" }
+resolution-markers = [
+    "python_full_version < '3.11'",
+]
 dependencies = [
-    { name = "broadbean" },
-    { name = "cf-xarray" },
-    { name = "dask" },
-    { name = "h5netcdf" },
-    { name = "h5py" },
-    { name = "ipykernel" },
+    { name = "broadbean", marker = "python_full_version < '3.11'" },
+    { name = "cf-xarray", marker = "python_full_version < '3.11'" },
+    { name = "dask", marker = "python_full_version < '3.11'" },
+    { name = "h5netcdf", marker = "python_full_version < '3.11'" },
+    { name = "h5py", marker = "python_full_version < '3.11'" },
+    { name = "ipykernel", marker = "python_full_version < '3.11'" },
     { name = "ipython", version = "8.36.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
-    { name = "ipython", version = "9.2.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
-    { name = "ipywidgets" },
-    { name = "jsonschema" },
-    { name = "matplotlib" },
-    { name = "numpy" },
-    { name = "opentelemetry-api" },
-    { name = "packaging" },
-    { name = "pandas" },
-    { name = "pillow" },
-    { name = "pyarrow" },
-    { name = "pyvisa" },
-    { name = "ruamel-yaml" },
-    { name = "tabulate" },
-    { name = "tornado" },
-    { name = "tqdm" },
-    { name = "typing-extensions" },
-    { name = "uncertainties" },
-    { name = "versioningit" },
-    { name = "websockets" },
-    { name = "wrapt" },
-    { name = "xarray" },
+    { name = "ipywidgets", marker = "python_full_version < '3.11'" },
+    { name = "jsonschema", marker = "python_full_version < '3.11'" },
+    { name = "matplotlib", marker = "python_full_version < '3.11'" },
+    { name = "numpy", marker = "python_full_version < '3.11'" },
+    { name = "opentelemetry-api", marker = "python_full_version < '3.11'" },
+    { name = "packaging", marker = "python_full_version < '3.11'" },
+    { name = "pandas", marker = "python_full_version < '3.11'" },
+    { name = "pillow", marker = "python_full_version < '3.11'" },
+    { name = "pyarrow", marker = "python_full_version < '3.11'" },
+    { name = "pyvisa", marker = "python_full_version < '3.11'" },
+    { name = "ruamel-yaml", marker = "python_full_version < '3.11'" },
+    { name = "tabulate", marker = "python_full_version < '3.11'" },
+    { name = "tornado", marker = "python_full_version < '3.11'" },
+    { name = "tqdm", marker = "python_full_version < '3.11'" },
+    { name = "typing-extensions", marker = "python_full_version < '3.11'" },
+    { name = "uncertainties", marker = "python_full_version < '3.11'" },
+    { name = "versioningit", marker = "python_full_version < '3.11'" },
+    { name = "websockets", marker = "python_full_version < '3.11'" },
+    { name = "wrapt", marker = "python_full_version < '3.11'" },
+    { name = "xarray", marker = "python_full_version < '3.11'" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/7c/d5/2e8c3b36c6fd4969911ad905814320f7ca2c541bafa8d7199e35d8143002/qcodes-0.52.0.tar.gz", hash = "sha256:add998d3817ff5bbc96665291a615bc230fa39fcac52b19ef315c8f1553c0a6e", size = 800095, upload-time = "2025-04-04T07:33:11.013Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/c0/30/1525fb29910d159145b873737d0ef54a8d00c6044ed9d5b55712d93e0bda/qcodes-0.52.0-py3-none-any.whl", hash = "sha256:de11fb04626b36503cca19f075bb7d73c4c6c16d78906fa5e4f3e938910b211e", size = 953160, upload-time = "2025-04-04T07:33:08.855Z" },
+]
+
+[[package]]
+name = "qcodes"
+version = "0.53.0"
+source = { registry = "https://pypi.org/simple" }
+resolution-markers = [
+    "python_full_version >= '3.13'",
+    "python_full_version == '3.12.*'",
+    "python_full_version == '3.11.*'",
+]
+dependencies = [
+    { name = "broadbean", marker = "python_full_version >= '3.11'" },
+    { name = "cf-xarray", marker = "python_full_version >= '3.11'" },
+    { name = "dask", marker = "python_full_version >= '3.11'" },
+    { name = "h5netcdf", marker = "python_full_version >= '3.11'" },
+    { name = "h5py", marker = "python_full_version >= '3.11'" },
+    { name = "ipykernel", marker = "python_full_version >= '3.11'" },
+    { name = "ipython", version = "9.2.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
+    { name = "ipywidgets", marker = "python_full_version >= '3.11'" },
+    { name = "jsonschema", marker = "python_full_version >= '3.11'" },
+    { name = "matplotlib", marker = "python_full_version >= '3.11'" },
+    { name = "numpy", marker = "python_full_version >= '3.11'" },
+    { name = "opentelemetry-api", marker = "python_full_version >= '3.11'" },
+    { name = "packaging", marker = "python_full_version >= '3.11'" },
+    { name = "pandas", marker = "python_full_version >= '3.11'" },
+    { name = "pillow", marker = "python_full_version >= '3.11'" },
+    { name = "pyarrow", marker = "python_full_version >= '3.11'" },
+    { name = "pyvisa", marker = "python_full_version >= '3.11'" },
+    { name = "ruamel-yaml", marker = "python_full_version >= '3.11'" },
+    { name = "tabulate", marker = "python_full_version >= '3.11'" },
+    { name = "tornado", marker = "python_full_version >= '3.11'" },
+    { name = "tqdm", marker = "python_full_version >= '3.11'" },
+    { name = "typing-extensions", marker = "python_full_version >= '3.11'" },
+    { name = "uncertainties", marker = "python_full_version >= '3.11'" },
+    { name = "versioningit", marker = "python_full_version >= '3.11'" },
+    { name = "websockets", marker = "python_full_version >= '3.11'" },
+    { name = "wrapt", marker = "python_full_version >= '3.11'" },
+    { name = "xarray", marker = "python_full_version >= '3.11'" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/02/dd/c4afcc2899077eeba3b58509754fedc1d005cde0daa1ef94522bc4754b18/qcodes-0.53.0.tar.gz", hash = "sha256:bc0791e2d206fac7d0cf1642c542361fe41f7d29c540128a83875bf188a18e52", size = 802878, upload-time = "2025-06-17T12:54:17.028Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/80/6a/a4cdf53e8899f2f910417b0114ff8d151a3feb9b4f6556c8a6cc81960e81/qcodes-0.53.0-py3-none-any.whl", hash = "sha256:a1029cc3f8cf5e6eda827ec2150f955a37b9d21296ed6d582d289e71f406210f", size = 953757, upload-time = "2025-06-17T12:54:15.088Z" },
 ]
 
 [[package]]

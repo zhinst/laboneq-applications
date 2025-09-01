@@ -68,7 +68,7 @@ tools = [
 
 # Dependencies of example notebooks
 notebooks = [
-  "qcodes>=0.46.0",
+  "qcodes>=0.51.0",
   "qiskit>=2.0.0",
   "qiskit-experiments>=0.10.0",
   "scikit-optimize>=0.10.2",
