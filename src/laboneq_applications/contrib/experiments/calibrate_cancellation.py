@@ -212,6 +212,8 @@ def create_experiment(
     attenuation = SweepParameter(
         f"attenuation_{parametric_amplifier.uid}", cancel_attenuation
     )
+    # The probe tone is generated from the pump tone of the SHFPPC.
+    qop.set_readout_amplitude.omit_section(parametric_amplifier, 0)
     if cancellation_on:
         with dsl.acquire_loop_rt(
             count=opts.count,
@@ -256,6 +258,3 @@ def create_experiment(
                 dsl.handles.result_handle(parametric_amplifier.uid),
             )
             qop.twpa_delay(parametric_amplifier, opts.spectroscopy_reset_delay)
-
-    # The probe tone is generated from the pump tone of the SHFPPC.
-    qop.set_readout_amplitude(parametric_amplifier, 0)
