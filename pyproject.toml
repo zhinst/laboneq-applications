@@ -33,7 +33,7 @@ dependencies = [
   "typing_extensions >= 4.5.0",
   "uncertainties==3.2.2",
   "numpy>=1.26",
-  "scipy",
+  "scipy >= 1.8",
   "matplotlib",
   "lmfit",
   "scikit-learn~=1.5.2",
