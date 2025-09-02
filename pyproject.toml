@@ -29,9 +29,9 @@ classifiers = [
   "Topic :: Scientific/Engineering",
 ]
 dependencies = [
-  "typing_extensions",
-  "uncertainties==3.2.2",
   "laboneq>=2.57.0",
+  "typing_extensions >= 4.5.0",
+  "uncertainties==3.2.2",
   "numpy>=1.26",
   "scipy",
   "matplotlib",
