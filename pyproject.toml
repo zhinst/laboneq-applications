@@ -36,7 +36,7 @@ dependencies = [
   "scipy >= 1.8",
   "matplotlib >= 3.10",
   "lmfit >= 1.3.0",
-  "scikit-learn~=1.5.2",
+  "scikit-learn >= 1.5.2",
   "qiskit",
   "qiskit_experiments",
 ]
