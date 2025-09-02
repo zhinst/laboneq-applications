@@ -1440,7 +1440,7 @@ requires-dist = [
     { name = "matplotlib", specifier = ">=3.10" },
     { name = "numpy", specifier = ">=1.26" },
     { name = "qiskit", specifier = ">=2.0.0" },
-    { name = "qiskit-experiments" },
+    { name = "qiskit-experiments", specifier = ">=0.10.0" },
     { name = "scikit-learn", specifier = ">=1.5.2" },
     { name = "scipy", specifier = ">=1.8" },
     { name = "typing-extensions", specifier = ">=4.5.0" },
@@ -3032,7 +3032,7 @@ wheels = [
 
 [[package]]
 name = "qiskit-experiments"
-version = "0.10.0"
+version = "0.12.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "lmfit" },
@@ -3048,9 +3048,9 @@ dependencies = [
     { name = "scipy", version = "1.16.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
     { name = "uncertainties" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/34/10/a440f5565e5844c186ef1f17574c3f5325a72e3a6e41e4d8e56f66ad26e1/qiskit_experiments-0.10.0.tar.gz", hash = "sha256:b2da7ac0e96a2d2a77576b71bcac0b5c8d9dc066b0e26ddda458d11676693379", size = 756960, upload-time = "2025-04-03T14:41:30.159Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/06/2d/e137a4bbe1d895a4359f00b193ccd9b1ffba39c6b69907433285adf92b62/qiskit_experiments-0.12.0.tar.gz", hash = "sha256:1172d8f1718938a50935bbc7d4a754766247970004ea43460d6209e8deb5773e", size = 750464, upload-time = "2025-08-12T21:20:52.363Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/04/7d/35fc29c470476a2fb567ac252e2f781790fd60727b4ed489504cb9a800da/qiskit_experiments-0.10.0-py3-none-any.whl", hash = "sha256:da4d5238148cf2ec9d27c071a2ec34cd33b2983d397eb302ad77f54378d5f32a", size = 633406, upload-time = "2025-04-03T14:41:28.248Z" },
+    { url = "https://files.pythonhosted.org/packages/24/79/2cab98680dc77b30a455902387a9473b46390a87089cdb364e6b99be14b2/qiskit_experiments-0.12.0-py3-none-any.whl", hash = "sha256:173d4801d6b7200930383c3e0e3d37737d17e2a93599e461d3847bb5f3bbbf6a", size = 628810, upload-time = "2025-08-12T21:20:50.68Z" },
 ]
 
 [[package]]
