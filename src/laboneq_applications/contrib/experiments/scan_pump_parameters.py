@@ -319,7 +319,7 @@ def create_experiment(
     calibration = dsl.experiment_calibration()
 
     if opts.use_probe_from_ppc or not probe_on:
-        qop.set_readout_amplitude(parametric_amplifier, 0)
+        qop.set_readout_amplitude.omit_section(parametric_amplifier, 0)
 
     # TODO: Replace this by an operation to set the amplifier pump properties
     amplifier_pump = calibration[parametric_amplifier.signals["acquire"]].amplifier_pump
