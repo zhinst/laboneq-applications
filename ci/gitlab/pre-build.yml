@@ -26,6 +26,13 @@ check:license:
   rules:
     - !reference [.non_triggered]
 
+check:lockfile:
+  stage: pre-build
+  script:
+    - uv lock --check
+  rules:
+    - !reference [.non_triggered]
+
 lint:renovate_config:
   stage: pre-build
   image:
