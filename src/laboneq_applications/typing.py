@@ -36,11 +36,10 @@ from collections.abc import Sequence
 
 from laboneq.workflow.typing import QuantumElements
 from numpy.typing import ArrayLike
-from typing_extensions import TypeAlias
 
 __all__ = [
     "QuantumElements",
     "QubitSweepPoints",
 ]
 
-QubitSweepPoints: TypeAlias = ArrayLike | Sequence[ArrayLike]
+QubitSweepPoints = ArrayLike | Sequence[ArrayLike]
