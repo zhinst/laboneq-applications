@@ -31,7 +31,7 @@ classifiers = [
 dependencies = [
   "laboneq>=2.57.0",
   "typing_extensions >= 4.5.0",
-  "uncertainties==3.2.2",
+  "uncertainties >= 3.2.2",
   "numpy>=1.26",
   "scipy >= 1.8",
   "matplotlib >= 3.10",
