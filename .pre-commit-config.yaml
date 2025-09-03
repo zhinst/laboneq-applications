@@ -12,3 +12,10 @@ repos:
         language: system
         types: [python]
         pass_filenames: false
+  - repo: https://github.com/astral-sh/uv-pre-commit
+    rev: 0.8.14 # uv version
+    hooks:
+      # Update the uv lockfile
+      - id: uv-lock
+
+
