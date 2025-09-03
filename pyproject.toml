@@ -29,10 +29,10 @@ classifiers = [
   "Topic :: Scientific/Engineering",
 ]
 dependencies = [
-  "laboneq>=2.57.0",
+  "laboneq >= 2.57.0",
   "typing_extensions >= 4.5.0",
   "uncertainties >= 3.2.2",
-  "numpy>=1.26",
+  "numpy >= 1.26",
   "scipy >= 1.8",
   "matplotlib >= 3.10",
   "lmfit >= 1.3.0",
@@ -63,15 +63,15 @@ dev = [
 tools = [
   "nbqa",
   "jupytext",
-  "ruff==0.12.4", # must match the version used in .pre-commit-config.yaml
+  "ruff == 0.12.4", # must match the version used in .pre-commit-config.yaml
 ]
 
 # Dependencies of example notebooks
 notebooks = [
-  "qcodes>=0.51.0",
-  "qiskit>=2.0.0",
-  "qiskit-experiments>=0.10.0",
-  "scikit-optimize>=0.10.2",
+  "qcodes >= 0.51.0",
+  "qiskit >= 2.0.0",
+  "qiskit-experiments >= 0.10.0",
+  "scikit-optimize >= 0.10.2",
 ]
 
 [tool.uv]
