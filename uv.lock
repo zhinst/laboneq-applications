@@ -1435,7 +1435,7 @@ tools = [
 
 [package.metadata]
 requires-dist = [
-    { name = "laboneq", specifier = ">=2.57.0" },
+    { name = "laboneq", specifier = ">=2.58.0" },
     { name = "lmfit", specifier = ">=1.3.0" },
     { name = "matplotlib", specifier = ">=3.10" },
     { name = "numpy", specifier = ">=1.26" },
