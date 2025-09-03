@@ -1423,8 +1423,6 @@ dev = [
 notebooks = [
     { name = "qcodes", version = "0.52.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
     { name = "qcodes", version = "0.53.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
-    { name = "qiskit" },
-    { name = "qiskit-experiments" },
     { name = "scikit-optimize" },
 ]
 tools = [
@@ -1460,8 +1458,6 @@ dev = [
 ]
 notebooks = [
     { name = "qcodes", specifier = ">=0.51.0" },
-    { name = "qiskit", specifier = ">=2.0.0" },
-    { name = "qiskit-experiments", specifier = ">=0.10.0" },
     { name = "scikit-optimize", specifier = ">=0.10.2" },
 ]
 tools = [
