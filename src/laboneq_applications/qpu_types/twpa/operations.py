@@ -5,18 +5,13 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
-
-from laboneq.dsl.calibration import CancellationSource, Oscillator
+from laboneq.dsl.calibration import Calibration, CancellationSource, Oscillator
 from laboneq.dsl.enums import ModulationType
 from laboneq.dsl.experiment.builtins_dsl import QuantumOperations, quantum_operation
+from laboneq.dsl.parameter import SweepParameter  # noqa: TC002
 from laboneq.simple import dsl
 
 from .twpa_types import TWPA
-
-if TYPE_CHECKING:
-    from laboneq.dsl.calibration import Calibration
-    from laboneq.dsl.parameter import SweepParameter
 
 
 class TWPAOperations(QuantumOperations):

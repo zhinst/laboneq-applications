@@ -5,22 +5,18 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Literal
+from collections.abc import Sequence  # noqa: TC003
+from typing import Literal
 
 import numpy as np
-from laboneq.dsl.calibration import Oscillator
+from laboneq.dsl.calibration import Calibration, Oscillator
 from laboneq.dsl.enums import ModulationType
+from laboneq.dsl.parameter import SweepParameter  # noqa: TC002
 from laboneq.simple import SectionAlignment, dsl
 
+from laboneq_applications.typing import QuantumElements  # noqa: TC001
+
 from .qubit_types import TunableTransmonQubit
-
-if TYPE_CHECKING:
-    from collections.abc import Sequence
-
-    from laboneq.dsl.calibration import Calibration
-    from laboneq.dsl.parameter import SweepParameter
-
-    from laboneq_applications.typing import QuantumElements
 
 # TODO: Implement multistate 0-1-2 measurement operation
 
@@ -897,8 +893,8 @@ class TunableTransmonOperations(dsl.QuantumOperations):
     def ramsey(
         self,
         q: TunableTransmonQubit,
-        delay: float,
-        ramsey_phase: float,
+        delay: SweepParameter | float,
+        ramsey_phase: SweepParameter | float,
         echo_pulse: Literal["x180", "y180"] | None = None,
         transition: str | None = None,
     ) -> None:
