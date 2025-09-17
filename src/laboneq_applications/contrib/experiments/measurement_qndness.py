@@ -33,7 +33,8 @@ from laboneq_applications.experiments.options import (
     TuneUpWorkflowOptions,
 )
 from laboneq_applications.tasks.parameter_updating import (
-    temporary_modify,
+    temporary_qpu,
+    temporary_quantum_elements_from_qpu,
 )
 
 if TYPE_CHECKING:
@@ -140,13 +141,14 @@ def experiment_workflow(
         ).run()
         ```
     """
-    qubits = temporary_modify(qubits, temporary_parameters)
+    temp_qpu = temporary_qpu(qpu, temporary_parameters)
+    qubits = temporary_quantum_elements_from_qpu(temp_qpu, qubits)
     exp = create_experiment(qpu, qubits)
     compiled_exp = compile_experiment(session, exp)
     result = run_experiment(session, compiled_exp)
     with if_(options.do_analysis):
         analysis_results = measurement_qndness.analysis_workflow(result, qubits)
-    return_(analysis_results)
+    return_(analysis_results.output)
 
 
 @task

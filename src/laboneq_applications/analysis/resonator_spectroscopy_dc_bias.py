@@ -479,7 +479,7 @@ def process_fit_results(
         uss_idx = np.argsort(abs(v_uss_values))[0]
         v_uss, f_uss = voltages_uss[uss_idx], f_uss_values[uss_idx]
         processed_fit_results["uss"] = {
-            "voltages": voltages_uss,
+            "voltages": list(voltages_uss),
             "frequencies": f_uss_values,
             "rr_frequency_parking": f_uss,
             "dc_voltage_parking": v_uss,
@@ -490,7 +490,7 @@ def process_fit_results(
         lss_idx = np.argsort(abs(v_lss_values))[0]
         v_lss, f_lss = voltages_lss[lss_idx], f_lss_values[lss_idx]
         processed_fit_results["lss"] = {
-            "voltages": voltages_lss,
+            "voltages": list(voltages_lss),
             "frequencies": f_lss_values,
             "rr_frequency_parking": f_lss,
             "dc_voltage_parking": v_lss,

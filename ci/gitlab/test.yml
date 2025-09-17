@@ -74,6 +74,7 @@ test:docs_notebooks:python-3.10:
   variables:
     UV_PYTHON: "3.10"
   script:
+    - uv run ci/scripts/notebook_activate_folder_store.py docs
     - uv run pytest --nbmake docs/sources --nbmake-kernel=python --nbmake-timeout=240 -n=auto --durations=0
 
 test:contrib_smoke_test:
@@ -117,4 +118,5 @@ test:triggered-by-laboneq:
 test:docs-notebooks-triggered-by-laboneq:
   extends: ".template_triggered_test"
   script:
+    - uv run ci/scripts/notebook_activate_folder_store.py docs
     - uv run pytest --nbmake docs/sources --nbmake-kernel=python --nbmake-timeout=240 -n=auto --durations=0
