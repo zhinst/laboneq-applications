@@ -32,7 +32,7 @@ from laboneq_applications.experiments.options import (
     BaseExperimentOptions,
     TuneUpWorkflowOptions,
 )
-from laboneq_applications.tasks.parameter_updating import (
+from laboneq_applications.tasks import (
     temporary_qpu,
     temporary_quantum_elements_from_qpu,
 )
