@@ -125,6 +125,11 @@ nav:
               - signal_propagation_delay: reference/contrib/experiments/signal_propagation_delay.md
               - single_qubit_randomized_benchmarking: reference/contrib/experiments/single_qubit_randomized_benchmarking.md
               - spin_locking: reference/contrib/experiments/spin_locking.md
+              - twpa_spectroscopy: reference/contrib/experiments/twpa_spectroscopy.md
+              - calibrate_cancellation: reference/contrib/experiments/calibrate_cancellation.md
+              - measure_gain_curve: reference/contrib/experiments/measure_gain_curve.md
+              - scan_pump_parameters: reference/contrib/experiments/scan_pump_parameters.md
+              - measurement_qndness: reference/contrib/experiments/measurement_qndness.md
           - analysis:
               - reference/contrib/analysis/index.md
               - amplitude_rabi_chevron: reference/contrib/analysis/amplitude_rabi_chevron.md
@@ -132,6 +137,10 @@ nav:
               - time_rabi_chevron: reference/contrib/analysis/time_rabi_chevron.md
               - signal_propagation_delay: reference/contrib/analysis/signal_propagation_delay.md
               - single_qubit_randomized_benchmarking: reference/contrib/analysis/single_qubit_randomized_benchmarking.md
+              - calibrate_cancellation: reference/contrib/analysis/calibrate_cancellation.md
+              - measure_gain_curve: reference/contrib/analysis/measure_gain_curve.md
+              - scan_pump_parameters: reference/contrib/analysis/scan_pump_parameters.md
+              - measurement_qndness: reference/contrib/analysis/measurement_qndness.md
       - qpu_types:
           - reference/qpu_types/index.md
           - tunable_transmon: reference/qpu_types/tunable_transmon.md

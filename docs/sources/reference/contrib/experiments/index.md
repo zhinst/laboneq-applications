@@ -10,3 +10,8 @@ This is the `laboneq_applications.contrib.experiments` reference documentation.
 * [time_rabi](time_rabi.md)
 * [time_rabi_chevron](time_rabi_chevron.md)
 * [spin_locking](spin_locking.md)
+* [twpa_spectroscopy](twpa_spectroscopy.md)
+* [calibrate_cancellation](calibrate_cancellation.md)
+* [measure_gain_curve](measure_gain_curve.md)
+* [scan_pump_parameters](scan_pump_parameters.md)
+* [measurement_qndness](measurement_qndness.md)
