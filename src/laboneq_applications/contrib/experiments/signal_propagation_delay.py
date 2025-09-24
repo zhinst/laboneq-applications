@@ -31,7 +31,7 @@ from laboneq_applications.experiments.options import (
     TuneupExperimentOptions,
     TuneUpWorkflowOptions,
 )
-from laboneq_applications.tasks.parameter_updating import update_qubits
+from laboneq_applications.tasks.parameter_updating import update_qpu
 
 if TYPE_CHECKING:
     from laboneq.dsl.quantum.qpu import QPU
@@ -57,7 +57,7 @@ def experiment_workflow(
     - [compile_experiment]()
     - [run_experiment]()
     - [analysis_workflow]()
-    - [update_qubits]()
+    - [update_qpu]()
 
     Arguments:
         session:
@@ -112,7 +112,7 @@ def experiment_workflow(
         analysis_results = analysis_workflow(_result, qubit, delays)
         qubit_parameters = analysis_results.tasks["extract_qubit_parameters"].output
         with if_(options.update):
-            update_qubits(qpu, qubit_parameters["new_parameter_values"])
+            update_qpu(qpu, qubit_parameters["new_parameter_values"])
 
 
 @task

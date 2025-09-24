@@ -237,8 +237,10 @@ class TestTunableTransmonOperations:
     def test_operation_docstring(self):
         qops = TunableTransmonOperations()
 
-        assert (qops.x180.__doc__.strip().split("\n")[1] ==
-                "Rotate the qubit by 180 degrees about the X axis.")
+        assert (
+            qops.x180.__doc__.strip().split("\n")[1]
+            == "Rotate the qubit by 180 degrees about the X axis."
+        )
 
     def test_barrier(self, qops, single_tunable_transmon_platform):
         [q0] = single_tunable_transmon_platform.qpu.quantum_elements

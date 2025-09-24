@@ -9,6 +9,7 @@ __all__ = [
     "temporary_modify",
     "temporary_qpu",
     "temporary_quantum_elements_from_qpu",
+    "update_qpu",
     "update_qubits",
 ]
 
@@ -17,5 +18,6 @@ from .parameter_updating import (
     temporary_modify,
     temporary_qpu,
     temporary_quantum_elements_from_qpu,
+    update_qpu,
     update_qubits,
 )
