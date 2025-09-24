@@ -29,6 +29,9 @@ if TYPE_CHECKING:
 class TunableTransmonQubitParameters(QuantumParameters):
     """Qubit parameters for `TunableTransmonQubit` instances.
 
+    !!! version-added "Added in version 2.15.0"
+        The attribute 'flux_range' was added.
+
     !!! version-changed "Deprecated in version 2.12.0."
         The `user_defined` attribute is deprecated. Use the `custom` attribute from
         the `QuantumParameters` parent class instead.
@@ -98,6 +101,8 @@ class TunableTransmonQubitParameters(QuantumParameters):
             Readout output power setting, defaults to 5 dBm.
         readout_range_in:
             Readout input power setting, defaults to 10 dBm.
+        flux_range:
+            Voltage range for flux control line, defaults to 5 volts.
 
         spectroscopy_length:
             Length of the qubit drive pulse in spectroscopy (seconds).
@@ -189,6 +194,7 @@ class TunableTransmonQubitParameters(QuantumParameters):
     drive_range: float = 10
     readout_range_out: float = 5
     readout_range_in: float = 10
+    flux_range: float = 5
 
     # spectroscopy parameters
 
@@ -485,5 +491,6 @@ class TunableTransmonQubit(QuantumElement):
         if "flux" in self.signals:
             calibration_items[self.signals["flux"]] = SignalCalibration(
                 voltage_offset=self.parameters.flux_offset_voltage,
+                range=self.parameters.flux_range,
             )
         return Calibration(calibration_items)
