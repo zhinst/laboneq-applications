@@ -45,6 +45,52 @@ def _valid_temporary_parameters(
 
 
 @task
+def update_qpu(
+    qpu: QPU,
+    parameters: dict[
+        str | tuple[str, str, str],
+        dict[str, dict[str, int | float | unc.core.Variable | None]],
+    ],
+) -> None:
+    """Updates the parameters of the quantum objects in the qpu.
+
+    A quantum object is any object that has associated quantum parameters. This
+    includes quantum elements and topology edges.
+
+    Args:
+        qpu: The qpu containing the quantum objects to be updated.
+        parameters: Quantum object parameters and the new values to be updated.
+            This dictionary has the following form:
+            ```python
+            {key: {param_name: param_value}}
+            ```
+
+    !!! note
+        The key for a quantum element is the quantum element UID. The key for a
+        topology edge is the tuple `(tag, source node UID, target node UID)`, as
+        returned by the `qpu.topology.edge_keys()` method.
+    """
+    parameters_numeric = {}
+    for key, params_dict in parameters.items():
+        if len(params_dict) == 0:
+            comment(
+                f"{key} could not be updated because its "
+                f"parameters could not be extracted."
+            )
+        params_dict_numeric = {
+            k: v.nominal_value if hasattr(v, "nominal_value") else v
+            for k, v in params_dict.items()
+        }
+        parameters_numeric[key] = params_dict_numeric
+
+    qpu.update(parameters_numeric)
+
+
+@task
+@deprecated(
+    "The update_qubits task is deprecated. Use `update_qpu` instead. ",
+    category=FutureWarning,
+)
 def update_qubits(
     qpu: QPU,
     qubit_parameters: dict[
@@ -53,6 +99,11 @@ def update_qubits(
     ],
 ) -> None:
     """Updates the parameters of the qubits in the qpu.
+
+    !!! version-changed "Deprecated in version 2.14.0."
+        The task `update_qubits` was deprecated and replaced with the
+        more general task `update_qpu`. The new task `update_qpu` works for both
+        quantum elements and topology edges.
 
     Args:
         qpu: the qpu containing the qubits to be updated.
@@ -224,7 +275,7 @@ def temporary_quantum_elements_from_qpu(
 
 @task
 @deprecated(
-    "The temporary_modify method is deprecated. Use `temporary_qpu` instead. "
+    "The temporary_modify task is deprecated. Use `temporary_qpu` instead. "
     "Instead of passing temporary qubits to an experiment, we now pass a temporary "
     "QPU.",
     category=FutureWarning,
@@ -263,7 +314,7 @@ def temporary_modify(
         TypeError: If the temporary parameters have invalid type.
 
     !!! version-changed "Deprecated in version 2.54.0."
-            The method `temporary_modify` was deprecated and replaced with the method
+            The task `temporary_modify` was deprecated and replaced with the task
             `temporary_qpu`. Instead of passing temporary qubits to an experiment, we
             now pass a temporary QPU.
     """

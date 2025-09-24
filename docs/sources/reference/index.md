@@ -52,7 +52,7 @@ used to parametrize the control of a workflow.
 
 A module containing common tasks that may be used within experiment workflows such
 as [compile_experiment][laboneq.workflow.tasks.compile_experiment], [run_experiment][laboneq.workflow.tasks.run_experiment] 
-and [update_qubits][laboneq_applications.tasks.parameter_updating.update_qubits].
+and [update_qpu][laboneq_applications.tasks.parameter_updating.update_qpu].
 
 - `laboneq.dsl`
 

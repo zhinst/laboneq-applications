@@ -58,7 +58,7 @@ from laboneq_applications.experiments.options import (
 from laboneq_applications.tasks.parameter_updating import (
     temporary_qpu,
     temporary_quantum_elements_from_qpu,
-    update_qubits,
+    update_qpu,
 )
 
 if TYPE_CHECKING:
@@ -87,7 +87,7 @@ def experiment_workflow(
     - [compile_experiment]()
     - [run_experiment]()
     - [analysis_workflow]()
-    - [update_qubits]()
+    - [update_qpu]()
 
     Arguments:
         session:
@@ -152,7 +152,7 @@ def experiment_workflow(
         analysis_results = analysis_workflow(result, qubits, q_scalings)
         qubit_parameters = analysis_results.output
         with workflow.if_(options.update):
-            update_qubits(qpu, qubit_parameters["new_parameter_values"])
+            update_qpu(qpu, qubit_parameters["new_parameter_values"])
     workflow.return_(result)
 
 

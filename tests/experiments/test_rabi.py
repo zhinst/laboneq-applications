@@ -117,7 +117,7 @@ def test_update_qubits(two_tunable_transmon_platform):
         "q0": {"ge_drive_amplitude_pi": 0.345, "resonance_frequency_ge": 6.61e9},
         "q1": {"ge_drive_amplitude_pi2": 0.2355, "resonance_frequency_ef": 6.01e9},
     }
-    amplitude_rabi.update_qubits(qpu, qubit_parameters)
+    amplitude_rabi.update_qpu(qpu, qubit_parameters)
 
     np.testing.assert_almost_equal(
         qpu.quantum_elements[0].parameters.ge_drive_amplitude_pi, 0.345
