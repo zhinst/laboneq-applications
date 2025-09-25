@@ -1,5 +1,5 @@
 version = 1
-revision = 2
+revision = 3
 requires-python = ">=3.10"
 resolution-markers = [
     "python_full_version >= '3.12'",
@@ -1535,7 +1535,7 @@ wheels = [
 
 [[package]]
 name = "laboneq"
-version = "2.59.0"
+version = "2.60.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "attrs" },
@@ -1545,6 +1545,7 @@ dependencies = [
     { name = "flask" },
     { name = "jsonschema" },
     { name = "matplotlib" },
+    { name = "multimethod" },
     { name = "networkx", version = "3.4.2", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
     { name = "networkx", version = "3.5", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
     { name = "numpy", version = "2.2.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
@@ -1573,10 +1574,10 @@ dependencies = [
     { name = "zhinst-utils" },
 ]
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/b0/ea/6c9ec848823e193eada95094a92c150f50ac42a7efdfd75069cf65135f6c/laboneq-2.59.0-cp39-abi3-macosx_10_12_x86_64.macosx_11_0_arm64.macosx_10_12_universal2.whl", hash = "sha256:6bb381c888890a9f273b9ebfa5dcfa3ed5cf82695235d304980eec93f61d4fb7", size = 3356083, upload-time = "2025-09-11T14:04:09.507Z" },
-    { url = "https://files.pythonhosted.org/packages/03/91/2b8a94314a682f3d7c298f99a16da2837344e236adb4404bd486146bb834/laboneq-2.59.0-cp39-abi3-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:bf4afd8ac1726ae46a6656f12969e82f3b7120a4116eefaad16a54cc6e9deb6e", size = 2174776, upload-time = "2025-09-11T14:04:12.939Z" },
-    { url = "https://files.pythonhosted.org/packages/db/cd/9c991421e618701fe96412c02e29dcf7ae225305276a23588d7602bba4af/laboneq-2.59.0-cp39-abi3-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:e6388533312626a14c6b0468a5f6d51fce1c7c843dbdce1f462a3f50befa6a86", size = 2243465, upload-time = "2025-09-11T14:04:15.436Z" },
-    { url = "https://files.pythonhosted.org/packages/15/11/c223f993e78162785e3a8708a52d4651881cb512eb50fbd9b7e1138f13dc/laboneq-2.59.0-cp39-abi3-win_amd64.whl", hash = "sha256:65fc427feedbabb5ecea1e2e298b57811859b8d604a62102ab0cb77a1e18fe6b", size = 2116928, upload-time = "2025-09-11T14:04:17.856Z" },
+    { url = "https://files.pythonhosted.org/packages/72/12/abb619fa4dfc3e2062f05720b7eadce686c300d493e15390a0795e88543b/laboneq-2.60.0-cp39-abi3-macosx_10_12_x86_64.macosx_11_0_arm64.macosx_10_12_universal2.whl", hash = "sha256:4751b48258a6561ccb2a2059a8333ebccb246b9f7dd9df673133a83692476b16", size = 3359840, upload-time = "2025-09-25T13:43:55.123Z" },
+    { url = "https://files.pythonhosted.org/packages/bd/be/408f2b2d99847df525057dbeb7dbc8c43cec8fbe7299683a5068267c1e50/laboneq-2.60.0-cp39-abi3-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:f5c1b96244fdbcdb1b4b151258ba299bd3a6bf019ae047eca7380ad83b441620", size = 2186200, upload-time = "2025-09-25T13:43:58.214Z" },
+    { url = "https://files.pythonhosted.org/packages/87/21/78379d21c2a9f2100b7d1bf968de289612b7d41651bd80afa93a7826abea/laboneq-2.60.0-cp39-abi3-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:a90387eb47f800c15f7697966188498148cbe760606eeaf9347f3dc4ff82c0dd", size = 2257759, upload-time = "2025-09-25T13:44:00.997Z" },
+    { url = "https://files.pythonhosted.org/packages/f4/f8/1a3f8ec8072ce351248c073a25dc4aa0c745a3deeda40c46c425dc76113c/laboneq-2.60.0-cp39-abi3-win_amd64.whl", hash = "sha256:df797a7cfc153d506a61f4367e1286d10020a5bfe0124d14d628992237298ac7", size = 2128565, upload-time = "2025-09-25T13:44:03.627Z" },
 ]
 
 [[package]]
@@ -1623,7 +1624,7 @@ tools = [
 
 [package.metadata]
 requires-dist = [
-    { name = "laboneq", specifier = ">=2.58.0" },
+    { name = "laboneq", specifier = "~=2.60.0" },
     { name = "lmfit", specifier = ">=1.3.0" },
     { name = "matplotlib", specifier = ">=3.10" },
     { name = "numpy", specifier = ">=1.26" },
@@ -1961,6 +1962,15 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/b2/0a/2436550b1520091af0600dff547913cb2d66fbac27a8c33bc1b1bccd8d98/multidict-6.6.4-cp313-cp313t-win_amd64.whl", hash = "sha256:6d46a180acdf6e87cc41dc15d8f5c2986e1e8739dc25dbb7dac826731ef381a4", size = 53100, upload-time = "2025-08-11T12:08:13.823Z" },
     { url = "https://files.pythonhosted.org/packages/97/ea/43ac51faff934086db9c072a94d327d71b7d8b40cd5dcb47311330929ef0/multidict-6.6.4-cp313-cp313t-win_arm64.whl", hash = "sha256:756989334015e3335d087a27331659820d53ba432befdef6a718398b0a8493ad", size = 45501, upload-time = "2025-08-11T12:08:15.173Z" },
     { url = "https://files.pythonhosted.org/packages/fd/69/b547032297c7e63ba2af494edba695d781af8a0c6e89e4d06cf848b21d80/multidict-6.6.4-py3-none-any.whl", hash = "sha256:27d8f8e125c07cb954e54d75d04905a9bba8a439c1d84aca94949d4d03d8601c", size = 12313, upload-time = "2025-08-11T12:08:46.891Z" },
+]
+
+[[package]]
+name = "multimethod"
+version = "2.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/55/14/34e8c84ba4f1ab1186dc07426e0e84be71d3336cc57e8d076ee14331d50e/multimethod-2.0.tar.gz", hash = "sha256:c628b6d2e7d61fbe58484dd884d990901e8314faf58af062e72b65e3423cb109", size = 16065, upload-time = "2024-12-27T02:09:34.423Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/84/42/a285fc4b89b3a249538954779cd4082a85bf35dc7d0a9c93e48e146e3dc7/multimethod-2.0-py3-none-any.whl", hash = "sha256:45aa231dc9dbb7f980c0f2ad8179e2c2b72a8cd5c7d7534337be66dde29d35be", size = 9836, upload-time = "2024-12-27T02:09:31.671Z" },
 ]
 
 [[package]]
@@ -3755,6 +3765,7 @@ dependencies = [
     { name = "numpy", version = "2.2.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
     { name = "numpy", version = "2.3.3", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
 ]
+sdist = { url = "https://files.pythonhosted.org/packages/e7/b0/66d96f02120f79eeed86b5c5be04029b6821155f31ed4907a4e9f1460671/rustworkx-0.17.1.tar.gz", hash = "sha256:59ea01b4e603daffa4e8827316c1641eef18ae9032f0b1b14aa0181687e3108e", size = 399407, upload-time = "2025-09-15T16:29:46.429Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/20/24/8972ed631fa05fdec05a7bb7f1fc0f8e78ee761ab37e8a93d1ed396ba060/rustworkx-0.17.1-cp39-abi3-macosx_10_12_x86_64.whl", hash = "sha256:c08fb8db041db052da404839b064ebfb47dcce04ba9a3e2eb79d0c65ab011da4", size = 2257491, upload-time = "2025-08-13T01:43:31.466Z" },
     { url = "https://files.pythonhosted.org/packages/23/ae/7b6bbae5e0487ee42072dc6a46edf5db9731a0701ed648db22121fb7490c/rustworkx-0.17.1-cp39-abi3-macosx_11_0_arm64.whl", hash = "sha256:4ef8e327dadf6500edd76fedb83f6d888b9266c58bcdbffd5a40c33835c9dd26", size = 2040175, upload-time = "2025-08-13T01:43:33.762Z" },
