@@ -9,14 +9,13 @@
   $schema: "https://docs.renovatebot.com/renovate-schema.json",
   extends: [
     "config:recommended",
-    "schedule:monthly",
     ":semanticCommitsDisabled",
   ],
-  // First day of every month between 0-3 AM.
+  // First day of every month before 4 AM.
   schedule: ["* 0-3 1 * *"],
   lockFileMaintenance: {
     enabled: true,
-    // First day of every month between 0-3 AM.
+    // First day of every month before 4 AM.
     schedule: ["* 0-3 1 * *"],
     commitMessageAction: "Update",
     commitMessageTopic: "versions in lock file(s) to the latest available",
