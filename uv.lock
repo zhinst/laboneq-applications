@@ -1684,7 +1684,7 @@ dev = [
     { name = "tbump" },
 ]
 notebooks = [
-    { name = "qcodes", specifier = ">=0.51.0" },
+    { name = "qcodes", specifier = ">=0.52.0" },
     { name = "scikit-optimize", specifier = ">=0.10.2" },
 ]
 tools = [

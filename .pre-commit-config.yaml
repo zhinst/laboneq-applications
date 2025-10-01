@@ -1,6 +1,6 @@
 repos:
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.12.11 # must match the version used in pyproject.toml
+    rev: v0.13.2 # must match the version used in pyproject.toml
     hooks:
       - id: ruff
       - id: ruff-format
@@ -13,7 +13,7 @@ repos:
         types: [python]
         pass_filenames: false
   - repo: https://github.com/astral-sh/uv-pre-commit
-    rev: 0.8.14 # uv version
+    rev: 0.8.22 # uv version
     hooks:
       # Update the uv lockfile
       - id: uv-lock

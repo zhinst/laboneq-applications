@@ -67,7 +67,7 @@ tools = [
 ]
 
 # Dependencies of example notebooks
-notebooks = ["qcodes >= 0.51.0", "scikit-optimize >= 0.10.2"]
+notebooks = ["qcodes >=0.52.0", "scikit-optimize >= 0.10.2"]
 
 [tool.uv]
 default-groups = ["dev", "tools", "notebooks"]
