@@ -163,6 +163,37 @@ plugins:
         paths: [../src]
   spellcheck:
     known_words: ../known_words.txt
+  htmlproofer:
+    enabled: !ENV [ HTMLPROOFER, false ]
+    raise_error_after_finish: true
+    validate_external_urls: true
+    # Exclude internal links (due to false positives)
+    raise_error_excludes:
+      404:
+        # Exclude local paths
+        - "/*"
+        - "./*"
+        - "../*"
+        # Exclude markdown anchors
+        - "#*"
+        # Exclude sources directories
+        - "sources/*"
+        - "how-to-guides/*"
+        - "reference/*"
+        - "tutorials/*"
+        - "0*"
+        - "1*"
+        - "2*"
+        - "3*"
+        - "4*"
+        - "5*"
+        - "6*"
+        - "7*"
+        - "8*"
+        - "9*"
+        # Exclude API references
+        - "*#laboneq.*"
+        - "*#laboneq_applications.*"
   zhinst-standalone:
     projects:
       - qccs/qccs

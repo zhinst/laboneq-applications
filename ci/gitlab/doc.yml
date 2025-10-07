@@ -1,6 +1,18 @@
 variables:
   GIT_SUBMODULE_STRATEGY: recursive
 
+doc:htmlproofer:
+  needs: []
+  stage: doc
+  variables:
+    HTMLPROOFER: "true"
+  script:
+    # Build with htmlproofer link checking enabled
+    - uv run --directory docs mkdocs-zhinst build --strict
+  allow_failure: true
+  rules:
+    - !reference [.non_triggered]
+
 doc:build:
   needs: []
   stage: doc
