@@ -3,7 +3,7 @@ name = "laboneq-applications-documentation"
 version = "0.1.0"
 description = "LabOne Q Applications Documentation"
 requires-python = ">=3.10"
-dependencies = ["mkdocs-zhinst>=0.0.26"]
+dependencies = ["mkdocs-zhinst>=0.0.26", "mkdocs-htmlproofer-plugin>=1.3.0"]
 
 [tool.uv.sources]
 mkdocs-zhinst = { index = "zipypi" }
