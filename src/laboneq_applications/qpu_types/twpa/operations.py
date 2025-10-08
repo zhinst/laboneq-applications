@@ -8,7 +8,7 @@ from __future__ import annotations
 from laboneq.dsl.calibration import Calibration, CancellationSource, Oscillator
 from laboneq.dsl.enums import ModulationType
 from laboneq.dsl.experiment.builtins_dsl import QuantumOperations, quantum_operation
-from laboneq.dsl.parameter import SweepParameter  # noqa: TC002
+from laboneq.dsl.parameter import SweepParameter
 from laboneq.simple import dsl
 
 from .twpa_types import TWPA
