@@ -110,6 +110,10 @@ lint.ignore = [
   "FBT003",
   # Line contains TODO, consider resolving the issue
   "FIX",
+  # Do not enforce IF_TYPE_CHECKING block
+  "TC001",
+  "TC002",
+  "TC003",
   # TODO comments
   "TD",
   # Unused function arguments (function signatures are sometimes a fixed API)
