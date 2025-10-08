@@ -25,7 +25,7 @@ if TYPE_CHECKING:
 
 
 @classformatter
-@attrs.define()
+@attrs.define(kw_only=True)
 class TunableTransmonQubitParameters(QuantumParameters):
     """Qubit parameters for `TunableTransmonQubit` instances.
 
@@ -242,21 +242,13 @@ class TunableTransmonQubitParameters(QuantumParameters):
 
 
 @classformatter
-@attrs.define()
+@attrs.define
 class TunableTransmonQubit(QuantumElement):
     """A class for a superconducting, flux-tuneable Transmon Qubit."""
 
     PARAMETERS_TYPE = TunableTransmonQubitParameters
-    REQUIRED_SIGNALS = (
-        "acquire",
-        "drive",
-        "measure",
-    )
-    OPTIONAL_SIGNALS = (
-        "drive_ef",
-        "flux",
-    )
-
+    REQUIRED_SIGNALS = ("acquire", "drive", "measure")
+    OPTIONAL_SIGNALS = ("drive_ef", "flux")
     TRANSITIONS = ("ge", "ef")
 
     def transition_parameters(self, transition: str | None = None) -> tuple[str, dict]:

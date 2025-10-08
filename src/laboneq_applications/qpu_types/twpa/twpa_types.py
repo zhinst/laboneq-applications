@@ -22,7 +22,7 @@ from laboneq.simple import (
 
 
 @classformatter
-@attrs.define
+@attrs.define(kw_only=True)
 class TWPAParameters(QuantumParameters):
     """Parameters for the TWPA."""
 
@@ -103,10 +103,7 @@ class TWPA(QuantumElement):
     """A class for Traveling Wave Parametric Amplifiers."""
 
     PARAMETERS_TYPE = TWPAParameters
-    REQUIRED_SIGNALS = (
-        "acquire",
-        "measure",
-    )
+    REQUIRED_SIGNALS = ("acquire", "measure")
 
     def readout_parameters(self) -> tuple[str, dict]:
         """Return the measure line and the readout parameters.
