@@ -314,11 +314,8 @@ def create_experiment(
                         sweep_parameter=index,
                     ):
                         for i, sequence in enumerate(qasm_rb_sequences):
-                            with dsl.case(i) as c:
-                                qasm_section = qasm_transpiler.section(
-                                    sequence, qubit_map={"q": [q]}
-                                )
-                                c.add(qasm_section)
+                            with dsl.case(i):
+                                qasm_transpiler.section(sequence, qubit_map={"q": [q]})
 
                 with dsl.section(
                     name=f"measure_{q.uid}",
