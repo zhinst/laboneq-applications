@@ -1,11 +1,14 @@
 version = 1
-revision = 2
+revision = 3
 requires-python = ">=3.10"
 resolution-markers = [
     "python_full_version >= '3.12'",
     "python_full_version == '3.11.*'",
     "python_full_version < '3.11'",
 ]
+
+[options]
+prerelease-mode = "allow"
 
 [[package]]
 name = "aiohappyeyeballs"
@@ -1571,7 +1574,7 @@ wheels = [
 
 [[package]]
 name = "laboneq"
-version = "2.60.1"
+version = "2.61.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "attrs" },
@@ -1610,10 +1613,10 @@ dependencies = [
     { name = "zhinst-utils" },
 ]
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/58/1f/061d464c6d47c86ee69b6c9de37aa07942ea7df57510b6a72477dfce7185/laboneq-2.60.1-cp39-abi3-macosx_10_12_x86_64.macosx_11_0_arm64.macosx_10_12_universal2.whl", hash = "sha256:3d553fe53d1233100bff53bd455b01b329a43ce7c0ebd52e3cfff39597815288", size = 3359426, upload-time = "2025-09-26T10:10:26.607Z" },
-    { url = "https://files.pythonhosted.org/packages/72/c2/7b32990e24f35b5e832fefddc7478cf4399ccdd45f0aafa00d7ab5e30b06/laboneq-2.60.1-cp39-abi3-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:3ddc0d3195f1549d7c3d45a4043164e8762ab0b43424ea87b3a30923c9d49ee8", size = 2186314, upload-time = "2025-09-26T10:10:28.691Z" },
-    { url = "https://files.pythonhosted.org/packages/8d/4f/9e1f8bf488a2c17c682880a8826af42bdc59100523f6444407458795a028/laboneq-2.60.1-cp39-abi3-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:6d5e4fb2c2fb23fdd6e7d002e602b9a680fad03e99cc0f8ec5c72c33ed886bdb", size = 2257690, upload-time = "2025-09-26T10:10:30.295Z" },
-    { url = "https://files.pythonhosted.org/packages/a9/bb/98171963d9a8166bd05fc8efae4d0f929cd9f5931389e3d16ccfc1ae6fa2/laboneq-2.60.1-cp39-abi3-win_amd64.whl", hash = "sha256:487069c51a648dad3e48436bedcd12ff45fdb7d74263bc80de6d4d594d62ec33", size = 2128140, upload-time = "2025-09-26T10:10:32.432Z" },
+    { url = "https://files.pythonhosted.org/packages/7c/8c/a88236bbc869fce6c5882b2a2d5496842638e6979e06a9285e4f3ea34a69/laboneq-2.61.0-cp310-abi3-macosx_10_12_x86_64.macosx_11_0_arm64.macosx_10_12_universal2.whl", hash = "sha256:07025cdb9e667d5ec3594abbb037a99a0d45220c03be65bb4f6c826db7f6b979", size = 3447520, upload-time = "2025-10-09T16:14:35.122Z" },
+    { url = "https://files.pythonhosted.org/packages/82/66/bb8b2453d80ef9c09142e42e99a044cea3d9edf1fd2bcd9785494550d00c/laboneq-2.61.0-cp310-abi3-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:e283cd7e59c304a888a85684aa242d458cae2bb3904643c03431c8ff2b6e3226", size = 2222366, upload-time = "2025-10-09T16:14:38.496Z" },
+    { url = "https://files.pythonhosted.org/packages/83/51/4049120ee95eed9eadfe5219ab02d799ea4638d91a886aaedc2a840f6469/laboneq-2.61.0-cp310-abi3-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:2a5a23797d0c9fc686b1cae1f287b250ee51070971db5000710c4ed2f8238708", size = 2294559, upload-time = "2025-10-09T16:14:40.706Z" },
+    { url = "https://files.pythonhosted.org/packages/a6/a5/a448a92be5ba9162b994eee3f718689923663d16bc2c81585b0a568451a4/laboneq-2.61.0-cp310-abi3-win_amd64.whl", hash = "sha256:5e1516c72518e23ea1208564ae19c9fb7572af806206f8bbf5af89d933e09e1b", size = 2174218, upload-time = "2025-10-09T16:14:42.752Z" },
 ]
 
 [[package]]
@@ -1660,7 +1663,7 @@ tools = [
 
 [package.metadata]
 requires-dist = [
-    { name = "laboneq", specifier = ">=2.58.0" },
+    { name = "laboneq", specifier = "~=2.61.0" },
     { name = "lmfit", specifier = ">=1.3.0" },
     { name = "matplotlib", specifier = ">=3.10" },
     { name = "numpy", specifier = ">=1.26" },
