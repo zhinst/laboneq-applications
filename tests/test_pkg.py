@@ -7,4 +7,4 @@ import laboneq_applications
 
 
 def test_version():
-    assert laboneq_applications.__version__ == "26.1.0b1dev0"
+    assert laboneq_applications.__version__ == "26.1.0dev0"
