@@ -13,7 +13,7 @@ stages:
 
 default:
   tags: [docker, linux]
-  image: ghcr.io/astral-sh/uv:0.8.22-debian
+  image: ghcr.io/astral-sh/uv:0.9.7-debian
 
 variables:
   PACKAGE_NAME: "laboneq-applications"
