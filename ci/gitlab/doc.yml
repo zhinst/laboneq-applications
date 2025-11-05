@@ -53,10 +53,10 @@ doc:trigger_hub_internal:
   needs:
     job: doc:build
   trigger:
-    project: qccs/qt-documentation-hub
+    project: laboneq/qt-documentation-hub
     branch: main
   variables:
-    PROJECT_PIPELINE: "qccs/laboneq-applications:${CI_PIPELINE_ID}"
+    PROJECT_PIPELINE: "laboneq/laboneq-applications:${CI_PIPELINE_ID}"
   rules:
     - if: $CI_COMMIT_BRANCH == "main" && $CI_PIPELINE_SOURCE == "push"
     - !reference [.non_triggered]
