@@ -40,6 +40,8 @@ These experiments use the new workflow and tasks components included in LabOne Q
 * [Dispersive Shift](01_workflows/10_dispersive_shift.ipynb)
 * [IQ blobs](01_workflows/11_iq_blobs.ipynb)
 * [Raw Time Traces for Optimal Readout Weights](01_workflows/12_time_traces.ipynb)
+* [Measurement QNDness](01_workflows/13_qnd_measurement.ipynb)
+* [ZZ coupling strength with tunable couplers](01_workflows/14_zz_coupling.ipynb)
 
 ## Tune-Up Guides
 

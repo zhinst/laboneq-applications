@@ -203,6 +203,8 @@ lint.ignore = [
   "PLR2004",
   # Print statements can be useful in notebooks
   "T201",
+  # Pretty print statments can be useful in notebooks
+  "T203",
   # Ignore line length
   "E501",
   # Ignore forced list comprehension

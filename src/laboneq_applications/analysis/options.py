@@ -80,6 +80,18 @@ class ExtractQubitParametersTransitionOptions:
 
 
 @task_options
+class ExtractEdgeParametersOptions:
+    """Base options for tasks that extract edge parameters.
+
+    do_fitting:
+        Whether to perform the fit.
+        Default: `True`.
+    """
+
+    do_fitting: bool = option_field(True, description="Whether to perform the fit.")
+
+
+@task_options
 class BasePlottingOptions:
     """Base options for a plotting task.
 

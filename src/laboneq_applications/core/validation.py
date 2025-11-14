@@ -6,8 +6,11 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
+from itertools import chain
 
 import numpy as np
+from laboneq.dsl.quantum.qpu import QPU
+from laboneq.dsl.quantum.qpu_topology import TopologyEdge
 from laboneq.dsl.quantum.quantum_element import QuantumElement
 from laboneq.workflow import task
 from laboneq.workflow.tasks.run_experiment import RunExperimentResults
@@ -293,3 +296,75 @@ def validate_result(result: RunExperimentResults) -> None:
             "The result must be either an instance of RunExperimentResults "
             "or a sequence of RunExperimentResults."
         )
+
+
+@task(save=False)
+def validate_and_extract_edges_from_qubit_pairs(
+    qpu: QPU,
+    tag: str,
+    qubit_pair_uids: list[list[str]],
+    *,
+    element_class: type[QuantumElement] | None = None,
+) -> list[TopologyEdge]:
+    """Extracts all edges of type tag in the QPU with the qubit pair passed.
+
+    Args:
+        qpu: The QPU where the topology is stored.
+        qubit_pair_uids: The pairs of UIDs for the qubits that will be used as source
+            and target node from the edge, respectively.
+        tag: The edge tag to be searched.
+        element_class: The quantum element class (optional). By default, the quantum
+            element class is None.
+
+    Returns:
+        The list of extracted edges.
+
+    Raises:
+        TypeError: If the elements in the extracted edges are not of the type specified
+            in `element_class`.
+    """
+    edges = [qpu.topology[tag, q0, q1] for q0, q1 in qubit_pair_uids]
+
+    for e in edges:
+        if not isinstance(e.quantum_element, element_class):
+            raise TypeError(
+                f"Quantum element on edge "
+                f"({e.tag}, {e.source_node.uid}, {e.target_node.uid}) has "
+                f"invalid type: {type(e.quantum_element)}. "
+                f"Expected type: {element_class}."
+            )
+
+    return edges
+
+
+@task(save=False)
+def validate_parallel_two_qubit_experiment(
+    qpu: QPU,
+    qubit_pair_uids: list[list[str]],
+) -> list[QuantumElement]:
+    """Checks that an experiment can be run in parallel on the qubit pairs.
+
+    Args:
+        qpu: The QPU where the topology is stored.
+        qubit_pair_uids: The pairs of UIDs for the qubits that will be used as source
+            and target node from the edge.
+
+    Returns:
+        The flat list of qubit objects corresponding to `qubit_pair_uids`.
+
+    Raises:
+        ValueError: If a qubit is passed more than once in the full list.
+            (One cannot act on them in parallel.)
+    """
+    all_qubit_uids = list(chain.from_iterable(qubit_pair_uids))
+    all_qubits = qpu[all_qubit_uids]
+
+    # check that both lists are unique to avoid clashing
+    all_qubit_are_unique = len(all_qubit_uids) == len(set(all_qubit_uids))
+    if not all_qubit_are_unique:
+        raise ValueError(
+            "Quantum elements appear more than once in the edges. "
+            "Calibration cannot be parallelized."
+        )
+
+    return all_qubits

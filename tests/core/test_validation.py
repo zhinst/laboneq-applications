@@ -3,8 +3,14 @@
 
 """Tests for laboneq_applications.core.validation."""
 
+import re
+
 import numpy as np
 import pytest
+from laboneq.dsl.quantum import QPUTopology, QuantumElement
+from laboneq.dsl.quantum.qpu_topology import TopologyEdge
+from laboneq.dsl.quantum.quantum_element import QuantumParameters
+from laboneq.dsl.quantum.transmon import Transmon
 from laboneq.workflow.tasks.run_experiment import (
     AcquiredResult,
     RunExperimentResults,
@@ -15,9 +21,12 @@ from laboneq_applications.core.validation import (
     validate_and_convert_qubits_sweeps,
     validate_and_convert_single_qubit_sweeps,
     validate_and_convert_sweeps_to_arrays,
+    validate_and_extract_edges_from_qubit_pairs,
     validate_length_qubits_sweeps,
+    validate_parallel_two_qubit_experiment,
     validate_result,
 )
+from laboneq_applications.qpu_types.tunable_transmon import TunableTransmonQubit
 
 
 class TestValidateAndConvertQubitSweeps:
@@ -446,3 +455,113 @@ class TestValidateResult:
             "The result must be either an instance of RunExperimentResults "
             "or a sequence of RunExperimentResults."
         )
+
+
+@pytest.fixture
+def two_tunable_transmon_platform_with_topology(two_tunable_transmon_platform):
+    platform = two_tunable_transmon_platform
+    qpu = platform.qpu
+    qubits = qpu.quantum_elements
+
+    topo = QPUTopology(qubits)
+    topo.add_edge("coupler_1", "q0", "q1", quantum_element=qubits[0])
+    topo.add_edge("coupler_2", "q0", "q1", quantum_element=qubits[1])
+    topo.add_edge("coupler_3", "q0", "q1", quantum_element=qubits[0])
+    topo.add_edge("coupler_1", "q1", "q0", quantum_element=qubits[1])
+    topo.add_edge("coupler_2", "q1", "q0", parameters=QuantumParameters())
+    topo.add_edge("coupler_3", "q1", "q0")
+    qpu.topology = topo
+
+    return platform
+
+
+class TestValidateAndExtractEdgesFromQubitPairs:
+    def test_valid_element_class(self, two_tunable_transmon_platform_with_topology):
+        qpu = two_tunable_transmon_platform_with_topology.qpu
+
+        edge_list = validate_and_extract_edges_from_qubit_pairs(
+            qpu,
+            "coupler_1",
+            [["q0", "q1"], ["q1", "q0"]],
+            element_class=TunableTransmonQubit,
+        )
+
+        assert isinstance(edge_list, list)
+        assert len(edge_list) == 2
+        assert isinstance(edge_list[0], TopologyEdge)
+        assert isinstance(edge_list[1], TopologyEdge)
+        assert isinstance(edge_list[0].quantum_element, TunableTransmonQubit)
+        assert isinstance(edge_list[1].quantum_element, TunableTransmonQubit)
+        assert (
+            edge_list[0].tag,
+            edge_list[0].source_node.uid,
+            edge_list[0].target_node.uid,
+        ) == ("coupler_1", "q0", "q1")
+        assert (
+            edge_list[1].tag,
+            edge_list[1].source_node.uid,
+            edge_list[1].target_node.uid,
+        ) == ("coupler_1", "q1", "q0")
+
+    def test_valid_element_subclass(self, two_tunable_transmon_platform_with_topology):
+        qpu = two_tunable_transmon_platform_with_topology.qpu
+
+        edge_list = validate_and_extract_edges_from_qubit_pairs(
+            qpu, "coupler_2", [["q0", "q1"]], element_class=QuantumElement
+        )
+        assert isinstance(edge_list, list)
+        assert len(edge_list) == 1
+        assert isinstance(edge_list[0], TopologyEdge)
+        assert isinstance(edge_list[0].quantum_element, QuantumElement)
+        assert isinstance(edge_list[0].quantum_element, TunableTransmonQubit)
+        assert (
+            edge_list[0].tag,
+            edge_list[0].source_node.uid,
+            edge_list[0].target_node.uid,
+        ) == ("coupler_2", "q0", "q1")
+
+    def test_invalid_element_class(self, two_tunable_transmon_platform_with_topology):
+        qpu = two_tunable_transmon_platform_with_topology.qpu
+
+        with pytest.raises(
+            TypeError,
+            match=re.escape(
+                "Quantum element on edge (coupler_1, q0, q1) has invalid "
+                "type: <class 'laboneq_applications.qpu_types."
+                "tunable_transmon.qubit_types.TunableTransmonQubit'>. "
+                "Expected type: <class 'laboneq.dsl.quantum.transmon."
+                "Transmon'>."
+            ),
+        ):
+            validate_and_extract_edges_from_qubit_pairs(
+                qpu, "coupler_1", [["q0", "q1"], ["q1", "q0"]], element_class=Transmon
+            )
+
+
+class ValidateParallelTwoQubitExperiment:
+    def test_valid_qubit_pairs(self, two_tunable_transmon_platform_with_topology):
+        qpu = two_tunable_transmon_platform_with_topology.qpu
+        qubits = two_tunable_transmon_platform_with_topology.qpu.qubits
+
+        q_list = validate_parallel_two_qubit_experiment(qpu, [["q0", "q1"]])
+
+        assert isinstance(q_list, list)
+        assert len(q_list) == 2
+        assert isinstance(q_list[0], QuantumElement)
+        assert isinstance(q_list[1], QuantumElement)
+        assert q_list[0].uid == "q0"
+        assert q_list[0] is qubits[0]
+        assert q_list[1].uid == "q1"
+        assert q_list[1] is qubits[1]
+
+    def test_invalid_qubit_pairs(self, two_tunable_transmon_platform_with_topology):
+        qpu = two_tunable_transmon_platform_with_topology.qpu
+
+        with pytest.raises(
+            TypeError,
+            match=re.escape(
+                "Quantum elements appear more than once in the edges. "
+                "Calibration cannot be parallelized."
+            ),
+        ):
+            validate_parallel_two_qubit_experiment(qpu, [["q0", "q1"], ["q0", "q1"]])
