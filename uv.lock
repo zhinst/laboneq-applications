@@ -1679,7 +1679,7 @@ wheels = [
 
 [[package]]
 name = "laboneq-applications"
-version = "26.1.0.dev0"
+version = "26.1.0b1"
 source = { editable = "." }
 dependencies = [
     { name = "laboneq" },
