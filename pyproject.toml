@@ -29,7 +29,7 @@ classifiers = [
   "Topic :: Scientific/Engineering",
 ]
 dependencies = [
-  "laboneq >= 2.58.0",
+  "laboneq == 26.1.0b1",
   "typing_extensions >= 4.5.0",
   "uncertainties >= 3.2.2",
   "numpy >= 2",
