@@ -541,7 +541,7 @@ class TestValidateAndExtractEdgesFromQubitPairs:
 class ValidateParallelTwoQubitExperiment:
     def test_valid_qubit_pairs(self, two_tunable_transmon_platform_with_topology):
         qpu = two_tunable_transmon_platform_with_topology.qpu
-        qubits = two_tunable_transmon_platform_with_topology.qpu.qubits
+        qubits = two_tunable_transmon_platform_with_topology.qpu.quantum_elements
 
         q_list = validate_parallel_two_qubit_experiment(qpu, [["q0", "q1"]])
 

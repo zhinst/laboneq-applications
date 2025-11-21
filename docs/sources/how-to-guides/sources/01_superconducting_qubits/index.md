@@ -29,19 +29,20 @@ Look at the navigation to see the full list of available experiments.
 These experiments use the new workflow and tasks components included in LabOne Q, along with qubits and quantum operations:
 
 * [Resonator Spectroscopy](01_workflows/01_resonator_spectroscopy.ipynb)
-* [Resonator Spectroscopy DC bias](01_workflows/02_resonator_spectroscopy_dcbias.ipynb)
-* [Qubit spectroscopy](01_workflows/03_qubit_spectroscopy.ipynb)
+* [Resonator Spectroscopy DC Bias](01_workflows/02_resonator_spectroscopy_dcbias.ipynb)
+* [Qubit Spectroscopy](01_workflows/03_qubit_spectroscopy.ipynb)
 * [Amplitude Rabi](01_workflows/04_amplitude_rabi.ipynb)
-* [Ramsey interferometry](01_workflows/05_ramsey.ipynb)
-* [DRAG pulse characterization](01_workflows/06_drag_q_scaling.ipynb)
-* [Lifetime_measurement](01_workflows/07_lifetime_measurement.ipynb)
+* [Ramsey Interferometry](01_workflows/05_ramsey.ipynb)
+* [DRAG Pulse Characterization](01_workflows/06_drag_q_scaling.ipynb)
+* [Lifetime Measurement](01_workflows/07_lifetime_measurement.ipynb)
 * [Echo](01_workflows/08_echo.ipynb)
 * [Amplitude Fine](01_workflows/09_amplitude_fine.ipynb)
 * [Dispersive Shift](01_workflows/10_dispersive_shift.ipynb)
-* [IQ blobs](01_workflows/11_iq_blobs.ipynb)
+* [IQ Blobs](01_workflows/11_iq_blobs.ipynb)
 * [Raw Time Traces for Optimal Readout Weights](01_workflows/12_time_traces.ipynb)
 * [Measurement QNDness](01_workflows/13_qnd_measurement.ipynb)
-* [ZZ coupling strength with tunable couplers](01_workflows/14_zz_coupling.ipynb)
+* [Time-Resolved Photon Number](01_workflows/14_photon_number_time_resolve.ipynb)
+* [ZZ Coupling Strength with Tunable Couplers](01_workflows/15_zz_coupling.ipynb)
 
 ## Tune-Up Guides
 
@@ -49,3 +50,4 @@ These guides teach you how to tune-up a quantum processor with superconducting q
 
 * [Qubit Tune-Up](03_tuneup_guides/00_tuneup_qubits.ipynb)
 * [Active Reset](03_tuneup_guides/01_tuneup_active_reset.ipynb)
+* [TWPA Tune-Up](03_tuneup_guides/02_tuneup_twpa.ipynb)

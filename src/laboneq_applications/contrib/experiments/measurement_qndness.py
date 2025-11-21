@@ -127,7 +127,7 @@ def experiment_workflow(
             qubits=[TunableTransmonQubit("q0"), TunableTransmonQubit("q1")],
             quantum_operations=TunableTransmonOperations(),
         )
-        qubits = qpu.qubits
+        qubits = qpu.quantum_elements
         temporary_parameters = {}
         for q in qubits_to_measure:
             temp_pars = deepcopy(q.parameters)
