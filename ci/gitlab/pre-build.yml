@@ -33,6 +33,15 @@ check:lockfile:
   rules:
     - !reference [.non_triggered]
 
+check:changelog:
+  stage: pre-build
+  before_script:
+    - git fetch origin main
+  script:
+    - uv run --only-group tools towncrier check
+  rules:
+    - !reference [.changelog-check]
+
 lint:renovate_config:
   stage: pre-build
   image:

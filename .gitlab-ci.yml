@@ -33,6 +33,11 @@ variables:
     when: always
   - when: never
 
+.changelog-check:
+  - if: $CI_PIPELINE_SOURCE == 'merge_request_event' && $CI_MERGE_REQUEST_DESCRIPTION !~ /@skip-changelog-check/i
+    when: always
+  - when: never
+
 .release-docs:
   - if: $RELEASE_DOCS == "true" && $CI_COMMIT_REF_PROTECTED == "true"
 

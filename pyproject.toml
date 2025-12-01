@@ -64,6 +64,7 @@ tools = [
   "nbqa",
   "jupytext",
   "ruff == 0.12.4", # must match the version used in .pre-commit-config.yaml
+  "towncrier >= 25.8.0",
 ]
 
 # Dependencies of example notebooks
@@ -234,3 +235,33 @@ convention = "google"
 
 [tool.ruff.lint.pylint]
 max-args = 10
+
+[tool.towncrier]
+filename = "CHANGELOG.md"
+directory = "newsfragments"
+
+[[tool.towncrier.type]]
+directory = "feature"
+name = "Features"
+showcontent = true
+
+[[tool.towncrier.type]]
+directory = "bugfix"
+name = "Bug Fixes"
+showcontent = true
+
+[[tool.towncrier.type]]
+directory = "doc"
+name = "Documentation"
+showcontent = true
+
+[[tool.towncrier.type]]
+directory = "misc"
+name = "Miscellaneous"
+showcontent = true
+
+# system tests, tooling, infrastructure, ...
+[[tool.towncrier.type]]
+directory = "dev"
+name = "Developer"
+showcontent = true
