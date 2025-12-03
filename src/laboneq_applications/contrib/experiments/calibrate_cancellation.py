@@ -212,13 +212,13 @@ def create_experiment(
     )
 
     qop = qpu.quantum_operations
-    phase = SweepParameter(f"phases_{parametric_amplifier.uid}", cancel_phase)
-    attenuation = SweepParameter(
-        f"attenuation_{parametric_amplifier.uid}", cancel_attenuation
-    )
     # The probe tone is generated from the pump tone of the SHFPPC.
     qop.set_readout_amplitude.omit_section(parametric_amplifier, 0)
     if cancellation_on:
+        phase = SweepParameter(f"phases_{parametric_amplifier.uid}", cancel_phase)
+        attenuation = SweepParameter(
+            f"attenuation_{parametric_amplifier.uid}", cancel_attenuation
+        )
         with dsl.acquire_loop_rt(
             count=opts.count,
             averaging_mode=opts.averaging_mode,
@@ -256,7 +256,7 @@ def create_experiment(
             repetition_time=opts.repetition_time,
             reset_oscillator_phase=opts.reset_oscillator_phase,
         ):
-            qop.set_pump_cancellation(parametric_amplifier, attenuation, phase, False)
+            qop.set_pump_cancellation(parametric_amplifier, 0.0, 0.0, False)
             qop.twpa_acquire(
                 parametric_amplifier,
                 dsl.handles.result_handle(parametric_amplifier.uid),
