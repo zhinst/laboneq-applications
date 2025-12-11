@@ -8,6 +8,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Literal
 
 import attrs
+from laboneq.core.types.enums.port_mode import PortMode
 from laboneq.core.utilities.dsl_dataclass_decorator import classformatter
 from laboneq.dsl.calibration import Calibration, Oscillator, SignalCalibration
 from laboneq.dsl.enums import ModulationType
@@ -484,5 +485,7 @@ class TunableTransmonQubit(QuantumElement):
             calibration_items[self.signals["flux"]] = SignalCalibration(
                 voltage_offset=self.parameters.flux_offset_voltage,
                 range=self.parameters.flux_range,
+                local_oscillator=Oscillator(frequency=0.0e9),
+                port_mode=PortMode.LF,
             )
         return Calibration(calibration_items)

@@ -8,11 +8,13 @@ from __future__ import annotations
 from typing import ClassVar
 
 import attrs
+from laboneq.core.types.enums.port_mode import PortMode
 from laboneq.core.utilities.dsl_dataclass_decorator import classformatter
 from laboneq.dsl.calibration import (
     Calibration,
     SignalCalibration,
 )
+from laboneq.dsl.calibration.oscillator import Oscillator
 from laboneq.dsl.quantum import (
     QuantumElement,
     QuantumParameters,
@@ -93,6 +95,8 @@ class TunableCoupler(QuantumElement):
         sig_cal = SignalCalibration()
         if self.parameters.flux_offset_voltage is not None:
             sig_cal.voltage_offset = self.parameters.flux_offset_voltage
+        sig_cal.local_oscillator = Oscillator(frequency=0.0e9)
+        sig_cal.port_mode = PortMode.LF
         calibration[self.signals["flux"]] = sig_cal
 
         return Calibration(calibration)
