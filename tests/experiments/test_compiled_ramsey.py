@@ -532,7 +532,7 @@ def test_single_qubit_run_with_active_reset(
     for s in cal_states:
         cal_trace_data = data.q0.active_reset.cal_trace[s].data
         if active_reset_repetitions == 1:
-            assert isinstance(cal_trace_data, np.complex128)
+            assert cal_trace_data.shape == ()
         else:
             assert len(cal_trace_data) == active_reset_repetitions
 
@@ -589,7 +589,7 @@ def test_two_qubit_run_with_active_reset(
         for q in qubits:
             cal_trace_data = data[q.uid].active_reset.cal_trace[s].data
             if active_reset_repetitions == 1:
-                assert isinstance(cal_trace_data, np.complex128)
+                assert cal_trace_data.shape == ()
             else:
                 assert len(cal_trace_data) == active_reset_repetitions
 
