@@ -331,7 +331,7 @@ def lorentzian_fit(
         param_hints = {
             "amplitude": {"value": np.max(data) * width_guess},
             "position": {"value": x[np.argmax(data)]},
-            "width": {"value": width_guess},
+            "width": {"value": width_guess, "min": 1e-9},  # avoid division by zero
             "offset": {"value": 0},
         }
         fit_res_peak = fit_data_lmfit(
