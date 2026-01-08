@@ -47,8 +47,10 @@
   },
   poetry: {enabled: false,},
   reviewers: [
+    "barta",
     "caglark",
+    "chavdard",
+    "josepha",
     "simonc",
-    "barta"
   ]
 }
