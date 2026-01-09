@@ -65,7 +65,7 @@ if TYPE_CHECKING:
 def experiment_workflow(
     session: Session,
     qpu: QPU,
-    qubits: QuantumElements,
+    qubits: QuantumElements | list[str] | str,
     delays: QubitSweepPoints,
     detunings: float | Sequence[float] | None = None,
     temporary_parameters: dict[str | tuple[str, str, str], dict | QuantumParameters]
@@ -82,13 +82,18 @@ def experiment_workflow(
     - [analysis_workflow]()
     - [update_qpu]()
 
+    !!! version-changed "Deprecated in version 26.1.0."
+        The `qubits` argument of type `QuantumElements` is deprecated.
+        Please pass `qubits` of type `list[str] | str` instead, i.e., the quantum
+        element UIDs instead of the quantum element instances.
+
     Arguments:
         session:
             The connected session to use for running the experiment.
         qpu:
             The qpu consisting of the original qubits and quantum operations.
         qubits:
-            The qubits to run the experiments on. May be either a single
+            The qubits to run the experiments on, passed by UID. May be either a single
             qubit or a list of qubits.
         delays:
             The delays (in seconds) of the second x90 pulse to sweep over for each

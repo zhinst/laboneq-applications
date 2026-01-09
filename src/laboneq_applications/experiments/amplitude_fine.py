@@ -58,7 +58,7 @@ if TYPE_CHECKING:
 def experiment_workflow(
     session: Session,
     qpu: QPU,
-    qubits: QuantumElements,
+    qubits: QuantumElements | list[str] | str,
     amplification_qop: str,
     target_angle: float,
     phase_offset: float,
@@ -78,13 +78,18 @@ def experiment_workflow(
     - [analysis_workflow]()
     - [update_qpu]()
 
+    !!! version-changed "Deprecated in version 26.1.0."
+        The `qubits` argument of type `QuantumElements` is deprecated.
+        Please pass `qubits` of type `list[str] | str` instead, i.e., the quantum
+        element UIDs instead of the quantum element instances.
+
     Arguments:
         session:
             The connected session to use for running the experiment.
         qpu:
             The qpu consisting of the original qubits and quantum operations.
         qubits:
-            The qubits to run the experiments on. May be either a single
+            The qubits to run the experiments on, passed by UID. May be either a single
             qubit or a list of qubits.
         amplification_qop:
             str to identify the quantum operation to repeat to produce error
@@ -317,7 +322,7 @@ def create_experiment(
 def experiment_workflow_x180(
     session: Session,
     qpu: QPU,
-    qubits: QuantumElements,
+    qubits: QuantumElements | list[str] | str,
     repetitions: QubitSweepPoints[int],
     temporary_parameters: dict[str | tuple[str, str, str], dict | QuantumParameters]
     | None = None,
@@ -332,13 +337,18 @@ def experiment_workflow_x180(
         phase_offset = -np.pi / 2
         parameter_to_update = "drive_amplitude_pi"
 
+    !!! version-changed "Deprecated in version 26.1.0."
+        The `qubits` argument of type `QuantumElements` is deprecated.
+        Please pass `qubits` of type `list[str] | str` instead, i.e., the quantum
+        element UIDs instead of the quantum element instances.
+
     Arguments:
         session:
             The connected session to use for running the experiment.
         qpu:
             The qpu consisting of the original qubits and quantum operations.
         qubits:
-            The qubits to run the experiments on. May be either a single
+            The qubits to run the experiments on, passed by UID. May be either a single
             qubit or a list of qubits.
         repetitions:
             The sweep values corresponding to the number of times to repeat the
@@ -417,7 +427,7 @@ def experiment_workflow_x180(
 def experiment_workflow_x90(
     session: Session,
     qpu: QPU,
-    qubits: QuantumElements,
+    qubits: QuantumElements | list[str] | str,
     repetitions: QubitSweepPoints[int],
     temporary_parameters: dict[str | tuple[str, str, str], dict | QuantumParameters]
     | None = None,
@@ -432,13 +442,18 @@ def experiment_workflow_x90(
         phase_offset = -np.pi / 2
         parameter_to_update = "drive_amplitude_pi2"
 
+    !!! version-changed "Deprecated in version 26.1.0."
+        The `qubits` argument of type `QuantumElements` is deprecated.
+        Please pass `qubits` of type `list[str] | str` instead, i.e., the quantum
+        element UIDs instead of the quantum element instances.
+
     Arguments:
         session:
             The connected session to use for running the experiment.
         qpu:
             The qpu consisting of the original qubits and quantum operations.
         qubits:
-            The qubits to run the experiments on. May be either a single
+            The qubits to run the experiments on, passed by UID. May be either a single
             qubit or a list of qubits.
         repetitions:
             The sweep values corresponding to the number of times to repeat the

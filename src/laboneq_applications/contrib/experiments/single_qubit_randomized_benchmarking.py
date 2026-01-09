@@ -22,6 +22,7 @@ from collections.abc import Sequence
 from typing import TYPE_CHECKING
 
 from laboneq import openqasm3
+from laboneq.dsl.quantum import QuantumParameters
 from laboneq.simple import Experiment, SweepParameter, dsl, workflow
 from laboneq.workflow.tasks import (
     compile_experiment,
@@ -38,6 +39,10 @@ from laboneq_applications.experiments.options import (
     TuneupExperimentOptions,
     TuneUpWorkflowOptions,
 )
+from laboneq_applications.tasks import (
+    temporary_qpu,
+    temporary_quantum_elements_from_qpu,
+)
 
 if TYPE_CHECKING:
     from laboneq.dsl.quantum.qpu import QPU
@@ -50,11 +55,12 @@ if TYPE_CHECKING:
 def experiment_workflow(
     session: Session,
     qpu: QPU,
-    qubits: QuantumElements,
+    qubits: QuantumElements | list[str] | str,
     length_cliffords: list,
     variations: int = 1,
     seed: int | None = None,
     gate_map: dict | None = None,
+    temporary_parameters: dict[str, dict | QuantumParameters] | None = None,
     options: TuneUpWorkflowOptions | None = None,
 ) -> None:
     """The Randmized Benchmarking Workflow for single qubits.
@@ -65,13 +71,23 @@ def experiment_workflow(
     - [compile_experiment]()
     - [run_experiment]()
 
+    !!! version-changed "Changed in version 26.1.0."
+        The `temporary_parameters` positional argument was added in the
+        penultimate position. Note that this is a breaking change if
+        calling the experiment workflow with the `options` positional argument.
+
+    !!! version-changed "Deprecated in version 26.1.0."
+        The `qubits` argument of type `QuantumElements` is deprecated.
+        Please pass `qubits` of type `list[str] | str` instead, i.e., the quantum
+        element UIDs instead of the quantum element instances.
+
     Arguments:
         session:
             The connected session to use for running the experiment.
         qpu:
             The qpu consisting of the original qubits and quantum operations.
         qubits:
-            The qubits to run the experiments on. May be either a single
+            The qubits to run the experiments on, passed by UID. May be either a single
             qubit or a list of qubits.
         length_cliffords:
             list of numbers of Clifford gates to sweep
@@ -84,6 +100,8 @@ def experiment_workflow(
             Dictionary to define the native gate set in QASM and the corresponding
             quantum_operations's in LabOne Q.
             Default: {"id":None, "sx":"x90", "x":"x180", "rz":"rz"}.
+        temporary_parameters:
+            The temporary parameters to update the qubits with.
         options:
             The options for building the workflow.
             In addition to options from [WorkflowOptions], the following
@@ -120,6 +138,8 @@ def experiment_workflow(
         seed=seed,
     )
 
+    temp_qpu = temporary_qpu(qpu, temporary_parameters)
+    qubits = temporary_quantum_elements_from_qpu(temp_qpu, qubits)
     exp = create_experiment(
         qpu,
         qubits,

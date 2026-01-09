@@ -80,7 +80,7 @@ class IQBlobExperimentWorkflowOptions:
 def experiment_workflow(
     session: Session,
     qpu: QPU,
-    qubits: QuantumElements,
+    qubits: QuantumElements | list[str] | str,
     states: Sequence[str],
     temporary_parameters: dict[str | tuple[str, str, str], dict | QuantumParameters]
     | None = None,
@@ -95,13 +95,18 @@ def experiment_workflow(
     - [run_experiment]()
     - [analysis_workflow]()
 
+    !!! version-changed "Deprecated in version 26.1.0."
+        The `qubits` argument of type `QuantumElements` is deprecated.
+        Please pass `qubits` of type `list[str] | str` instead, i.e., the quantum
+        element UIDs instead of the quantum element instances.
+
     Arguments:
         session:
             The connected session to use for running the experiment.
         qpu:
             The qpu consisting of the original qubits and quantum operations.
         qubits:
-            The qubits to run the experiments on.
+            The qubits to run the experiments on, passed by UID.
         states:
             The basis states the qubits should be prepared in. May be either a string,
             e.g. "gef", or a list of letters, e.g. ["g","e","f"].

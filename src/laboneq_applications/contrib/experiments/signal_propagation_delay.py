@@ -17,6 +17,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from laboneq.dsl.quantum import QuantumElement, QuantumParameters
 from laboneq.simple import Experiment, SweepParameter, dsl
 from laboneq.workflow import if_, task, workflow
 from laboneq.workflow.tasks import (
@@ -31,22 +32,27 @@ from laboneq_applications.experiments.options import (
     TuneupExperimentOptions,
     TuneUpWorkflowOptions,
 )
-from laboneq_applications.tasks.parameter_updating import update_qpu
+from laboneq_applications.tasks.parameter_updating import (
+    temporary_qpu,
+    temporary_quantum_elements_from_qpu,
+    update_qpu,
+)
 
 if TYPE_CHECKING:
     from laboneq.dsl.quantum.qpu import QPU
     from laboneq.dsl.session import Session
 
-    from laboneq_applications.typing import Qubit, QubitSweepPoints
+    from laboneq_applications.typing import QubitSweepPoints
 
 
 @workflow
 def experiment_workflow(
     session: Session,
     qpu: QPU,
-    qubit: Qubit,
+    qubit: QuantumElement | str,
     delays: QubitSweepPoints,
     measure_delay: float | None = None,
+    temporary_parameters: dict[str, dict | QuantumParameters] | None = None,
     options: TuneUpWorkflowOptions | None = None,
 ) -> None:
     """The Signal Propagation Delay Workflow.
@@ -59,19 +65,31 @@ def experiment_workflow(
     - [analysis_workflow]()
     - [update_qpu]()
 
+    !!! version-changed "Changed in version 26.1.0."
+        The `temporary_parameters` positional argument was added in the
+        penultimate position. Note that this is a breaking change if
+        calling the experiment workflow with the `options` positional argument.
+
+    !!! version-changed "Deprecated in version 26.1.0."
+        The `qubit` argument of type `QuantumElement` is deprecated.
+        Please pass `qubit` of type `str` instead, i.e., the quantum
+        element UID instead of the quantum element instance.
+
     Arguments:
         session:
             The connected session to use for running the experiment.
         qpu:
             The qpu consisting of the original qubits and quantum operations.
         qubit:
-            The qubit to run the experiment on. It can be only a single qubit
-            coupled to a resonator.
+            The qubit to run the experiment on, passed by UID. It can be only a single
+            qubit coupled to a resonator.
         delays:
             The readout integration delays to sweep over for the readout pulse.
             Must be a list of numbers or an array.
         measure_delay:
             Delay between subsequent measurements.
+        temporary_parameters:
+            The temporary parameters to update the qubit with.
         options:
             The options for building the workflow.
             In addition to options from [WorkflowOptions], the following
@@ -100,6 +118,8 @@ def experiment_workflow(
         )
         ```
     """
+    temp_qpu = temporary_qpu(qpu, temporary_parameters)
+    qubit = temporary_quantum_elements_from_qpu(temp_qpu, qubit)
     exp = create_experiment(
         qpu,
         qubit,
@@ -119,7 +139,7 @@ def experiment_workflow(
 @dsl.qubit_experiment
 def create_experiment(
     qpu: QPU,
-    qubit: Qubit,
+    qubit: QuantumElement,
     delays: QubitSweepPoints,
     measure_delay: float | None = None,
     options: TuneupExperimentOptions | None = None,

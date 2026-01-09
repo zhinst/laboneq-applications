@@ -77,7 +77,7 @@ class EchoExperimentOptions:
 def experiment_workflow(
     session: Session,
     qpu: QPU,
-    qubits: QuantumElements,
+    qubits: QuantumElements | list[str] | str,
     delays: QubitSweepPoints,
     temporary_parameters: dict[str | tuple[str, str, str], dict | QuantumParameters]
     | None = None,
@@ -93,14 +93,19 @@ def experiment_workflow(
     - [analysis_workflow]()
     - [update_qpu]()
 
+    !!! version-changed "Deprecated in version 26.1.0."
+        The `qubits` argument of type `QuantumElements` is deprecated.
+        Please pass `qubits` of type `list[str] | str` instead, i.e., the quantum
+        element UIDs instead of the quantum element instances.
+
     Arguments:
         session:
             The connected session to use for running the experiment.
         qpu:
             The qpu consisting of the original qubits and quantum operations.
         qubits:
-            The qubits on which to run the experiments. May be either a single
-            qubit or a list of qubits.
+            The qubits on which to run the experiments, passed by UID. May be either a
+            single qubit or a list of qubits.
         delays:
             The delays to sweep over for each qubit. The delays between the two x90
             pulses and the refocusing pulse are `delays / 2`; see the schematic of

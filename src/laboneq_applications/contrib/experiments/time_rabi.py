@@ -18,6 +18,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from laboneq.dsl.quantum import QuantumParameters
 from laboneq.simple import Experiment, SweepParameter, dsl
 from laboneq.workflow import if_, task, workflow
 from laboneq.workflow.tasks import (
@@ -31,7 +32,11 @@ from laboneq_applications.experiments.options import (
     TuneupExperimentOptions,
     TuneUpWorkflowOptions,
 )
-from laboneq_applications.tasks.parameter_updating import update_qpu
+from laboneq_applications.tasks.parameter_updating import (
+    temporary_qpu,
+    temporary_quantum_elements_from_qpu,
+    update_qpu,
+)
 
 if TYPE_CHECKING:
     from laboneq.dsl.quantum.qpu import QPU
@@ -44,8 +49,9 @@ if TYPE_CHECKING:
 def experiment_workflow(
     session: Session,
     qpu: QPU,
-    qubits: QuantumElements,
+    qubits: QuantumElements | list[str] | str,
     lengths: QubitSweepPoints,
+    temporary_parameters: dict[str, dict | QuantumParameters] | None = None,
     options: TuneUpWorkflowOptions | None = None,
 ) -> None:
     """The Time Rabi Workflow.
@@ -58,18 +64,30 @@ def experiment_workflow(
     - [analysis_workflow]()
     - [update_qpu]()
 
+    !!! version-changed "Changed in version 26.1.0."
+        The `temporary_parameters` positional argument was added in the
+        penultimate position. Note that this is a breaking change if
+        calling the experiment workflow with the `options` positional argument.
+
+    !!! version-changed "Deprecated in version 26.1.0."
+        The `qubits` argument of type `QuantumElements` is deprecated.
+        Please pass `qubits` of type `list[str] | str` instead, i.e., the quantum
+        element UIDs instead of the quantum element instances.
+
     Arguments:
         session:
             The connected session to use for running the experiment.
         qpu:
             The qpu consisting of the original qubits and quantum operations.
         qubits:
-            The qubits to run the experiments on. May be either a single
+            The qubits to run the experiments on, passed by UID. May be either a single
             qubit or a list of qubits.
         lengths:
             The drive-pulse lengths to sweep over for each qubit. If `qubits` is a
             single qubit, `lengths` must be a list of numbers or an array. Otherwise
             it must be a list of lists of numbers or arrays.
+        temporary_parameters:
+            The temporary parameters to update the qubits with.
         options:
             The options for building the workflow.
             In addition to options from [WorkflowOptions], the following
@@ -102,6 +120,8 @@ def experiment_workflow(
         ).run()
         ```
     """
+    temp_qpu = temporary_qpu(qpu, temporary_parameters)
+    qubits = temporary_quantum_elements_from_qpu(temp_qpu, qubits)
     exp = create_experiment(
         qpu,
         qubits,

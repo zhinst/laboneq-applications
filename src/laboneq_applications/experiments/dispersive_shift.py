@@ -77,7 +77,7 @@ class DispersiveShiftExperimentOptions:
 def experiment_workflow(
     session: Session,
     qpu: QPU,
-    qubit: QuantumElement,
+    qubit: QuantumElement | str,
     frequencies: QubitSweepPoints,
     states: Sequence[str],
     temporary_parameters: dict[str | tuple[str, str, str], dict | QuantumParameters]
@@ -94,14 +94,19 @@ def experiment_workflow(
     - [analysis_workflow]()
     - [update_qpu]()
 
+    !!! version-changed "Deprecated in version 26.1.0."
+        The `qubit` argument of type `QuantumElement` is deprecated.
+        Please pass `qubit` of type `str` instead, i.e., the quantum
+        element UID instead of the quantum element instance.
+
     Arguments:
         session:
             The connected session to use for running the experiment.
         qpu:
             The qpu consisting of the original qubits and quantum operations.
         qubit:
-            The qubit to run the experiments on. It can be only a single qubit
-            coupled to a resonator.
+            The qubit to run the experiments on, passed by UID. It can be only a single
+            qubit coupled to a resonator.
         frequencies:
             The resonator frequencies to sweep over for the readout pulse (or CW)
             sent to the resonator. Must be a list of numbers or an array.

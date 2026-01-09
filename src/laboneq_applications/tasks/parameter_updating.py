@@ -5,6 +5,8 @@
 
 from __future__ import annotations
 
+import warnings
+from collections.abc import Sequence
 from typing import TYPE_CHECKING
 
 import attrs
@@ -232,10 +234,14 @@ def temporary_quantum_elements_from_qpu(
 ) -> QuantumElements:
     """Return temporarily-modified quantum elements from the QPU.
 
+    !!! version-changed "Deprecated in version 26.1.0."
+        The `qubits` argument of type `QuantumElements` is deprecated.
+        Please pass `qubits` of type `list[str] | str | None` instead, i.e., the quantum
+        element UIDs instead of the quantum element instances.
+
     Args:
         qpu: The temporarily-modified QPU.
-        quantum_elements: The quantum elements to return. Either the QuantumElement
-            objects or the UIDs may be provided.
+        quantum_elements: The quantum elements to return, passed by UID.
 
     Returns:
         The temporarily-modified quantum elements.
@@ -243,6 +249,20 @@ def temporary_quantum_elements_from_qpu(
     Raises:
         TypeError: If the quantum elements have invalid type.
     """
+    if isinstance(quantum_elements, QuantumElement) or (
+        isinstance(quantum_elements, Sequence)
+        and any(isinstance(q, QuantumElement) for q in quantum_elements)
+    ):
+        warnings.warn(
+            "Argument `quantum_elements` of type `QuantumElements` is "
+            "deprecated in v26.1.0 and will no longer be supported in "
+            "v26.4.0. Please pass `quantum_elements` of type "
+            "`list[str] | str | None` instead, i.e. the quantum element UIDs "
+            "instead of the quantum element instances.",
+            FutureWarning,
+            stacklevel=2,
+        )
+
     if quantum_elements is None:
         return qpu.quantum_elements
 

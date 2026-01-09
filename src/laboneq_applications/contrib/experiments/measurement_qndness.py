@@ -42,7 +42,7 @@ if TYPE_CHECKING:
     from laboneq.dsl.quantum.qpu import QPU
     from laboneq.dsl.session import Session
 
-    from laboneq_applications.typing import Qubits
+    from laboneq_applications.typing import QuantumElements
 
 
 # create additional options for the QNDness experiment
@@ -85,7 +85,7 @@ class QNDnessExperimentOptions:
 def experiment_workflow(
     session: Session,
     qpu: QPU,
-    qubits: Qubits,
+    qubits: QuantumElements | list[str] | str,
     temporary_parameters: dict[str, dict | QuantumParameters] | None = None,
     options: TuneUpWorkflowOptions | None = None,
 ) -> None:
@@ -99,13 +99,18 @@ def experiment_workflow(
     - [analysis_workflow]()
     - [update_qpu]()
 
+    !!! version-changed "Deprecated in version 26.1.0."
+        The `qubits` argument of type `QuantumElements` is deprecated.
+        Please pass `qubits` of type `list[str] | str` instead, i.e., the quantum
+        element UIDs instead of the quantum element instances.
+
     Arguments:
         session:
             The connected session to use for running the experiment.
         qpu:
             The qpu consisting of the original qubits and quantum operations.
         qubits:
-            The qubits to run the experiments on. May be either a single
+            The qubits to run the experiments on, passed by UID. May be either a single
             qubit or a list of qubits.
         temporary_parameters:
             The temporary parameters to update the qubits with.
@@ -155,7 +160,7 @@ def experiment_workflow(
 @dsl.qubit_experiment
 def create_experiment(
     qpu: QPU,
-    qubits: Qubits,
+    qubits: QuantumElements,
     options: QNDnessExperimentOptions | None = None,
 ) -> Experiment:
     """Creates a Measurement QND Experiment.

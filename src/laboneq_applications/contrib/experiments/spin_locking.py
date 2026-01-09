@@ -19,6 +19,7 @@ from typing import TYPE_CHECKING
 import attrs
 import numpy as np
 from laboneq import workflow
+from laboneq.dsl.quantum import QuantumParameters
 from laboneq.simple import Experiment, SweepParameter, dsl
 from laboneq.workflow.tasks import (
     compile_experiment,
@@ -28,6 +29,10 @@ from laboneq.workflow.tasks import (
 from laboneq_applications.core import validation
 from laboneq_applications.experiments.options import (
     TuneupExperimentOptions,
+)
+from laboneq_applications.tasks import (
+    temporary_qpu,
+    temporary_quantum_elements_from_qpu,
 )
 
 if TYPE_CHECKING:
@@ -73,9 +78,10 @@ class SpinLockingWorkflowOptions:
 def experiment_workflow(
     session: Session,
     qpu: QPU,
-    qubits: QuantumElements,
+    qubits: QuantumElements | list[str] | str,
     lengths: QubitSweepPoints,
     rel_amp: float | None = None,
+    temporary_parameters: dict[str, dict | QuantumParameters] | None = None,
     options: SpinLockingWorkflowOptions | None = None,
 ) -> None:
     """The Hahn echo Workflow.
@@ -86,13 +92,23 @@ def experiment_workflow(
     - [compile_experiment]()
     - [run_experiment]()
 
+    !!! version-changed "Changed in version 26.1.0."
+        The `temporary_parameters` positional argument was added in the
+        penultimate position. Note that this is a breaking change if
+        calling the experiment workflow with the `options` positional argument.
+
+    !!! version-changed "Deprecated in version 26.1.0."
+        The `qubits` argument of type `QuantumElements` is deprecated.
+        Please pass `qubits` of type `list[str] | str` instead, i.e., the quantum
+        element UIDs instead of the quantum element instances.
+
     Arguments:
         session:
             The connected session to use for running the experiment.
         qpu:
             The qpu consisting of the original qubits and quantum operations.
         qubits:
-            The qubits to run the experiments on. May be either a single
+            The qubits to run the experiments on, passed by UID. May be either a single
             qubit or a list of qubits.
         lengths:
             The delays to sweep over for each qubit. Note that `delays` must be
@@ -101,6 +117,8 @@ def experiment_workflow(
             The relative amplitude specifies the spin_locking pulse amplitude
             relative to the pi-pulse amplitude. Default is None and corresponds to
             the pi pulse amplitude of the specified transition.
+        temporary_parameters:
+            The temporary parameters to update the qubits with.
         options:
             The options for building the workflow.
             In addition to options from [WorkflowOptions], the following
@@ -130,6 +148,8 @@ def experiment_workflow(
         ).run()
         ```
     """
+    temp_qpu = temporary_qpu(qpu, temporary_parameters)
+    qubits = temporary_quantum_elements_from_qpu(temp_qpu, qubits)
     exp = create_experiment(
         qpu,
         qubits,

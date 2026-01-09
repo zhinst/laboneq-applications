@@ -88,7 +88,8 @@ def experiment_workflow(
         qpu:
             The QPU consisting of the original qubits, coupler, and quantum operations.
         qubit_pairs:
-            The two qubits on which to run the experiment.
+            The qubit pairs on which to run the experiment, passed as a list of UID
+            lists.
         biases:
             The DC voltage biases applied to the coupler. This is the inner sweep
             parameter (fast axis).

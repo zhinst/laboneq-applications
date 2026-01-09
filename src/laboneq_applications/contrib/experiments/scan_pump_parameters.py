@@ -51,7 +51,7 @@ if TYPE_CHECKING:
 def experiment_workflow(
     session: Session,
     qpu: QPU,
-    parametric_amplifier: TWPA,
+    parametric_amplifier: TWPA | str,
     pump_frequency: ArrayLike,
     pump_power: ArrayLike,
     temporary_parameters: dict[str, dict | TWPAParameters] | None = None,
@@ -67,6 +67,11 @@ def experiment_workflow(
     - [analysis_workflow]()
     - [update_qpu]()
 
+    !!! version-changed "Deprecated in version 26.1.0."
+        The `parametric_amplifier` argument of type `TWPA` is deprecated.
+        Please pass `parametric_amplifier` of type `str` instead, i.e., the quantum
+        element UID instead of the quantum element instance.
+
     Arguments:
         session:
             The connected session to use for running the experiment.
@@ -74,7 +79,7 @@ def experiment_workflow(
             The qpu consisting of the original parametric amplifiers
             and quantum operations.
         parametric_amplifier:
-            The parametric amplifier to run the experiments on.
+            The parametric amplifier to run the experiments on, passed by UID.
         pump_frequency:
             The pump frequencies to sweep over sent to the parametric amplifier.
             Must be a list of numbers or an array.

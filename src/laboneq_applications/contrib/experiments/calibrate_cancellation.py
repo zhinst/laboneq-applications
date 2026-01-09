@@ -53,7 +53,7 @@ if TYPE_CHECKING:
 def experiment_workflow(
     session: Session,
     qpu: QPU,
-    parametric_amplifier: TWPA,
+    parametric_amplifier: TWPA | str,
     cancel_phase: ArrayLike,
     cancel_attenuation: ArrayLike,
     temporary_parameters: dict[str, dict | TWPAParameters] | None = None,
@@ -69,13 +69,18 @@ def experiment_workflow(
     - [analysis_workflow]()
     - [update_qpu]()
 
+    !!! version-changed "Deprecated in version 26.1.0."
+        The `parametric_amplifier` argument of type `TWPA` is deprecated.
+        Please pass `parametric_amplifier` of type `str` instead, i.e., the quantum
+        element UID instead of the quantum element instance.
+
     Arguments:
         session:
             The connected session to use for running the experiment.
         qpu:
             The qpu consisting of the original pas and quantum operations.
         parametric_amplifier:
-            The parametric amplifier to run the experiments on.
+            The parametric amplifier to run the experiments on, passed by UID.
         cancel_phase:
             The phase shift of the cancellation tone.
             Must be a list of numbers or an array.

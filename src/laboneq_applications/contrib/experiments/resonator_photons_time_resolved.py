@@ -38,14 +38,17 @@ from laboneq_applications.experiments.options import (
     QubitSpectroscopyExperimentOptions,
     TuneUpWorkflowOptions,
 )
-from laboneq_applications.tasks.parameter_updating import temporary_modify
+from laboneq_applications.tasks.parameter_updating import (
+    temporary_qpu,
+    temporary_quantum_elements_from_qpu,
+)
 
 if TYPE_CHECKING:
     from laboneq.dsl.quantum import TransmonParameters
     from laboneq.dsl.quantum.qpu import QPU
     from laboneq.dsl.session import Session
 
-    from laboneq_applications.typing import QuantumElements, Qubits, QubitSweepPoints
+    from laboneq_applications.typing import QuantumElements, QubitSweepPoints
 
 
 # create additional options for the QNDness experiment
@@ -68,7 +71,7 @@ class ResonatorPhotonsExperimentOptions:
 def experiment_workflow(
     session: Session,
     qpu: QPU,
-    qubits: Qubits,
+    qubits: QuantumElements | list[str] | str,
     times: QubitSweepPoints,
     frequencies: QubitSweepPoints,
     temporary_parameters: dict[str, dict | TransmonParameters] | None = None,
@@ -83,13 +86,18 @@ def experiment_workflow(
     - [run_experiment]()
     - [analysis_workflow]()
 
+    !!! version-changed "Deprecated in version 26.1.0."
+        The `qubits` argument of type `QuantumElements` is deprecated.
+        Please pass `qubits` of type `list[str] | str` instead, i.e., the quantum
+        element UIDs instead of the quantum element instances.
+
     Arguments:
         session:
             The connected session to use for running the experiment.
         qpu:
             The QPU consisting of the original qubits and quantum operations.
         qubits:
-            The qubits to run the experiments on. May be either a single
+            The qubits to run the experiments on, passed by UID. May be either a single
             qubit or a list of qubits. Multi qubit operation is only possible
             with multiple QA channels.
         times:
@@ -148,7 +156,8 @@ def experiment_workflow(
         ).run()
         ```
     """
-    qubits = temporary_modify(qubits, temporary_parameters)
+    temp_qpu = temporary_qpu(qpu, temporary_parameters)
+    qubits = temporary_quantum_elements_from_qpu(temp_qpu, qubits)
     exp = create_experiment(
         qpu,
         qubits,
