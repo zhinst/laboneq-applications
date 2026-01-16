@@ -1675,7 +1675,7 @@ wheels = [
 
 [[package]]
 name = "laboneq"
-version = "25.10.3"
+version = "26.1.0b4"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "attrs" },
@@ -1705,6 +1705,7 @@ dependencies = [
     { name = "sortedcollections" },
     { name = "sortedcontainers" },
     { name = "sqlitedict" },
+    { name = "typeguard" },
     { name = "typing-extensions" },
     { name = "zhinst-comms" },
     { name = "zhinst-comms-schemas" },
@@ -1714,10 +1715,10 @@ dependencies = [
     { name = "zhinst-utils" },
 ]
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/78/82/dc526091142530117c3665a3d37cf6bd0afbfcf053319a771cd8f95e1149/laboneq-25.10.3-cp310-abi3-macosx_10_12_x86_64.macosx_11_0_arm64.macosx_10_12_universal2.whl", hash = "sha256:eee514368b3b06920bb974c7b87fa697aef472cd238bb60eeeb27bdac4b5d3a1", size = 4899217, upload-time = "2025-12-10T13:48:56.695Z" },
-    { url = "https://files.pythonhosted.org/packages/ee/fb/69269690b9e7d721f69f58d6931a95d04ba0dc49729179268c9fe72be69d/laboneq-25.10.3-cp310-abi3-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:60aaa68846d40af985661e3896c115007ece8e574d953e47815d406817ac71f2", size = 2880828, upload-time = "2025-12-10T13:48:59.164Z" },
-    { url = "https://files.pythonhosted.org/packages/5f/e6/3f247ecac0763c05d4ca744635f80a1dfaf839b5f95ddbfdcdbd1c24f537/laboneq-25.10.3-cp310-abi3-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:5ecfe244279680b3036325962c0c1ed0244630b1d132e80611ff7dbe6410b67b", size = 3002059, upload-time = "2025-12-10T13:49:01.238Z" },
-    { url = "https://files.pythonhosted.org/packages/b9/99/6df3f094663f59a33366d6f40549a7e7beab4ddd85dd5c07ecbd687031ed/laboneq-25.10.3-cp310-abi3-win_amd64.whl", hash = "sha256:8965b17eaabd8a15f88c0fe612ac69c46902883c92b5c51dff9f408e95eede31", size = 2871802, upload-time = "2025-12-10T13:49:03.367Z" },
+    { url = "https://files.pythonhosted.org/packages/81/fd/70b4ccabb4f2de13b76df7194d4d64270842e154d539e5d67a6ea8215f1e/laboneq-26.1.0b4-cp310-abi3-macosx_10_12_x86_64.macosx_11_0_arm64.macosx_10_12_universal2.whl", hash = "sha256:199224c8789fb2b190c6a9f7615397843a2d7c53b5b9c46f4950c569835b3b73", size = 5248702, upload-time = "2026-01-16T09:56:26.967Z" },
+    { url = "https://files.pythonhosted.org/packages/1d/3a/18f8cac54847db9ab691bb37bbbe6b48ad4d89720182f0174c199f1ab90b/laboneq-26.1.0b4-cp310-abi3-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:310f831730912958ff569cf5a238331334f70e6ba81413ee26cdf5a759a5fa8c", size = 3022656, upload-time = "2026-01-16T09:56:32.137Z" },
+    { url = "https://files.pythonhosted.org/packages/64/ce/b6ada7eac5b080397fcc2bcc9f9682f506c097a8d054b84f6a8f8db731b8/laboneq-26.1.0b4-cp310-abi3-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:7655bfc161002861ad3877a6e56a35980f888edf5932fee2ebd5ff1891e3516d", size = 3174712, upload-time = "2026-01-16T09:56:22.26Z" },
+    { url = "https://files.pythonhosted.org/packages/90/20/91e066c9c497e0198f44399dd42c8fbc6a1077ae724e46b562d7081268c1/laboneq-26.1.0b4-cp310-abi3-win_amd64.whl", hash = "sha256:59b7ce0e20ef2800ff2c42ccd1f218c36bc554a39bcf8cebd98d470ba3934c84", size = 3042468, upload-time = "2026-01-16T09:56:29.399Z" },
 ]
 
 [[package]]
@@ -1766,7 +1767,7 @@ tools = [
 
 [package.metadata]
 requires-dist = [
-    { name = "laboneq", specifier = ">=2.58.0" },
+    { name = "laboneq", specifier = "==26.1.0b4" },
     { name = "lmfit", specifier = ">=1.3.0" },
     { name = "matplotlib", specifier = ">=3.10" },
     { name = "numpy", specifier = ">=2" },
@@ -2172,11 +2173,11 @@ wheels = [
 
 [[package]]
 name = "multimethod"
-version = "2.0"
+version = "2.0.2"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/55/14/34e8c84ba4f1ab1186dc07426e0e84be71d3336cc57e8d076ee14331d50e/multimethod-2.0.tar.gz", hash = "sha256:c628b6d2e7d61fbe58484dd884d990901e8314faf58af062e72b65e3423cb109", size = 16065, upload-time = "2024-12-27T02:09:34.423Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/b1/2d/6274e03d1d656f329f3546140a536fc728b68a1ef123d0deebc751541473/multimethod-2.0.2.tar.gz", hash = "sha256:4f753e9ef0eb08f25037fb7d04f3de22547716c4af257a978e1c4d660edab8f4", size = 15657, upload-time = "2025-11-18T01:16:33.222Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/84/42/a285fc4b89b3a249538954779cd4082a85bf35dc7d0a9c93e48e146e3dc7/multimethod-2.0-py3-none-any.whl", hash = "sha256:45aa231dc9dbb7f980c0f2ad8179e2c2b72a8cd5c7d7534337be66dde29d35be", size = 9836, upload-time = "2024-12-27T02:09:31.671Z" },
+    { url = "https://files.pythonhosted.org/packages/e2/3d/44e60142e058f7e41d0ab19e7f5cc9d77a00833fd6f0197dbbd4f13c0321/multimethod-2.0.2-py3-none-any.whl", hash = "sha256:e6e61347765ec0c154aef827bd6952a685a6693eb9d927fb530a6c364c77939e", size = 9561, upload-time = "2025-11-18T01:16:31.811Z" },
 ]
 
 [[package]]
@@ -4527,6 +4528,18 @@ wheels = [
 ]
 
 [[package]]
+name = "typeguard"
+version = "4.4.4"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "typing-extensions" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/c7/68/71c1a15b5f65f40e91b65da23b8224dad41349894535a97f63a52e462196/typeguard-4.4.4.tar.gz", hash = "sha256:3a7fd2dffb705d4d0efaed4306a704c89b9dee850b688f060a8b1615a79e5f74", size = 75203, upload-time = "2025-06-18T09:56:07.624Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/1b/a9/e3aee762739c1d7528da1c3e06d518503f8b6c439c35549b53735ba52ead/typeguard-4.4.4-py3-none-any.whl", hash = "sha256:b5f562281b6bfa1f5492470464730ef001646128b180769880468bd84b68b09e", size = 34874, upload-time = "2025-06-18T09:56:05.999Z" },
+]
+
+[[package]]
 name = "typing-extensions"
 version = "4.15.0"
 source = { registry = "https://pypi.org/simple" }
@@ -4988,7 +5001,7 @@ wheels = [
 
 [[package]]
 name = "zhinst-comms-schemas"
-version = "0.0.1"
+version = "4.0.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "numpy", version = "2.2.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
@@ -4997,9 +5010,9 @@ dependencies = [
     { name = "typing-extensions" },
     { name = "zhinst-comms" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/9d/03/cee3967ddba8e056887c6111282437c974bde1c2f58d0987e7974af09036/zhinst_comms_schemas-0.0.1.tar.gz", hash = "sha256:096e5b94d67c965f461bfa257907fc3ce99dc876de4be9f2eee7eb9f724587a2", size = 103920, upload-time = "2025-01-27T15:59:30.988Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/dd/4b/1f4ed2a9293d10ca9f9cc58cc252ae702dc576c0c38ffaa952c4834a241e/zhinst_comms_schemas-4.0.0.tar.gz", hash = "sha256:7a061c730ee42e9a9976072fe642715512cf470437587c38f8f85c9b2b0e7ca7", size = 104345, upload-time = "2025-10-13T12:10:50.627Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/dd/37/dd7a4f433b08a3e35f87a83b7c6e486ba59d68f5174d5e78d32a805375bd/zhinst_comms_schemas-0.0.1-py3-none-any.whl", hash = "sha256:9a314581cbf8d27eecf5a6018fb32c726b7af775571c6cb61bf3732c87dc07ee", size = 79331, upload-time = "2025-01-27T15:59:29.428Z" },
+    { url = "https://files.pythonhosted.org/packages/7f/16/8eafb8780f7d8f99c8d400727dd8545e9fa9c9a699068b762f0a7e8b3b52/zhinst_comms_schemas-4.0.0-py3-none-any.whl", hash = "sha256:288837272387682a95d528f4153ef1e8a77c31f3011ec1abf1a455dc303cdea1", size = 79460, upload-time = "2025-10-13T12:10:48.959Z" },
 ]
 
 [[package]]
@@ -5054,7 +5067,7 @@ wheels = [
 
 [[package]]
 name = "zhinst-toolkit"
-version = "1.1.0"
+version = "1.2.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "jsonref" },
@@ -5066,9 +5079,9 @@ dependencies = [
     { name = "zhinst-core" },
     { name = "zhinst-utils" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/37/00/b4c7351ab9def114044b2822aa553cb1c73d408940865fc1b5a957479520/zhinst_toolkit-1.1.0.tar.gz", hash = "sha256:da02a656738ae6d09094c94f5005538fdcbf365b294a9418771d1a876c87b6fe", size = 802212, upload-time = "2025-07-31T12:21:14.377Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/77/96/f3068f4cd1b7ab0d13fa2cf88e58c8959fea71fbd7950e0a137b710658bd/zhinst_toolkit-1.2.0.tar.gz", hash = "sha256:a300fbae6eec58efbe44735f0875fcc93ee18ce43d458d41a0f4c8e36f2cd63e", size = 802341, upload-time = "2025-11-03T08:41:36.117Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/a8/60/ce141277ae9e8b34bc3360aafe3cc9acc9303810b49a9ec4374307d14d97/zhinst_toolkit-1.1.0-py3-none-any.whl", hash = "sha256:c1ae5855e407f5626ccd5d14d0def57fe1a4d2cc71bc6f55817b5f8cf1135f2d", size = 112765, upload-time = "2025-07-31T12:21:15.853Z" },
+    { url = "https://files.pythonhosted.org/packages/1b/f6/28cede6a96531e6ecaaca53fd931c5a589c29043fdbe7fcb1f2d683e1a9a/zhinst_toolkit-1.2.0-py3-none-any.whl", hash = "sha256:0a5e71e6a1b084cb1aac1d03dba057e7b36dfb8ab0ee705d1787840a8bd85d70", size = 112867, upload-time = "2025-11-03T08:41:37.527Z" },
 ]
 
 [[package]]
