@@ -210,7 +210,7 @@ def create_experiment(
             e_biases,
             axis_name=f"{e.quantum_element.uid}",
         )
-        for e, e_biases in zip(edges, biases)
+        for e, e_biases in zip(edges, biases, strict=False)
     ]
 
     delay_sweep_pars = [
@@ -219,7 +219,7 @@ def create_experiment(
             e_delays,
             axis_name=f"{e.quantum_element.uid}",
         )
-        for e, e_delays in zip(edges, delays)
+        for e, e_delays in zip(edges, delays, strict=False)
     ]
 
     qop = qpu.quantum_operations
@@ -242,7 +242,7 @@ def create_experiment(
                 parameter=delay_sweep_pars,
             ):
                 with dsl.section(name="main", alignment=SectionAlignment.RIGHT):
-                    for e, e_delays in zip(edges, delay_sweep_pars):
+                    for e, e_delays in zip(edges, delay_sweep_pars, strict=False):
                         with dsl.section(
                             name=f"rotate1_{e.source_node}",
                             alignment=SectionAlignment.LEFT,
@@ -294,5 +294,5 @@ def create_experiment(
                 )
 
     calibration = dsl.experiment_calibration()
-    for e, bias in zip(edges, bias_sweep_pars):
+    for e, bias in zip(edges, bias_sweep_pars, strict=False):
         calibration[e.quantum_element.signals["flux"]].voltage_offset = bias

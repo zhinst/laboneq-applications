@@ -330,7 +330,7 @@ def plot_raw_complex_data_1d(
     qubits, delays = validate_and_convert_qubits_sweeps(qubits, delays)
 
     figures = {}
-    for q, qubit_delays in zip(qubits, delays):
+    for q, qubit_delays in zip(qubits, delays, strict=False):
         echo_pulse_length = (
             q.parameters.ef_drive_length
             if "f" in opts.transition

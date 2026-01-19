@@ -5,13 +5,6 @@ lint:python:
   rules:
     - !reference [.non_triggered]
 
-lint:notebooks:docs:
-  stage: pre-build
-  script:
-    - uv run --only-group tools -- nbqa ruff docs/sources
-  rules:
-    - !reference [.non_triggered]
-
 notebooks:check_no_outputs:
   stage: pre-build
   script:

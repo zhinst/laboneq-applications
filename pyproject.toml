@@ -61,7 +61,6 @@ dev = [
 ]
 # Packages providing executables used during development.
 tools = [
-  "nbqa",
   "jupytext",
   "ruff == 0.12.4", # must match the version used in .pre-commit-config.yaml
   "towncrier >= 25.8.0",
@@ -86,8 +85,8 @@ testpaths = ["tests"]
 asyncio_default_fixture_loop_scope = "function"
 
 [tool.ruff]
-include = ["pyproject.toml", "src/**/*.py", "tests/**/*.py", "ci/**/*.py"]
-target-version = "py39"
+include = ["pyproject.toml", "src/**/*.py", "tests/**/*.py", "ci/**/*.py", "docs/sources/**/*.ipynb"]
+target-version = "py310"
 
 lint.select = ["ALL"]
 lint.ignore = [
@@ -172,8 +171,8 @@ lint.ignore = [
   # Missing __init__.py (notebooks don't have packages)
   "INP001",
 ]
-# Documentation notebooks (nbqa converts notebooks to .py)
-"docs/sources/**/*.py" = [
+# Documentation notebooks
+"docs/sources/**/*.ipynb" = [
   # Annotations
   "ANN",
   # Missing __init__.py (notebooks don't have packages)

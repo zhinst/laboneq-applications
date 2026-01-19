@@ -219,7 +219,7 @@ def calculate_qubit_population_2d(
     qubits, fast_axis = validate_and_convert_qubits_sweeps(qubits, fast_axis)
 
     processed_data_dict = {}
-    for q, q_slow, q_fast in zip(qubits, slow_axis, fast_axis):
+    for q, q_slow, q_fast in zip(qubits, slow_axis, fast_axis, strict=False):
         raw_data = result[q.uid].result.data
         if opts.use_cal_traces:
             calibration_traces = [

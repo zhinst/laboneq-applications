@@ -213,19 +213,6 @@ wheels = [
 ]
 
 [[package]]
-name = "autopep8"
-version = "2.3.2"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "pycodestyle" },
-    { name = "tomli", marker = "python_full_version < '3.11'" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/50/d8/30873d2b7b57dee9263e53d142da044c4600a46f2d28374b3e38b023df16/autopep8-2.3.2.tar.gz", hash = "sha256:89440a4f969197b69a995e4ce0661b031f455a9f776d2c5ba3dbd83466931758", size = 92210, upload-time = "2025-01-14T14:46:18.454Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/9e/43/53afb8ba17218f19b77c7834128566c5bbb100a0ad9ba2e8e89d089d7079/autopep8-2.3.2-py2.py3-none-any.whl", hash = "sha256:ce8ad498672c845a0c3de2629c15b635ec2b05ef8177a6e7c91c74f3e9b51128", size = 45807, upload-time = "2025-01-14T14:46:15.466Z" },
-]
-
-[[package]]
 name = "blinker"
 version = "1.9.0"
 source = { registry = "https://pypi.org/simple" }
@@ -1759,7 +1746,6 @@ notebooks = [
 ]
 tools = [
     { name = "jupytext" },
-    { name = "nbqa" },
     { name = "ruff" },
     { name = "towncrier" },
 ]
@@ -1795,7 +1781,6 @@ notebooks = [
 ]
 tools = [
     { name = "jupytext" },
-    { name = "nbqa" },
     { name = "ruff", specifier = "==0.12.4" },
     { name = "towncrier", specifier = ">=25.8.0" },
 ]
@@ -2223,22 +2208,6 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/43/9a/aae201cee5639e1d562b3843af8fd9f8d018bb323e776a2b973bdd5fc64b/nbmake-1.5.5.tar.gz", hash = "sha256:239dc868ea13a7c049746e2aba2c229bd0f6cdbc6bfa1d22f4c88638aa4c5f5c", size = 85929, upload-time = "2024-12-23T18:33:46.774Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/eb/be/b257e12f9710819fde40adc972578bee6b72c5992da1bc8369bef2597756/nbmake-1.5.5-py3-none-any.whl", hash = "sha256:c6fbe6e48b60cacac14af40b38bf338a3b88f47f085c54ac5b8639ff0babaf4b", size = 12818, upload-time = "2024-12-23T18:33:44.566Z" },
-]
-
-[[package]]
-name = "nbqa"
-version = "1.9.1"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "autopep8" },
-    { name = "ipython", version = "8.38.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
-    { name = "ipython", version = "9.9.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
-    { name = "tokenize-rt" },
-    { name = "tomli" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/aa/76/62d2609924cf34445148cd6b5de694cf64c179cc416cac93182579620e57/nbqa-1.9.1.tar.gz", hash = "sha256:a1f4bcf587c597302fed295951001fc4e1be4ce0e77e1ab1b25ac2fbe3db0cdd", size = 38348, upload-time = "2024-11-10T12:21:58.333Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/28/88/4789719fbbe166d12d345b3ac66b96105f10001b16e00a9765ba29261a21/nbqa-1.9.1-py3-none-any.whl", hash = "sha256:95552d2f6c2c038136252a805aa78d85018aef922586270c3a074332737282e5", size = 35259, upload-time = "2024-11-10T12:21:56.731Z" },
 ]
 
 [[package]]
@@ -3177,15 +3146,6 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/12/d7/6610f34a8972415fab3bb4704c174a1cc477bffbc3c36e526428d0f3957d/pybase64-1.4.3-pp311-pypy311_pp73-manylinux1_x86_64.manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_5_x86_64.whl", hash = "sha256:2af6d0d3a691911cc4c9a625f3ddcd3af720738c21be3d5c72de05629139d393", size = 41294, upload-time = "2025-12-06T13:26:44.936Z" },
     { url = "https://files.pythonhosted.org/packages/64/25/ed24400948a6c974ab1374a233cb7e8af0a5373cea0dd8a944627d17c34a/pybase64-1.4.3-pp311-pypy311_pp73-manylinux2014_aarch64.manylinux_2_17_aarch64.whl", hash = "sha256:5cfc8c49a28322d82242088378f8542ce97459866ba73150b062a7073e82629d", size = 35447, upload-time = "2025-12-06T13:26:46.098Z" },
     { url = "https://files.pythonhosted.org/packages/ee/2b/e18ee7c5ee508a82897f021c1981533eca2940b5f072fc6ed0906c03a7a7/pybase64-1.4.3-pp311-pypy311_pp73-win_amd64.whl", hash = "sha256:debf737e09b8bf832ba86f5ecc3d3dbd0e3021d6cd86ba4abe962d6a5a77adb3", size = 36134, upload-time = "2025-12-06T13:26:47.35Z" },
-]
-
-[[package]]
-name = "pycodestyle"
-version = "2.14.0"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/11/e0/abfd2a0d2efe47670df87f3e3a0e2edda42f055053c85361f19c0e2c1ca8/pycodestyle-2.14.0.tar.gz", hash = "sha256:c4b5b517d278089ff9d0abdec919cd97262a3367449ea1c8b49b91529167b783", size = 39472, upload-time = "2025-06-20T18:49:48.75Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/d7/27/a58ddaf8c588a3ef080db9d0b7e0b97215cee3a45df74f3a94dbbf5c893a/pycodestyle-2.14.0-py2.py3-none-any.whl", hash = "sha256:dd6bf7cb4ee77f8e016f9c8e74a35ddd9f67e1d5fd4184d86c3b98e07099f42d", size = 31594, upload-time = "2025-06-20T18:49:47.491Z" },
 ]
 
 [[package]]
@@ -4394,15 +4354,6 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/b7/4d/08c89e34946fce2aec4fbb45c9016efd5f4d7f24af8e5d93296e935631d8/threadpoolctl-3.6.0.tar.gz", hash = "sha256:8ab8b4aa3491d812b623328249fab5302a68d2d71745c8a4c719a2fcaba9f44e", size = 21274, upload-time = "2025-03-13T13:49:23.031Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/32/d5/f9a850d79b0851d1d4ef6456097579a9005b31fea68726a4ae5f2d82ddd9/threadpoolctl-3.6.0-py3-none-any.whl", hash = "sha256:43a0b8fd5a2928500110039e43a5eed8480b918967083ea48dc3ab9f13c4a7fb", size = 18638, upload-time = "2025-03-13T13:49:21.846Z" },
-]
-
-[[package]]
-name = "tokenize-rt"
-version = "6.2.0"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/69/ed/8f07e893132d5051d86a553e749d5c89b2a4776eb3a579b72ed61f8559ca/tokenize_rt-6.2.0.tar.gz", hash = "sha256:8439c042b330c553fdbe1758e4a05c0ed460dbbbb24a606f11f0dee75da4cad6", size = 5476, upload-time = "2025-05-23T23:48:00.035Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/33/f0/3fe8c6e69135a845f4106f2ff8b6805638d4e85c264e70114e8126689587/tokenize_rt-6.2.0-py2.py3-none-any.whl", hash = "sha256:a152bf4f249c847a66497a4a95f63376ed68ac6abf092a2f7cfb29d044ecff44", size = 6004, upload-time = "2025-05-23T23:47:58.812Z" },
 ]
 
 [[package]]

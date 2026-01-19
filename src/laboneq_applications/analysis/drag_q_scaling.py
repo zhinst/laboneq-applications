@@ -178,7 +178,7 @@ def calculate_qubit_population_for_pulse_ids(
     opts = CalculateQubitPopulationOptions() if options is None else options
     qubits, q_scalings = validate_and_convert_qubits_sweeps(qubits, q_scalings)
     processed_data_dict = {}
-    for q, qscales in zip(qubits, q_scalings):
+    for q, qscales in zip(qubits, q_scalings, strict=False):
         processed_data_dict[q.uid] = {}
         if opts.use_cal_traces:
             calibration_traces = [

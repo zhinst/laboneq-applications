@@ -282,7 +282,7 @@ def calculate_signal_magnitude_and_phase(
     qubits, frequencies = validate_and_convert_qubits_sweeps(qubits, frequencies)
     validate_result(result)
     proc_data_dict = {}
-    for q, freqs in zip(qubits, frequencies):
+    for q, freqs in zip(qubits, frequencies, strict=False):
         raw_data = result[dsl.handles.result_handle(q.uid)].data
         proc_data_dict[q.uid] = {
             "sweep_points": freqs,

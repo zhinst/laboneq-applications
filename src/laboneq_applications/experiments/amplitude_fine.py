@@ -257,7 +257,7 @@ def create_experiment(
 
     reps_sweep_pars = [
         SweepParameter(f"repetitions_{q.uid}", q_reps, axis_name=f"{q.uid}")
-        for q, q_reps in zip(qubits, repetitions)
+        for q, q_reps in zip(qubits, repetitions, strict=False)
     ]
     # We will fix the length of the measure section to the longest section among
     # the qubits to allow the qubits to have different readout and/or

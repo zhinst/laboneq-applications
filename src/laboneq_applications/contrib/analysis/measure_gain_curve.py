@@ -157,7 +157,7 @@ def fit_data(
     z = data - ref
 
     max_gain = maximum_filter(z, size=z.shape)
-    for i, j in zip(*np.where(max_gain == z)):
+    for i, j in zip(*np.where(max_gain == z), strict=False):
         fit_results["max_gain_probe_freq"] = x[j]
         fit_results["max_gain_pump_power"] = y[i]
         fit_results["max_gain"] = z[i, j]

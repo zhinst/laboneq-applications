@@ -200,7 +200,7 @@ def plot_raw_complex_data_1d(
         figsize_default = plt.rcParams["figure.figsize"]
         figure_size_raw_data = [0.75 * figsize_default[0], 1.5 * figsize_default[1]]
     figures = {}
-    for q, swpts in zip(qubits, sweep_points):
+    for q, swpts in zip(qubits, sweep_points, strict=False):
         fig, axs = plt.subplots(nrows=2, figsize=figure_size_raw_data, sharex=True)
         fig.align_labels()
         fig.subplots_adjust(hspace=0.1)
@@ -411,7 +411,7 @@ def plot_raw_complex_data_2d(
     figure_size_raw_data = opts.figure_size_raw_data
     if figure_size_raw_data is None:
         figure_size_raw_data = plt.rcParams["figure.figsize"]
-    for q, sp_1d, sp_2d in zip(qubits, sweep_points_1d, sweep_points_2d):
+    for q, sp_1d, sp_2d in zip(qubits, sweep_points_1d, sweep_points_2d, strict=False):
         raw_data_collection = _get_raw_data_collection(raw_result, q)
         figures[q.uid] = {}
         for k, acquired_results in raw_data_collection:
@@ -556,7 +556,7 @@ def plot_signal_magnitude_and_phase_2d(
     figure_size = opts.figure_size_magnitude_phase
     if figure_size is None:
         figure_size = plt.rcParams["figure.figsize"]
-    for q, sp_1d, sp_2d in zip(qubits, sweep_points_1d, sweep_points_2d):
+    for q, sp_1d, sp_2d in zip(qubits, sweep_points_1d, sweep_points_2d, strict=False):
         raw_data_collection = _get_raw_data_collection(raw_result, q)
 
         figures[q.uid] = {}

@@ -108,7 +108,9 @@ class ExpectedDSLStructure:
             if not self._careful_equals(obj_attr, v):
                 return False
 
-        for child, expected_child in zip(children, self.expected_children):
+        for child, expected_child in zip(
+            children, self.expected_children, strict=False
+        ):
             if child != expected_child:
                 return False
 
@@ -150,7 +152,9 @@ class ExpectedDSLStructure:
         if isinstance(obj_attr, (list, tuple)):
             if len(obj_attr) != len(v):
                 return False
-            return all(self._careful_equals(a, b) for a, b in zip(obj_attr, v))
+            return all(
+                self._careful_equals(a, b) for a, b in zip(obj_attr, v, strict=False)
+            )
         if isinstance(obj_attr, SweepParameter):
             # TODO: Remove this work around once the __eq__ methods of the
             #       sweep parameter classes are fixed in laboneq.
@@ -228,7 +232,9 @@ class ExpectedDSLStructure:
                 elif not self._careful_equals(obj_attr, v):
                     diff.append(f".{k}: {obj_attr!r} != {v!r}")
 
-        for child, expected_child in zip(children, self.expected_children):
+        for child, expected_child in zip(
+            children, self.expected_children, strict=False
+        ):
             diff.extend(expected_child.compare(child, indent + 1))
 
         obj_name = f"{type(obj).__name__}: {getattr(obj, 'uid', '???')}"

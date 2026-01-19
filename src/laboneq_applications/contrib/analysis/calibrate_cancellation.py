@@ -126,7 +126,7 @@ def fit_data(
     z = data - ref
 
     min_pump_tone = minimum_filter(z, size=z.shape)
-    for i, j in zip(*np.where(min_pump_tone == z)):
+    for i, j in zip(*np.where(min_pump_tone == z), strict=False):
         fit_results["cancel_phaseshift"] = x[j]
         fit_results["cancel_attenuation"] = y[i]
         fit_results["max_cancel"] = z[i, j]

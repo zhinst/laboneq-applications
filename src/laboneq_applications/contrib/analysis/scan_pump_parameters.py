@@ -226,7 +226,7 @@ def fit_data(
     y = pump_power
     z = signal_pump_on - signal_pump_off
     max_gain = maximum_filter(z, size=z.shape)
-    for i, j in zip(*np.where(max_gain == z)):
+    for i, j in zip(*np.where(max_gain == z), strict=False):
         fit_results["max_gain_pump_freq"] = x[j]
         fit_results["max_gain_pump_power"] = y[i]
         fit_results["max_gain"] = z[i, j]
@@ -238,13 +238,13 @@ def fit_data(
         z_snr = z - z_noise
 
         min_nr = minimum_filter(z_noise, size=z_noise.shape)
-        for i, j in zip(*np.where(z_noise == min_nr)):
+        for i, j in zip(*np.where(z_noise == min_nr), strict=False):
             fit_results["min_noise_pump_freq"] = x[j]
             fit_results["min_noise_pump_power"] = y[i]
             fit_results["min_noise"] = z[i, j]
 
         max_snr = maximum_filter(z_snr, size=z_snr.shape)
-        for i, j in zip(*np.where(max_snr == z_snr)):
+        for i, j in zip(*np.where(max_snr == z_snr), strict=False):
             fit_results["max_SNR_pump_freq"] = x[j]
             fit_results["max_SNR_pump_power"] = y[i]
             fit_results["max_snr"] = z_snr[i, j]

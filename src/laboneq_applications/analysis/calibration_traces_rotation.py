@@ -390,7 +390,7 @@ def calculate_qubit_population(
     validate_result(result)
     qubits, sweep_points = validate_and_convert_qubits_sweeps(qubits, sweep_points)
     processed_data_dict = {}
-    for q, swpts in zip(qubits, sweep_points):
+    for q, swpts in zip(qubits, sweep_points, strict=False):
         raw_data = result[dsl.handles.result_handle(q.uid)].data
         if opts.use_cal_traces:
             calibration_traces = [
@@ -561,7 +561,7 @@ def calculate_qubit_population_2d(
         qubits, sweep_points_2d
     )
     processed_data_dict = {}
-    for q, sp_1d, sp_2d in zip(qubits, sweep_points_1d, sweep_points_2d):
+    for q, sp_1d, sp_2d in zip(qubits, sweep_points_1d, sweep_points_2d, strict=False):
         raw_data = result[dsl.handles.result_handle(q.uid)].data
         if opts.use_cal_traces:
             calibration_traces = [

@@ -317,7 +317,7 @@ def create_experiment(
         repetition_time=opts.repetition_time,
         reset_oscillator_phase=opts.reset_oscillator_phase,
     ):
-        for q, q_indices in zip(qubits, indices):
+        for q, q_indices in zip(qubits, indices, strict=False):
             with dsl.sweep(
                 name=f"rb_{q.uid}",
                 parameter=SweepParameter(f"index_{q.uid}", q_indices),

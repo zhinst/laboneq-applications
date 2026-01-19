@@ -234,7 +234,7 @@ def create_experiment(
 
     delays_sweep_pars = [
         SweepParameter(f"delays_{q.uid}", q_delays, axis_name=f"{q.uid}")
-        for q, q_delays in zip(qubits, delays)
+        for q, q_delays in zip(qubits, delays, strict=False)
     ]
     # We will fix the length of the measure section to the longest section among
     # the qubits to allow the qubits to have different readout and/or
@@ -262,7 +262,7 @@ def create_experiment(
                 )
             with dsl.section(name="main", alignment=SectionAlignment.RIGHT):
                 with dsl.section(name="main_drive", alignment=SectionAlignment.RIGHT):
-                    for q, delay in zip(qubits, delays_sweep_pars):
+                    for q, delay in zip(qubits, delays_sweep_pars, strict=False):
                         qop.prepare_state.omit_section(q, opts.transition[0])
                         qop.ramsey(
                             q,

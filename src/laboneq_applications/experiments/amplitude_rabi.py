@@ -232,7 +232,7 @@ def create_experiment(
 
     amps_sweep_pars = [
         SweepParameter(f"amplitude_{q.uid}", q_amplitudes, axis_name=f"{q.uid}")
-        for q, q_amplitudes in zip(qubits, amplitudes)
+        for q, q_amplitudes in zip(qubits, amplitudes, strict=False)
     ]
     # We will fix the length of the measure section to the longest section among
     # the qubits to allow the qubits to have different readout and/or
@@ -260,7 +260,7 @@ def create_experiment(
                 )
             with dsl.section(name="main", alignment=SectionAlignment.RIGHT):
                 with dsl.section(name="main_drive", alignment=SectionAlignment.RIGHT):
-                    for q, q_amplitudes in zip(qubits, amps_sweep_pars):
+                    for q, q_amplitudes in zip(qubits, amps_sweep_pars, strict=False):
                         qop.prepare_state.omit_section(q, state=opts.transition[0])
                         sec = qop.x180(
                             q, amplitude=q_amplitudes, transition=opts.transition

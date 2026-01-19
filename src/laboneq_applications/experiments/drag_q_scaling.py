@@ -248,7 +248,7 @@ def create_experiment(
     phase_overrides = [0.0, np.pi / 2, -np.pi / 2]
     qscaling_sweep_pars = [
         SweepParameter(f"amplitude_{q.uid}", q_qscales, axis_name=f"{q.uid}")
-        for q, q_qscales in zip(qubits, q_scalings)
+        for q, q_qscales in zip(qubits, q_scalings, strict=False)
     ]
 
     # We will fix the length of the measure section to the longest section among
@@ -280,7 +280,7 @@ def create_experiment(
                     with dsl.section(
                         name="main_drive", alignment=SectionAlignment.RIGHT
                     ):
-                        for q, beta in zip(qubits, qscaling_sweep_pars):
+                        for q, beta in zip(qubits, qscaling_sweep_pars, strict=False):
                             pulse_id = pulse_ids[i]
                             phase = phase_overrides[i]
                             qop.prepare_state.omit_section(q, opts.transition[0])

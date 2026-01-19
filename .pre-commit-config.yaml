@@ -3,7 +3,6 @@ repos:
     rev: v0.12.4 # must match the version used in pyproject.toml
     hooks:
       - id: ruff
-        exclude: ^docs/
       - id: ruff-format
         exclude: ^docs/
   - repo: local
@@ -14,16 +13,6 @@ repos:
         language: system
         types: [python]
         pass_filenames: false
-  - repo: https://github.com/nbQA-dev/nbQA
-    rev: 1.9.1
-    hooks:
-      - id: nbqa
-        name: nbqa-ruff
-        entry: nbqa ruff
-        additional_dependencies: [ruff==0.12.4]
-        language: python
-        types: [jupyter]
-        files: ^docs/sources/
   - repo: https://github.com/astral-sh/uv-pre-commit
     rev: 0.9.7 # uv version
     hooks:

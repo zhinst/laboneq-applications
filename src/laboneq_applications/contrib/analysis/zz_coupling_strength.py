@@ -417,7 +417,7 @@ def extract_edge_parameters(
         "new_parameter_values": {c.uid: {} for c in couplers},
     }
 
-    for q, c in zip(qubits, couplers):
+    for q, c in zip(qubits, couplers, strict=False):
         # Extract biases
         biases = processed_data_dict[q.uid]["sweep_points_2d"]
 
@@ -470,7 +470,7 @@ def plot_fitted_frequencies(
         fitted_frequencies_to_plot = []
         fitted_decay_cnsts = []
 
-        for result, bias in zip(results, biases):
+        for result, bias in zip(results, biases, strict=False):
             if result is not None:
                 try:
                     fitted_frequencies_to_plot.append(
