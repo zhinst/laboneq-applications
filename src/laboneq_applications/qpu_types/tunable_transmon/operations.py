@@ -227,7 +227,9 @@ class TunableTransmonOperations(dsl.QuantumOperations):
         q: TunableTransmonQubit,
         handle: str,
         readout_pulse: dict | None = None,
-        kernel_pulses: list[dict] | Literal["default"] | None = None,
+        kernel_pulses: list[dict]
+        | Literal["default", "continuous", "optimal"]
+        | None = None,
     ) -> None:
         """Perform a measurement on the qubit.
 
@@ -251,20 +253,31 @@ class TunableTransmonOperations(dsl.QuantumOperations):
 
                 Otherwise the values override or extend the existing ones.
             kernel_pulses:
-                A list of dictionaries describing the pulse parameters for
-                the integration kernels, or "default" or `None`.
+                Custom definitions for the kernel pulses, passed as a list of
+                pulse dictionaries, or one of the values "default", "optimal",
+                or "continuous".
+
+                If not specified or `None`, the qubit's
+                `readout_integration_kernels_type` is used to select one
+                of "default", "optimal" or "continuous".
+
+                If `"default"` is passed, a constant integration
+                kernel of length equal to the qubit's
+                `readout_integration_length` parameter is used.
+
+                If `"optimal"` is passed, the kernels specified by
+                the qubit's `readout_integration_kernels` parameter are
+                used.
+
+                If `"continuous"` is passed, the hardware integrates for the
+                entire integration length, weighting all samples equally. This
+                is useful for very long integrations, where the device has
+                insufficient memory to store an entire integration pulse.
 
                 If a list of dictionaries is past, each dictionary must
                 completely specify a kernel pulse and its parameters (i.e.
                 they must include the `function` parameter and all of its
                 arguments).
-
-                If the string "default" is passed, a constant integration
-                kernel of length equal to the qubit's
-                `readout_integration_length` parameter is used.
-
-                If not specified or `None`, the kernels specified in the
-                qubit's `readout_integration_kernels` are used.
         """
         measure_line, ro_params = q.readout_parameters()
         acquire_line, ro_int_params = q.readout_integration_parameters()
@@ -291,7 +304,9 @@ class TunableTransmonOperations(dsl.QuantumOperations):
         self,
         q: TunableTransmonQubit,
         handle: str,
-        kernel_pulses: list[dict] | Literal["default"] | None = None,
+        kernel_pulses: list[dict]
+        | Literal["default", "optimal", "continuous"]
+        | None = None,
     ) -> None:
         """Perform an acquisition on the qubit.
 
@@ -304,20 +319,31 @@ class TunableTransmonOperations(dsl.QuantumOperations):
             handle:
                 The handle to store the acquisition results in.
             kernel_pulses:
-                A list of dictionaries describing the pulse parameters for
-                the integration kernels, or "default" or `None`.
+                Custom definitions for the kernel pulses, passed as a list of
+                pulse dictionaries, or one of the values "default", "optimal",
+                or "continuous".
+
+                If not specified or `None`, the qubit's
+                `readout_integration_kernels_type` is used to select one
+                of "default", "optimal" or "continuous".
+
+                If `"default"` is passed, a constant integration
+                kernel of length equal to the qubit's
+                `readout_integration_length` parameter is used.
+
+                If `"optimal"` is passed, the kernels specified by
+                the qubit's `readout_integration_kernels` parameter are
+                used.
+
+                If `"continuous"` is passed, the hardware integrates for the
+                entire integration length, weighting all samples equally. This
+                is useful for very long integrations, where the device has
+                insufficient memory to store an entire integration pulse.
 
                 If a list of dictionaries is past, each dictionary must
                 completely specify a kernel pulse and its parameters (i.e.
                 they must include the `function` parameter and all of its
                 arguments).
-
-                If the string "default" is passed, a constant integration
-                kernel of length equal to the qubit's
-                `readout_integration_length` parameter is used.
-
-                If not specified or `None`, the kernels specified in the
-                qubit's `readout_integration_kernels` are used.
         """
         acquire_line, ro_int_params = q.readout_integration_parameters()
         kernels = q.get_integration_kernels(kernel_pulses)

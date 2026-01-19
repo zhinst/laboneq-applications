@@ -216,7 +216,11 @@ def create_experiment(
         ) as frequency:
             qop.set_frequency(qubit, frequency=frequency, readout=True)
             if opts.use_cw:
-                qop.acquire(qubit, dsl.handles.result_handle(qubit.uid))
+                qop.acquire(
+                    qubit,
+                    handle=dsl.handles.result_handle(qubit.uid),
+                    kernel_pulses="continuous",
+                )
             else:
-                qop.measure(qubit, dsl.handles.result_handle(qubit.uid))
+                qop.measure(qubit, handle=dsl.handles.result_handle(qubit.uid))
             qop.delay(qubit, opts.spectroscopy_reset_delay)

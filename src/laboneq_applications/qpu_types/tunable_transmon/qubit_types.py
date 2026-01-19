@@ -346,26 +346,39 @@ class TunableTransmonQubit(QuantumElement):
 
     def get_integration_kernels(
         self,
-        kernel_pulses: list[dict] | str | None = None,
+        kernel_pulses: list[dict]
+        | Literal["default", "optimal", "continuous"]
+        | None = None,
     ) -> list[Pulse]:
         """Create readout integration kernels for the transmon.
 
         Arguments:
             kernel_pulses:
                 Custom definitions for the kernel pulses, passed as a list of
-                pulse dictionaries, or the values "default" or "optimal".
+                pulse dictionaries, or one of the values "default", "optimal",
+                or "continuous".
 
-        If `kernel_pulses` are passed as a list of pulse dictionaries, they are
-        returned as pulse functionals.
+                If not specified or `None`, the qubit's
+                `readout_integration_kernels_type` is used to select one
+                of "default", "optimal" or "continuous".
 
-        The special value `"optimal"` for `kernel_pulses` or for
-        `readout_integration_kernels_type` if kernel_pulses is None, returns
-        `TunableTransmonParameters.readout_integration_kernels`.
+                If `"default"` is passed, a constant integration
+                kernel of length equal to the qubit's
+                `readout_integration_length` parameter is used.
 
-        The special value `"default"` for either `kernel_pulses` or
-        `readout_integration_kernels_type` parameter returns
-        the default kernels from `.default_integration_kernels()`.
+                If `"optimal"` is passed, the kernels specified by
+                the qubit's `readout_integration_kernels` parameter are
+                used.
 
+                If `"continuous"` is passed, the hardware integrates for the
+                entire integration length, weighting all samples equally. This
+                is useful for very long integrations, where the device has
+                insufficient memory to store an entire integration pulse.
+
+                If a list of dictionaries is past, each dictionary must
+                completely specify a kernel pulse and its parameters (i.e.
+                they must include the `function` parameter and all of its
+                arguments).
 
         Returns:
             A list of integration kernel pulses.
@@ -373,7 +386,9 @@ class TunableTransmonQubit(QuantumElement):
         if kernel_pulses is None:
             kernel_pulses = self.parameters.readout_integration_kernels_type
 
-        if kernel_pulses == "default":
+        if kernel_pulses == "continuous":
+            integration_kernels = None
+        elif kernel_pulses == "default":
             integration_kernels = self.default_integration_kernels()
         elif kernel_pulses == "optimal":
             kernel_params = self.parameters.readout_integration_kernels
