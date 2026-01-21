@@ -21,20 +21,20 @@
     commitMessageTopic: "versions in lock file(s) to the latest available",
     commitMessageExtra: null,
   },
+  prBodyNotes: ["Renovate can not yet create changelog entries, so instead we need to @skip-changelog-check"],
   major: {
     dependencyDashboardApproval: true,
   },
   packageRules: [
     {
       matchDatasources: ["docker"],
-      matchPackageNames: ["ghcr.io/astral-sh/uv"],
+      matchPackageNames: ["zi_registry/astral-sh/uv"],
       groupName: "devDependencies",
     },
     {
       matchJsonata: [
           "(depType = 'dependency-groups') and (managerData.depGroup = 'dev')",
           "(depType = 'dependency-groups') and (managerData.depGroup = 'tools')",
-          "(depType = 'dependency-groups') and (managerData.depGroup = 'notebooks')",
         ],
       groupName: "devDependencies",
       rangeStrategy: "bump", // If >= 1.0.0, but there is 1.2.0, convert to >=1.2.0
