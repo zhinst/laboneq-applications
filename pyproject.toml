@@ -62,7 +62,7 @@ dev = [
 # Packages providing executables used during development.
 tools = [
   "jupytext",
-  "ruff == 0.12.4", # must match the version used in .pre-commit-config.yaml
+  "ruff ==0.12.5", # must match the version used in .pre-commit-config.yaml
   "towncrier >= 25.8.0",
 ]
 
