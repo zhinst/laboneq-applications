@@ -131,7 +131,7 @@ def update_qubits(
             for k, v in params_dict.items()
         }
         qubit_parameters_numeric[qid] = params_dict_numeric
-    qpu.update_quantum_elements(qubit_parameters_numeric)
+    qpu.update(qubit_parameters_numeric)
 
 
 @task
