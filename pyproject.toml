@@ -255,6 +255,16 @@ name = "Documentation"
 showcontent = true
 
 [[tool.towncrier.type]]
+directory = "deprecate"
+name = "Deprecation Notices"
+showcontent = true
+
+[[tool.towncrier.type]]
+directory = "remove"
+name = "Removals from the Codebase"
+showcontent = true
+
+[[tool.towncrier.type]]
 directory = "misc"
 name = "Miscellaneous"
 showcontent = true
