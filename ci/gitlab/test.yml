@@ -11,12 +11,15 @@
   before_script:
     - |
       if [[ $USE_LABONEQ_MAIN == "true" ]]; then
-        LATEST_VERSION_BUILT_FROM_DEVELOP=$(uv run ci/scripts/find_latest_laboneq.py --index-url "$ZIPYPI_INDEX_URL" --build-type dev)
-        uv lock --pre --upgrade-package "laboneq==$LATEST_VERSION_BUILT_FROM_DEVELOP" --index $ZIPYPI_INDEX_URL
+        # WARNING: Below will pick the latest pre-release ONLY if the supplied index
+        # contains exclusively pre-release versions. Currently, LabOne Q is using internal artifactory index
+        # for alpha releases, so this is true.
+        uv sync --prerelease=if-necessary-or-explicit --upgrade-package laboneq \
+                --index="$ZIPYPI_INDEX_URL"
       else
         uv lock --upgrade-package laboneq
+        uv sync
       fi
-    - uv sync
   script:
     - uv run pytest tests -n=auto -vv --ignore=tests/contrib
   rules:
