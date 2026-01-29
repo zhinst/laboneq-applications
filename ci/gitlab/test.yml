@@ -7,6 +7,7 @@
     USE_LABONEQ_MAIN: "true"
     MPLBACKEND: "AGG"
     UV_NO_SYNC: "1" # don't implicitly sync during "uv run"
+    ZIPYPI_INDEX_URL: "https://artifactory.zhinst.com/artifactory/api/pypi/ZIPyPI/simple"
   before_script:
     - |
       if [[ $USE_LABONEQ_MAIN == "true" ]]; then
@@ -14,7 +15,7 @@
         # contains exclusively pre-release versions. Currently, LabOne Q is using internal artifactory index
         # for alpha releases, so this is true.
         uv sync --prerelease=if-necessary-or-explicit --upgrade-package laboneq \
-                --index=https://artifactory.zhinst.com/artifactory/api/pypi/ZIPyPI/simple
+                --index="$ZIPYPI_INDEX_URL"
       else
         uv lock --upgrade-package laboneq
         uv sync
