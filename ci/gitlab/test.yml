@@ -11,11 +11,13 @@
   before_script:
     - |
       if [[ $USE_LABONEQ_MAIN == "true" ]]; then
-        # WARNING: Below will pick the latest pre-release ONLY if the supplied index
-        # contains exclusively pre-release versions. Currently, LabOne Q is using internal artifactory index
-        # for alpha releases, so this is true.
-        uv sync --prerelease=if-necessary-or-explicit --upgrade-package laboneq \
-                --index="$ZIPYPI_INDEX_URL"
+        # WARNING: We rely on the fact that the `main` branches of both
+        # `laboneq` and `laboneq-applications` have the same version at all
+        # times.
+        CURRENT_DEV_VERSION="$(uv version --short)"
+        UPCOMING_ALPHA_VERSIONS="${CURRENT_DEV_VERSION%.dev*}a"
+        uv sync --prerelease=if-necessary-or-explicit --upgrade-package "laboneq>=$CURRENT_DEV_VERSION,<$UPCOMING_ALPHA_VERSIONS" \
+                --index=https://artifactory.zhinst.com/artifactory/api/pypi/ZIPyPI/simple
       else
         uv lock --upgrade-package laboneq
         uv sync
