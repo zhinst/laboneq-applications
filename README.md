@@ -1,6 +1,6 @@
 # LabOne Q Applications Library (laboneq-applications)
 
-The LabOne Q Applications Library is a library of experiments and analyses for various quantum computing applications, implemented using the 
+The LabOne Q Applications Library is a library of experiments and analyses for various quantum computing applications, implemented using the
 Zurich Instruments [LabOne Q](https://github.com/zhinst/laboneq) software framework.
 
 ---
@@ -14,22 +14,22 @@ The Applications Library currently contains the following:
 
 ### Quantum Elements
 
-- Tunable Transmon qubits 
+- Tunable Transmon qubits
 - Travelling-Wave Parametric Amplifiers (TWPAs)
 
 ### Quantum Operations
 
 - common operations for Tunable Transmon Qubits, such as `measure`, `acquire`, `rx`, `ry`, `rz`, etc.
-- common operations for TWPAs: `twpa_measure`, `twpa_acquire`, `set_pump_power`, `set_pump_cancellation`, etc. 
+- common operations for TWPAs: `twpa_measure`, `twpa_acquire`, `set_pump_power`, `set_pump_cancellation`, etc.
 
-### Pre-Built Experiments and Analyses 
+### Pre-Built Experiments and Analyses
 
 Single-qubit gate calibration for transmons:
 
 - Resonator Spectroscopy
 - Qubit Spectroscopy
 - Amplitude Rabi
-- Ramsey Interferometry 
+- Ramsey Interferometry
 - DRAG Quadrature-Scaling calibration
 - Lifetime measurement
 - Hahn echo
@@ -67,4 +67,4 @@ cd laboneq-applications
 pip install -e .
 ```
 
-See the [contributions guidelines](CONTRIBUTING.md) for more information. 
+See the [contributions guidelines](https://github.com/zhinst/laboneq-applications/blob/main/CONTRIBUTING.md) for more information.
