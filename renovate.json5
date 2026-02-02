@@ -25,10 +25,15 @@
   major: {
     dependencyDashboardApproval: true,
   },
+  registryAliases: {
+    // Internal docker registry is configured to mirror ghcr.io. It works in a
+    // caching fashion so new versions are not fetched until they are
+    // requested. We tell renovate to look at ghcr.io for checking version updates.
+    "artifactory.zhinst.com/zi_registry": "ghcr.io",
+  },
   packageRules: [
     {
       matchDatasources: ["docker"],
-      matchPackageNames: ["zi_registry/astral-sh/uv"],
       groupName: "devDependencies",
     },
     {
