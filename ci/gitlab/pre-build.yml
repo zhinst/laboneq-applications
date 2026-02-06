@@ -29,7 +29,7 @@ check:lockfile:
 check:changelog:
   stage: pre-build
   before_script:
-    - git fetch origin main
+    - git fetch --unshallow origin main || git fetch origin main
   script:
     - uv run --only-group tools towncrier check
   rules:
