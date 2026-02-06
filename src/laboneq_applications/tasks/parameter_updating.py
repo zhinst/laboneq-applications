@@ -5,16 +5,14 @@
 
 from __future__ import annotations
 
+import logging
 import warnings
 from collections.abc import Sequence
 from typing import TYPE_CHECKING
 
 import attrs
+from laboneq import workflow
 from laboneq.dsl.quantum import QPU, QuantumElement, QuantumParameters
-from laboneq.workflow import (
-    comment,
-    task,
-)
 from typing_extensions import deprecated
 
 if TYPE_CHECKING:
@@ -46,13 +44,14 @@ def _valid_temporary_parameters(
     return True
 
 
-@task
+@workflow.task
 def update_qpu(
     qpu: QPU,
     parameters: dict[
         str | tuple[str, str, str],
         dict[str, dict[str, int | float | unc.core.Variable | None]],
     ],
+    eval_flags: dict[str, dict[str, bool]] | None = None,
 ) -> None:
     """Updates the parameters of the quantum objects in the qpu.
 
@@ -66,6 +65,12 @@ def update_qpu(
             ```python
             {key: {param_name: param_value}}
             ```
+        eval_flags: The dictionary of evaluation flags (optional). The keys are the
+            qubit UIDs and the values are dictionaries of booleans. The `success` flag
+            tells us whether the experiment is successful, and the `update` flag tells
+            us whether the qubit parameter values have additionally been significantly
+            updated. If both the `success` and `update` flags are `True`, then the
+            qubit in the QPU will be updated.
 
     !!! note
         The key for a quantum element is the quantum element UID. The key for a
@@ -75,10 +80,14 @@ def update_qpu(
     parameters_numeric = {}
     for key, params_dict in parameters.items():
         if len(params_dict) == 0:
-            comment(
+            workflow.log(
+                logging.WARNING,
                 f"{key} could not be updated because its "
-                f"parameters could not be extracted."
+                f"parameters could not be extracted.",
             )
+        if eval_flags and not eval_flags[key]["update"]:
+            continue
+
         params_dict_numeric = {
             k: v.nominal_value if hasattr(v, "nominal_value") else v
             for k, v in params_dict.items()
@@ -88,7 +97,7 @@ def update_qpu(
     qpu.update(parameters_numeric)
 
 
-@task
+@workflow.task
 @deprecated(
     "The update_qubits task is deprecated. Use `update_qpu` instead. ",
     category=FutureWarning,
@@ -122,7 +131,7 @@ def update_qubits(
     qubit_parameters_numeric = {}
     for qid, params_dict in qubit_parameters.items():
         if len(params_dict) == 0:
-            comment(
+            workflow.comment(
                 f"{qid} could not be updated because its "
                 f"parameters could not be extracted."
             )
@@ -134,7 +143,7 @@ def update_qubits(
     qpu.update(qubit_parameters_numeric)
 
 
-@task
+@workflow.task
 def temporary_qpu(
     qpu: QPU,
     temporary_parameters: dict[str | tuple[str, str, str], dict | QuantumParameters]
@@ -227,7 +236,7 @@ def temporary_qpu(
     return new_qpu
 
 
-@task
+@workflow.task
 def temporary_quantum_elements_from_qpu(
     qpu: QPU,
     quantum_elements: QuantumElements | list[str] | str | None = None,
@@ -293,7 +302,7 @@ def temporary_quantum_elements_from_qpu(
     )
 
 
-@task
+@workflow.task
 @deprecated(
     "The temporary_modify task is deprecated. Use `temporary_qpu` instead. "
     "Instead of passing temporary qubits to an experiment, we now pass a temporary "

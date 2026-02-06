@@ -21,6 +21,7 @@ in parallel on all the qubits.
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from typing import TYPE_CHECKING
 
 import numpy as np
@@ -41,6 +42,9 @@ from laboneq_applications.experiments.options import (
     TuneUpWorkflowOptions,
 )
 from laboneq_applications.tasks import (
+    evaluate_experiment,
+    get_evaluation_parameter,
+    get_evaluation_thresholds,
     temporary_qpu,
     temporary_quantum_elements_from_qpu,
     update_qpu,
@@ -55,15 +59,20 @@ if TYPE_CHECKING:
 
 
 @workflow.workflow(name="amplitude_fine")
-def experiment_workflow(
+def experiment_workflow(  # noqa: PLR0913
     session: Session,
     qpu: QPU,
     qubits: QuantumElements | list[str] | str,
+    *,
+    # Workflow parameters
     amplification_qop: str,
     target_angle: float,
     phase_offset: float,
     repetitions: QubitSweepPoints[int],
     parameter_to_update: str | None = None,
+    evaluation_parameter: str | None = None,
+    evaluation_parameter_thresholds: float | Sequence[float | None] | None = None,
+    evaluation_fit_r2_thresholds: float | Sequence[float | None] | None = None,
     temporary_parameters: dict[str | tuple[str, str, str], dict | QuantumParameters]
     | None = None,
     options: TuneUpWorkflowOptions | None = None,
@@ -76,6 +85,7 @@ def experiment_workflow(
     - [compile_experiment]()
     - [run_experiment]()
     - [analysis_workflow]()
+    - [evaluate_experiment]()
     - [update_qpu]()
 
     !!! version-changed "Deprecated in version 26.1.0."
@@ -107,6 +117,20 @@ def experiment_workflow(
             lists of integers.
         parameter_to_update:
             str that defines the qubit parameter to be updated.
+        evaluation_parameter:
+            The parameter to use for the evaluation task. The thresholds for this
+            parameter are set in the `parameter_thresholds` below. If None, the
+            `default_parameter` is used.
+        evaluation_parameter_thresholds:
+            Thresholds for the parameter difference for each experiment resource
+            (qubits, pairs of qubits, etc.). This argument may be a single number or a
+            list of numbers, corresponding to the qubit ordering.
+            If None, the `default_parameter_threshold` is used.
+        evaluation_fit_r2_thresholds:
+            Threshold for the r2 value of the fit for each experiment resource
+            (qubits, pairs of qubits, etc.). This argument may be a single number or a
+            list of numbers, corresponding to the qubit ordering.
+            If None, the `default_fit_r2_threshold` is used.
         temporary_parameters:
             The temporary parameters with which to update the quantum elements and
             topology edges. For quantum elements, the dictionary key is the quantum
@@ -147,6 +171,11 @@ def experiment_workflow(
         ).run()
         ```
     """
+    # Define default evaluation parameters
+    default_evaluation_parameter: str = "ge_drive_amplitude_pi"
+    default_evaluation_parameter_threshold: float = 0.001
+    default_evaluation_fit_r2_threshold: float = 0.01
+
     temp_qpu = temporary_qpu(qpu, temporary_parameters)
     qubits = temporary_quantum_elements_from_qpu(temp_qpu, qubits)
     exp = create_experiment(
@@ -158,7 +187,7 @@ def experiment_workflow(
     compiled_exp = compile_experiment(session, exp)
     result = run_experiment(session, compiled_exp)
     with workflow.if_(options.do_analysis):
-        analysis_workflow(
+        analysis_results = analysis_workflow(
             result,
             qubits,
             amplification_qop,
@@ -167,6 +196,32 @@ def experiment_workflow(
             phase_offset,
             parameter_to_update,
         )
+        qubit_parameters = analysis_results.output
+        eval_flags = None
+        with workflow.if_(options.evaluate):
+            parameter = get_evaluation_parameter(
+                default_evaluation_parameter, evaluation_parameter
+            )
+            parameter_thresholds = get_evaluation_thresholds(
+                qubits,
+                default_evaluation_parameter_threshold,
+                evaluation_parameter_thresholds,
+            )
+            fit_r2_thresholds = get_evaluation_thresholds(
+                qubits,
+                default_evaluation_fit_r2_threshold,
+                evaluation_fit_r2_thresholds,
+            )
+            eval_flags = evaluate_experiment(
+                analysis_results,
+                parameter,
+                parameter_thresholds,
+                fit_r2_thresholds,
+            )
+        with workflow.if_(options.update):
+            update_qpu(
+                qpu, qubit_parameters["new_parameter_values"], eval_flags=eval_flags
+            )
     workflow.return_(result)
 
 

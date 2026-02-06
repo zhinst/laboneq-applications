@@ -1,0 +1,109 @@
+qs1:
+  q0:
+    frequencies:
+      __linspace__:
+        start: 6e9
+        stop: 6.3e9
+        num: 101
+  q1:
+    frequencies:
+      __linspace__:
+        start: 6e9
+        stop: 6.3e9
+        num: 101
+  q2:
+    frequencies:
+      __linspace__:
+        start: 6e9
+        stop: 6.3e9
+        num: 101
+  q3:
+    frequencies:
+      __linspace__:
+        start: 6e9
+        stop: 6.3e9
+        num: 101
+  options:
+    evaluate: True
+    update: True
+    count: 2048
+    active_reset: True
+qs2:
+  q0:
+    frequencies:
+      __linspace__:
+        start: 6e9
+        stop: 6.3e9
+        num: 101
+  q1:
+    frequencies:
+      __linspace__:
+        start: 6e9
+        stop: 6.3e9
+        num: 101
+  q2:
+    frequencies:
+      __linspace__:
+        start: 6e9
+        stop: 6.3e9
+        num: 101
+  q3:
+    frequencies:
+      __linspace__:
+        start: 6e9
+        stop: 6.3e9
+        num: 101
+  options:
+    evaluate: True
+    update: True
+    count: 2048
+    active_reset: True
+  logic:
+    class: AdaptFrequencyRange
+    arguments:
+      new_layer_key: qs2
+      range_thresholds:
+        !!int 0: 1.1
+        !!int 100_000_000: 1.2
+        !!int 200_000_000: 1.3
+        !!int 400_000_000: 1.4
+      iterations: 2
+qs3:
+  q0:
+    frequencies:
+      __linspace__:
+        start: 6e9
+        stop: 6.3e9
+        num: 101
+  q1:
+    frequencies:
+      __linspace__:
+        start: 6e9
+        stop: 6.3e9
+        num: 101
+  q2:
+    frequencies:
+      __linspace__:
+        start: 6e9
+        stop: 6.3e9
+        num: 101
+    evaluation_fit_r2_thresholds: 1
+  q3:
+    frequencies:
+      __linspace__:
+        start: 6e9
+        stop: 6.3e9
+        num: 101
+  options:
+    evaluate: True
+    update: True
+    count: 2048
+    active_reset: True
+  logic:
+    class: FixedParameterUpdate
+    arguments:
+      new_layer_key: qs2
+      parameter_changes:
+        "q2":
+          "evaluation_fit_r2_thresholds": -0.0003
+      relative: False

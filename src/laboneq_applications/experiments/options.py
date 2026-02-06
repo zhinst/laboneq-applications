@@ -163,18 +163,30 @@ class TuneUpWorkflowOptions:
         do_analysis (bool):
             Whether to run the analysis workflow.
             Default: True
+        evaluate (bool):
+            Whether to evaluate the experiment based on the results from the analysis.
+            Default: False
         update (bool):
-            Whether to update the setup based on the results from the analysis.
+            Whether to update the setup based on the results from the analysis. If the
+            `evaluate` option is also set, then only the quantum elements flagged by
+            the evaluation will be updated.
             Default: False
     """
 
     do_analysis: bool = option_field(
         True, description="Whether to run the analysis workflow."
     )
+    evaluate: bool = option_field(
+        False,
+        description="Whether to evaluate the experiment based on the "
+        "results from the analysis.",
+    )
     update: bool = option_field(
         False,
         description="Whether to update the setup based on the "
-        "results from the analysis.",
+        "results from the analysis. If the `evaluate` option is also set, "
+        "then only the quantum elements flagged by the evaluation will be "
+        "updated.",
     )
 
 

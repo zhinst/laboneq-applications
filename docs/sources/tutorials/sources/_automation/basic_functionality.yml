@@ -1,0 +1,166 @@
+qs1:
+  q0:
+    frequencies:
+      __linspace__:
+        start: 6e9
+        stop: 6.3e9
+        num: 101
+  q1:
+    frequencies:
+      __linspace__:
+        start: 6e9
+        stop: 6.3e9
+        num: 101
+  q2:
+    frequencies:
+      __linspace__:
+        start: 6e9
+        stop: 6.3e9
+        num: 101
+  q3:
+    frequencies:
+      __linspace__:
+        start: 6e9
+        stop: 6.3e9
+        num: 101
+  options:
+    evaluate: True
+    update: True
+    count: 2048
+    active_reset: True
+r1:
+  q0:
+    delays:
+      __linspace__:
+        start: 0
+        stop: 2.0e-5
+        num: 51
+    detunings: 670000.0
+  q1:
+    delays:
+      __linspace__:
+        start: 0
+        stop: 2.0e-5
+        num: 51
+    detunings: 670000.0
+  q2:
+    delays:
+      __linspace__:
+        start: 0
+        stop: 2.0e-5
+        num: 51
+    detunings: 670000.0
+  q3:
+    delays:
+      __linspace__:
+        start: 0
+        stop: 2.0e-5
+        num: 51
+    detunings: 670000.0
+  options:
+    evaluate: True
+    update: True
+    count: 2048
+    active_reset: True
+r2:
+  q0:
+    delays:
+      __linspace__:
+        start: 0
+        stop: 2.0e-5
+        num: 51
+    detunings: 670000.0
+  q1:
+    delays:
+      __linspace__:
+        start: 0
+        stop: 2.0e-5
+        num: 51
+    detunings: 670000.0
+  q2:
+    delays:
+      __linspace__:
+        start: 0
+        stop: 2.0e-5
+        num: 51
+    detunings: 670000.0
+  q3:
+    delays:
+      __linspace__:
+        start: 0
+        stop: 2.0e-5
+        num: 51
+    detunings: 670000.0
+  options:
+    evaluate: True
+    update: True
+    count: 2048
+    active_reset: True
+r3:
+  q0:
+    delays:
+      __linspace__:
+        start: 0
+        stop: 2.0e-5
+        num: 51
+    detunings: 670000.0
+  q1:
+    delays:
+      __linspace__:
+        start: 0
+        stop: 2.0e-5
+        num: 51
+    detunings: 670000.0
+  q2:
+    delays:
+      __linspace__:
+        start: 0
+        stop: 2.0e-5
+        num: 51
+    detunings: 670000.0
+  q3:
+    delays:
+      __linspace__:
+        start: 0
+        stop: 2.0e-5
+        num: 51
+    detunings: 670000.0
+  options:
+    evaluate: True
+    update: True
+    count: 2048
+    active_reset: True
+r4:
+  q0:
+    delays:
+      __linspace__:
+        start: 0
+        stop: 2.0e-5
+        num: 51
+    detunings: 670000.0
+  q1:
+    delays:
+      __linspace__:
+        start: 0
+        stop: 2.0e-5
+        num: 51
+    detunings: 670000.0
+  q2:
+    delays:
+      __linspace__:
+        start: 0
+        stop: 2.0e-5
+        num: 51
+    detunings: 670000.0
+  q3:
+    delays:
+      __linspace__:
+        start: 0
+        stop: 2.0e-5
+        num: 51
+    detunings: 670000.0
+  options:
+    evaluate: True
+    update: True
+    count: 2048
+    active_reset: True
