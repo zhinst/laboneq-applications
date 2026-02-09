@@ -552,14 +552,14 @@ class WorkflowLayer(AutomationLayer):
 
         return grouped_workflow_parameters
 
-    def run_executable(self, auto: WorkflowAutomation) -> WorkflowResult:
+    def run_executable(self, auto: WorkflowAutomation) -> list[WorkflowResult]:
         """Run a LabOne Q experiment workflow.
 
         Arguments:
             auto: The workflow automation instance.
 
         Returns:
-            The workflow result.
+            A list of workflow results.
 
         !!! note
             The session, QPU, and calibration parameters may be read from the
@@ -615,11 +615,11 @@ class WorkflowLayer(AutomationLayer):
         # Run experiment workflow
         workflow_result = workflow.run()
 
-        self.workflow_results = workflow_result
+        self.workflow_results = [workflow_result]
         self.timestamp = local_timestamp()
 
         # Get the evaluation output
-        eval_outputs = self._layer_evaluation_output([workflow_result])
+        eval_outputs = self._layer_evaluation_output(self.workflow_results)
         self.eval_outputs = eval_outputs
         eval_successes = {
             f"{self.key}_{k}": v["success"] for k, v in eval_outputs.items()
@@ -633,15 +633,15 @@ class WorkflowLayer(AutomationLayer):
                 node.fail_count += 1 if not eval_success else 0
                 node.success_count += 1 if eval_success else 0
                 node.timestamp = self.timestamp
-                node.workflow_results = workflow_result
+                node.workflow_result = workflow_result
             # If there is no `evaluate_experiment` task, set the active nodes to PASSED
             elif node.status not in [Status.EMPTY, Status.DEACTIVATED]:
                 node.status = Status.PASSED
                 node.timestamp = self.timestamp
-                node.workflow_results = workflow_result
+                node.workflow_result = workflow_result
                 node.success_count += 1
 
-        return workflow_result
+        return [workflow_result]
 
     @staticmethod
     def _layer_evaluation_output(

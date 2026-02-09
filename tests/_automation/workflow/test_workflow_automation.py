@@ -301,7 +301,21 @@ class TestWorkflowAutomation:
             depends_on=["__root__"],
         )
         auto.add_layer(qs1)
-        auto.run()
+        output = auto.run_layer("qs1")
+        assert isinstance(output, tuple)
+        assert len(output) == 3
+        eval_outputs = output[0]
+        assert all(isinstance(k, str) for k in eval_outputs)
+        assert all(isinstance(v, dict) for v in eval_outputs.values())
+        for eval_output in eval_outputs.values():
+            for k, v in eval_output.items():
+                assert isinstance(k, str)
+                assert isinstance(v, bool)
+        assert isinstance(qs1.workflow_results, list)
+        assert all(
+            isinstance(workflow_result, WorkflowResult)
+            for workflow_result in qs1.workflow_results
+        )
 
     def test_run_layer_sequentially(self, auto, qubit_spectroscopy_workflow):
         qs1 = WorkflowLayer(
@@ -312,7 +326,21 @@ class TestWorkflowAutomation:
         )
         auto.add_layer(qs1)
         qs1.sequential = True
-        auto.run_layer("qs1")
+        output = auto.run_layer("qs1")
+        assert isinstance(output, tuple)
+        assert len(output) == 3
+        eval_outputs = output[0]
+        assert all(isinstance(k, str) for k in eval_outputs)
+        assert all(isinstance(v, dict) for v in eval_outputs.values())
+        for eval_output in eval_outputs.values():
+            for k, v in eval_output.items():
+                assert isinstance(k, str)
+                assert isinstance(v, bool)
+        assert isinstance(qs1.workflow_results, list)
+        assert all(
+            isinstance(workflow_result, WorkflowResult)
+            for workflow_result in qs1.workflow_results
+        )
 
     def test_reset(self, auto, qubit_spectroscopy_workflow, workflow_parameters):
         layer1 = WorkflowLayer(
@@ -339,22 +367,27 @@ class TestWorkflowAutomation:
         assert auto.get_node("qs1_q1").status == Status.READY
         assert auto.get_node("qs2_q0").fail_count == 0
         assert auto.get_node("qs2_q0").timestamp is None
-        assert auto.get_node("qs2_q0").workflow_results is None
+        assert auto.get_node("qs2_q0").workflow_result is None
 
         auto.run()
 
         assert layer1.fail_count == 0
         assert layer1.success_count == 1
-        assert type(layer1.timestamp) is str
-        assert type(layer1.workflow_results) is WorkflowResult
+        assert isinstance(layer1.timestamp, str)
+        assert isinstance(layer1.workflow_results, list)
+        assert all(
+            isinstance(workflow_result, WorkflowResult)
+            for workflow_result in layer1.workflow_results
+        )
+
         assert auto.get_node("qs2_q0").status == Status.DEACTIVATED
         assert auto.get_node("qs1_q1").status == Status.PASSED
         assert auto.get_node("qs1_q1").success_count == 1
         assert (
             auto.get_node("qs2_q0").fail_count == auto.get_node("qs2_q0").max_fail_count
         )
-        assert type(auto.get_node("qs2_q0").timestamp) is str
-        assert type(auto.get_node("qs2_q0").workflow_results) is WorkflowResult
+        assert isinstance(auto.get_node("qs2_q0").timestamp, str)
+        assert isinstance(auto.get_node("qs2_q0").workflow_result, WorkflowResult)
 
         auto.reset()
 
@@ -367,4 +400,4 @@ class TestWorkflowAutomation:
         assert auto.get_node("qs1_q1").success_count == 0
         assert auto.get_node("qs2_q0").fail_count == 0
         assert auto.get_node("qs2_q0").timestamp is None
-        assert auto.get_node("qs2_q0").workflow_results is None
+        assert auto.get_node("qs2_q0").workflow_result is None

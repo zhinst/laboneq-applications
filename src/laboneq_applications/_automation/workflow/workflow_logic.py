@@ -113,7 +113,7 @@ class AdaptFrequencyRange(WorkflowLogic):
         new_params = {}
         for q in layer.quantum_elements:
             new_params[q] = {}
-            frequencies = layer.workflow_results.output.data[q].result.axis[0][0]
+            frequencies = layer.workflow_results[0].output.data[q].result.axis[0][0]
 
             freq_range = int(max(frequencies) - min(frequencies))
             multiplier = self.get_bucket_value(self.range_thresholds, freq_range)

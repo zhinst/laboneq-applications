@@ -177,7 +177,7 @@ class WorkflowAutomation(Automation):
         workflow_options: WorkflowOptions | None = None,
         force: bool = False,
         logic: WorkflowLogic | None = None,
-    ) -> tuple[list[dict[str, dict[str, bool]]] | None, str, dict | None]:
+    ) -> tuple[dict[str, dict[str, bool]] | None, str, dict | None]:
         """Run the automation layer.
 
         Arguments:
@@ -195,7 +195,8 @@ class WorkflowAutomation(Automation):
             logic: The workflow decision logic (optional).
 
         Returns:
-            The evaluation output.
+            Tuple with the evaluation output dictionary, the next layer key and
+            the new parameters.
         """
         # Get the layer
         layer = self.get_layer(layer_key)
@@ -234,7 +235,7 @@ class WorkflowAutomation(Automation):
 
         # Run the layer
         if not layer.sequential:
-            [layer.run_executable(self)]
+            layer.run_executable(self)
         else:
             for node in self.nodes(layer_key=layer_key):
                 if node.quantum_elements in layer.quantum_elements and (
@@ -242,10 +243,12 @@ class WorkflowAutomation(Automation):
                 ):
                     node.run_executable(self)
             layer.workflow_results = [
-                n.workflow_results
-                for n in layer.nodes
-                if n.workflow_results is not None
+                n.workflow_result for n in layer.nodes if n.workflow_result is not None
             ]
+            layer.eval_outputs = {}
+            for workflow_result in layer.workflow_results:
+                eval_output = layer._layer_evaluation_output([workflow_result])
+                layer.eval_outputs.update(eval_output)
             layer.timestamp = local_timestamp()
 
         # Increment the layer fail count (if needed)
@@ -302,7 +305,7 @@ class WorkflowAutomation(Automation):
             node.fail_count = 0
             node.success_count = 0
             node.timestamp = None
-            node.workflow_results = None
+            node.workflow_result = None
         for layer in self.layers():
             layer.success_count = 0
             layer.fail_count = 0

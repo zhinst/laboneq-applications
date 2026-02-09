@@ -47,7 +47,7 @@ class WorkflowNode(AutomationNode):
         temporary_qpu_parameters: The temporary QPU parameters.
         workflow_options: The workflow options.
         logic: The node decision logic.
-        workflow_results: The workflow results.
+        workflow_result: The workflow result.
     """
 
     def __init__(
@@ -99,7 +99,7 @@ class WorkflowNode(AutomationNode):
         super().__init__(**kwargs)
 
         # workflow results
-        self.workflow_results: WorkflowResult | None = None
+        self.workflow_result: WorkflowResult | None = None
 
     def __repr__(self) -> str:
         if isinstance(self.workflow_builder, WorkflowBuilder):
@@ -126,7 +126,7 @@ class WorkflowNode(AutomationNode):
             f"temporary_qpu_parameters={self.temporary_qpu_parameters} "
             f"workflow_options={self.workflow_options} "
             f"logic={self.logic} "
-            f"workflow_results={self.workflow_results}"
+            f"workflow_result={self.workflow_result}"
             f">"
         )
 
@@ -153,7 +153,7 @@ class WorkflowNode(AutomationNode):
         yield "temporary_qpu_parameters", self.temporary_qpu_parameters
         yield "workflow_options", self.workflow_options
         yield "logic", self.logic
-        yield "workflow_results", self.workflow_results
+        yield "workflow_result", self.workflow_result
 
     def _set_workflow_parameters(
         self, workflow_parameters: dict[str, Any] | None
@@ -313,7 +313,7 @@ class WorkflowNode(AutomationNode):
         # Run experiment workflow
         workflow_result = workflow.run()
 
-        self.workflow_results = workflow_result
+        self.workflow_result = workflow_result
         self.timestamp = local_timestamp()
 
         task_list = [t.name for t in workflow_result.tasks]
