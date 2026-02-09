@@ -717,7 +717,7 @@ def plot_signal_phase(
     voltages = processed_data_dict["sweep_points_2d"]
     phase = processed_data_dict["phase"]
 
-    fig, axs = plot_data_2d(
+    fig, _ = plot_data_2d(
         x_values=frequencies,
         y_values=voltages,
         z_values=phase,

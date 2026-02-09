@@ -17,7 +17,7 @@ default:
 #  image: ghcr.io/astral-sh/uv:0.9.7-debian
   # FIXME: Renovate is not updating this so we need to keep this in sync
   # manually with pre-commit configuration
-  image: artifactory.zhinst.com/zi_registry/astral-sh/uv:0.9.26-debian
+  image: artifactory.zhinst.com/zi_registry/astral-sh/uv:0.10.0-debian
 
 variables:
   PACKAGE_NAME: "laboneq-applications"

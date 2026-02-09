@@ -58,7 +58,7 @@ class TestMultiQubitLogic:
 
         with pytest.raises(
             ValueError,
-            match="The `node_type` value is not supported: "
+            match=r"The `node_type` value is not supported: "
             "'destination'. Expected values: 'all', "
             "'source', 'target'.",
         ):

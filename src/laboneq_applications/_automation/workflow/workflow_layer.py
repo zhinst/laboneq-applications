@@ -585,7 +585,7 @@ class WorkflowLayer(AutomationLayer):
         # Remove failed quantum elements
         for node in self.nodes:
             if (
-                node.status in [Status.DEACTIVATED]
+                node.status == Status.DEACTIVATED
                 and node.quantum_elements in quantum_elements
             ):
                 quantum_elements.remove(node.quantum_elements)
