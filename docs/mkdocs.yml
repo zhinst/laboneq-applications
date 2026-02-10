@@ -147,6 +147,7 @@ nav:
       - qpu_types:
           - reference/qpu_types/index.md
           - tunable_transmon: reference/qpu_types/tunable_transmon.md
+          - twpa: reference/qpu_types/twpa.md
       - tasks:
           - reference/tasks/index.md
           - parameter_updating: reference/tasks/parameter_updating.md
