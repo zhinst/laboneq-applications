@@ -151,9 +151,15 @@ class WorkflowAutomation(Automation):
             layer.quantum_elements = quantum_elements
 
         if workflow_parameters is not None:
-            layer.workflow_parameters.update(workflow_parameters)
+            # Cannot update properties in-place
+            layer_workflow_parameters = layer.workflow_parameters
+            layer_workflow_parameters.update(workflow_parameters)
+            layer.workflow_parameters = layer_workflow_parameters
         if general_workflow_parameters is not None:
-            layer.general_workflow_parameters.update(general_workflow_parameters)
+            # Cannot update properties in-place
+            layer_general_workflow_parameters = layer.general_workflow_parameters
+            layer_general_workflow_parameters.update(general_workflow_parameters)
+            layer.general_workflow_parameters = layer_general_workflow_parameters
         if temporary_qpu_parameters is not None:
             layer.temporary_qpu_parameters = temporary_qpu_parameters
         if workflow_options is not None:

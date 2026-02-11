@@ -24,7 +24,14 @@ from laboneq_applications._automation.workflow.workflow_automation import (
     WorkflowAutomation,
 )
 from laboneq_applications._automation.workflow.workflow_layer import WorkflowLayer
-from laboneq_applications.experiments import qubit_spectroscopy, ramsey
+from laboneq_applications._automation.workflow.workflow_logic import (
+    FixedParameterUpdate,
+)
+from laboneq_applications.experiments import (
+    amplitude_fine,
+    qubit_spectroscopy,
+    ramsey,
+)
 from laboneq_applications.qpu_types.tunable_transmon import demo_platform
 
 
@@ -62,6 +69,7 @@ def automation_parameters() -> dict:
                 "evaluate": True,
                 "update": True,
                 "count": 2048,
+                "active_reset": True,
             },
         },
         "qs2": {
@@ -79,7 +87,8 @@ def automation_parameters() -> dict:
             "q1": {"delays": np.linspace(2e-05, 5e-05, 50), "detunings": 670000.0},
             "options": {
                 "evaluate": True,
-                "update": False,
+                "update": True,
+                "active_reset": True,
             },
         },
         "qs3": {
@@ -126,6 +135,23 @@ def automation_parameters() -> dict:
                 "update": True,
             },
         },
+        "af1": {
+            "q0": {},
+            "q1": {},
+            "q2": {},
+            "q3": {},
+            "repetitions": [
+                [1, 2],
+                [1, 2],
+                [1, 2],
+                [1, 2],
+            ],
+        },
+        "ra1": {
+            "q0": {"amplitudes": np.linspace(0, 1, 11)},
+            "q1": {"amplitudes": np.linspace(0, 1, 11)},
+            "options": {"evaluate": False, "update": False, "active_reset": True},
+        },
     }
 
 
@@ -157,6 +183,11 @@ def qubit_spectroscopy_workflow() -> WorkflowBuilder:
 @pytest.fixture
 def ramsey_workflow() -> WorkflowBuilder:
     return ramsey.experiment_workflow
+
+
+@pytest.fixture
+def amplitude_fine_workflow() -> WorkflowBuilder:
+    return amplitude_fine.experiment_workflow_x180
 
 
 class TestWorkflowAutomation:
@@ -401,3 +432,260 @@ class TestWorkflowAutomation:
         assert auto.get_node("qs2_q0").fail_count == 0
         assert auto.get_node("qs2_q0").timestamp is None
         assert auto.get_node("qs2_q0").workflow_result is None
+
+    def test_set_temp_quantum_elements(
+        self,
+        auto,
+        qubit_spectroscopy_workflow,
+    ):
+        quantum_elements = ["q0", "q1", "q2", "q3"]
+        layer1 = WorkflowLayer(
+            qubit_spectroscopy_workflow,
+            quantum_elements,
+            key="qs1",
+            depends_on=["__root__"],
+        )
+
+        # Test passing a single quantum element as list
+        assert layer1.quantum_elements == quantum_elements
+        temp_layer = auto._set_temp_parameters(layer1, ["q0"])
+        assert temp_layer.quantum_elements == ["q0"]
+        assert layer1.quantum_elements == ["q0"]
+
+        with pytest.raises(
+            ValueError,
+            match=r"The set of quantum elements {'q1'} is not in the layer. ",
+        ):
+            temp_layer = auto._set_temp_parameters(layer1, ["q1"])
+
+        # Test passing a single quantum element as string
+        layer1.quantum_elements = quantum_elements
+        assert layer1.quantum_elements == quantum_elements
+        temp_layer = auto._set_temp_parameters(layer1, "q0")
+        assert temp_layer.quantum_elements == ["q0"]
+
+        # Test recovery of parameters after execution of run layer
+        layer1.quantum_elements = quantum_elements
+        auto.add_layer(layer1)
+        auto.run_layer("qs1", quantum_elements=["q0"])
+        assert layer1.workflow_results[0].input["qubits"] == "q0"
+        assert layer1.quantum_elements == quantum_elements
+
+        auto.run_layer("qs1", quantum_elements=["q0", "q1"])
+        assert layer1.workflow_results[0].input["qubits"] == ["q0", "q1"]
+        assert layer1.quantum_elements == quantum_elements
+
+    def test_set_temp_workflow_parameters(
+        self, auto, qubit_spectroscopy_workflow, workflow_parameters
+    ):
+        quantum_elements = ["q0", "q1", "q2", "q3"]
+        layer1 = WorkflowLayer(
+            qubit_spectroscopy_workflow,
+            quantum_elements,
+            key="qs1",
+            depends_on=["__root__"],
+        )
+
+        # Test passing temporary workflow parameters
+        temp_wf_parameters = {
+            "q1": {
+                "frequencies": np.linspace(5.5e9, 5.9e9, 101),
+                "evaluation_fit_r2_thresholds": 1.0,
+            }
+        }
+        layer1.quantum_elements = quantum_elements
+        layer1.workflow_parameters = workflow_parameters
+        assert layer1.workflow_parameters == workflow_parameters
+        temp_layer = auto._set_temp_parameters(
+            layer1, quantum_elements, workflow_parameters=temp_wf_parameters
+        )
+        expected_wf_parameters = {
+            "q0": {
+                "frequencies": np.linspace(6e9, 6.2e9, 101),
+                "evaluation_fit_r2_thresholds": 1.0,
+            },
+            "q1": {
+                "frequencies": np.linspace(5.5e9, 5.9e9, 101),
+                "evaluation_fit_r2_thresholds": 1.0,
+            },
+            "q2": {"frequencies": np.linspace(6e9, 6.2e9, 101)},
+            "q3": {"frequencies": np.linspace(6e9, 6.2e9, 101)},
+        }
+        assert layer1.workflow_parameters["q1"]["evaluation_fit_r2_thresholds"] == 1.0
+        np.testing.assert_equal(layer1.workflow_parameters, expected_wf_parameters)
+
+        assert (
+            temp_layer.workflow_parameters["q1"]["evaluation_fit_r2_thresholds"] == 1.0
+        )
+        np.testing.assert_equal(temp_layer.workflow_parameters, expected_wf_parameters)
+
+        # Test recovery of parameters after execution of run layer
+        layer1.quantum_elements = quantum_elements
+        layer1.workflow_parameters = workflow_parameters
+        assert layer1.workflow_parameters == workflow_parameters
+        auto.add_layer(layer1)
+        auto.run_layer("qs1", workflow_parameters=temp_wf_parameters)
+        workflow_input = layer1.workflow_results[0].input
+        np.testing.assert_almost_equal(
+            workflow_input["frequencies"],
+            [v["frequencies"] for v in expected_wf_parameters.values()],
+        )
+        for qubit, qubit_parameters in layer1.workflow_parameters.items():
+            for qubit_parameter, values in qubit_parameters.items():
+                np.testing.assert_almost_equal(
+                    values, workflow_parameters[qubit][qubit_parameter]
+                )
+
+    def test_set_temp_general_workflow_parameters(self, auto, amplitude_fine_workflow):
+        quantum_elements = ["q0", "q1", "q2", "q3"]
+        layer1 = WorkflowLayer(
+            amplitude_fine_workflow,
+            quantum_elements,
+            key="af1",
+            depends_on=["__root__"],
+        )
+        auto.add_layer(layer1)
+
+        general_workflow_parameters = {
+            "repetitions": [
+                [1, 2],
+                [1, 2],
+                [1, 2],
+                [1, 2],
+            ],
+        }
+
+        # Test passing temporary general workflow parameters
+        temp_general_wf_parameters = {
+            "repetitions": [
+                [1, 2, 3, 4, 5],
+                [1, 2, 3, 4, 5],
+                [1, 2, 3, 4, 5],
+                [1, 2, 3, 4, 5],
+            ],
+        }
+        layer1.quantum_elements = quantum_elements
+        layer1.general_workflow_parameters = general_workflow_parameters
+        assert layer1.general_workflow_parameters == general_workflow_parameters
+        auto._set_temp_parameters(
+            layer1,
+            quantum_elements,
+            general_workflow_parameters=temp_general_wf_parameters,
+        )
+        assert layer1.general_workflow_parameters == temp_general_wf_parameters
+
+        # Test recovery of parameters after execution of run layer
+        auto.run_layer("af1", general_workflow_parameters=temp_general_wf_parameters)
+        assert layer1.status == Status.PASSED
+        np.testing.assert_equal(
+            layer1.workflow_results[0].input["repetitions"],
+            temp_general_wf_parameters["repetitions"],
+        )
+        np.testing.assert_equal(
+            layer1.workflow_results[0].output.data.q0.result.axis[0],
+            temp_general_wf_parameters["repetitions"],
+        )
+        np.testing.assert_equal(
+            layer1.general_workflow_parameters, general_workflow_parameters
+        )
+
+    def test_set_temp_qpu_parameters(self, auto, qubit_spectroscopy_workflow):
+        quantum_elements = ["q0", "q1", "q2", "q3"]
+        layer1 = WorkflowLayer(
+            qubit_spectroscopy_workflow,
+            quantum_elements,
+            key="qs1",
+            depends_on=["__root__"],
+        )
+        auto.add_layer(layer1)
+
+        # Test passing temporary temporary qpu parameters
+        temporary_qpu_parameters = {
+            "q0": {"drive_lo_frequency": 6.6e9},
+            "q1": {"drive_lo_frequency": 6.6e9},
+            "q2": {"drive_lo_frequency": 6.6e9},
+            "q3": {"drive_lo_frequency": 6.6e9},
+        }
+
+        assert layer1.temporary_qpu_parameters is None
+        auto._set_temp_parameters(
+            layer1, quantum_elements, temporary_qpu_parameters=temporary_qpu_parameters
+        )
+        assert layer1.temporary_qpu_parameters == temporary_qpu_parameters
+
+        # Test recovery of parameters after execution of run layer
+        layer1.temporary_qpu_parameters = None
+        auto.run_layer("qs1", temporary_qpu_parameters=temporary_qpu_parameters)
+        assert (
+            layer1.workflow_results[0].input["temporary_parameters"]
+            == temporary_qpu_parameters
+        )
+        assert layer1.temporary_qpu_parameters is None
+
+    def test_set_temp_logic(self, auto, ramsey_workflow):
+        layer1 = WorkflowLayer(
+            ramsey_workflow,
+            ["q0", "q1"],
+            key="r1",
+            depends_on=["__root__"],
+        )
+        layer2 = WorkflowLayer(
+            ramsey_workflow,
+            ["q0", "q3"],
+            key="r2",
+            depends_on=["r1"],
+        )
+        auto.add_layer(layer1)
+        auto.add_layer(layer2)
+
+        # Test passing temporary logic
+        l2_logic = FixedParameterUpdate(
+            new_layer_key="r2",
+            parameter_changes={
+                "q0": {"detunings": -0.1},
+                "q3": {"detunings": -0.1},
+            },
+            relative=True,
+            iterations=3,
+        )
+
+        assert layer2.workflow_parameters["q0"]["detunings"] == 670000.0
+        assert layer2.workflow_parameters["q3"]["detunings"] == 670000.0
+        auto._set_temp_parameters(layer2, ["q0", "q3"], logic=l2_logic)
+        auto.run()
+        np.testing.assert_almost_equal(
+            layer2.workflow_parameters["q0"]["detunings"], 670000.0 * 0.9**3
+        )
+        np.testing.assert_almost_equal(
+            layer2.workflow_parameters["q3"]["detunings"], 670000.0 * 0.9**3
+        )
+
+        l1_logic = FixedParameterUpdate(
+            new_layer_key="r1",
+            parameter_changes={
+                "q0": {"delays": 1e-5},
+                "q1": {"delays": 1e-5},
+            },
+            relative=False,
+            iterations=3,
+        )
+
+        # Test recovery of parameters after execution of run layer
+        np.testing.assert_equal(
+            layer1.workflow_parameters["q0"]["delays"], np.linspace(0, 2e-5, 50)
+        )
+        np.testing.assert_equal(
+            layer1.workflow_parameters["q1"]["delays"], np.linspace(2e-5, 5e-5, 50)
+        )
+        eval_outputs, new_layer_key, new_params = auto.run_layer("r1", logic=l1_logic)
+        assert new_layer_key == "r1"
+        np.testing.assert_equal(
+            new_params["q0"]["delays"], np.linspace(0, 2e-5, 50) + 1e-5
+        )
+        np.testing.assert_equal(
+            new_params["q1"]["delays"], np.linspace(2e-5, 5e-5, 50) + 1e-5
+        )
+        assert eval_outputs == {
+            "q0": {"success": True, "update": False},
+            "q1": {"success": True, "update": False},
+        }
