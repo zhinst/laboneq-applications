@@ -15,6 +15,7 @@ from laboneq._automation import AutomationElementStatus as Status
 from laboneq.core.utilities.dsl_dataclass_decorator import classformatter
 from laboneq.dsl.quantum import QuantumParameters
 from laboneq.workflow import WorkflowOptions
+from laboneq.workflow.opts import OptionBuilder
 from laboneq.workflow.timestamps import local_timestamp
 
 from laboneq_applications._automation.utils import make_json_serializable, nested_update
@@ -130,7 +131,7 @@ class WorkflowAutomation(Automation):
             str | tuple[str, str, str], dict | QuantumParameters
         ]
         | None = None,
-        workflow_options: WorkflowOptions | None = None,
+        workflow_options: WorkflowOptions | dict[str, Any] | None = None,
         logic: WorkflowLogic | None = None,
     ) -> str | list[str] | None:
         quantum_elements = (
@@ -162,7 +163,13 @@ class WorkflowAutomation(Automation):
             layer.general_workflow_parameters = layer_general_workflow_parameters
         if temporary_qpu_parameters is not None:
             layer.temporary_qpu_parameters = temporary_qpu_parameters
-        if workflow_options is not None:
+        if isinstance(workflow_options, dict):
+            options = layer.workflow_builder.options()
+            for key, value in workflow_options.items():
+                set_option_method = getattr(options, key)
+                set_option_method(value)
+            layer.workflow_options = options
+        elif isinstance(workflow_options, OptionBuilder):
             layer.workflow_options = workflow_options
         if logic is not None:
             layer.logic = logic
@@ -180,7 +187,7 @@ class WorkflowAutomation(Automation):
             str | tuple[str, str, str], dict | QuantumParameters
         ]
         | None = None,
-        workflow_options: WorkflowOptions | None = None,
+        workflow_options: WorkflowOptions | dict[str, Any] | None = None,
         force: bool = False,
         logic: WorkflowLogic | None = None,
     ) -> tuple[dict[str, dict[str, bool]] | None, str, dict | None]:

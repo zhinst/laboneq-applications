@@ -5,6 +5,7 @@
 
 from __future__ import annotations
 
+import copy
 import inspect
 
 import networkx as nx
@@ -132,7 +133,7 @@ def automation_parameters() -> dict:
             "q3": {"delays": np.linspace(0, 9.3e-05, 33), "detunings": 670000.0},
             "options": {
                 "evaluate": False,
-                "update": True,
+                "update": False,
             },
         },
         "af1": {
@@ -689,3 +690,50 @@ class TestWorkflowAutomation:
             "q0": {"success": True, "update": False},
             "q1": {"success": True, "update": False},
         }
+
+    def test_set_temp_workflow_options(self, auto, ramsey_workflow):
+        quantum_elements = ["q0", "q1"]
+
+        layer1 = WorkflowLayer(
+            ramsey_workflow,
+            quantum_elements,
+            key="r1",
+            depends_on=["__root__"],
+        )
+        auto.add_layer(layer1)
+
+        # Test passing temporary workflow options
+        assert layer1.workflow_options.update[0].option.update
+        auto._set_temp_parameters(
+            layer1, quantum_elements, workflow_options={"update": False}
+        )
+        assert not layer1.workflow_options.update[0].option.update
+
+        workflow_options = copy.deepcopy(layer1.workflow_options)
+        workflow_options.update(True)
+        assert not layer1.workflow_options.update[0].option.update
+        auto._set_temp_parameters(
+            layer1, quantum_elements, workflow_options=workflow_options
+        )
+        assert layer1.workflow_options.update[0].option.update
+
+        # Test recovery of options after execution of run layer
+        layer1.workflow_options.update[0].option.update = False
+        assert not layer1.workflow_options.update[0].option.update
+        auto.run_layer("r1", workflow_options={"update": True})
+        assert layer1.workflow_results[0].input["options"].update
+        assert not layer1.workflow_options.update[0].option.update
+
+        layer2 = WorkflowLayer(
+            ramsey_workflow,
+            ["q0", "q3"],
+            key="r2",
+            depends_on=["__root__"],
+        )
+        auto.add_layer(layer2)
+
+        assert not layer2.workflow_options.update[0].option.update
+        opts = layer2.workflow_options
+        opts.update(True)
+        auto.run_layer("r2", workflow_options=opts)
+        assert layer2.workflow_results[0].input["options"].update
