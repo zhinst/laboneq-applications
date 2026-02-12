@@ -1286,14 +1286,14 @@ wheels = [
 
 [[package]]
 name = "mkdocs-spellcheck"
-version = "1.2.0"
+version = "1.2.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "mkdocs" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/a1/a7/0ac729c3fbcb6606898857eb5683cdb47bbc7956caaf3487b34ff3448774/mkdocs_spellcheck-1.2.0.tar.gz", hash = "sha256:a92ac545f7e363236700c7ac24e06872cb12e0b75075b351b60870c3d879ed94", size = 34543, upload-time = "2025-12-01T14:40:40.022Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/65/58/b5d1d5f8b425df333df920e45050f7f6aa5f20a71067c1e1534d3764f3c0/mkdocs_spellcheck-1.2.1.tar.gz", hash = "sha256:4e17cd4beb0fe96f067441b0b5ab8964b2718ad6b29cefbc22e5903456589651", size = 38304, upload-time = "2026-02-11T14:03:18.524Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/60/fe/d93bde60e7544ddb65b28e599a6ce80d095ee021414d5cbc4079010cce05/mkdocs_spellcheck-1.2.0-py3-none-any.whl", hash = "sha256:e8ab260717bddf0ec2d1926aeb22e4bba80dc066a640ef884ba4c7c5a2140614", size = 14044, upload-time = "2025-12-01T14:40:38.556Z" },
+    { url = "https://files.pythonhosted.org/packages/a8/00/99fef135671e55e1d0c1e7d3beb057a3d15b9bcf6d1113895a171c79fc09/mkdocs_spellcheck-1.2.1-py3-none-any.whl", hash = "sha256:97a4f7b54b49578f050dfd330d21eab87255b5c111b3264918643eab82461cb0", size = 15761, upload-time = "2026-02-11T14:03:17.402Z" },
 ]
 
 [package.optional-dependencies]
@@ -1382,7 +1382,7 @@ wheels = [
 
 [[package]]
 name = "nbconvert"
-version = "7.16.6"
+version = "7.17.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "beautifulsoup4" },
@@ -1400,9 +1400,9 @@ dependencies = [
     { name = "pygments" },
     { name = "traitlets" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/a3/59/f28e15fc47ffb73af68a8d9b47367a8630d76e97ae85ad18271b9db96fdf/nbconvert-7.16.6.tar.gz", hash = "sha256:576a7e37c6480da7b8465eefa66c17844243816ce1ccc372633c6b71c3c0f582", size = 857715, upload-time = "2025-01-28T09:29:14.724Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/38/47/81f886b699450d0569f7bc551df2b1673d18df7ff25cc0c21ca36ed8a5ff/nbconvert-7.17.0.tar.gz", hash = "sha256:1b2696f1b5be12309f6c7d707c24af604b87dfaf6d950794c7b07acab96dda78", size = 862855, upload-time = "2026-01-29T16:37:48.478Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/cc/9a/cd673b2f773a12c992f41309ef81b99da1690426bd2f96957a7ade0d3ed7/nbconvert-7.16.6-py3-none-any.whl", hash = "sha256:1375a7b67e0c2883678c48e506dc320febb57685e5ee67faa51b18a90f3a712b", size = 258525, upload-time = "2025-01-28T09:29:12.551Z" },
+    { url = "https://files.pythonhosted.org/packages/0d/4b/8d5f796a792f8a25f6925a96032f098789f448571eb92011df1ae59e8ea8/nbconvert-7.17.0-py3-none-any.whl", hash = "sha256:4f99a63b337b9a23504347afdab24a11faa7d86b405e5c8f9881cd313336d518", size = 261510, upload-time = "2026-01-29T16:37:46.322Z" },
 ]
 
 [[package]]
