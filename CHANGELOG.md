@@ -1,4 +1,4 @@
-# laboneq_applications 26.4.0.dev0 (2026-02-12)
+# laboneq_applications 26.4.0.b1 (2026-02-13)
 
 ## Features
 
