@@ -329,25 +329,18 @@ class WorkflowAutomation(Automation):
         self,
         layer_key: str,
         quantum_element: str | None = None,
-        *,
-        cal_params: dict | None = None,
     ) -> tuple:
         """Safely extract automation parameters.
 
         Arguments:
             layer_key: The key of the workflow layer.
             quantum_element: The quantum element UID (optional).
-            cal_params: The calibration parameters dictionary (optional). By default,
-                we take the calibration parameters from the automation instance.
 
         Returns:
             A tuple of workflow parameters, general workflow parameters,
             temporary QPU parameters, workflow options, and logic.
         """
-        if cal_params is None:
-            cal_params = self.automation_parameters
-
-        if cal_params is None:
+        if self.automation_parameters is None:
             workflow_parameters = None
             general_workflow_parameters = None
             temporary_qpu_parameters = None
@@ -355,33 +348,42 @@ class WorkflowAutomation(Automation):
             logic = None
         else:
             if quantum_element:
-                workflow_parameters = cal_params[layer_key][quantum_element]
+                workflow_parameters = self.automation_parameters[layer_key][
+                    quantum_element
+                ]
             else:
                 workflow_parameters = {
                     k: v
-                    for k, v in cal_params[layer_key].items()
+                    for k, v in self.automation_parameters[layer_key].items()
                     if k in [q.uid for q in self.qpu.quantum_elements]
                 }
+            if not workflow_parameters:
+                workflow_parameters = None
             general_workflow_parameters = {
                 k: v
-                for k, v in cal_params[layer_key].items()
+                for k, v in self.automation_parameters[layer_key].items()
                 if k
                 not in {q.uid for q in self.qpu.quantum_elements}
                 | {"temporary_parameters", "options", "logic"}
             }
-            if "temporary_parameters" in cal_params[layer_key]:
-                temporary_qpu_parameters = cal_params[layer_key]["temporary_parameters"]
+            if not general_workflow_parameters:
+                general_workflow_parameters = None
+            if "temporary_parameters" in self.automation_parameters[layer_key]:
+                temporary_qpu_parameters = self.automation_parameters[layer_key][
+                    "temporary_parameters"
+                ]
             else:
                 temporary_qpu_parameters = None
-            if "options" in cal_params[layer_key]:
-                workflow_options = cal_params[layer_key]["options"]
+            if "options" in self.automation_parameters[layer_key]:
+                workflow_options = self.automation_parameters[layer_key]["options"]
             else:
                 workflow_options = None
-            if "logic" in cal_params[layer_key]:
+            if "logic" in self.automation_parameters[layer_key]:
                 logic_class = getattr(
-                    workflow_logic, cal_params[layer_key]["logic"]["class"]
+                    workflow_logic,
+                    self.automation_parameters[layer_key]["logic"]["class"],
                 )
-                logic_args = cal_params[layer_key]["logic"]["arguments"]
+                logic_args = self.automation_parameters[layer_key]["logic"]["arguments"]
                 logic = logic_class(**logic_args)
             else:
                 logic = None

@@ -737,3 +737,118 @@ class TestWorkflowAutomation:
         opts.update(True)
         auto.run_layer("r2", workflow_options=opts)
         assert layer2.workflow_results[0].input["options"].update
+
+    def test_extract_automation_parameters(
+        self,
+        session,
+        qpu,
+    ):
+        test_automation_parameters = {
+            "af1": {
+                "q0": {},
+                "q1": {},
+                "q2": {},
+                "q3": {},
+                "temporary_parameters": {
+                    "q0": {"drive_lo_frequency": 6.4e9},
+                    "q1": {"drive_lo_frequency": 6.4e9},
+                    "q2": {"drive_lo_frequency": 6.4e9},
+                    "q3": {"drive_lo_frequency": 6.4e9},
+                },
+                "options": {
+                    "evaluate": True,
+                    "update": True,
+                    "count": 2048,
+                    "transition": "ge",
+                },
+                "logic": {
+                    "class": "FixedParameterUpdate",
+                    "arguments": {
+                        "new_layer_key": "af1",
+                        "parameter_changes": {
+                            "q1": {
+                                "evaluation_fit_r2_thresholds": -0.0003,
+                            },
+                            "relative": False,
+                        },
+                    },
+                },
+                "amplification_qop": "x180",
+                "repetitions": [
+                    [1, 2],
+                    [1, 2],
+                    [1, 2],
+                    [1, 2],
+                ],
+                "target_angle": np.pi / 2.0,
+                "phase_offset": np.pi,
+            }
+        }
+
+        test_auto = WorkflowAutomation(
+            session, qpu=qpu, automation_parameters=test_automation_parameters
+        )
+        af1 = WorkflowLayer(
+            amplitude_fine.experiment_workflow,
+            ["q0", "q1", "q2", "q3"],
+            key="af1",
+            depends_on=["__root__"],
+        )
+        test_auto.add_layer(af1)
+
+        test_auto.run()
+
+        expected_parameters = (
+            test_automation_parameters["af1"],
+            {
+                "amplification_qop": test_automation_parameters["af1"][
+                    "amplification_qop"
+                ],
+                "phase_offset": test_automation_parameters["af1"]["phase_offset"],
+                "repetitions": test_automation_parameters["af1"]["repetitions"],
+                "target_angle": test_automation_parameters["af1"]["target_angle"],
+            },
+            {
+                "q0": {"drive_lo_frequency": 6.4e9},
+                "q1": {"drive_lo_frequency": 6.4e9},
+                "q2": {"drive_lo_frequency": 6.4e9},
+                "q3": {"drive_lo_frequency": 6.4e9},
+            },
+            {"count": 2048, "evaluate": True, "update": True},
+            FixedParameterUpdate(
+                **test_automation_parameters["af1"]["logic"]["arguments"]
+            ),
+        )
+        extracted_parameters = test_auto.extract_automation_parameters("af1", "q0")
+        assert extracted_parameters[0] is None
+        assert extracted_parameters[1] == expected_parameters[1]
+        assert extracted_parameters[2] == expected_parameters[2]
+        assert extracted_parameters[3] == extracted_parameters[3]
+        assert extracted_parameters[4].__dict__ == expected_parameters[4].__dict__
+
+        extracted_parameters = test_auto.extract_automation_parameters("af1")
+        assert extracted_parameters[0] == {
+            q: expected_parameters[0][q] for q in ["q0", "q1", "q2", "q3"]
+        }
+        assert extracted_parameters[1] == expected_parameters[1]
+        assert extracted_parameters[2] == expected_parameters[2]
+        assert extracted_parameters[3] == extracted_parameters[3]
+        assert extracted_parameters[4].__dict__ == expected_parameters[4].__dict__
+
+        test_auto.automation_parameters = None
+        assert test_auto.extract_automation_parameters("af1", "q0") == (
+            None,
+            None,
+            None,
+            None,
+            None,
+        )
+
+        test_auto.automation_parameters = {"af1": {"q0": {}}}
+        assert test_auto.extract_automation_parameters("af1", "q0") == (
+            None,
+            None,
+            None,
+            None,
+            None,
+        )

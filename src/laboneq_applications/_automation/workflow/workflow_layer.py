@@ -599,7 +599,11 @@ class WorkflowLayer(AutomationLayer):
             self.workflow_parameters, quantum_elements
         )
 
-        general_workflow_parameters = self.general_workflow_parameters
+        general_workflow_parameters = (
+            self.general_workflow_parameters
+            if self.general_workflow_parameters is not None
+            else {}
+        )
 
         # Build experiment workflow
         workflow = self.workflow_builder(
