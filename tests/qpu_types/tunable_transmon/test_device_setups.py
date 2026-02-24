@@ -3,46 +3,80 @@
 
 """Tests for laboneq_applications.qpu_types.tunable_transmon.device_setups."""
 
+import re
+
 import pytest
 
 from laboneq_applications.qpu_types.tunable_transmon import demo_platform
 
 
+def port_for_qubit_signal(qp, q: str, signal: str) -> str:
+    """Return the physical port name for the given qubit signal."""
+    logical_signal_group = f"/logical_signal_groups/{q}/{signal}"
+    results = [
+        connection
+        for instrument in qp.setup.instruments
+        for connection in instrument.connections
+        if connection.remote_path == logical_signal_group
+    ]
+    if len(results) == 0:
+        raise RuntimeError(
+            f"Could not find a port that matches {logical_signal_group!r}"
+        )
+    if len(results) > 1:
+        raise RuntimeError(
+            f"Found multiple ports that match {logical_signal_group!r}: {results!r}"
+        )
+    return results[0].local_port
+
+
 class TestDemoPlatform:
-    def test_single_transmon_qpu(self):
-        qp = demo_platform(1)
-        [q0] = qp.qpu.quantum_elements
+    @pytest.mark.parametrize(
+        ("num_qubits", "num_shfqcs", "num_hdawgs"),
+        [
+            pytest.param(1, 1, 1, id="1"),
+            pytest.param(2, 1, 1, id="2"),
+            pytest.param(6, 1, 1, id="6"),
+            pytest.param(13, 3, 2, id="13"),
+            pytest.param(1000, 167, 125, id="1000"),
+        ],
+    )
+    def test_transmon_qpu(self, num_qubits, num_shfqcs, num_hdawgs):
+        qp = demo_platform(num_qubits)
+        qubits = qp.qpu.quantum_elements
 
-        assert qp.setup.uid == "tunable_transmons_1"
+        # check instruments:
+        assert qp.setup.uid == f"tunable_transmons_{num_qubits}"
         assert qp.setup.qubits == {}
         assert [inst.uid for inst in qp.setup.instruments] == [
-            "device_shfqc",
-            "device_hdawg",
+            *[f"device_shfqc_{i}" for i in range(num_shfqcs)],
+            *[f"device_hdawg_{i}" for i in range(num_hdawgs)],
             "device_pqsc",
         ]
-        assert list(qp.setup.logical_signal_groups) == ["q0"]
 
-        assert q0.uid == "q0"
-        assert q0.parameters.drive_lo_frequency == 6.40e9
-
-    def test_two_transmon_qpu(self):
-        qp = demo_platform(2)
-        [q0, q1] = qp.qpu.quantum_elements
-
-        assert qp.setup.uid == "tunable_transmons_2"
-        assert qp.setup.qubits == {}
-        assert [inst.uid for inst in qp.setup.instruments] == [
-            "device_shfqc",
-            "device_hdawg",
-            "device_pqsc",
+        # check quantum elements and logical signal groups
+        assert list(qp.setup.logical_signal_groups) == [
+            f"q{i}" for i in range(num_qubits)
         ]
-        assert list(qp.setup.logical_signal_groups) == ["q0", "q1"]
+        assert [q.uid for q in qubits] == [f"q{i}" for i in range(num_qubits)]
+        assert [q.parameters.drive_lo_frequency for q in qubits] == [
+            int((6.4 + (i // 2) * 0.2) * 1e9) for i in range(num_qubits)
+        ]
 
-        assert q0.uid == "q0"
-        assert q0.parameters.drive_lo_frequency == 6.40e9
-
-        assert q1.uid == "q1"
-        assert q1.parameters.drive_lo_frequency == 6.40e9
+        # check connections
+        for q in qubits:
+            drive = port_for_qubit_signal(qp, q.uid, "drive")
+            drive_ef = port_for_qubit_signal(qp, q.uid, "drive_ef")
+            assert drive == drive_ef
+            assert re.match(r"SGCHANNELS/\d+/OUTPUT", drive)
+            assert re.match(
+                r"QACHANNELS/\d+/OUTPUT",
+                port_for_qubit_signal(qp, q.uid, "measure"),
+            )
+            assert re.match(
+                r"QACHANNELS/\d+/INPUT",
+                port_for_qubit_signal(qp, q.uid, "acquire"),
+            )
 
     def test_too_few_qubits(self):
         with pytest.raises(ValueError) as err:
@@ -50,12 +84,4 @@ class TestDemoPlatform:
         assert (
             str(err.value)
             == "This testing and demonstration setup requires at least one qubit."
-        )
-
-    def test_too_many_qubits(self):
-        with pytest.raises(ValueError) as err:
-            demo_platform(9)
-        assert (
-            str(err.value)
-            == "This testing and demonstration setup requires 8 or fewer qubits."
         )

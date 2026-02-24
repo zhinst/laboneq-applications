@@ -31,9 +31,6 @@ def demo_platform(n_qubits: int) -> QuantumPlatform:
     - 1 SHFQC/QC6CH
     - 1 HDAWG8/MF/ME/SKW/PC
 
-    The maximum number of qubits is 6 (which is the number of drive lines on
-    the SHFQC).
-
     The qubits share a single multiplexed readout line.
 
     Arguments:
@@ -42,12 +39,41 @@ def demo_platform(n_qubits: int) -> QuantumPlatform:
 
     Returns:
         The QPU.
+
+    !!! version-changed "Changed in version 26.4.0."
+        The number of qubits, `n_qubits`, may be arbitrarily large.
+        In earlier versions, it was allowed to be at most six.
     """
     setup = tunable_transmon_setup(n_qubits)
     qubits = tunable_transmon_qubits(n_qubits, setup)
     quantum_operations = TunableTransmonOperations()
     qpu = QPU(qubits, quantum_operations=quantum_operations)
     return QuantumPlatform(setup=setup, qpu=qpu)
+
+
+class _DeviceAndPortSet:
+    """A set of ports on a set of devices.
+
+    Arguments:
+        ports:
+            Number of ports per device.
+        qubits:
+            List of qubit uids.
+
+    Attributes:
+        num_devices:
+            Total number of devices needed.
+        qubit_to_port:
+            A map from qubit uid to a tuple of the device and port number.
+    """
+
+    def __init__(self, *, ports: int, qubits: list[str]):
+        n_qubits = len(qubits)
+
+        self.num_devices = n_qubits // ports + (1 if n_qubits % ports > 0 else 0)
+        self.qubit_to_port = {
+            qubit_id: (i // ports, i % ports) for i, qubit_id in enumerate(qubits)
+        }
 
 
 def tunable_transmon_setup(n_qubits: int) -> DeviceSetup:
@@ -65,9 +91,6 @@ def tunable_transmon_setup(n_qubits: int) -> DeviceSetup:
     - 1 SHFQC/QC6CH
     - 1 HDAWG8/MF/ME/SKW/PC
 
-    The maximum number of qubits is 6 (which is the number of drive lines on
-    the SHFQC).
-
     The qubits share a single multiplexed readout line.
 
     Arguments:
@@ -76,47 +99,59 @@ def tunable_transmon_setup(n_qubits: int) -> DeviceSetup:
 
     Returns:
         The device setup.
+
+    !!! version-changed "Changed in version 26.4.0."
+        The number of qubits, `n_qubits`, may be arbitrarily large.
+        In earlier versions, it was allowed to be at most six.
     """
     if n_qubits < 1:
         raise ValueError(
             "This testing and demonstration setup requires at least one qubit.",
         )
-    SHFQC_DRIVE_LINES: int = 6  # noqa: N806
-    if n_qubits > SHFQC_DRIVE_LINES:
-        raise ValueError(
-            "This testing and demonstration setup requires 8 or fewer qubits.",
-        )
 
     qubit_ids = [f"q{i}" for i in range(n_qubits)]
+
+    shfqc_drive_lines = _DeviceAndPortSet(ports=6, qubits=qubit_ids)
+    hdawg_sigouts = _DeviceAndPortSet(ports=8, qubits=qubit_ids)
 
     setup = DeviceSetup(f"tunable_transmons_{n_qubits}")
     setup.add_dataserver(host="localhost", port="8004")
 
-    setup.add_instruments(
-        SHFQC(uid="device_shfqc", address="dev123", device_options="SHFQC/QC6CH"),
-    )
-    setup.add_instruments(
-        HDAWG(
-            uid="device_hdawg",
-            address="dev124",
-            device_options="HDAWG8/MF/ME/SKW/PC",
-        ),
-    )
+    for i in range(shfqc_drive_lines.num_devices):
+        setup.add_instruments(
+            SHFQC(
+                uid=f"device_shfqc_{i}",
+                address=f"dev123{i}",
+                device_options="SHFQC/QC6CH",
+            ),
+        )
+
+    for i in range(hdawg_sigouts.num_devices):
+        setup.add_instruments(
+            HDAWG(
+                uid=f"device_hdawg_{i}",
+                address=f"dev124{i}",
+                device_options="HDAWG8/MF/ME/SKW/PC",
+            ),
+        )
+
     setup.add_instruments(
         PQSC(uid="device_pqsc", address="dev125", device_options="PQSC")
     )
 
-    for i, qubit in enumerate(qubit_ids):
+    for qubit in qubit_ids:
+        shfqc, shfqc_port = shfqc_drive_lines.qubit_to_port[qubit]
+        hdawg, hdawg_port = hdawg_sigouts.qubit_to_port[qubit]
         setup.add_connections(
-            "device_shfqc",
+            f"device_shfqc_{shfqc}",
             # each qubit uses their own drive line:
             create_connection(
                 to_signal=f"{qubit}/drive",
-                ports=f"SGCHANNELS/{i}/OUTPUT",
+                ports=f"SGCHANNELS/{shfqc_port}/OUTPUT",
             ),
             create_connection(
                 to_signal=f"{qubit}/drive_ef",
-                ports=f"SGCHANNELS/{i}/OUTPUT",
+                ports=f"SGCHANNELS/{shfqc_port}/OUTPUT",
             ),
             # all qubits multiplex on the measure and acquire lines:
             create_connection(
@@ -125,12 +160,10 @@ def tunable_transmon_setup(n_qubits: int) -> DeviceSetup:
             ),
             create_connection(to_signal=f"{qubit}/acquire", ports="QACHANNELS/0/INPUT"),
         )
-
-    for i, qubit in enumerate(qubit_ids):
         setup.add_connections(
-            "device_hdawg",
+            f"device_hdawg_{hdawg}",
             # each qubit has its own flux line:
-            create_connection(to_signal=f"{qubit}/flux", ports=f"SIGOUTS/{i}"),
+            create_connection(to_signal=f"{qubit}/flux", ports=f"SIGOUTS/{hdawg_port}"),
         )
 
     for qubit in qubit_ids:
