@@ -1,4 +1,20 @@
-# laboneq_applications 26.4.0.b1 (2026-02-13)
+# laboneq_applications 26.4.0b2 (2026-02-27)
+
+## Features
+
+- The `TunableTransmon` `demo_platform(n_qubits)` and `tunable_transmon_setup(n_qubits)`
+  functions were extended to support arbitrary numbers of qubits. Previously they supported
+  at most six. The SHFQC and HDAWG instrument names and addresses in the setup were made
+  unique by appending a count to them.
+
+## Miscellaneous
+
+- Added unit tests for the extraction of automation parameters in `workflow_automation`. (QRL-565)
+- Add unit tests for the setting of temporary workflow parameters when running a layer. (QRL-618)
+- Adds the possibility to `run_layer` with temporary workflow options provided as a dictionary and adds unit tests for the new functionality.
+
+
+# laboneq_applications 26.4.0b1 (2026-02-13)
 
 ## Features
 
