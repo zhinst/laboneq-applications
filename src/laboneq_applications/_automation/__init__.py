@@ -7,10 +7,12 @@ from laboneq_applications._automation.workflow.workflow_automation import (
     WorkflowAutomation,
 )
 from laboneq_applications._automation.workflow.workflow_layer import WorkflowLayer
+from laboneq_applications._automation.workflow.workflow_logic import WorkflowLogic
 from laboneq_applications._automation.workflow.workflow_node import WorkflowNode
 
 __all__ = [
     "WorkflowAutomation",
     "WorkflowLayer",
+    "WorkflowLogic",
     "WorkflowNode",
 ]
