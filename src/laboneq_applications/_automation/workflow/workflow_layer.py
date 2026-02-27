@@ -169,6 +169,7 @@ class WorkflowLayer(AutomationLayer):
             **grouped_element_workflow_parameters,
             **self.common_workflow_parameters,
         )
+        workflow.storage_key = (f"{auto.timestamp}-{auto.name}", self.key)
 
         # Set node statuses (pre run)
         for q in quantum_elements_tuple:

@@ -19,7 +19,7 @@ if TYPE_CHECKING:
     from laboneq_applications.typing import QuantumElements
 
 
-@workflow.task
+@workflow.task(save=False)
 def evaluate_experiment(
     analysis_results: WorkflowResult,
     parameter: str,

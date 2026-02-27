@@ -1,0 +1,93 @@
+qs1:
+  element_workflow_parameters:
+    q0:
+      frequencies:
+        __linspace__:
+          start: 6e9
+          stop: 6.3e9
+          num: 101
+    q1:
+      frequencies:
+        __linspace__:
+          start: 6e9
+          stop: 6.3e9
+          num: 101
+    q2:
+      frequencies:
+        __linspace__:
+          start: 6e9
+          stop: 6.3e9
+          num: 101
+    q3:
+      frequencies:
+        __linspace__:
+          start: 6e9
+          stop: 6.3e9
+          num: 101
+  workflow_options:
+    evaluate: True
+    update: True
+    count: 2048
+    active_reset: True
+qs2:
+  element_workflow_parameters:
+    q0:
+      frequencies:
+        __linspace__:
+          start: 6e9
+          stop: 6.3e9
+          num: 101
+    q1:
+      frequencies:
+        __linspace__:
+          start: 6e9
+          stop: 6.3e9
+          num: 101
+    q2:
+      frequencies:
+        __linspace__:
+          start: 6e9
+          stop: 6.3e9
+          num: 101
+    q3:
+      frequencies:
+        __linspace__:
+          start: 6e9
+          stop: 6.3e9
+          num: 101
+  workflow_options:
+    evaluate: True
+    update: True
+    count: 2048
+    active_reset: True
+qs3:
+  element_workflow_parameters:
+    q0:
+      frequencies:
+        __linspace__:
+          start: 6e9
+          stop: 6.3e9
+          num: 101
+    q1:
+      frequencies:
+        __linspace__:
+          start: 6e9
+          stop: 6.3e9
+          num: 101
+    q2:
+      frequencies:
+        __linspace__:
+          start: 6e9
+          stop: 6.3e9
+          num: 101
+    q3:
+      frequencies:
+        __linspace__:
+          start: 6e9
+          stop: 6.3e9
+          num: 101
+  workflow_options:
+    evaluate: True
+    update: True
+    count: 2048
+    active_reset: True

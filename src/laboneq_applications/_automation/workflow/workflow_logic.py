@@ -13,11 +13,11 @@ if TYPE_CHECKING:
 
 
 @classformatter
-@attrs.define
+@attrs.define(kw_only=True)
 class WorkflowLogic(AutomationLogic):
     """Workflow decision logic."""
 
-    def run_executable(self, layer: "WorkflowLayer") -> dict[str, dict]:
+    def run_executable(self, layer: "WorkflowLayer") -> tuple[str, dict]:
         pass
 
 

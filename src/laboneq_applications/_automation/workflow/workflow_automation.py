@@ -55,7 +55,7 @@ class WorkflowAutomation(Automation):
             layer_key: The layer key.
 
         Returns:
-            new_layer_key: The key of the new layer.
+            new_layer_key: The key of the next layer to be executed.
             new_params: The dictionary of new automation parameters.
         """
         layer = self.get_layer(layer_key)
