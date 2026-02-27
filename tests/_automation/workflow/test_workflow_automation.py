@@ -182,7 +182,7 @@ def automation_parameters() -> dict:
 @pytest.fixture
 def auto(session, qpu, automation_parameters) -> WorkflowAutomation:
     return WorkflowAutomation(
-        session, qpu=qpu, automation_parameters=automation_parameters
+        session, qpu=qpu, automation_parameters=automation_parameters, name="test"
     )
 
 
@@ -219,11 +219,13 @@ def amplitude_fine_workflow() -> WorkflowBuilder:
 class TestWorkflowAutomation:
     def test_create(self, session, qpu, automation_parameters):
         auto = WorkflowAutomation(
-            session, qpu, automation_parameters=automation_parameters
+            session, qpu, automation_parameters=automation_parameters, name="test"
         )
+        assert auto.name == "test"
         assert auto.automation_parameters == automation_parameters
         assert auto.session == session
         assert auto.qpu == qpu
+        assert isinstance(auto.timestamp, str)
         assert isinstance(auto._node_graph, nx.DiGraph)
         assert list(auto._node_graph.nodes) == ["root_root"]
         assert auto._node_lookup == {"root_root": RootNode()}
@@ -236,7 +238,11 @@ class TestWorkflowAutomation:
         assert len(inspect.signature(method2).parameters) == 1
 
     def test_run(
-        self, auto, qubit_spectroscopy_workflow, ramsey_workflow, workflow_parameters
+        self,
+        auto,
+        qubit_spectroscopy_workflow,
+        ramsey_workflow,
+        workflow_parameters,
     ):
         qs1 = WorkflowLayer(
             qubit_spectroscopy_workflow,
