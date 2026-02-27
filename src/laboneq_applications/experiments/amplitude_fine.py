@@ -148,11 +148,12 @@ def experiment_workflow(  # noqa: PLR0913
 
     Example:
         ```python
-        options = experiment_workflow.options()
+        options = amplitude_fine.experiment_workflow.options()
         options.count(10)
         options.transition("ge")
+        # QPU from a two-qubit device setup
         qpu = QPU(
-            quantum_elements=[TunableTransmonQubit("q0"), TunableTransmonQubit("q1")],
+            quantum_elements=TunableTransmonQubit.from_device_setup(setup),
             quantum_operations=TunableTransmonOperations(),
         )
         temp_qubits = qpu.copy_quantum_elements()
@@ -278,10 +279,11 @@ def create_experiment(
     Example:
         ```python
         options = TuneupExperimentOptions()
-        options.count(10)
-        options.cal_traces(True)
+        options.count = 10
+        options.use_cal_traces = True
+        # QPU from a two-qubit device setup
         qpu = QPU(
-            quantum_elements=[TunableTransmonQubit("q0"), TunableTransmonQubit("q1")],
+            quantum_elements=TunableTransmonQubit.from_device_setup(setup),
             quantum_operations=TunableTransmonOperations(),
         )
         temp_qubits = qpu.copy_quantum_elements()
@@ -427,15 +429,16 @@ def experiment_workflow_x180(
 
     Example:
         ```python
-        options = TuneUpExperimentWorkflowOptions()
-        options.create_experiment.count = 10
-        options.create_experiment.transition = "ge"
+        options = amplitude_fine.experiment_workflow.options()
+        options.count(10)
+        options.transition("ge")
+        # QPU from a two-qubit device setup
         qpu = QPU(
-            quantum_elements=[TunableTransmonQubit("q0"), TunableTransmonQubit("q1")],
+            quantum_elements=TunableTransmonQubit.from_device_setup(setup),
             quantum_operations=TunableTransmonOperations(),
         )
         temp_qubits = qpu.copy_quantum_elements()
-        result = experiment_workflow(
+        result = experiment_workflow_x180(
             session=session,
             qpu=qpu,
             qubits=temp_qubits,
@@ -532,15 +535,16 @@ def experiment_workflow_x90(
 
     Example:
         ```python
-        options = TuneUpExperimentWorkflowOptions()
-        options.create_experiment.count = 10
-        options.create_experiment.transition = "ge"
+        options = amplitude_fine.experiment_workflow.options()
+        options.count(10)
+        options.transition("ge")
+        # QPU from a two-qubit device setup
         qpu = QPU(
-            quantum_elements=[TunableTransmonQubit("q0"), TunableTransmonQubit("q1")],
+            quantum_elements=TunableTransmonQubit.from_device_setup(setup),
             quantum_operations=TunableTransmonOperations(),
         )
         temp_qubits = qpu.copy_quantum_elements()
-        result = experiment_workflow(
+        result = experiment_workflow_x90(
             session=session,
             qpu=qpu,
             qubits=temp_qubits,
