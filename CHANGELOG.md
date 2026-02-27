@@ -6,6 +6,8 @@
   functions were extended to support arbitrary numbers of qubits. Previously they supported
   at most six. The SHFQC and HDAWG instrument names and addresses in the setup were made
   unique by appending a count to them.
+- Refactored the workflow automation subclasses for the LabOne Q Automation framework (currently in beta), due to be officially released in v26.04.
+
 
 ## Miscellaneous
 
