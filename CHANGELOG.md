@@ -1,5 +1,12 @@
 # laboneq_applications 26.4.0b2 (2026-02-27)
 
+## Miscellaneous
+
+- Add `serialization` notebook tutorial for LabOne Q Automation. (QRL-538)
+
+
+# laboneq_applications 26.4.0b2 (2026-02-27)
+
 ## Features
 
 - The `TunableTransmon` `demo_platform(n_qubits)` and `tunable_transmon_setup(n_qubits)`
