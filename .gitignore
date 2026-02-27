@@ -87,6 +87,11 @@ pyrightconfig.json
 
 #pulse sheet viewer
 *.html
+src/**/*.html
+
+#automation graph viewer
+!src/laboneq_applications/_automation/web_viewer/app/templates/index.html
+!src/laboneq_applications/_automation/web_viewer/app/templates/base.html
 
 # pyenv
 #   For a library or package, you might want to ignore these files since the code is
