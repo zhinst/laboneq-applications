@@ -1,12 +1,5 @@
 # laboneq_applications 26.4.0b2 (2026-02-27)
 
-## Miscellaneous
-
-- Add `serialization` notebook tutorial for LabOne Q Automation. (QRL-538)
-
-
-# laboneq_applications 26.4.0b2 (2026-02-27)
-
 ## Features
 
 - The `TunableTransmon` `demo_platform(n_qubits)` and `tunable_transmon_setup(n_qubits)`
@@ -21,6 +14,8 @@
 - Added unit tests for the extraction of automation parameters in `workflow_automation`. (QRL-565)
 - Add unit tests for the setting of temporary workflow parameters when running a layer. (QRL-618)
 - Adds the possibility to `run_layer` with temporary workflow options provided as a dictionary and adds unit tests for the new functionality.
+- Add `serialization` notebook tutorial for LabOne Q Automation. (QRL-538)
+
 
 
 # laboneq_applications 26.4.0b1 (2026-02-13)
