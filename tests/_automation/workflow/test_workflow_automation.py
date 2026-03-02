@@ -23,6 +23,7 @@ from laboneq.dsl.session import Session
 from laboneq.workflow import WorkflowBuilder
 from laboneq.workflow.result import WorkflowResult
 
+from laboneq_applications._automation.web_viewer.server import start_web_viewer
 from laboneq_applications._automation.workflow.workflow_automation import (
     WorkflowAutomation,
 )
@@ -369,13 +370,41 @@ class TestWorkflowAutomation:
         assert isinstance(output, tuple)
         assert len(output) == 2
         eval_outputs = qs1.eval_outputs
-        assert all(isinstance(k, str) for k in eval_outputs)
+        assert list(eval_outputs.keys()) == ["q0", "q1", "q2", "q3"]
         assert all(isinstance(v, dict) for v in eval_outputs.values())
         for eval_output in eval_outputs.values():
-            for k, v in eval_output.items():
-                assert isinstance(k, str)
-                assert isinstance(v, bool)
-        assert isinstance(qs1.workflow_results, dict)
+            assert eval_output == {"success": True, "update": False}
+        assert list(qs1.workflow_results.keys()) == [
+            (q,) for q in ["q0", "q1", "q2", "q3"]
+        ]
+        assert all(
+            isinstance(workflow_result, WorkflowResult)
+            for workflow_result in qs1.workflow_results.values()
+        )
+
+    def test_run_layer_sequentially_with_web_view(
+        self, auto, qubit_spectroscopy_workflow
+    ):
+        start_web_viewer(auto, port=5003)
+        qs1 = WorkflowLayer(
+            qubit_spectroscopy_workflow,
+            ["q0", "q1", "q2", "q3"],
+            key="qs1",
+            depends_on={"root"},
+        )
+        auto.add_layer(qs1)
+        qs1.sequential = True
+        output = auto.run_layer("qs1")
+        assert isinstance(output, tuple)
+        assert len(output) == 2
+        eval_outputs = qs1.eval_outputs
+        assert list(eval_outputs.keys()) == ["q0", "q1", "q2", "q3"]
+        assert all(isinstance(v, dict) for v in eval_outputs.values())
+        for eval_output in eval_outputs.values():
+            assert eval_output == {"success": True, "update": False}
+        assert list(qs1.workflow_results.keys()) == [
+            (q,) for q in ["q0", "q1", "q2", "q3"]
+        ]
         assert all(
             isinstance(workflow_result, WorkflowResult)
             for workflow_result in qs1.workflow_results.values()

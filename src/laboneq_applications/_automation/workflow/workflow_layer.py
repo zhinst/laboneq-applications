@@ -125,31 +125,37 @@ class WorkflowLayer(AutomationLayer):
         self.results = value
 
     def run_executable(
-        self, auto: WorkflowAutomation
+        self, auto: WorkflowAutomation, quantum_elements: list[str] | None = None
     ) -> dict[tuple[str, ...], WorkflowResult]:
         """Run an experiment workflow.
 
         Arguments:
             auto: The workflow automation instance.
+            quantum_elements: A list of keys of quantum elements to use
+                in the experiment workflow (optional). If no list is provided,
+                then the workflow is run on all quantum elements in the layer.
 
         Returns:
             A dictionary of workflow results, keyed by quantum elements.
         """
         # Prepare quantum elements
-        quantum_elements = self.quantum_elements.copy()
+        if quantum_elements is None:
+            quantum_elements = self.quantum_elements
 
-        for node in self.nodes.values():
-            if node.status in Status.inactive() and node.key in quantum_elements:
-                quantum_elements.remove(node.key)
+        run_elements = [
+            n.key
+            for n in self.nodes.values()
+            if n.status in Status.active() and n.key in quantum_elements
+        ]
 
-        quantum_elements_tuple = tuple(quantum_elements)
+        quantum_elements_tuple = tuple(run_elements)
 
-        if len(quantum_elements) == 1:  # the type needs to match workflow parameters
-            quantum_elements = quantum_elements[0]
+        if len(run_elements) == 1:  # the type needs to match workflow parameters
+            run_elements = run_elements[0]
 
         # Prepare element workflow parameters
         grouped_element_workflow_parameters = group_element_workflow_parameters(
-            self.element_workflow_parameters, quantum_elements
+            self.element_workflow_parameters, run_elements
         )
 
         # Prepare workflow options
@@ -163,7 +169,7 @@ class WorkflowLayer(AutomationLayer):
         workflow = self.workflow_builder(
             auto.session,
             auto.qpu,
-            quantum_elements,
+            run_elements,
             temporary_parameters=self.temporary_qpu_parameters,
             options=built_workflow_options,
             **grouped_element_workflow_parameters,
@@ -185,11 +191,12 @@ class WorkflowLayer(AutomationLayer):
         eval_successes = {k: v["success"] for k, v in self.eval_outputs.items()}
 
         # Set node statuses (post run)
-        for node_key, node in self.nodes.items():
-            if eval_successes and node_key in eval_successes:
-                eval_success = eval_successes[node_key]
-                node.status = Status.PASSED if eval_success else Status.FAILED
-            elif node.status in Status.active():
-                node.status = Status.PASSED
+        for q in quantum_elements_tuple:
+            if q in eval_successes:
+                self.nodes[q].status = (
+                    Status.PASSED if eval_successes[q] else Status.FAILED
+                )
+            else:
+                self.nodes[q].status = Status.PASSED
 
         return {quantum_elements_tuple: workflow_result}

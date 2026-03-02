@@ -65,20 +65,12 @@ class WorkflowAutomation(Automation):
         else:
             combined_results = {}
             combined_eval_outputs = {}
-            original_quantum_elements = layer.quantum_elements.copy()
 
-            active_quantum_elements = []
-            for q in original_quantum_elements:
-                node = layer[q]
-                if node.status in Status.active():
-                    active_quantum_elements.append(q)
-
-            for q in active_quantum_elements:
-                layer.quantum_elements = [q]
-                result = layer.run_executable(self)
-                combined_results |= result
-                combined_eval_outputs |= layer.eval_outputs
-            layer.quantum_elements = original_quantum_elements
+            for q in layer.quantum_elements:
+                if layer[q].status in Status.active():
+                    result = layer.run_executable(self, quantum_elements=[q])
+                    combined_results |= result
+                    combined_eval_outputs |= layer.eval_outputs
             layer.workflow_results = combined_results
             layer.eval_outputs = combined_eval_outputs
 
