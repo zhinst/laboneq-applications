@@ -20,7 +20,7 @@ from laboneq.dsl.quantum import (
     QuantumPlatform,
 )
 from laboneq.dsl.session import Session
-from laboneq.workflow import WorkflowBuilder
+from laboneq.workflow import WorkflowBuilder, logbook
 from laboneq.workflow.result import WorkflowResult
 
 from laboneq_applications._automation.web_viewer.server import start_web_viewer
@@ -34,6 +34,14 @@ from laboneq_applications.experiments import (
     ramsey,
 )
 from laboneq_applications.qpu_types.tunable_transmon import demo_platform
+
+
+@pytest.fixture
+def folder_store(tmp_path):
+    store = logbook.FolderStore(tmp_path)
+    store.activate()
+    yield store
+    store.deactivate()
 
 
 @pytest.fixture
@@ -409,6 +417,53 @@ class TestWorkflowAutomation:
             isinstance(workflow_result, WorkflowResult)
             for workflow_result in qs1.workflow_results.values()
         )
+
+    def test_run_layer_sequentially_with_folder_store(
+        self, auto, qubit_spectroscopy_workflow, folder_store
+    ):
+
+        qs1 = WorkflowLayer(
+            qubit_spectroscopy_workflow,
+            ["q0", "q1", "q2", "q3"],
+            key="qs1",
+            depends_on={"root"},
+        )
+        auto.add_layer(qs1)
+        qs1.sequential = True
+        auto.run_layer("qs1")
+
+        [day_folder] = folder_store.folder.iterdir()
+        [automation_folder] = day_folder.iterdir()
+        assert [f.name for f in automation_folder.iterdir()] == ["qs1"]
+
+        for qubit in ["q0", "q1", "q2", "q3"]:
+            assert (automation_folder / "qs1" / qubit).name == qubit
+            data_folders = [
+                p for p in (automation_folder / "qs1" / qubit).iterdir() if p.is_dir()
+            ]
+            assert len(data_folders) == 1
+            assert "qubit-spectroscopy" in data_folders[0].name
+
+    def test_run_layer_with_folder_store(
+        self, auto, qubit_spectroscopy_workflow, folder_store
+    ):
+
+        qs1 = WorkflowLayer(
+            qubit_spectroscopy_workflow,
+            ["q0", "q1", "q2", "q3"],
+            key="qs1",
+            depends_on={"root"},
+        )
+        auto.add_layer(qs1)
+        auto.run_layer("qs1")
+
+        [day_folder] = folder_store.folder.iterdir()
+        [automation_folder] = day_folder.iterdir()
+        assert [f.name for f in automation_folder.iterdir()] == ["qs1"]
+
+        data_folders = [p for p in (automation_folder / "qs1").iterdir() if p.is_dir()]
+        assert len(data_folders) == 1
+        assert "qubit-spectroscopy" in data_folders[0].name
 
     def test_reset(self, auto, qubit_spectroscopy_workflow, workflow_parameters):
         layer1 = WorkflowLayer(

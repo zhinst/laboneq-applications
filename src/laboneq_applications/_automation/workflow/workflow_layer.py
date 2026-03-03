@@ -141,6 +141,17 @@ class WorkflowLayer(AutomationLayer):
         # Prepare quantum elements
         if quantum_elements is None:
             quantum_elements = self.quantum_elements
+            storage_key = (
+                f"{auto.timestamp}-{auto.name}",
+                self.key,
+            )
+        else:
+            quantum_elements_string = "_".join(quantum_elements)
+            storage_key = (
+                f"{auto.timestamp}-{auto.name}",
+                self.key,
+                quantum_elements_string,
+            )
 
         run_elements = [
             n.key
@@ -175,7 +186,7 @@ class WorkflowLayer(AutomationLayer):
             **grouped_element_workflow_parameters,
             **self.common_workflow_parameters,
         )
-        workflow.storage_key = (f"{auto.timestamp}-{auto.name}", self.key)
+        workflow.storage_key = storage_key
 
         # Set node statuses (pre run)
         for q in quantum_elements_tuple:
