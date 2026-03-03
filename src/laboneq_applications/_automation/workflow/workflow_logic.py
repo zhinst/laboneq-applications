@@ -46,7 +46,7 @@ class AdaptFrequencyRange(WorkflowLogic):
             frequencies = (
                 next(iter(layer.workflow_results.values()))
                 .output.data[q]
-                .result.axis[0][0]
+                .result.axis[0]
             )
 
             freq_range = int(max(frequencies) - min(frequencies))
