@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING, Any
 
 import attrs
 from laboneq._automation import AutomationLayer
-from laboneq._automation.element import AutomationElementStatus as Status
+from laboneq._automation import AutomationStatus as Status
 from laboneq.core.utilities.dsl_dataclass_decorator import classformatter
 from laboneq.dsl.quantum import QPU, QuantumParameters
 from laboneq.workflow import WorkflowBuilder, WorkflowResult
@@ -38,15 +38,20 @@ class WorkflowLayer(AutomationLayer):
     eval_outputs: dict[str, dict[str, bool]] = attrs.field(factory=dict, init=False)
 
     @property
-    def nodes(self) -> dict[str, WorkflowNode]:
+    def nodes(self) -> dict[str | tuple[str, ...], WorkflowNode]:
         """The node dictionary."""
         for node_key in self.node_keys:
-            deps = {
-                f"{layer_key}_{node_key}"
-                for layer_key in self.depends_on
-                if layer_key != "root"
-            }
             if node_key not in self._node_lookup:
+                if isinstance(node_key, str):
+                    element_key = (node_key,)
+                else:
+                    element_key = tuple(node_key)
+                deps = {
+                    f"{layer_key}_{k}"
+                    for layer_key in self.depends_on
+                    if layer_key != "root"
+                    for k in element_key
+                }
                 self._node_lookup[node_key] = WorkflowNode(
                     key=node_key,
                     depends_on=deps,
@@ -65,11 +70,11 @@ class WorkflowLayer(AutomationLayer):
         self.function = value
 
     @property
-    def quantum_elements(self) -> list[str]:
+    def quantum_elements(self) -> list[str | tuple[str, ...]]:
         return self.node_keys
 
     @quantum_elements.setter
-    def quantum_elements(self, value: list[str]) -> None:
+    def quantum_elements(self, value: list[str | tuple[str, ...]]) -> None:
         self.node_keys = value
 
     @property

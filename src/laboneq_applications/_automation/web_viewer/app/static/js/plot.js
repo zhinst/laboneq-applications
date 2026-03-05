@@ -256,10 +256,16 @@ function renderNodes({
                         (d) =>
                             `translate(${startPos[d.key]?.x ?? 0},${startPos[d.key]?.y ?? 0})`,
                     );
-
                 ng.append("circle")
-                    .attr("r", 30)
+                    .attr("class", "node-circle")
+                    .attr("r", (d) =>
+                        Array.isArray(d.quantum_elements) && !toLayers
+                            ? d.quantum_elements.length * 20
+                            : 30,
+                    )
                     .attr("fill", (d) => statusColorMap[d.status] || "#cccccc")
+                    .attr("stroke", "#999")
+                    .attr("stroke-width", 2)
                     .on("click", (event, d) => {
                         if (lastSelectedNode)
                             lastSelectedNode.classed("selected", false);
@@ -286,12 +292,29 @@ function renderNodes({
                             .style("display", "block");
                     });
 
+                ng.on("mouseenter", function () {
+                    d3.select(this)
+                        .select("circle")
+                        .style("stroke", "#000")
+                        .style("stroke-width", 3);
+                    d3.select(this).raise();
+                }).on("mouseleave", function () {
+                    d3.select(this)
+                        .select("circle")
+                        .style("stroke", null)
+                        .style("stroke-width", null);
+                    g.selectAll("g.node").sort(
+                        (a, b) => items.indexOf(a) - items.indexOf(b),
+                    );
+                });
+
                 ng.append("text")
                     .attr("class", "top-label")
                     .attr("text-anchor", "middle")
                     .attr("dominant-baseline", "top")
                     .attr("fill", "black")
                     .style("font-size", "25px")
+                    .style("pointer-events", "none")
                     .text((d) => layerMap.get(d.layer));
 
                 // Qubit key label exists only for nodes-mode view of nodes,
@@ -303,10 +326,11 @@ function renderNodes({
                     .attr("fill", "black")
                     .attr("y", 15)
                     .style("font-size", "18px")
+                    .style("pointer-events", "none")
                     .style("opacity", toLayers ? 1 : 0)
                     .text((d) =>
                         Array.isArray(d.quantum_elements)
-                            ? d.quantum_elements[0]
+                            ? d.quantum_elements.join(", ")
                             : d.quantum_elements,
                     );
 
@@ -337,6 +361,18 @@ function renderNodes({
             .transition()
             .duration(TRANSITION_DURATION)
             .style("opacity", toLayers ? 0 : 1);
+
+        // Resize circle
+        nodeSel
+            .select(".node-circle")
+            .interrupt()
+            .transition()
+            .duration(TRANSITION_DURATION)
+            .attr("r", (d) =>
+                Array.isArray(d.quantum_elements) && !toLayers
+                    ? d.quantum_elements.length * 20
+                    : 30,
+            );
     }
 }
 

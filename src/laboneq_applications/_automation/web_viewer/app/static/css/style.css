@@ -151,13 +151,6 @@ body {
     fill: none;
 }
 
-.node circle {
-    stroke: #999;
-    stroke-width: 2px;
-    cursor: pointer;
-    transition: r 0.2s;
-}
-
 .node circle:hover {
     stroke: #000;
     stroke-width: 3px;
@@ -166,6 +159,10 @@ body {
 .node.selected circle {
     stroke: #007bff;
     stroke-width: 4px;
+}
+
+.node text {
+    pointer-events: none;
 }
 
 .dimmed {

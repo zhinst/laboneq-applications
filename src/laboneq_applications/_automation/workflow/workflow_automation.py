@@ -5,7 +5,7 @@ from __future__ import annotations
 
 import attrs
 from laboneq._automation import Automation
-from laboneq._automation.element import AutomationElementStatus as Status
+from laboneq._automation import AutomationStatus as Status
 from laboneq.core.utilities.dsl_dataclass_decorator import classformatter
 from laboneq.dsl import Session
 from laboneq.dsl.quantum import QPU

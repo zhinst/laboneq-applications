@@ -10,13 +10,16 @@ import inspect
 import networkx as nx
 import numpy as np
 import pytest
-from laboneq._automation import AutomationElementStatus as Status
+from laboneq._automation import AutomationStatus as Status
 from laboneq._automation.layer import RootLayer
 from laboneq._automation.logic import FixedParameterUpdate
 from laboneq._automation.node import RootNode
+from laboneq.dsl.device.connection import create_connection
 from laboneq.dsl.device.device_setup import DeviceSetup
+from laboneq.dsl.device.instruments import HDAWG
 from laboneq.dsl.quantum import (
     QPU,
+    QuantumElement,
     QuantumPlatform,
 )
 from laboneq.dsl.session import Session
@@ -28,12 +31,17 @@ from laboneq_applications._automation.workflow.workflow_automation import (
     WorkflowAutomation,
 )
 from laboneq_applications._automation.workflow.workflow_layer import WorkflowLayer
+from laboneq_applications.contrib.experiments import zz_coupling_strength
 from laboneq_applications.experiments import (
     amplitude_fine,
     qubit_spectroscopy,
     ramsey,
 )
-from laboneq_applications.qpu_types.tunable_transmon import demo_platform
+from laboneq_applications.qpu_types.tunable_coupler import TunableCoupler
+from laboneq_applications.qpu_types.tunable_transmon import (
+    TunableTransmonOperations,
+    demo_platform,
+)
 
 
 @pytest.fixture
@@ -50,12 +58,45 @@ def qt_platform() -> QuantumPlatform:
 
 
 @pytest.fixture
-def qpu(qt_platform) -> QPU:
-    return qt_platform.qpu
+def couplings() -> dict[str, tuple[str, str]]:
+    return {
+        "c_q0q1": ("q0", "q1"),
+        "c_q1q2": ("q1", "q2"),
+        "c_q2q3": ("q2", "q3"),
+        "c_q3q0": ("q3", "q0"),
+    }
+
+
+@pytest.fixture
+def couplers(qt_platform, device_setup, couplings) -> list[QuantumElement]:
+    for n, key in enumerate(couplings):
+        channel_id = len(qt_platform.qpu.quantum_elements) + n
+        device_setup.add_connections(
+            "hdawg_0",
+            create_connection(to_signal=f"{key}/flux", ports=f"SIGOUTS/{channel_id}"),
+        )
+    return TunableCoupler.from_device_setup(
+        device_setup, qubit_uids=list(couplings.keys())
+    )
+
+
+@pytest.fixture
+def qpu(qt_platform, couplers, couplings) -> QPU:
+    qops = TunableTransmonOperations()
+    qpu = QPU(qt_platform.qpu.quantum_elements + couplers, quantum_operations=qops)
+    for coupler, (q0, q1) in couplings.items():
+        qpu.topology.add_edge(
+            source_node=q0, target_node=q1, quantum_element=coupler, tag="coupler"
+        )
+        qpu.topology.add_edge(
+            source_node=q1, target_node=q0, quantum_element=coupler, tag="coupler"
+        )
+    return qpu
 
 
 @pytest.fixture
 def device_setup(qt_platform) -> DeviceSetup:
+    qt_platform.setup.add_instruments(HDAWG(uid="hdawg_0", address="dev8800"))
     return qt_platform.setup
 
 
@@ -184,6 +225,18 @@ def automation_parameters() -> dict:
                 "update": False,
                 "active_reset": True,
             },
+        },
+        "zz": {
+            "element_workflow_parameters": {
+                ("q0", "q1"): {
+                    "biases": list(np.linspace(-0.06, 0.06, 11)),
+                    "delays": list(np.linspace(0, 10e-6, 11)),
+                },
+                ("q2", "q3"): {
+                    "biases": list(np.linspace(-0.06, 0.06, 11)),
+                    "delays": list(np.linspace(0, 10e-6, 11)),
+                },
+            }
         },
     }
 
@@ -683,3 +736,29 @@ class TestWorkflowAutomation:
             "q0": {"success": True, "update": False},
             "q1": {"success": True, "update": False},
         }
+
+    def test_zz_coupling(self, auto):
+        qs_layer = WorkflowLayer(
+            qubit_spectroscopy.experiment_workflow,
+            ["q0", "q1", "q2", "q3"],
+            key="qs1",
+            depends_on={"root"},
+        )
+        zz_layer = WorkflowLayer(
+            zz_coupling_strength.experiment_workflow,
+            [("q0", "q1"), ("q2", "q3")],
+            key="zz",
+            depends_on={"qs1"},
+        )
+        ramsey_layer = WorkflowLayer(
+            ramsey.experiment_workflow,
+            ["q0", "q1", "q2", "q3"],
+            key="r1",
+            depends_on={"zz"},
+        )
+
+        auto.add_layer(qs_layer)
+        auto.add_layer(zz_layer)
+        auto.add_layer(ramsey_layer)
+
+        auto.run()

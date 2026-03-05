@@ -9,7 +9,7 @@ import hashlib
 import json
 from typing import TYPE_CHECKING, Any, Literal
 
-from laboneq._automation import AutomationElementStatus
+from laboneq._automation import AutomationStatus
 from laboneq._automation.utils.plot_utils import hierarchical_layout
 
 if TYPE_CHECKING:
@@ -35,30 +35,29 @@ def build_json_data(
         x, y = pos.get(key, (0, 0))
 
         status = element.status.value
-        if element.status == AutomationElementStatus.DEACTIVATED_FAIL:
-            status = AutomationElementStatus.FAILED.value
+        if element.status == AutomationStatus.DEACTIVATED_FAIL:
+            status = AutomationStatus.FAILED.value
 
         element_data = {
             "id": idx,
             "key": key,
             "x": x,
             "y": y,
+            "status": status,
+            "layer": str(getattr(element, "layer_key", element.key)),
+            "quantum_elements": (
+                [element.node_keys]
+                if hasattr(element, "node_keys")
+                else element.key or []
+            ),
+            "timestamp": list(element.timestamp.values())
+            if isinstance(element.timestamp, dict)
+            else element.timestamp,
+            "fail_count": list(element.fail_count.values())
+            if isinstance(element.fail_count, dict)
+            else element.fail_count,
+            "depends_on": list(element.depends_on),
         }
-
-        element_data.update(
-            {
-                "status": status,
-                "layer": str(getattr(element, "layer_key", element.key)),
-                "quantum_elements": (
-                    [element.node_keys]
-                    if hasattr(element, "node_keys")
-                    else element.key or []
-                ),
-                "timestamp": element.timestamp,
-                "fail_count": element.fail_count,
-                "depends_on": list(element.depends_on),
-            }
-        )
 
         elements_data.append(element_data)
 
