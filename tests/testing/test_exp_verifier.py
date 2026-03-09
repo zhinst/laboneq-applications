@@ -124,18 +124,18 @@ class TestExperimentVerifier:
 
     def test_assert_wrong_number_of_pulse(self, rabi_exp_verifier):
         signal = "q0/drive"
-        pulse_number = 10000
+        expected_pulse_number = 10000
         actual_pulse_number = rabi_exp_verifier.pulse_extractor.get_pulse_count(signal)
         expected_err = (
             f"Number of pulses mismatch for signal {signal} "
-            f"expected {actual_pulse_number} got {pulse_number}"
+            f"expected {expected_pulse_number} got {actual_pulse_number}"
         )
 
         with pytest.raises(
             AssertionError,
             match=expected_err,
         ):
-            rabi_exp_verifier.assert_number_of_pulses(signal, pulse_number)
+            rabi_exp_verifier.assert_number_of_pulses(signal, expected_pulse_number)
 
     def test_assert_pulse(self, rabi_exp_verifier):
         rabi_exp_verifier.assert_pulse(

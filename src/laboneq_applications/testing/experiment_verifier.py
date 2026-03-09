@@ -96,7 +96,7 @@ class CompiledExperimentVerifier:
         actual_pulse_number = self.pulse_extractor.get_pulse_count(signal)
         err_message = (
             f"Number of pulses mismatch for signal {signal} "
-            f"expected {actual_pulse_number} got {pulse_number}"
+            f"expected {pulse_number} got {actual_pulse_number}"
         )
         if actual_pulse_number != pulse_number:
             raise AssertionError(err_message)
