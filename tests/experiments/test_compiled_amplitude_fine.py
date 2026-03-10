@@ -40,126 +40,130 @@ def on_system_grid(time, system_grid=8):
 class TestAmplitudeFine:
     """Test for fine-amplitude on a single/two qubit"""
 
-    @pytest.fixture(autouse=True)
-    def _setup(self, two_tunable_transmon_platform, readout_lengths):
-        self.platform = two_tunable_transmon_platform
-        self.qpu = self.platform.qpu
-        self.qubits = self.platform.qpu.quantum_elements
-        assert len(readout_lengths) == len(self.qubits)
+    @pytest.fixture
+    def use_cal_traces(self):
+        return True
+
+    @pytest.fixture
+    def platform(self, two_tunable_transmon_platform, readout_lengths):
+        qubits = two_tunable_transmon_platform.qpu.quantum_elements
+
+        assert len(readout_lengths) == len(qubits)
         for i, rl in enumerate(readout_lengths):
-            self.qubits[i].parameters.readout_length = rl
-        for q in self.qubits:
+            qubits[i].parameters.readout_length = rl
+
+        for q in qubits:
             q.parameters.ge_drive_length = _LENGTH_GE
             q.parameters.ef_drive_length = _LENGTH_EF
 
-    @pytest.fixture(autouse=True)
-    def _set_options(self, transition, cal_states):
-        self.options = amplitude_fine.experiment_workflow.options()
-        self.options.count(_COUNT)
-        self.options.transition(transition)
-        self.options.cal_states(cal_states)
-        self.options.do_analysis(False)
+        return two_tunable_transmon_platform
 
-        self.transition = transition
-        self.cal_states = cal_states
-        self.use_cal_traces = True
+    @pytest.fixture
+    def options(self, transition, cal_states, use_cal_traces):
+        options = amplitude_fine.experiment_workflow.options()
+        options.count(_COUNT)
+        options.transition(transition)
+        options.cal_states(cal_states)
+        options.do_analysis(False)
+        options.use_cal_traces(use_cal_traces)
 
-    @pytest.fixture(autouse=True)
-    def create_fine_amplitude_verifier(self):
+        return options
+
+    @pytest.fixture
+    def verifier(self, options, platform):
         res = amplitude_fine.experiment_workflow(
-            session=self.platform.session(do_emulation=True),
-            qpu=self.qpu,
-            qubits=self.qubits,
+            session=platform.session(do_emulation=True),
+            qpu=platform.qpu,
+            qubits=platform.qpu.quantum_elements,
             amplification_qop="x180",
             target_angle=0,
             phase_offset=0.0,
             repetitions=[_REPETITIONS] * _NUM_QUBITS,
             parameter_to_update="x180",
-            options=self.options,
+            options=options,
         ).run()
-        self.verifier = CompiledExperimentVerifier(
+        return CompiledExperimentVerifier(
             res.tasks["compile_experiment"].output, max_events=10000
         )
-        return self.verifier
 
-    def test_pulse_count_drive(self):
+    def test_pulse_count_drive(self, verifier, transition, use_cal_traces, cal_states):
         """Verify the total number of drive pulses"""
 
-        if self.transition == "ge":
+        if transition == "ge":
             expected_ge = _COUNT * (len(_REPETITIONS) + np.sum(_REPETITIONS))
             expected_ef = 0
-        elif self.transition == "ef":
+        elif transition == "ef":
             expected_ge = _COUNT * len(_REPETITIONS)
             expected_ef = _COUNT * (len(_REPETITIONS) + np.sum(_REPETITIONS))
 
-        if self.cal_states == "ge":
-            expected_ge += _COUNT * int(self.use_cal_traces)
-        elif self.cal_states in "ef":
-            expected_ge += _COUNT * 2 * int(self.use_cal_traces)
-            expected_ef += _COUNT * int(self.use_cal_traces)
+        if cal_states == "ge":
+            expected_ge += _COUNT * int(use_cal_traces)
+        elif cal_states in "ef":
+            expected_ge += _COUNT * 2 * int(use_cal_traces)
+            expected_ef += _COUNT * int(use_cal_traces)
 
         for i in range(_NUM_QUBITS):
-            self.verifier.assert_number_of_pulses(
+            verifier.assert_number_of_pulses(
                 f"q{i}/drive",
                 expected_ge,
             )
-            self.verifier.assert_number_of_pulses(
+            verifier.assert_number_of_pulses(
                 f"q{i}/drive_ef",
                 expected_ef,
             )
 
-    def test_pulse_count_measure_acquire(self):
+    def test_pulse_count_measure_acquire(self, verifier, cal_states, use_cal_traces):
         """Verify the total number of measure and acquire pulses"""
 
         expected_measure = _COUNT * (len(_REPETITIONS))
-        if self.cal_states in ("ge", "ef"):
-            expected_measure += _COUNT * 2 * int(self.use_cal_traces)
+        if cal_states in ("ge", "ef"):
+            expected_measure += _COUNT * 2 * int(use_cal_traces)
         for i in range(_NUM_QUBITS):
-            self.verifier.assert_number_of_pulses(
+            verifier.assert_number_of_pulses(
                 f"q{i}/measure",
                 expected_measure,
             )
-            self.verifier.assert_number_of_pulses(
+            verifier.assert_number_of_pulses(
                 f"q{i}/acquire",
                 expected_measure,
             )
 
-    def test_pulse_drive_length(self):
+    def test_pulse_drive_length(self, verifier, transition):
         """Test the timing of drive pulses"""
 
         # check length for state preparation
         for i in range(_NUM_QUBITS):
-            self.verifier.assert_pulse(
+            verifier.assert_pulse(
                 signal=f"q{i}/drive",
                 index=0,
                 length=_LENGTH_GE,
             )  # x90_ge
-            if self.transition == "ef":
-                self.verifier.assert_pulse(
+            if transition == "ef":
+                verifier.assert_pulse(
                     signal=f"q{i}/drive_ef",
                     index=0,
                     length=_LENGTH_EF,
                 )  # x180_ge + x90_ef
 
     @pytest.mark.skip("Skipped for testing pulse timing, issue in ef-transition")
-    def test_pulse_drive_timing(self):
+    def test_pulse_drive_timing(self, verifier, transition):
         # check timing gap between 1st and 2nd pulse at every repetition
         for i in range(_NUM_QUBITS):
             index_rep = 0  # index for the first pulse at every repetition
             for index, rep in enumerate(_REPETITIONS):
-                if self.transition == "ge":
-                    self.verifier.assert_pulse_pair(
+                if transition == "ge":
+                    verifier.assert_pulse_pair(
                         signals=f"q{i}/drive",
                         indices=(index_rep, index_rep + 1),
                         distance=0,
                     )  # no gap
                 else:
-                    self.verifier.assert_pulse_pair(
+                    verifier.assert_pulse_pair(
                         signals=f"q{i}/drive_ef",
                         indices=(index_rep, index_rep + 1),
                         distance=(on_system_grid(_LENGTH_GE) - _LENGTH_EF),
                     )  # small gaps due to system grid alignment.
-                    self.verifier.assert_pulse_pair(
+                    verifier.assert_pulse_pair(
                         signals=(
                             f"q{i}/drive",
                             f"q{i}/drive_ef",
@@ -173,29 +177,29 @@ class TestAmplitudeFine:
                 index_rep += 1 + rep  # 1:state preparation, rep:repetition
 
     @pytest.mark.skip("Skipping for testing pulse timing, issue in ge-transition")
-    def test_pulse_measure(self):
+    def test_pulse_measure(self, verifier, transition):
         """Test the timing of measure pulses"""
 
         for i in range(_NUM_QUBITS):
             num_drive = 0
             for index, rep in enumerate(_REPETITIONS):
-                if self.transition == "ge":
+                if transition == "ge":
                     num_drive += 1 + rep
                     length_drive = on_system_grid(_LENGTH_EF * num_drive)
                     # why length_ef? it has to be length_ge
-                elif self.transition == "ef":
+                elif transition == "ef":
                     num_drive += 2 + rep
                     length_drive = on_system_grid(_LENGTH_GE) * num_drive
 
                 time_start = length_drive + _LENGTH_MEASURE_RESET * index
 
-                self.verifier.assert_pulse(
+                verifier.assert_pulse(
                     signal=f"q{i}/measure",
                     index=index,
                     start=time_start,
                     end=time_start + _LENGTH_MEASURE,
                 )
-                self.verifier.assert_pulse(
+                verifier.assert_pulse(
                     signal=f"q{i}/acquire",
                     index=index,
                     start=time_start,

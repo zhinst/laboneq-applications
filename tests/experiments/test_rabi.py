@@ -271,136 +271,171 @@ class TestWorkflow:
 @pytest.mark.parametrize("transition", ["ge", "ef"])
 @pytest.mark.parametrize("count", [10, 12])
 class TestAmplitudeRabiSingleQubit:
-    @pytest.fixture(autouse=True)
-    def _setup(self, single_tunable_transmon_platform, transition, count):
-        self.platform = single_tunable_transmon_platform
-        self.qpu = self.platform.qpu
-        [self.q0] = self.qpu.quantum_elements
-        self.amplitude = np.linspace(0, 1, 21)
-        self.options = TuneupExperimentOptions(
+    @pytest.fixture
+    def platform(self, single_tunable_transmon_platform):
+        return single_tunable_transmon_platform
+
+    @pytest.fixture
+    def amplitude(self):
+        return np.linspace(0, 1, 21)
+
+    @pytest.fixture
+    def options(self, transition, count):
+        options = TuneupExperimentOptions(
             count=count, transition=transition, cal_states=transition
         )
-        self.options.use_cal_traces = False
+        options.use_cal_traces = False
 
-    def test_create_exp_single_qubit(self):
+        return options
+
+    @pytest.fixture
+    def qpu(self, platform):
+        return platform.qpu
+
+    @pytest.fixture
+    def q0(self, qpu):
+        return qpu.quantum_elements[0]
+
+    def test_create_exp_single_qubit(
+        self,
+        platform,
+        amplitude,
+        options,
+        qpu,
+        q0,
+    ):
         exp = amplitude_rabi.create_experiment(
-            self.qpu,
-            self.q0,
-            self.amplitude,
-            options=self.options,
+            qpu,
+            q0,
+            amplitude,
+            options=options,
         )
         assert exp == reference_rabi_exp(
-            [self.q0],
-            self.options.count,
-            self.amplitude,
-            self.options.transition,
+            [q0],
+            options.count,
+            amplitude,
+            options.transition,
         )
-        session = self.platform.session(do_emulation=True)
+        session = platform.session(do_emulation=True)
         session.compile(exp)
 
-    def test_invalid_input_raises_error(self):
+    def test_invalid_input_raises_error(self, options, qpu, q0):
         with pytest.raises(ValueError):
             amplitude_rabi.create_experiment(
-                self.qpu,
-                self.q0,
+                qpu,
+                q0,
                 [[0.1, 0.5], [0.1, 0.5]],
-                options=self.options,
+                options=options,
             )
 
         with pytest.raises(ValueError):
             amplitude_rabi.create_experiment(
-                self.qpu,
-                [self.q0],
+                qpu,
+                [q0],
                 [0.1, 0.5],
-                options=self.options,
+                options=options,
             )
         with pytest.raises(ValueError):
             amplitude_rabi.create_experiment(
-                self.qpu,
-                self.q0,
+                qpu,
+                q0,
                 [0.1, None, 0.5],
-                options=self.options,
+                options=options,
             )
 
-    def test_amplitude_is_nparray(self):
+    def test_amplitude_is_nparray(self, amplitude, options, qpu, q0):
         exp = amplitude_rabi.create_experiment(
-            self.qpu,
-            self.q0,
-            np.array(self.amplitude),
-            options=self.options,
+            qpu,
+            q0,
+            np.array(amplitude),
+            options=options,
         )
         assert exp == reference_rabi_exp(
-            [self.q0],
-            self.options.count,
-            np.array(self.amplitude),
-            self.options.transition,
+            [q0],
+            options.count,
+            np.array(amplitude),
+            options.transition,
         )
 
 
 @pytest.mark.parametrize("transition", ["ge", "ef"])
 @pytest.mark.parametrize("count", [10, 12])
 class TestAmplitudeRabiTwoQubit:
-    @pytest.fixture(autouse=True)
-    def _setup(self, two_tunable_transmon_platform, transition, count):
-        self.platform = two_tunable_transmon_platform
-        self.qpu = self.platform.qpu
-        self.q0, self.q1 = self.qpu.quantum_elements
-        self.amplitudes = [np.linspace(0, 1, 21), np.linspace(0, 0.5, 21)]
-        self.options = TuneupExperimentOptions(
+    @pytest.fixture
+    def platform(self, two_tunable_transmon_platform):
+        return two_tunable_transmon_platform
+
+    @pytest.fixture
+    def options(self, transition, count):
+        options = TuneupExperimentOptions(
             count=count, transition=transition, cal_states=transition
         )
-        self.options.use_cal_traces = False
+        options.use_cal_traces = False
 
-    def test_run_standalone(self):
+        return options
+
+    @pytest.fixture
+    def qpu(self, platform):
+        return platform.qpu
+
+    @pytest.fixture
+    def amplitudes(self):
+        return [np.linspace(0, 1, 21), np.linspace(0, 0.5, 21)]
+
+    @pytest.fixture
+    def qubits(self, qpu):
+        return qpu.quantum_elements
+
+    def test_run_standalone(self, platform, amplitudes, options, qpu, qubits):
         exp = amplitude_rabi.create_experiment(
-            self.qpu,
-            [self.q0, self.q1],
-            self.amplitudes,
-            options=self.options,
+            qpu,
+            qubits,
+            amplitudes,
+            options=options,
         )
         assert exp == reference_rabi_exp(
-            [self.q0, self.q1],
-            self.options.count,
-            self.amplitudes,
-            self.options.transition,
+            qubits,
+            options.count,
+            amplitudes,
+            options.transition,
         )
-        session = self.platform.session(do_emulation=True)
+        session = platform.session(do_emulation=True)
         session.compile(exp)
 
-    def test_invalid_input_raises_error(self):
+    def test_invalid_input_raises_error(self, qpu, qubits, options):
         with pytest.raises(ValueError):
             amplitude_rabi.create_experiment(
-                self.qpu,
-                [self.q0, self.q1],
+                qpu,
+                qubits,
                 [0.1, 0.5],
-                options=self.options,
+                options=options,
             )
 
         with pytest.raises(ValueError):
             amplitude_rabi.create_experiment(
-                self.qpu,
-                [self.q0, self.q1],
+                qpu,
+                qubits,
                 [[0.1, 0.5]],
-                options=self.options,
+                options=options,
             )
         with pytest.raises(ValueError):
             amplitude_rabi.create_experiment(
-                self.qpu,
-                [self.q0, self.q1],
+                qpu,
+                qubits,
                 [[0.1, 0.5], [0.1, None]],
-                options=self.options,
+                options=options,
             )
 
-    def test_amplitude_is_nparray(self):
+    def test_amplitude_is_nparray(self, qpu, qubits, options):
         exp = amplitude_rabi.create_experiment(
-            self.qpu,
-            [self.q0, self.q1],
+            qpu,
+            qubits,
             [np.array([0, 1, 2]), np.array([0, 1, 2])],
-            options=self.options,
+            options=options,
         )
         assert exp == reference_rabi_exp(
-            [self.q0, self.q1],
-            self.options.count,
+            qubits,
+            options.count,
             [np.array([0, 1, 2]), np.array([0, 1, 2])],
-            self.options.transition,
+            options.transition,
         )
