@@ -3,10 +3,12 @@
 
 """Tunable transmon qubit device setups for testing and demonstration."""
 
+from typing import Literal
+
 import numpy as np
 from laboneq.dsl.calibration import Oscillator, SignalCalibration
 from laboneq.dsl.device import DeviceSetup, create_connection
-from laboneq.dsl.device.instruments import HDAWG, PQSC, SHFQC
+from laboneq.dsl.device.instruments import HDAWG, PQSC, QHUB, SHFQC
 from laboneq.dsl.enums import ModulationType
 from laboneq.dsl.quantum.qpu import QPU, QuantumPlatform
 
@@ -17,26 +19,33 @@ from .qubit_types import (
 )
 
 
-def demo_platform(n_qubits: int) -> QuantumPlatform:
+def demo_platform(
+    n_qubits: int,
+    leader_instrument: Literal["PQSC", "QHub"] = "PQSC",
+) -> QuantumPlatform:
     """Return a demo tunable transmon QPU with the specified number of qubits.
 
     The returned setup consists of:
 
-    - 1 PQSC
-    - 1 SHFQC (for the qubit drive and measurement lines)
-    - 1 HDAWG (for the qubit flux lines)
+    - 1 leader instrument (PQSC or QHub)
+    - N SHFQC (for the qubit drive and measurement lines)
+    - M HDAWG (for the qubit flux lines)
 
-    with device options:
+    N and M are determined automatically from the number of qubits.
 
-    - 1 PQSC
-    - 1 SHFQC/QC6CH
-    - 1 HDAWG8/MF/ME/SKW/PC
+    The following device options are used:
+
+    - PQSC (default)
+    - SHFQC/QC6CH
+    - HDAWG8/MF/ME/SKW/PC
 
     The qubits share a single multiplexed readout line.
 
     Arguments:
         n_qubits:
             Number of qubits to include in the QPU.
+        leader_instrument:
+            Overrides the default PQSC device for the setup.
 
     Returns:
         The QPU.
@@ -45,7 +54,7 @@ def demo_platform(n_qubits: int) -> QuantumPlatform:
         The number of qubits, `n_qubits`, may be arbitrarily large.
         In earlier versions, it was allowed to be at most six.
     """
-    setup = tunable_transmon_setup(n_qubits)
+    setup = tunable_transmon_setup(n_qubits, leader_instrument)
     qubits = tunable_transmon_qubits(n_qubits, setup)
     quantum_operations = TunableTransmonOperations()
     qpu = QPU(qubits, quantum_operations=quantum_operations)
@@ -77,26 +86,48 @@ class _DeviceAndPortSet:
         }
 
 
-def tunable_transmon_setup(n_qubits: int) -> DeviceSetup:
+def _create_leader_instrument(
+    leader_instrument_type: Literal["PQSC", "QHub"],
+) -> PQSC | QHUB:
+    if leader_instrument_type == "PQSC":
+        return PQSC(uid="device_pqsc", address="dev125", device_options="PQSC")
+
+    if leader_instrument_type == "QHub":
+        return QHUB(uid="device_qhub", address="dev125", device_options="QHub")
+
+    raise ValueError(
+        f"Invalid choice for leader instrument {leader_instrument_type}, "
+        "expected one of PQSC, QHub"
+    )
+
+
+def tunable_transmon_setup(
+    n_qubits: int,
+    leader_instrument: Literal["PQSC", "QHub"] = "PQSC",
+) -> DeviceSetup:
     """Return a demo tunable transmon device setup.
 
     The returned setup consists of:
 
-    - 1 PQSC
-    - 1 SHFQC (for the qubit drive and measurement lines)
-    - 1 HDAWG (for the qubit flux lines)
+    - 1 leader instrument (PQSC or QHub)
+    - N SHFQC (for the qubit drive and measurement lines)
+    - M HDAWG (for the qubit flux lines)
 
-    with device options:
+    N and M are determined automatically from the number of qubits.
 
-    - 1 PQSC
-    - 1 SHFQC/QC6CH
-    - 1 HDAWG8/MF/ME/SKW/PC
+    The following device options are used:
+
+    - PQSC (default)
+    - SHFQC/QC6CH
+    - HDAWG8/MF/ME/SKW/PC
 
     The qubits share a single multiplexed readout line.
 
     Arguments:
         n_qubits:
             Number of qubits to include in the QPU.
+        leader_instrument:
+            Overrides the default PQSC device for the setup.
 
     Returns:
         The device setup.
@@ -136,9 +167,7 @@ def tunable_transmon_setup(n_qubits: int) -> DeviceSetup:
             ),
         )
 
-    setup.add_instruments(
-        PQSC(uid="device_pqsc", address="dev125", device_options="PQSC")
-    )
+    setup.add_instruments(_create_leader_instrument(leader_instrument))
 
     for qubit in qubit_ids:
         shfqc, shfqc_port = shfqc_drive_lines.qubit_to_port[qubit]

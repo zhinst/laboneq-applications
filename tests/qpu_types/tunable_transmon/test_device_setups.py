@@ -101,3 +101,7 @@ class TestDemoPlatform:
             str(err.value)
             == "This testing and demonstration setup requires at least one qubit."
         )
+
+    def test_invalid_instrument_choice(self):
+        with pytest.raises(ValueError, match="Invalid choice for leader instrument"):
+            demo_platform(1, "invalid")

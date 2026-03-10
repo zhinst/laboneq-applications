@@ -39,11 +39,33 @@ def on_system_grid(time, system_grid=8):
 
 @pytest.mark.parametrize(("transition", "cal_states"), [("ge", "ge"), ("ef", "ef")])
 @pytest.mark.parametrize(
-    ("num_qubits", "readout_lengths"),
+    ("num_qubits", "readout_lengths", "leader_instrument"),
     [
-        pytest.param(2, [1e-6, 1e-6], id="two_qubits"),
-        pytest.param(2, [100e-9, 200e-9], id="two_qubits_different_readout_length"),
-        pytest.param(60, [1e-6] * 60, id="max_qubits_pqsc"),
+        pytest.param(
+            2,
+            [1e-6, 1e-6],
+            "PQSC",
+            id="two_qubits",
+        ),
+        pytest.param(
+            2,
+            [100e-9, 200e-9],
+            "PQSC",
+            id="two_qubits_different_readout_length",
+        ),
+        pytest.param(
+            60,
+            [1e-6] * 60,
+            "PQSC",
+            id="max_qubits_pqsc",
+        ),
+        pytest.param(
+            192,
+            [1e-6] * 192,
+            "QHub",
+            id="max_qubits_qhub",
+            marks=pytest.mark.skip(reason="Skipped due to long runtime"),
+        ),
     ],
 )
 class TestAmplitudeFine:
@@ -54,8 +76,10 @@ class TestAmplitudeFine:
         return True
 
     @pytest.fixture
-    def platform(self, num_qubits, readout_lengths):
-        platform = demo_platform_transmons(num_qubits)
+    def platform(self, num_qubits, readout_lengths, leader_instrument):
+        platform = demo_platform_transmons(
+            num_qubits, leader_instrument=leader_instrument
+        )
 
         for q, rl in zip(platform.qpu.quantum_elements, readout_lengths, strict=True):
             q.parameters.readout_length = rl
