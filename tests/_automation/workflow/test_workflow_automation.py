@@ -490,12 +490,36 @@ class TestWorkflowAutomation:
         assert [f.name for f in automation_folder.iterdir()] == ["qs1"]
 
         for qubit in ["q0", "q1", "q2", "q3"]:
-            assert (automation_folder / "qs1" / qubit).name == qubit
             data_folders = [
-                p for p in (automation_folder / "qs1" / qubit).iterdir() if p.is_dir()
+                p for p in (automation_folder / qs1.key / qubit).iterdir() if p.is_dir()
             ]
             assert len(data_folders) == 1
             assert "qubit-spectroscopy" in data_folders[0].name
+
+    def test_run_tuple_layer_sequentially_with_folder_store(self, auto, folder_store):
+
+        zz = WorkflowLayer(
+            zz_coupling_strength.experiment_workflow,
+            [("q0", "q1"), ("q2", "q3")],
+            key="zz",
+            depends_on={"root"},
+        )
+        auto.add_layer(zz)
+        zz.sequential = True
+        auto.run_layer("zz")
+
+        [day_folder] = folder_store.folder.iterdir()
+        [automation_folder] = day_folder.iterdir()
+        assert [f.name for f in automation_folder.iterdir()] == ["zz"]
+
+        for element_name in ["q0-q1", "q2-q3"]:
+            data_folders = [
+                p
+                for p in (automation_folder / zz.key / element_name).iterdir()
+                if p.is_dir()
+            ]
+            assert len(data_folders) == 1
+            assert "zz-coupling-strength" in data_folders[0].name
 
     def test_run_layer_with_folder_store(
         self, auto, qubit_spectroscopy_workflow, folder_store
@@ -514,7 +538,9 @@ class TestWorkflowAutomation:
         [automation_folder] = day_folder.iterdir()
         assert [f.name for f in automation_folder.iterdir()] == ["qs1"]
 
-        data_folders = [p for p in (automation_folder / "qs1").iterdir() if p.is_dir()]
+        data_folders = [
+            p for p in (automation_folder / qs1.key).iterdir() if p.is_dir()
+        ]
         assert len(data_folders) == 1
         assert "qubit-spectroscopy" in data_folders[0].name
 

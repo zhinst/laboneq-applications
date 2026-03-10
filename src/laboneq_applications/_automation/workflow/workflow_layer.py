@@ -130,7 +130,9 @@ class WorkflowLayer(AutomationLayer):
         self.results = value
 
     def run_executable(
-        self, auto: WorkflowAutomation, quantum_elements: list[str] | None = None
+        self,
+        auto: WorkflowAutomation,
+        quantum_elements: list[str | tuple[str, ...]] | None = None,
     ) -> dict[tuple[str, ...], WorkflowResult]:
         """Run an experiment workflow.
 
@@ -151,7 +153,10 @@ class WorkflowLayer(AutomationLayer):
                 self.key,
             )
         else:
-            quantum_elements_string = "_".join(quantum_elements)
+            quantum_elements_string = "_".join(
+                "-".join(map(str, q)) if isinstance(q, tuple) else q
+                for q in quantum_elements
+            )
             storage_key = (
                 f"{auto.timestamp}-{auto.name}",
                 self.key,
@@ -166,7 +171,9 @@ class WorkflowLayer(AutomationLayer):
 
         quantum_elements_tuple = tuple(run_elements)
 
-        if len(run_elements) == 1:  # the type needs to match workflow parameters
+        if len(run_elements) == 1 and not isinstance(
+            run_elements[0], tuple
+        ):  # the type needs to match workflow parameters
             run_elements = run_elements[0]
 
         # Prepare element workflow parameters

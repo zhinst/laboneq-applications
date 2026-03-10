@@ -11,7 +11,7 @@ from laboneq.workflow import WorkflowResult
 
 def group_element_workflow_parameters(
     element_workflow_parameters: dict[str, dict[str, Any]],
-    quantum_elements: str | list[str],
+    quantum_elements: str | list[str | tuple[str, ...]],
 ) -> dict[str, list[Any]]:
     """Group element workflow parameters into an experiment workflow list format.
 
@@ -30,28 +30,25 @@ def group_element_workflow_parameters(
     Returns:
         The grouped element workflow parameters.
     """
-    if element_workflow_parameters:
-        if isinstance(quantum_elements, str):
-            grouped_element_workflow_parameters = element_workflow_parameters[
-                quantum_elements
-            ]
-        else:
-            # Collect all unique parameter keys from all qubits
-            secondary_keys = set()
-            for k, qb_params in element_workflow_parameters.items():
-                if k in quantum_elements:
-                    secondary_keys.update(qb_params.keys())
-            grouped_element_workflow_parameters = {}
-            for key in secondary_keys:
-                grouped_element_workflow_parameters[key] = []
-                for k, d in element_workflow_parameters.items():
-                    if k in quantum_elements:
-                        if key in d:
-                            grouped_element_workflow_parameters[key].append(d[key])
-                        else:
-                            grouped_element_workflow_parameters[key].append(None)
+    if isinstance(quantum_elements, str | tuple):
+        grouped_element_workflow_parameters = element_workflow_parameters[
+            quantum_elements
+        ]
     else:
-        grouped_element_workflow_parameters = element_workflow_parameters
+        # Collect all unique parameter keys from all qubits
+        secondary_keys = set()
+        for k, qb_params in element_workflow_parameters.items():
+            if k in quantum_elements:
+                secondary_keys.update(qb_params.keys())
+        grouped_element_workflow_parameters = {}
+        for key in secondary_keys:
+            grouped_element_workflow_parameters[key] = []
+            for k, d in element_workflow_parameters.items():
+                if k in quantum_elements:
+                    if key in d:
+                        grouped_element_workflow_parameters[key].append(d[key])
+                    else:
+                        grouped_element_workflow_parameters[key].append(None)
 
     return grouped_element_workflow_parameters
 
