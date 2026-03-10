@@ -59,9 +59,25 @@ class TestDemoPlatform:
             f"q{i}" for i in range(num_qubits)
         ]
         assert [q.uid for q in qubits] == [f"q{i}" for i in range(num_qubits)]
-        assert [q.parameters.drive_lo_frequency for q in qubits] == [
-            int((6.4 + (i // 2) * 0.2) * 1e9) for i in range(num_qubits)
+        drive_lo_frequencies = [q.parameters.drive_lo_frequency for q in qubits]
+
+        base_lo_frequency = int(6.4e9)
+        max_lo_frequency = int(8.4e9)
+        lo_frequency_grid = int(2e8)
+        distinguishable_qubits = (
+            (max_lo_frequency - base_lo_frequency) // lo_frequency_grid * 2
+        )
+
+        assert drive_lo_frequencies[:distinguishable_qubits] == [
+            int((6.4 + (i // 2) * 0.2) * 1e9)
+            for i in range(min(distinguishable_qubits, num_qubits))
         ]
+
+        assert drive_lo_frequencies[distinguishable_qubits:] == [max_lo_frequency] * (
+            max(0, num_qubits - distinguishable_qubits)
+        )
+
+        assert max(drive_lo_frequencies) <= max_lo_frequency
 
         # check connections
         for q in qubits:

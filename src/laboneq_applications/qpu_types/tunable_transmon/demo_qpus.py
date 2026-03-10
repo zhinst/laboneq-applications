@@ -3,6 +3,7 @@
 
 """Tunable transmon qubit device setups for testing and demonstration."""
 
+import numpy as np
 from laboneq.dsl.calibration import Oscillator, SignalCalibration
 from laboneq.dsl.device import DeviceSetup, create_connection
 from laboneq.dsl.device.instruments import HDAWG, PQSC, SHFQC
@@ -219,13 +220,10 @@ def tunable_transmon_qubits(
     """
 
     def q_param(
-        i: int,
-        base: float,
-        unit: float = 1.0,
-        dq: float = 0.01,
+        i: int, base: float, unit: float = 1.0, dq: float = 0.01, max_: float = np.inf
     ) -> float:
         """Tweak qubit parameter a tiny amount to distinguish them."""
-        return (base + i * dq) * unit
+        return min((base + i * dq) * unit, max_)
 
     qubits = []
     for i in range(n_qubits):
@@ -236,21 +234,21 @@ def tunable_transmon_qubits(
                 # A pair of neighbor qubits share the same LO frequency
                 # Convert to integer, otherwise some configurations
                 #   may encounter issues with LabOne Q compiler
-                drive_lo_frequency=int(q_param(i // 2, 6.4, 1e9, dq=0.2)),
+                drive_lo_frequency=int(q_param(i // 2, 6.4, 1e9, dq=0.2, max_=8.4e9)),
                 resonance_frequency_ge=q_param(i, 6.5, 1e9),
                 resonance_frequency_ef=q_param(i, 6.3, 1e9),
                 readout_lo_frequency=7e9,
                 readout_resonator_frequency=q_param(i, 7.1, 1e9),
-                ge_drive_amplitude_pi=q_param(i, 0.8),
-                ge_drive_amplitude_pi2=q_param(i, 0.4),
+                ge_drive_amplitude_pi=q_param(i, 0.8, max_=1.0),
+                ge_drive_amplitude_pi2=q_param(i, 0.4, max_=1.0),
                 ge_drive_length=51e-9,
                 ge_drive_pulse={
                     "function": "drag",
                     "beta": 0.01,
                     "sigma": 0.21,
                 },
-                ef_drive_amplitude_pi=q_param(i, 0.7),
-                ef_drive_amplitude_pi2=q_param(i, 0.3),
+                ef_drive_amplitude_pi=q_param(i, 0.7, max_=1.0),
+                ef_drive_amplitude_pi2=q_param(i, 0.3, max_=1.0),
                 ef_drive_length=52e-9,
                 ef_drive_pulse={
                     "function": "drag",

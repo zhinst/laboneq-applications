@@ -43,6 +43,7 @@ def on_system_grid(time, system_grid=8):
     [
         pytest.param(2, [1e-6, 1e-6], id="two_qubits"),
         pytest.param(2, [100e-9, 200e-9], id="two_qubits_different_readout_length"),
+        pytest.param(60, [1e-6] * 60, id="max_qubits_pqsc"),
     ],
 )
 class TestAmplitudeFine:
@@ -88,7 +89,7 @@ class TestAmplitudeFine:
             options=options,
         ).run()
         return CompiledExperimentVerifier(
-            res.tasks["compile_experiment"].output, max_events=10000
+            res.tasks["compile_experiment"].output, max_events=5000 * num_qubits
         )
 
     def test_pulse_count_drive(
