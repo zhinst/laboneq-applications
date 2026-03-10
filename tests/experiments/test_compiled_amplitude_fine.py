@@ -12,6 +12,9 @@ import pytest
 from laboneq_applications.experiments import (
     amplitude_fine,
 )
+from laboneq_applications.qpu_types.tunable_transmon import (
+    demo_platform as demo_platform_transmons,
+)
 from laboneq_applications.testing import CompiledExperimentVerifier
 
 _LENGTH_GE = 32e-9
@@ -19,7 +22,6 @@ _LENGTH_EF = 64e-9
 _LENGTH_MEASURE = 2e-6
 _LENGTH_MEASURE_RESET = 2e-6 + 1e-6
 _COUNT = 5
-_NUM_QUBITS = 2
 _REPETITIONS = np.arange(1, 5, 1)
 
 
@@ -36,27 +38,30 @@ def on_system_grid(time, system_grid=8):
 
 
 @pytest.mark.parametrize(("transition", "cal_states"), [("ge", "ge"), ("ef", "ef")])
-@pytest.mark.parametrize("readout_lengths", [[1e-6, 1e-6], [100e-9, 200e-9]])
+@pytest.mark.parametrize(
+    ("num_qubits", "readout_lengths"),
+    [
+        pytest.param(2, [1e-6, 1e-6], id="two_qubits"),
+        pytest.param(2, [100e-9, 200e-9], id="two_qubits_different_readout_length"),
+    ],
+)
 class TestAmplitudeFine:
-    """Test for fine-amplitude on a single/two qubit"""
+    """Test for fine-amplitude on N qubits"""
 
     @pytest.fixture
     def use_cal_traces(self):
         return True
 
     @pytest.fixture
-    def platform(self, two_tunable_transmon_platform, readout_lengths):
-        qubits = two_tunable_transmon_platform.qpu.quantum_elements
+    def platform(self, num_qubits, readout_lengths):
+        platform = demo_platform_transmons(num_qubits)
 
-        assert len(readout_lengths) == len(qubits)
-        for i, rl in enumerate(readout_lengths):
-            qubits[i].parameters.readout_length = rl
-
-        for q in qubits:
+        for q, rl in zip(platform.qpu.quantum_elements, readout_lengths, strict=True):
+            q.parameters.readout_length = rl
             q.parameters.ge_drive_length = _LENGTH_GE
             q.parameters.ef_drive_length = _LENGTH_EF
 
-        return two_tunable_transmon_platform
+        return platform
 
     @pytest.fixture
     def options(self, transition, cal_states, use_cal_traces):
@@ -70,7 +75,7 @@ class TestAmplitudeFine:
         return options
 
     @pytest.fixture
-    def verifier(self, options, platform):
+    def verifier(self, options, platform, num_qubits):
         res = amplitude_fine.experiment_workflow(
             session=platform.session(do_emulation=True),
             qpu=platform.qpu,
@@ -78,7 +83,7 @@ class TestAmplitudeFine:
             amplification_qop="x180",
             target_angle=0,
             phase_offset=0.0,
-            repetitions=[_REPETITIONS] * _NUM_QUBITS,
+            repetitions=[_REPETITIONS] * num_qubits,
             parameter_to_update="x180",
             options=options,
         ).run()
@@ -86,7 +91,9 @@ class TestAmplitudeFine:
             res.tasks["compile_experiment"].output, max_events=10000
         )
 
-    def test_pulse_count_drive(self, verifier, transition, use_cal_traces, cal_states):
+    def test_pulse_count_drive(
+        self, verifier, transition, use_cal_traces, cal_states, num_qubits
+    ):
         """Verify the total number of drive pulses"""
 
         if transition == "ge":
@@ -102,7 +109,7 @@ class TestAmplitudeFine:
             expected_ge += _COUNT * 2 * int(use_cal_traces)
             expected_ef += _COUNT * int(use_cal_traces)
 
-        for i in range(_NUM_QUBITS):
+        for i in range(num_qubits):
             verifier.assert_number_of_pulses(
                 f"q{i}/drive",
                 expected_ge,
@@ -112,13 +119,15 @@ class TestAmplitudeFine:
                 expected_ef,
             )
 
-    def test_pulse_count_measure_acquire(self, verifier, cal_states, use_cal_traces):
+    def test_pulse_count_measure_acquire(
+        self, verifier, cal_states, use_cal_traces, num_qubits
+    ):
         """Verify the total number of measure and acquire pulses"""
 
         expected_measure = _COUNT * (len(_REPETITIONS))
         if cal_states in ("ge", "ef"):
             expected_measure += _COUNT * 2 * int(use_cal_traces)
-        for i in range(_NUM_QUBITS):
+        for i in range(num_qubits):
             verifier.assert_number_of_pulses(
                 f"q{i}/measure",
                 expected_measure,
@@ -128,11 +137,11 @@ class TestAmplitudeFine:
                 expected_measure,
             )
 
-    def test_pulse_drive_length(self, verifier, transition):
+    def test_pulse_drive_length(self, verifier, transition, num_qubits):
         """Test the timing of drive pulses"""
 
         # check length for state preparation
-        for i in range(_NUM_QUBITS):
+        for i in range(num_qubits):
             verifier.assert_pulse(
                 signal=f"q{i}/drive",
                 index=0,
@@ -146,9 +155,9 @@ class TestAmplitudeFine:
                 )  # x180_ge + x90_ef
 
     @pytest.mark.skip("Skipped for testing pulse timing, issue in ef-transition")
-    def test_pulse_drive_timing(self, verifier, transition):
+    def test_pulse_drive_timing(self, verifier, transition, num_qubits):
         # check timing gap between 1st and 2nd pulse at every repetition
-        for i in range(_NUM_QUBITS):
+        for i in range(num_qubits):
             index_rep = 0  # index for the first pulse at every repetition
             for index, rep in enumerate(_REPETITIONS):
                 if transition == "ge":
@@ -177,10 +186,10 @@ class TestAmplitudeFine:
                 index_rep += 1 + rep  # 1:state preparation, rep:repetition
 
     @pytest.mark.skip("Skipping for testing pulse timing, issue in ge-transition")
-    def test_pulse_measure(self, verifier, transition):
+    def test_pulse_measure(self, verifier, transition, num_qubits):
         """Test the timing of measure pulses"""
 
-        for i in range(_NUM_QUBITS):
+        for i in range(num_qubits):
             num_drive = 0
             for index, rep in enumerate(_REPETITIONS):
                 if transition == "ge":
