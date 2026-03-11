@@ -1,6 +1,18 @@
 /* Copyright 2026 Zurich Instruments AG */
 /* SPDX-License-Identifier: Apache-2.0 */
 
+:root {
+    --header-h: 60px;
+    --panel-gap: 20px;
+
+    --zi-blue: #009ee0;
+    --zi-medium-blue: #0087bf;
+    --zi-dark-blue: #006995;
+    --ligt-gray: #f5f5f5;
+    --dark-gray: #333333;
+    --medium-gray: #999999;
+}
+
 body {
     margin: 0;
     padding: 0;
@@ -9,7 +21,7 @@ body {
     flex-direction: column;
     font-family: Arial, sans-serif;
     overflow: hidden;
-    background-color: #f5f5f5;
+    background-color: var(--light-gray);
     justify-content: center;
 }
 
@@ -18,7 +30,7 @@ body {
     width: 100%;
     max-width: 2000px;
     height: 100vh;
-    background-color: #f5f5f5;
+    background-color: var(--light-gray);
     box-shadow: 0 0 20px rgba(0, 0, 0, 0.1); /* subtle edge */
     overflow: hidden;
     margin-left: auto;
@@ -30,7 +42,7 @@ body {
     top: 0;
     left: 0;
     right: 0;
-    height: 60px;
+    height: var(--header-h);
     background-color: white;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
     display: flex;
@@ -40,16 +52,21 @@ body {
     z-index: 1000;
 }
 
-#logo {
-    height: 40px;
-    margin-right: 20px;
-    align: left;
+.logo-group {
+    display: flex;
+    align-items: center;
+    gap: 30px;
+}
+
+.logo {
+    height: calc(var(--header-h) * 0.8);
+    width: auto;
 }
 
 #title {
     font-size: 24px;
     font-weight: bold;
-    color: #333;
+    color: var(--dark-gray);
     margin-right: auto;
 }
 
@@ -59,36 +76,18 @@ body {
     align-items: center;
 }
 
-#status {
-    position: absolute;
-    top: 70px;
-    right: 20px;
-    display: none;
-    font-size: 20px;
-    color: #333;
-    padding: 12px 16px;
-    background-color: white;
-    border-radius: 6px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-    border: 2px solid #007bff;
-    z-index: 500;
-    max-width: 300px;
-    line-height: 1.6;
-}
-
 #graph {
     position: absolute;
-    top: 60px;
+    top: var(--header-h);
     left: 0;
     right: 0;
     bottom: 0;
     background-color: #fafafa;
 }
 
+#node-info,
+#layer-legend,
 #status-legend {
-    position: absolute;
-    bottom: 20px;
-    left: 20px;
     background-color: white;
     padding: 15px;
     border-radius: 8px;
@@ -96,68 +95,48 @@ body {
     z-index: 100;
 }
 
-#legend h3 {
-    margin: 0 0 10px 0;
-    font-size: 25px;
-    font-weight: bold;
-    color: #333;
+#status-legend {
+    position: absolute;
+    bottom: var(--panel-gap);
+    left: var(--panel-gap);
 }
 
-.legend-item {
-    display: flex;
-    align-items: center;
-    margin: 5px 0;
-    font-size: 20px;
-}
-
-.legend-color {
-    width: 20px;
-    height: 20px;
-    border-radius: 50%;
-    margin-right: 20px;
-    border: 1px solid #ccc;
+#node-info {
+    position: absolute;
+    top: calc(var(--header-h) + var(--panel-gap));
+    right: var(--panel-gap);
+    border: 2px solid var(--zi-blue);
 }
 
 #layer-legend {
     position: absolute;
-    top: 100px;
-    left: 20px;
-    background-color: white;
-    padding: 15px;
-    border-radius: 8px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-    z-index: 100;
+    top: calc(var(--header-h) + var(--panel-gap));
+    left: var(--panel-gap);
 }
 
-#layer-legend-items .legend-number {
-    width: 20px;
-    height: 20px;
-    margin-right: 20px;
-    border-radius: 50%;
-    background-color: steelblue;
-    color: white;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 20px;
+#node-info h3,
+#status-legend h3,
+#layer-legend h3 {
+    margin: 0 0 10px 0;
+    font-size: 24px;
     font-weight: bold;
-    flex-shrink: 0;
+    color: var(--dark-gray);
 }
 
 .link {
-    stroke: #999;
+    stroke: var(--medium-gray);
     stroke-opacity: 0.6;
     stroke-width: 3px;
     fill: none;
 }
 
 .node circle:hover {
-    stroke: #000;
-    stroke-width: 3px;
+    stroke: var(--zi-dark-blue);
+    stroke-width: 4px;
 }
 
 .node.selected circle {
-    stroke: #007bff;
+    stroke: var(--zi-blue);
     stroke-width: 4px;
 }
 
@@ -177,14 +156,14 @@ body {
 .node text {
     font-size: 25px;
     text-anchor: middle;
-    fill: #333;
+    fill: var(--dark-gray);
     pointer-events: none;
     user-select: none;
 }
 
 .controls-button {
     padding: 6px 12px;
-    background-color: #009ee0;
+    background-color: var(--zi-blue);
     color: white;
     border: none;
     border-radius: 4px;
@@ -193,9 +172,85 @@ body {
 }
 
 .controls-button:hover {
-    background-color: #00e0dd;
+    background-color: var(--zi-medium-blue);
 }
 
 .controls-button.active {
-    background-color: #305261;
+    background-color: var(--zi-dark-blue);
+}
+
+/* Panel look */
+.legend-panel {
+    background-color: white;
+    padding: 15px;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    z-index: 100;
+}
+
+.legend-panel h3 {
+    margin: 0 0 10px 0;
+    font-size: 24px;
+    font-weight: bold;
+    color: var(--dark-gray);
+}
+
+.legend-items {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.legend-row {
+    display: grid;
+    grid-template-columns: max-content 1fr;
+    column-gap: 12px;
+    align-items: baseline;
+    font-size: 20px;
+}
+
+.legend-left {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+}
+
+.legend-right {
+    justify-self: end;
+    text-align: right;
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
+.legend-dot,
+.legend-badge {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    flex: 0 0 20px;
+    border: 1px solid #ccc;
+}
+
+.legend-badge {
+    border: none;
+    color: #fff;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    font-weight: bold;
+}
+
+.automation-title {
+    position: fixed;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--zi-blue);
+    font-size: 32px;
+    font-weight: bold;
+    text-shadow: 2px 2px 3px #eee;
 }

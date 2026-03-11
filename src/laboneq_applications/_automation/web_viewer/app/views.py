@@ -26,7 +26,9 @@ def get_graph() -> tuple[Response, int] | Response:
 @app.route("/")
 def index() -> str:
     """Serve the main HTML page."""
-    return render_template("index.html")
+    automation = app.config.get("AUTOMATION_INSTANCE")
+    name = "Automation Graph" if automation is None else automation.name
+    return render_template("index.html", name=name)
 
 
 @app.route("/reset", methods=["POST"])

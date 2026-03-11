@@ -46,16 +46,19 @@ def build_json_data(
             "status": status,
             "layer": str(getattr(element, "layer_key", element.key)),
             "quantum_elements": (
-                [element.node_keys]
+                len(element.node_keys)
                 if hasattr(element, "node_keys")
                 else element.key or []
             ),
-            "timestamp": list(element.timestamp.values())
+            "timestamp": next(iter(element.timestamp.values()))
             if isinstance(element.timestamp, dict)
             else element.timestamp,
-            "fail_count": list(element.fail_count.values())
+            "fail_count": sum(element.fail_count.values())
             if isinstance(element.fail_count, dict)
             else element.fail_count,
+            "pass_count": sum(element.pass_count.values())
+            if isinstance(element.pass_count, dict)
+            else element.pass_count,
             "depends_on": list(element.depends_on),
         }
 

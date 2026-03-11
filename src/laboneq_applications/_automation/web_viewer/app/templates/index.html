@@ -2,31 +2,47 @@
 {% block content %}
     <div id="app-wrapper">
         <div id="header">
-            <img id="logo"
-                 src="static/images/zhinst_logo_sep_horiz_2019.svg"
-                 alt="Zurich Instruments">
-            <img id="logo"
-                 src="static/images/Logo_laboneq_automation.png"
-                 alt="LabOne Q Automation">
+            <div class="logo-group">
+                <a href="https://www.zhinst.com/" target="_blank">
+                    <img class="logo"
+                         src="static/images/zhinst_logo_sep_horiz_2019.svg"
+                         alt="Zurich Instruments">
+                </a>
+                <a href="https://docs.zhinst.com/labone_q_user_manual/applications_library/index.html"
+                   target="_blank">
+                    <img class="logo"
+                         src="static/images/Logo_laboneq_automation.png"
+                         alt="LabOne Q Automation">
+                </a>
+            </div>
+            <div id="automation-title" class="automation-title">
+                <span id="automation-title-string">{{ name }}</span>
+            </div>
             <div id="controls">
-                <button id="btnResetZoom" class="controls-button" type="button">Reset Zoom</button>
                 <button id="btnNodeView" class="controls-button" type="button">Node View</button>
                 <button id="btnLayerView" class="controls-button" type="button">Layer View</button>
-                <button id="btnRunAuto" class="controls-button" type="button">Run!</button>
+                <button id="btnResetZoom" class="controls-button" type="button">Reset Zoom</button>
+                <button id="btnRunAuto" class="controls-button" type="button">Run</button>
                 <button id="btnResetAuto" class="controls-button" type="button">Reset</button>
             </div>
         </div>
         <div id="graph"></div>
-        <div id="status">Click a node to see details</div>
-        <div id="status-legend">
+        <div id="status-legend" class="legend-panel">
             <h3>Status</h3>
-            <div id="status-legend-items"></div>
+            <div id="status-legend-items" class="legend-items"></div>
         </div>
-        <div id="layer-legend">
+        <div id="layer-legend" class="legend-panel">
             <h3>Layers</h3>
-            <div id="layer-legend-items"></div>
+            <div id="layer-legend-items" class="legend-items"></div>
+        </div>
+        <div id="node-info" class="legend-panel" style="display:none">
+            <h3>
+                <span id="status-title"></span>
+            </h3>
+            <div id="node-info-rows" class="legend-items"></div>
         </div>
     </div>
+</div>
 {% endblock %}
 {% block scripts %}
     <script src="{{ url_for('static', filename='js/layout.js') }}"></script>

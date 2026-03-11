@@ -1,7 +1,6 @@
 // Copyright 2026 Zurich Instruments AG
 // SPDX-License-Identifier: Apache-2.0
 
-let currentVersion = null;
 let svg, g, zoom;
 let lastSelectedNode = null;
 let currentMode = "nodes";
@@ -11,13 +10,17 @@ let isTransitioning = false;
 const TRANSITION_DURATION = 750;
 
 const statusColorMap = {
-    root: "#009EE0",
-    running: "#EFBF04",
-    passed: "#68E000",
-    failed: "#E05100",
-    ready: "#E09700",
-    mixed: "#615130",
-    deactivated: "#7f7f7f",
+    ready: "#a2daf4",
+    running: "#ffcc33",
+    passed: "#38e171",
+    failed: "#ff1616",
+    mixed: "#cc3366",
+    deactivated: "#888888",
+};
+
+const colorPalette = {
+    zi_blue: "#009ee0",
+    gray: "#888888",
 };
 
 async function fetchGraphData() {
@@ -40,7 +43,7 @@ function setupSVG() {
         .attr("height", container.clientHeight)
         .on("click", function (event) {
             if (event.target === this) {
-                d3.select("#status").style("display", "none");
+                d3.select("#node-info").style("display", "none");
                 if (lastSelectedNode) {
                     lastSelectedNode.classed("selected", false);
                     lastSelectedNode = null;
@@ -153,13 +156,12 @@ function computeLayout(graphData, mode) {
 
     const toLayers = mode === "layers";
 
-    if (toLayers) {
-        const { items, links, isLayers } = getItemsAndLinks(graphData, mode);
-        return { items, links, pos: layerPos, isLayers };
-    }
-
     const { items, links, isLayers } = getItemsAndLinks(graphData, mode);
-    return { items, links, pos: nodePos, isLayers };
+    if (toLayers) {
+        return { items, links, pos: layerPos, isLayers };
+    } else {
+        return { items, links, pos: nodePos, isLayers };
+    }
 }
 
 function computeTransitionNodePositions(graphData) {
@@ -208,10 +210,10 @@ function renderLinks({
                 enter
                     .append("line")
                     .attr("class", "link")
-                    .attr("x1", (d) => startPos[d[0]]?.x ?? 0)
-                    .attr("y1", (d) => startPos[d[0]]?.y ?? 0)
-                    .attr("x2", (d) => startPos[d[1]]?.x ?? 0)
-                    .attr("y2", (d) => startPos[d[1]]?.y ?? 0),
+                    .attr("x1", (d) => startPos[d[0]]?.x)
+                    .attr("y1", (d) => startPos[d[0]]?.y)
+                    .attr("x2", (d) => startPos[d[1]]?.x)
+                    .attr("y2", (d) => startPos[d[1]]?.y),
             (update) => update,
             (exit) => exit.remove(),
         );
@@ -219,15 +221,15 @@ function renderLinks({
     if (animate) {
         sel.transition()
             .duration(TRANSITION_DURATION)
-            .attr("x1", (d) => pos[d[0]]?.x ?? 0)
-            .attr("y1", (d) => pos[d[0]]?.y ?? 0)
-            .attr("x2", (d) => pos[d[1]]?.x ?? 0)
-            .attr("y2", (d) => pos[d[1]]?.y ?? 0);
+            .attr("x1", (d) => pos[d[0]]?.x)
+            .attr("y1", (d) => pos[d[0]]?.y)
+            .attr("x2", (d) => pos[d[1]]?.x)
+            .attr("y2", (d) => pos[d[1]]?.y);
     } else {
-        sel.attr("x1", (d) => pos[d[0]]?.x ?? 0)
-            .attr("y1", (d) => pos[d[0]]?.y ?? 0)
-            .attr("x2", (d) => pos[d[1]]?.x ?? 0)
-            .attr("y2", (d) => pos[d[1]]?.y ?? 0);
+        sel.attr("x1", (d) => pos[d[0]]?.x)
+            .attr("y1", (d) => pos[d[0]]?.y)
+            .attr("x2", (d) => pos[d[1]]?.x)
+            .attr("y2", (d) => pos[d[1]]?.y);
     }
 }
 
@@ -263,8 +265,11 @@ function renderNodes({
                             ? d.quantum_elements.length * 20
                             : 30,
                     )
-                    .attr("fill", (d) => statusColorMap[d.status] || "#cccccc")
-                    .attr("stroke", "#999")
+                    .attr(
+                        "fill",
+                        (d) => statusColorMap[d.status] || colorPalette.zi_blue,
+                    )
+                    .attr("stroke", colorPalette.gray)
                     .attr("stroke-width", 2)
                     .on("click", (event, d) => {
                         if (lastSelectedNode)
@@ -278,25 +283,14 @@ function renderNodes({
                         const qe = Array.isArray(d.quantum_elements)
                             ? d.quantum_elements.join(", ")
                             : d.quantum_elements;
-
-                        d3.select("#status")
-                            .html(
-                                `<strong>${isLayers ? "Layer" : "Node"}:</strong> ${d.key}<br>` +
-                                    `<strong>Status:</strong> ${d.status}<br>` +
-                                    `<strong>Layer:</strong> ${d.layer}<br>` +
-                                    `<strong>Elements:</strong> ${qe}<br>` +
-                                    `<strong>Timestamp:</strong> ${d.timestamp || "N/A"}<br>` +
-                                    `<strong>Fail count:</strong> ${d.fail_count}<br>` +
-                                    `<strong>Depends on:</strong> ${d.depends_on}`,
-                            )
-                            .style("display", "block");
+                        updateNodeInfoLegend(d, qe, isLayers);
                     });
 
                 ng.on("mouseenter", function () {
                     d3.select(this)
                         .select("circle")
-                        .style("stroke", "#000")
-                        .style("stroke-width", 3);
+                        .style("stroke", colorPalette.zi_blue)
+                        .style("stroke-width", 4);
                     d3.select(this).raise();
                 }).on("mouseleave", function () {
                     d3.select(this)
@@ -330,7 +324,7 @@ function renderNodes({
                     .style("opacity", toLayers ? 1 : 0)
                     .text((d) =>
                         Array.isArray(d.quantum_elements)
-                            ? d.quantum_elements.join(", ")
+                            ? d.quantum_elements.join("-")
                             : d.quantum_elements,
                     );
 
@@ -449,7 +443,9 @@ function renderGraph(graphData, mode, { animateFromMode = null } = {}) {
 }
 
 function resetZoom() {
-    svg.transition().duration(750).call(zoom.transform, d3.zoomIdentity);
+    svg.transition()
+        .duration(TRANSITION_DURATION)
+        .call(zoom.transform, d3.zoomIdentity);
 }
 
 function setMode(mode) {
@@ -472,9 +468,8 @@ async function refreshData({ force = false } = {}) {
     const graphData = await fetchGraphData();
     if (!graphData) return;
 
-    if (!force && currentVersion === graphData.version) return;
+    if (!force && cachedGraphData.version === graphData.version) return;
 
-    currentVersion = graphData.version;
     cachedGraphData = graphData;
     renderGraph(graphData, currentMode, { animateFromMode: null });
 }

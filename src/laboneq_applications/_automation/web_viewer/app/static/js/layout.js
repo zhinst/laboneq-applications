@@ -58,16 +58,18 @@ async function runAutomation() {
 function highlightLayer(layerKey) {
     g.selectAll("g.node circle")
         .attr("fill", (d) => {
-            const color = statusColorMap[d.status] || "#cccccc";
+            const color = statusColorMap[d.status] || colorPalette.zi_blue;
             return d.layer === layerKey ? color : d3.color(color).darker(1.5);
         })
         .style("filter", (d) => {
             if (d.layer !== layerKey) return null;
-            const color = statusColorMap[d.status] || "#cccccc";
+            const color = statusColorMap[d.status] || colorPalette.zi_blue;
             return `drop-shadow(0 0 8px ${color})`;
         });
 
-    g.selectAll(".link").style("stroke", (d) => d3.color("#999").darker(1.5));
+    g.selectAll(".link").style("stroke", (d) =>
+        d3.color(colorPalette.gray).darker(1.5),
+    );
 
     g.selectAll(".layer-label").remove();
 
@@ -89,7 +91,7 @@ function highlightLayer(layerKey) {
 
 function clearHighlight() {
     g.selectAll("g.node circle")
-        .attr("fill", (d) => statusColorMap[d.status] || "#cccccc")
+        .attr("fill", (d) => statusColorMap[d.status] || colorPalette.zi_blue)
         .style("filter", null);
     g.selectAll(".link").style("stroke", null);
     g.selectAll(".layer-label").remove();
