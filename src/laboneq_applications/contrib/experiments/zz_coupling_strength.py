@@ -18,7 +18,7 @@ The decoupling experiment has the following pulse sequence:
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from laboneq import workflow
 from laboneq.simple import (
@@ -32,6 +32,7 @@ from laboneq.workflow.tasks import (
     compile_experiment,
     run_experiment,
 )
+from laboneq.workflow.typing import QuantumElements
 
 from laboneq_applications.contrib.analysis.zz_coupling_strength import analysis_workflow
 from laboneq_applications.core.validation import (
@@ -55,6 +56,7 @@ from laboneq_applications.tasks import (
 
 if TYPE_CHECKING:
     from laboneq.dsl.session import Session
+    from laboneq.workflow import WorkflowResult
 
     from laboneq_applications.qpu_types import QPU
     from laboneq_applications.typing import QubitSweepPoints
@@ -65,8 +67,10 @@ def experiment_workflow(
     session: Session,
     qpu: QPU,
     qubit_pairs: list[list[str]],
+    *,
     biases: QubitSweepPoints,
     delays: QubitSweepPoints,
+    evaluation_parameters: dict[str, Any] | None = None,
     temporary_parameters: dict[str, dict | TunableTransmonQubitParameters]
     | None = None,
     options: TuneUpWorkflowOptions | None = None,
@@ -80,7 +84,13 @@ def experiment_workflow(
     - [compile_experiment]()
     - [run_experiment]()
     - [analysis_workflow]()
+    - [evaluate_experiment]()
     - [update_qpu]()
+
+    !!! version-changed "Changed in version 26.4.0."
+        The `evaluation_parameters` argument has been added, which is the dictionary of
+        parameters used for the newly added evaluation task. All arguments apart from
+        `session`, `qpu`, and `qubits` are now keyword arguments.
 
     Arguments:
         session:
@@ -96,6 +106,9 @@ def experiment_workflow(
         delays:
             The delays (in seconds) of the time between the first X90 and the X180,
             and the X180 and the Y90. This is the outer sweep parameter (slow axis).
+        evaluation_parameters:
+            The dictionary of parameters used for the evaluation task. The default
+            evaluation parameters are defined in the `evaluate_experiment` task.
         temporary_parameters:
             The temporary parameters with which to update the QPU.
         options:
@@ -117,16 +130,30 @@ def experiment_workflow(
     result = run_experiment(session, compiled_exp)
 
     with workflow.if_(options.do_analysis):
-        analysis_result = analysis_workflow(
+        analysis_results = analysis_workflow(
             result,
             temp_qpu,
             qubit_pairs,
             biases,
             delays,
         )
-        edge_parameters = analysis_result.output
-        with workflow.if_(options.update):
-            update_qpu(qpu, edge_parameters["new_parameter_values"])
+        edge_parameters = analysis_results.output
+        with workflow.if_(options.evaluate):
+            eval_flags = evaluate_experiment(
+                analysis_results, qubit_pairs, evaluation_parameters
+            )
+            with workflow.if_(options.update):
+                update_qpu(
+                    qpu,
+                    edge_parameters["new_parameter_values"],
+                    eval_flags=eval_flags,
+                )
+        with workflow.else_():
+            with workflow.if_(options.update):
+                update_qpu(
+                    qpu,
+                    edge_parameters["new_parameter_values"],
+                )
     workflow.return_(result)
 
 
@@ -296,3 +323,28 @@ def create_experiment(
     calibration = dsl.experiment_calibration()
     for e, bias in zip(edges, bias_sweep_pars, strict=False):
         calibration[e.quantum_element.signals["flux"]].voltage_offset = bias
+
+
+@workflow.task(save=False)
+def evaluate_experiment(
+    analysis_results: WorkflowResult,
+    qubit_pairs: list[QuantumElements],
+    evaluation_parameters: dict[str, Any] | None = None,
+) -> dict[str, dict[str, bool]]:
+    """Evaluates the ZZ coupling strength analysis workflow result.
+
+    Arguments:
+        analysis_results:
+            The analysis workflow results.
+        qubit_pairs:
+            The qubits pairs to run the experiments on.
+        evaluation_parameters:
+            The evaluation parameters.
+
+    Returns:
+        The evaluation flags.
+    """
+    raise NotImplementedError(
+        "The `evaluate_experiment` task for "
+        "`zz_coupling_strength` has not been implemented by the user."
+    )

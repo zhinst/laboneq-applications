@@ -22,7 +22,7 @@ in parallel on all the qubits.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from laboneq import workflow
 from laboneq.simple import (
@@ -43,6 +43,7 @@ from laboneq_applications.experiments.options import (
     TuneupExperimentOptions,
     TuneUpWorkflowOptions,
 )
+from laboneq_applications.tasks import evaluate_parameter_and_fit_r2_thresholds
 from laboneq_applications.tasks.parameter_updating import (
     temporary_qpu,
     temporary_quantum_elements_from_qpu,
@@ -53,6 +54,7 @@ if TYPE_CHECKING:
     from laboneq.dsl.quantum import QuantumParameters
     from laboneq.dsl.quantum.qpu import QPU
     from laboneq.dsl.session import Session
+    from laboneq.workflow import WorkflowResult
 
     from laboneq_applications.typing import QuantumElements, QubitSweepPoints
 
@@ -78,7 +80,9 @@ def experiment_workflow(
     session: Session,
     qpu: QPU,
     qubits: QuantumElements | list[str] | str,
+    *,
     delays: QubitSweepPoints,
+    evaluation_parameters: dict[str, Any] | None = None,
     temporary_parameters: dict[str | tuple[str, str, str], dict | QuantumParameters]
     | None = None,
     options: TuneUpWorkflowOptions | None = None,
@@ -91,7 +95,13 @@ def experiment_workflow(
     - [compile_experiment]()
     - [run_experiment]()
     - [analysis_workflow]()
+    - [evaluate_experiment]()
     - [update_qpu]()
+
+    !!! version-changed "Changed in version 26.4.0."
+        The `evaluation_parameters` argument has been added, which is the dictionary of
+        parameters used for the newly added evaluation task. All arguments apart from
+        `session`, `qpu`, and `qubits` are now keyword arguments.
 
     !!! version-changed "Deprecated in version 26.1.0."
         The `qubits` argument of type `QuantumElements` is deprecated.
@@ -111,6 +121,9 @@ def experiment_workflow(
             pulses and the refocusing pulse are `delays / 2`; see the schematic of
             the pulse sequence at the top of the file. Note that `delays` must be
             identical for qubits that use the same measure port.
+        evaluation_parameters:
+            The dictionary of parameters used for the evaluation task. The default
+            evaluation parameters are defined in the `evaluate_experiment` task.
         temporary_parameters:
             The temporary parameters with which to update the quantum elements and
             topology edges. For quantum elements, the dictionary key is the quantum
@@ -155,8 +168,22 @@ def experiment_workflow(
     with workflow.if_(options.do_analysis):
         analysis_results = analysis_workflow(result, qubits, delays)
         qubit_parameters = analysis_results.output
-        with workflow.if_(options.update):
-            update_qpu(qpu, qubit_parameters["new_parameter_values"])
+        with workflow.if_(options.evaluate):
+            eval_flags = evaluate_experiment(
+                analysis_results, qubits, evaluation_parameters
+            )
+            with workflow.if_(options.update):
+                update_qpu(
+                    qpu,
+                    qubit_parameters["new_parameter_values"],
+                    eval_flags=eval_flags,
+                )
+        with workflow.else_():
+            with workflow.if_(options.update):
+                update_qpu(
+                    qpu,
+                    qubit_parameters["new_parameter_values"],
+                )
     workflow.return_(result)
 
 
@@ -286,3 +313,34 @@ def create_experiment(
                 active_reset_repetitions=opts.active_reset_repetitions,
                 measure_section_length=max_measure_section_length,
             )
+
+
+@workflow.task(save=False)
+def evaluate_experiment(
+    analysis_results: WorkflowResult,
+    qubits: QuantumElements,
+    evaluation_parameters: dict[str, Any] | None = None,
+) -> dict[str, dict[str, bool]]:
+    """Evaluates the Hahn echo analysis workflow result.
+
+    Arguments:
+        analysis_results:
+            The analysis workflow results.
+        qubits:
+            The qubits to run the experiments on.
+        evaluation_parameters:
+            The evaluation parameters.
+
+    Returns:
+        The evaluation flags.
+    """
+    return evaluate_parameter_and_fit_r2_thresholds(
+        analysis_results.output["old_parameter_values"],
+        analysis_results.output["new_parameter_values"],
+        analysis_results.tasks["fit_data"].output,
+        qubits,
+        parameter="ge_T2",
+        default_parameter_threshold=0.00001,
+        default_fit_r2_threshold=0.94,
+        evaluation_parameters=evaluation_parameters,
+    )

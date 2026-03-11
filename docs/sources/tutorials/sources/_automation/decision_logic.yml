@@ -90,13 +90,15 @@ qs3:
           start: 6e9
           stop: 6.3e9
           num: 101
-      evaluation_fit_r2_thresholds: 1
     q3:
       frequencies:
         __linspace__:
           start: 6e9
           stop: 6.3e9
           num: 101
+  evaluation_parameters:
+    fit_r2_thresholds:
+      q2: 1
   workflow_options:
     evaluate: True
     update: True
@@ -107,7 +109,7 @@ qs3:
     arguments:
       new_layer_key: qs3
       parameter_changes:
-        "element_workflow_parameters":
-          "q2":
-            "evaluation_fit_r2_thresholds": -0.0003
+        "evaluation_parameters":
+          "fit_r2_thresholds":
+            "q2": -0.0003
       relative: False

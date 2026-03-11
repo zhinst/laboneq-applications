@@ -50,6 +50,7 @@ def experiment_workflow(
     session: Session,
     qpu: QPU,
     parametric_amplifier: TWPA | str,
+    *,
     frequencies: ArrayLike,
     temporary_parameters: dict[str, dict | TWPAParameters] | None = None,
     options: TuneUpWorkflowOptions | None = None,
@@ -61,8 +62,10 @@ def experiment_workflow(
     - [create_experiment]()
     - [compile_experiment]()
     - [run_experiment]()
-    - [analysis_workflow]()
-    - [update_qpu]()
+
+    !!! version-changed "Changed in version 26.4.0."
+        All arguments apart from `session`, `qpu`, and `qubits` are now keyword
+        arguments.
 
     !!! version-changed "Deprecated in version 26.1.0."
         The `parametric_amplifier` argument of type `TWPA` is deprecated.

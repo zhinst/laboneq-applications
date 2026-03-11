@@ -52,6 +52,7 @@ def experiment_workflow(
     session: Session,
     qpu: QPU,
     qubits: QuantumElements | list[str] | str,
+    *,
     frequencies: QubitSweepPoints,
     lengths: QubitSweepPoints,
     temporary_parameters: dict[str, dict | QuantumParameters] | None = None,
@@ -65,6 +66,10 @@ def experiment_workflow(
     - [compile_experiment]()
     - [run_experiment]()
     - [analysis_workflow]() (optional)
+
+    !!! version-changed "Changed in version 26.4.0."
+        All arguments apart from `session`, `qpu`, and `qubits` are now keyword
+        arguments.
 
     !!! version-changed "Changed in version 26.1.0."
         The `temporary_parameters` positional argument was added in the

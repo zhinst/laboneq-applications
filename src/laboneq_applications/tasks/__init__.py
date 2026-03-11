@@ -6,10 +6,8 @@
 from __future__ import annotations
 
 __all__ = [
-    "evaluate_experiment",
+    "evaluate_parameter_and_fit_r2_thresholds",
     "extract_nodes_from_edges",
-    "get_evaluation_parameter",
-    "get_evaluation_thresholds",
     "temporary_modify",
     "temporary_qpu",
     "temporary_quantum_elements_from_qpu",
@@ -19,9 +17,7 @@ __all__ = [
 
 
 from .evaluation import (
-    evaluate_experiment,
-    get_evaluation_parameter,
-    get_evaluation_thresholds,
+    evaluate_parameter_and_fit_r2_thresholds,
 )
 from .multi_qubit_logic import extract_nodes_from_edges
 from .parameter_updating import (

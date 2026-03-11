@@ -16,7 +16,7 @@ its coupled resonator
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from laboneq import workflow
 from laboneq.dsl.enums import AcquisitionType
@@ -43,6 +43,7 @@ if TYPE_CHECKING:
     from laboneq.dsl.quantum.qpu import QPU
     from laboneq.dsl.quantum.quantum_element import QuantumElement
     from laboneq.dsl.session import Session
+    from laboneq.workflow import WorkflowResult
     from numpy.typing import ArrayLike
 
 
@@ -51,7 +52,9 @@ def experiment_workflow(
     session: Session,
     qpu: QPU,
     qubit: QuantumElement | str,
+    *,
     frequencies: ArrayLike,
+    evaluation_parameters: dict[str, Any] | None = None,
     temporary_parameters: dict[str | tuple[str, str, str], dict | QuantumParameters]
     | None = None,
     options: TuneUpWorkflowOptions | None = None,
@@ -64,7 +67,13 @@ def experiment_workflow(
     - [compile_experiment]()
     - [run_experiment]()
     - [analysis_workflow]()
+    - [evaluate_experiment]()
     - [update_qpu]()
+
+    !!! version-changed "Changed in version 26.4.0."
+        The `evaluation_parameters` argument has been added, which is the dictionary of
+        parameters used for the newly added evaluation task. All arguments apart from
+        `session`, `qpu`, and `qubits` are now keyword arguments.
 
     !!! version-changed "Deprecated in version 26.1.0."
         The `qubit` argument of type `QuantumElement` is deprecated.
@@ -82,6 +91,9 @@ def experiment_workflow(
         frequencies:
             The resonator frequencies to sweep over for the readout pulse (or CW)
             sent to the resonator. Must be a list of numbers or an array.
+        evaluation_parameters:
+            The dictionary of parameters used for the evaluation task. The default
+            evaluation parameters are defined in the `evaluate_experiment` task.
         temporary_parameters:
             The temporary parameters with which to update the quantum elements and
             topology edges. For quantum elements, the dictionary key is the quantum
@@ -128,8 +140,22 @@ def experiment_workflow(
     with workflow.if_(options.do_analysis):
         analysis_results = analysis_workflow(result, qubit, frequencies)
         qubit_parameters = analysis_results.output
-        with workflow.if_(options.update):
-            update_qpu(qpu, qubit_parameters["new_parameter_values"])
+        with workflow.if_(options.evaluate):
+            eval_flags = evaluate_experiment(
+                analysis_results, qubit, evaluation_parameters
+            )
+            with workflow.if_(options.update):
+                update_qpu(
+                    qpu,
+                    qubit_parameters["new_parameter_values"],
+                    eval_flags=eval_flags,
+                )
+        with workflow.else_():
+            with workflow.if_(options.update):
+                update_qpu(
+                    qpu,
+                    qubit_parameters["new_parameter_values"],
+                )
     workflow.return_(result)
 
 
@@ -224,3 +250,28 @@ def create_experiment(
             else:
                 qop.measure(qubit, handle=dsl.handles.result_handle(qubit.uid))
             qop.delay(qubit, opts.spectroscopy_reset_delay)
+
+
+@workflow.task(save=False)
+def evaluate_experiment(
+    analysis_results: WorkflowResult,
+    qubit: QuantumElement,
+    evaluation_parameters: dict[str, Any] | None = None,
+) -> dict[str, dict[str, bool]]:
+    """Evaluates the resonator spectroscopy analysis workflow result.
+
+    Arguments:
+        analysis_results:
+            The analysis workflow results.
+        qubit:
+            The qubit to run the experiments on.
+        evaluation_parameters:
+            The evaluation parameters.
+
+    Returns:
+        The evaluation flags.
+    """
+    raise NotImplementedError(
+        "The `evaluate_experiment` task for "
+        "`resonator_spectroscopy` has not been implemented by the user."
+    )

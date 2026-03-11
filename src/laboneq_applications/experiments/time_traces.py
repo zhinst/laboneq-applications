@@ -17,7 +17,7 @@ given by the user.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Literal
+from typing import TYPE_CHECKING, Any, Literal
 
 from laboneq import workflow
 from laboneq.simple import AcquisitionType, Experiment, dsl
@@ -47,6 +47,7 @@ if TYPE_CHECKING:
     from laboneq.dsl.quantum.qpu import QPU
     from laboneq.dsl.quantum.quantum_element import QuantumElement
     from laboneq.dsl.session import Session
+    from laboneq.workflow import WorkflowResult
 
     from laboneq_applications.typing import QuantumElements
 
@@ -74,7 +75,9 @@ def experiment_workflow(
     session: Session,
     qpu: QPU,
     qubits: QuantumElements | list[str] | str,
+    *,
     states: Sequence[Literal["g", "e", "f"]],
+    evaluation_parameters: dict[str, Any] | None = None,
     temporary_parameters: dict[str | tuple[str, str, str], dict | QuantumParameters]
     | None = None,
     options: TuneUpWorkflowOptions | None = None,
@@ -91,7 +94,13 @@ def experiment_workflow(
         - [append_result]()
     - [combine_results]()
     - [analysis_workflow]()
+    - [evaluate_experiment]()
     - [update_qpu]()
+
+    !!! version-changed "Changed in version 26.4.0."
+        The `evaluation_parameters` argument has been added, which is the dictionary of
+        parameters used for the newly added evaluation task. All arguments apart from
+        `session`, `qpu`, and `qubits` are now keyword arguments.
 
     !!! version-changed "Deprecated in version 26.1.0."
         The `qubits` argument of type `QuantumElements` is deprecated.
@@ -109,6 +118,9 @@ def experiment_workflow(
         states:
             The qubit states for which to acquire the raw traces. Must be a
             list of strings containing g, e or f.
+        evaluation_parameters:
+            The dictionary of parameters used for the evaluation task. The default
+            evaluation parameters are defined in the `evaluate_experiment` task.
         temporary_parameters:
             The temporary parameters with which to update the quantum elements and
             topology edges. For quantum elements, the dictionary key is the quantum
@@ -156,8 +168,22 @@ def experiment_workflow(
     with workflow.if_(options.do_analysis):
         analysis_results = analysis_workflow(combined_results, qubits, states)
         qubit_parameters = analysis_results.output
-        with workflow.if_(options.update):
-            update_qpu(qpu, qubit_parameters["new_parameter_values"])
+        with workflow.if_(options.evaluate):
+            eval_flags = evaluate_experiment(
+                analysis_results, qubits, evaluation_parameters
+            )
+            with workflow.if_(options.update):
+                update_qpu(
+                    qpu,
+                    qubit_parameters["new_parameter_values"],
+                    eval_flags=eval_flags,
+                )
+        with workflow.else_():
+            with workflow.if_(options.update):
+                update_qpu(
+                    qpu,
+                    qubit_parameters["new_parameter_values"],
+                )
     workflow.return_(combined_results)
 
 
@@ -240,3 +266,28 @@ def create_experiment(
             qop.x180(qubit, transition="ef")
         qop.measure(qubit, dsl.handles.result_handle(qubit.uid, suffix=state))
         qop.passive_reset(qubit)
+
+
+@workflow.task(save=False)
+def evaluate_experiment(
+    analysis_results: WorkflowResult,
+    qubits: QuantumElements,
+    evaluation_parameters: dict[str, Any] | None = None,
+) -> dict[str, dict[str, bool]]:
+    """Evaluates the raw-traces analysis workflow result.
+
+    Arguments:
+        analysis_results:
+            The analysis workflow results.
+        qubits:
+            The qubits to run the experiments on.
+        evaluation_parameters:
+            The evaluation parameters.
+
+    Returns:
+        The evaluation flags.
+    """
+    raise NotImplementedError(
+        "The `evaluate_experiment` task for `time_traces` has not been implemented by "
+        "the user."
+    )

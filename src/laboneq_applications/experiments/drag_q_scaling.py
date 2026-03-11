@@ -33,7 +33,7 @@ in parallel on all the qubits.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 import numpy as np
 from laboneq import workflow
@@ -65,6 +65,7 @@ if TYPE_CHECKING:
     from laboneq.dsl.quantum import QuantumParameters
     from laboneq.dsl.quantum.qpu import QPU
     from laboneq.dsl.session import Session
+    from laboneq.workflow import WorkflowResult
 
     from laboneq_applications.typing import QuantumElements, QubitSweepPoints
 
@@ -74,7 +75,9 @@ def experiment_workflow(
     session: Session,
     qpu: QPU,
     qubits: QuantumElements | list[str] | str,
+    *,
     q_scalings: QubitSweepPoints,
+    evaluation_parameters: dict[str, Any] | None = None,
     temporary_parameters: dict[str | tuple[str, str, str], dict | QuantumParameters]
     | None = None,
     options: TuneUpWorkflowOptions | None = None,
@@ -87,7 +90,13 @@ def experiment_workflow(
     - [compile_experiment]()
     - [run_experiment]()
     - [analysis_workflow]()
+    - [evaluate_experiment]()
     - [update_qpu]()
+
+    !!! version-changed "Changed in version 26.4.0."
+        The `evaluation_parameters` argument has been added, which is the dictionary of
+        parameters used for the newly added evaluation task. All arguments apart from
+        `session`, `qpu`, and `qubits` are now keyword arguments.
 
     !!! version-changed "Deprecated in version 26.1.0."
         The `qubits` argument of type `QuantumElements` is deprecated.
@@ -107,6 +116,9 @@ def experiment_workflow(
             (see docstring at the top of the module). If `qubits` is a single qubit,
             `q_scalings` must be a list of numbers or an array. Otherwise it must be a
             list of lists of numbers or arrays.
+        evaluation_parameters:
+            The dictionary of parameters used for the evaluation task. The default
+            evaluation parameters are defined in the `evaluate_experiment` task.
         temporary_parameters:
             The temporary parameters with which to update the quantum elements and
             topology edges. For quantum elements, the dictionary key is the quantum
@@ -156,8 +168,22 @@ def experiment_workflow(
     with workflow.if_(options.do_analysis):
         analysis_results = analysis_workflow(result, qubits, q_scalings)
         qubit_parameters = analysis_results.output
-        with workflow.if_(options.update):
-            update_qpu(qpu, qubit_parameters["new_parameter_values"])
+        with workflow.if_(options.evaluate):
+            eval_flags = evaluate_experiment(
+                analysis_results, qubits, evaluation_parameters
+            )
+            with workflow.if_(options.update):
+                update_qpu(
+                    qpu,
+                    qubit_parameters["new_parameter_values"],
+                    eval_flags=eval_flags,
+                )
+        with workflow.else_():
+            with workflow.if_(options.update):
+                update_qpu(
+                    qpu,
+                    qubit_parameters["new_parameter_values"],
+                )
     workflow.return_(result)
 
 
@@ -314,3 +340,28 @@ def create_experiment(
                 active_reset_repetitions=opts.active_reset_repetitions,
                 measure_section_length=max_measure_section_length,
             )
+
+
+@workflow.task(save=False)
+def evaluate_experiment(
+    analysis_results: WorkflowResult,
+    qubits: QuantumElements,
+    evaluation_parameters: dict[str, Any] | None = None,
+) -> dict[str, dict[str, bool]]:
+    """Evaluates the DRAG quadrature-scaling analysis workflow result.
+
+    Arguments:
+        analysis_results:
+            The analysis workflow results.
+        qubits:
+            The qubits to run the experiments on.
+        evaluation_parameters:
+            The evaluation parameters.
+
+    Returns:
+        The evaluation flags.
+    """
+    raise NotImplementedError(
+        "The `evaluate_experiment` task for `drag_q_scaling` has not been implemented "
+        "by the user."
+    )

@@ -98,6 +98,16 @@ class WorkflowLayer(AutomationLayer):
         self.parameters["common_workflow_parameters"] = value
 
     @property
+    def evaluation_parameters(self) -> dict[str, Any]:
+        if "evaluation_parameters" in self.parameters:
+            return self.parameters["evaluation_parameters"]
+        return {}
+
+    @evaluation_parameters.setter
+    def evaluation_parameters(self, value: dict[str, Any]) -> None:
+        self.parameters["evaluation_parameters"] = value
+
+    @property
     def temporary_qpu_parameters(
         self,
     ) -> dict[str | tuple[str, str, str], dict | QuantumParameters]:
@@ -193,10 +203,11 @@ class WorkflowLayer(AutomationLayer):
             auto.session,
             auto.qpu,
             run_elements,
-            temporary_parameters=self.temporary_qpu_parameters,
-            options=built_workflow_options,
             **grouped_element_workflow_parameters,
             **self.common_workflow_parameters,
+            evaluation_parameters=self.evaluation_parameters,
+            temporary_parameters=self.temporary_qpu_parameters,
+            options=built_workflow_options,
         )
         workflow.storage_key = storage_key
 

@@ -254,12 +254,16 @@ def workflow_parameters() -> dict:
         "element_workflow_parameters": {
             "q0": {
                 "frequencies": np.linspace(6e9, 6.2e9, 101),
-                "evaluation_fit_r2_thresholds": 1.0,
             },
             "q1": {"frequencies": np.linspace(6e9, 6.2e9, 101)},
             "q2": {"frequencies": np.linspace(6e9, 6.2e9, 101)},
             "q3": {"frequencies": np.linspace(6e9, 6.2e9, 101)},
-        }
+        },
+        "evaluation_parameters": {
+            "fit_r2_thresholds": {
+                "q0": 1,
+            }
+        },
     }
 
 
@@ -642,15 +646,19 @@ class TestWorkflowAutomation:
             "element_workflow_parameters": {
                 "q0": {
                     "frequencies": np.linspace(6e9, 6.2e9, 101),
-                    "evaluation_fit_r2_thresholds": 1.0,
                 },
                 "q1": {
                     "frequencies": np.linspace(5.5e9, 5.9e9, 101),
-                    "evaluation_fit_r2_thresholds": 1.0,
                 },
                 "q2": {"frequencies": np.linspace(6e9, 6.2e9, 101)},
                 "q3": {"frequencies": np.linspace(6e9, 6.2e9, 101)},
-            }
+            },
+            "evaluation_parameters": {
+                "fit_r2_thresholds": {
+                    "q0": 1,
+                    "q1": 1,
+                }
+            },
         }
 
         # Test recovery of parameters after execution of run layer

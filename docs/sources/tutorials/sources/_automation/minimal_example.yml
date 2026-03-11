@@ -6,28 +6,30 @@ qs1:
           start: 6e9
           stop: 6.3e9
           num: 101
-      evaluation_fit_r2_thresholds: 1
     q1:
       frequencies:
         __linspace__:
           start: 6e9
           stop: 6.3e9
           num: 101
-      evaluation_fit_r2_thresholds: 1
     q2:
       frequencies:
         __linspace__:
           start: 6e9
           stop: 6.3e9
           num: 101
-      evaluation_fit_r2_thresholds: 1
     q3:
       frequencies:
         __linspace__:
           start: 6e9
           stop: 6.3e9
           num: 101
-      evaluation_fit_r2_thresholds: 1
+  evaluation_parameters:
+    fit_r2_thresholds:
+      q0: 1
+      q1: 1
+      q2: 1
+      q3: 1
   workflow_options:
     evaluate: True
     update: True

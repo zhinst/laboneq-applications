@@ -15,9 +15,10 @@ This experiment only supports 1 TWPA at the time.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from laboneq import workflow
+from laboneq.dsl.quantum import QuantumElement
 from laboneq.simple import Experiment, SweepParameter, dsl
 from laboneq.workflow.tasks import (
     compile_experiment,
@@ -41,6 +42,7 @@ from laboneq_applications.tasks import (
 if TYPE_CHECKING:
     from laboneq.dsl.quantum.qpu import QPU
     from laboneq.dsl.session import Session
+    from laboneq.workflow import WorkflowResult
     from numpy.typing import ArrayLike
 
     from laboneq_applications.qpu_types.twpa.twpa_types import (
@@ -54,8 +56,10 @@ def experiment_workflow(
     session: Session,
     qpu: QPU,
     parametric_amplifier: TWPA | str,
+    *,
     cancel_phase: ArrayLike,
     cancel_attenuation: ArrayLike,
+    evaluation_parameters: dict[str, Any] | None = None,
     temporary_parameters: dict[str, dict | TWPAParameters] | None = None,
     options: TuneUpWorkflowOptions | None = None,
 ) -> None:
@@ -67,7 +71,13 @@ def experiment_workflow(
     - [compile_experiment]()
     - [run_experiment]()
     - [analysis_workflow]()
+    - [evaluate_experiment]()
     - [update_qpu]()
+
+    !!! version-changed "Changed in version 26.4.0."
+        The `evaluation_parameters` argument has been added, which is the dictionary of
+        parameters used for the newly added evaluation task. All arguments apart from
+        `session`, `qpu`, and `qubits` are now keyword arguments.
 
     !!! version-changed "Deprecated in version 26.1.0."
         The `parametric_amplifier` argument of type `TWPA` is deprecated.
@@ -87,6 +97,9 @@ def experiment_workflow(
         cancel_attenuation:
             The attenuation of the cancellation tone.
             Must be a list of numbers or an array.
+        evaluation_parameters:
+            The dictionary of parameters used for the evaluation task. The default
+            evaluation parameters are defined in the `evaluate_experiment` task.
         temporary_parameters:
             The temporary parameters to update the parametric amplifiers with.
         options:
@@ -149,8 +162,22 @@ def experiment_workflow(
             cancel_attenuation,
         )
         parametric_amplifier_parameters = analysis_results.output
-        with workflow.if_(options.update):
-            update_qpu(qpu, parametric_amplifier_parameters["new_parameter_values"])
+        with workflow.if_(options.evaluate):
+            eval_flags = evaluate_experiment(
+                analysis_results, parametric_amplifier, evaluation_parameters
+            )
+            with workflow.if_(options.update):
+                update_qpu(
+                    qpu,
+                    parametric_amplifier_parameters["new_parameter_values"],
+                    eval_flags=eval_flags,
+                )
+        with workflow.else_():
+            with workflow.if_(options.update):
+                update_qpu(
+                    qpu,
+                    parametric_amplifier_parameters["new_parameter_values"],
+                )
     workflow.return_(data=result_on, ref=result_off)
 
 
@@ -159,12 +186,17 @@ def experiment_workflow(
 def create_experiment(
     qpu: QPU,
     parametric_amplifier: TWPA,
+    *,
     cancel_phase: ArrayLike,
     cancel_attenuation: ArrayLike,
-    cancellation_on: bool = False,  # noqa: FBT001, FBT002
+    cancellation_on: bool = False,
     options: TWPATuneUpExperimentOptions | None = None,
 ) -> Experiment:
     """Creates a cancellation tone calibration Experiment.
+
+    !!! version-changed "Changed in version 26.4.0."
+        All arguments apart from `session`, `qpu`, and `qubits` are now keyword
+        arguments.
 
     Arguments:
         qpu:
@@ -267,3 +299,28 @@ def create_experiment(
                 dsl.handles.result_handle(parametric_amplifier.uid),
             )
             qop.twpa_delay(parametric_amplifier, opts.spectroscopy_reset_delay)
+
+
+@workflow.task(save=False)
+def evaluate_experiment(
+    analysis_results: WorkflowResult,
+    parametric_amplifier: QuantumElement,
+    evaluation_parameters: dict[str, Any] | None = None,
+) -> dict[str, dict[str, bool]]:
+    """Evaluates the cancellation tone analysis workflow result.
+
+    Arguments:
+        analysis_results:
+            The analysis workflow results.
+        parametric_amplifier:
+            The parametric_amplifier to run the experiments on.
+        evaluation_parameters:
+            The evaluation parameters.
+
+    Returns:
+        The evaluation flags.
+    """
+    raise NotImplementedError(
+        "The `evaluate_experiment` task for "
+        "`calibrate_cancellation` has not been implemented by the user."
+    )

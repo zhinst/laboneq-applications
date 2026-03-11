@@ -52,6 +52,7 @@ def experiment_workflow(
     session: Session,
     qpu: QPU,
     qubit: QuantumElement | str,
+    *,
     frequencies: ArrayLike,
     amplitudes: ArrayLike,
     temporary_parameters: dict[str | tuple[str, str, str], dict | QuantumParameters]
@@ -66,6 +67,10 @@ def experiment_workflow(
     - [compile_experiment]()
     - [run_experiment]()
     - [analysis_workflow]()
+
+    !!! version-changed "Changed in version 26.4.0."
+        All arguments apart from `session`, `qpu`, and `qubits` are now keyword
+        arguments.
 
     !!! version-changed "Deprecated in version 26.1.0."
         The `qubit` argument of type `QuantumElement` is deprecated.
