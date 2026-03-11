@@ -150,38 +150,82 @@ class TestTemporaryQPU:
         new_q1 = new_qpu["q1"]
         new_edge = new_qpu.topology["test", "q0", "q1"]
         new_edge2 = new_qpu.topology["test2", "q0", "q1"]
+        assert new_q0 is not q0
         assert new_q0 == q0
+        assert new_q1 is not q1
         assert new_q1 == q1
         assert edge.parameters.readout_lo_frequency == 7e9
         assert edge.parameters.ge_drive_length == 51e-9
         assert new_edge.parameters.readout_lo_frequency == 1.23
         assert new_edge.parameters.ge_drive_length == 4.56
+        assert new_edge.quantum_element is not edge.quantum_element
+        assert new_edge.quantum_element == edge.quantum_element
+        assert new_edge2.parameters is not edge2.parameters
         assert edge2.parameters.readout_lo_frequency == 7e9
         assert edge2.parameters.ge_drive_length == 51e-9
         assert new_edge2.parameters.readout_lo_frequency == 7e9
         assert new_edge2.parameters.ge_drive_length == 51e-9
+        assert new_edge2.quantum_element is not edge2.quantum_element
+        assert new_edge2.quantum_element == edge2.quantum_element
+
+    def test_without_temporary_parameters(self, two_tunable_transmon_platform):
+        qpu = two_tunable_transmon_platform.qpu
+        q0 = qpu["q0"]
+        q1 = qpu["q1"]
+        qpu.topology.add_edge(
+            "test", "q0", "q1", parameters=q0.parameters.copy(), quantum_element=q0
+        )
+        qpu.topology.add_edge(
+            "test2", "q0", "q1", parameters=q0.parameters.copy(), quantum_element=q0
+        )
+        edge = qpu.topology["test", "q0", "q1"]
+        edge2 = qpu.topology["test2", "q0", "q1"]
 
         # check with None
         new_qpu = temporary_qpu(qpu, None)
         assert new_qpu is not qpu
+        assert new_qpu["q0"] is not q0
         assert new_qpu["q0"] == q0
+        assert new_qpu["q1"] is not q1
         assert new_qpu["q1"] == q1
         assert new_qpu.topology["test", "q0", "q1"].tag == edge.tag
         assert new_qpu.topology["test", "q0", "q1"].source_node == edge.source_node
         assert new_qpu.topology["test", "q0", "q1"].target_node == edge.target_node
+        assert new_qpu.topology["test", "q0", "q1"].parameters is not edge.parameters
         assert new_qpu.topology["test", "q0", "q1"].parameters == edge.parameters
         assert (
+            new_qpu.topology["test", "q0", "q1"].quantum_element
+            is not edge.quantum_element
+        )
+        assert (
             new_qpu.topology["test", "q0", "q1"].quantum_element == edge.quantum_element
+        )
+        assert new_qpu.topology["test2", "q0", "q1"].parameters is not edge2.parameters
+        assert new_qpu.topology["test2", "q0", "q1"].parameters == edge2.parameters
+        assert (
+            new_qpu.topology["test2", "q0", "q1"].quantum_element
+            is not edge2.quantum_element
+        )
+        assert (
+            new_qpu.topology["test2", "q0", "q1"].quantum_element
+            == edge2.quantum_element
         )
 
         # check with single argument
         new_qpu = temporary_qpu(qpu)
+        assert new_qpu["q0"] is not qpu["q0"]
         assert new_qpu["q0"] == qpu["q0"]
+        assert new_qpu["q1"] is not qpu["q1"]
         assert new_qpu["q1"] == qpu["q1"]
         assert new_qpu.topology["test", "q0", "q1"].tag == edge.tag
         assert new_qpu.topology["test", "q0", "q1"].source_node == edge.source_node
         assert new_qpu.topology["test", "q0", "q1"].target_node == edge.target_node
+        assert new_qpu.topology["test", "q0", "q1"].parameters is not edge.parameters
         assert new_qpu.topology["test", "q0", "q1"].parameters == edge.parameters
+        assert (
+            new_qpu.topology["test", "q0", "q1"].quantum_element
+            is not edge.quantum_element
+        )
         assert (
             new_qpu.topology["test", "q0", "q1"].quantum_element == edge.quantum_element
         )
@@ -214,12 +258,14 @@ class TestTemporaryQPU:
         assert edge.parameters.readout_lo_frequency == 7e9
         assert edge.parameters.ge_drive_length == 51e-9
         assert edge.quantum_element is None
+        assert new_edge.parameters is not edge.parameters
         assert new_edge.parameters.readout_lo_frequency == 1.23
         assert new_edge.parameters.ge_drive_length == 4.56
         assert new_edge.quantum_element is None
         assert edge2.parameters.readout_lo_frequency == 7e9
         assert edge2.parameters.ge_drive_length == 51e-9
         assert edge2.quantum_element is None
+        assert new_edge2.parameters is not edge2.parameters
         assert new_edge2.parameters.readout_lo_frequency == 7e9
         assert new_edge2.parameters.ge_drive_length == 51e-9
         assert new_edge2.quantum_element is None
