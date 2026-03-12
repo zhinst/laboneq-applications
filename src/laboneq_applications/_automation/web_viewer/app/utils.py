@@ -62,6 +62,9 @@ def build_json_data(
             "depends_on": list(element.depends_on),
         }
 
+        if graph_type == "layers":
+            element_data["sequential"] = getattr(element, "sequential", False)
+
         elements_data.append(element_data)
 
     return elements_data

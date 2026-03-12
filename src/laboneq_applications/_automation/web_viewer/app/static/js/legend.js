@@ -58,12 +58,13 @@ function updateNodeInfoLegend(d, qe, isLayers) {
     const rows = [
         { label: "Key", value: d.key },
         { label: "Status", value: d.status },
-        { label: "Layer", value: d.layer },
+        ...(isLayers ? [] : [{ label: "Layer", value: d.layer }]),
+        ...(isLayers ? [{ label: "Sequential", value: d.sequential }] : []),
         { label: "Elements", value: qe },
         { label: "Timestamp", value: d.timestamp || "N/A" },
         { label: "Fail count", value: d.fail_count },
         { label: "Pass count", value: d.pass_count },
-        { label: "Depends on", value: d.depends_on || "root" },
+        { label: "Depends on", value: d.depends_on.join(", ") || "root" },
     ];
 
     const sel = d3
