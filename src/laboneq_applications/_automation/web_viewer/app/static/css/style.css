@@ -251,6 +251,4 @@ body {
     justify-content: center;
     color: var(--zi-blue);
     font-size: 32px;
-    font-weight: bold;
-    text-shadow: 2px 2px 3px #eee;
 }
