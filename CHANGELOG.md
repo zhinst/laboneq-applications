@@ -1,3 +1,45 @@
+# laboneq_applications 26.4.0b3 (2026-03-13)
+
+## Features
+
+- **Breaking change** For the following non-`contrib` experiments, the `evaluation_parameters` argument has been added to replace the `evaluation_parameter`, `evaluation_parameter_thresholds`, and `evaluation_fit_r2_thresholds` arguments: `amplitude_fine`, `ampltiude_rabi`, `qubit_spectroscopy`, and `ramsey`.
+
+  For the following non-`contrib` experiments, the `evaluation_parameters` argument, as well as a template `evaluate_experiment` task, has been added: `dispersive_shift`, `drag_q_scaling`, `echo`, `lifetime_measurement`, `resonator_spectroscopy`, and `time_traces`.
+
+  For the following `contrib` experiments, the `evaluation_parameters` argument, as well as a template `evaluate_experiment` task, has been added: `calibrate_cancellation`, `scan_pump_parameters`, `signal_propagation_delay`, `time_rabi`, and `zz_coupling_strength_exp`.
+
+  Consequently, all experiments with an `update_qpu` task now also have an `evaluate_experiment` task and an `evaluation_parameters` argument.
+
+  For all experiments, all arguments apart from `session`, `qpu`, and `qubit`/`qubits`/`parametric_amplifier` are now keyword arguments.
+- Refactored the workflow automation subclasses for the LabOne Q Automation framework (currently in beta), due to be officially released in v26.04.
+
+
+## Bug Fixes
+
+- Fixed a bug in the `temporary_qpu` function, where quantum elements and topology edges were not being copied correctly.
+
+
+## Documentation
+
+- Update the examples in the docstrings of the `amplitude_fine` experiment.
+
+## Miscellaneous
+
+- Add `serialization` notebook tutorial for LabOne Q Automation. (QRL-538)
+- Visual improvements and refactoring of the automation web viewer. (QRL-647)
+- Fix sequential run of layers not working with the live visualization. (QRL-648)
+- Fix folder store not working with sequential run of layers in the automation framework. (QRL-650)
+- Implement support for two qubit experiments in the automation framework. (QRL-652)
+- Fix the folder store not working with two qubit gates when run sequentially. The folder store now creates sub-folders in the base folder `automation.timestamp-automation.name/layer.key/`. The sub-folders of the type `q1-q2/`, `q2-q3/`, ..., `qN-qM/` for two qubit gates and `q1/`, `q2/`, ..., `qN/` for single qubits. (QRL-662)
+- Add live plotting to automation framework.
+- Added minor improvements to automation web viewer.
+
+## Developer
+
+- Updated the CI job that tests against the latest `laboneq` release to test
+  against the latest *beta* release if there is one.
+
+
 # laboneq_applications 26.4.0b2 (2026-02-27)
 
 ## Features
