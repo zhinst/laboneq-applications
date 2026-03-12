@@ -199,7 +199,7 @@ def temporary_qpu(
                 new_q = q.replace(**temp_param)
                 new_quantum_elements.append(new_q)
             else:
-                new_quantum_elements.append(q)
+                new_quantum_elements.append(q.copy())
         new_topology_edges = []
         for e in qpu.topology.edges():
             edge_key = (e.tag, e.source_node.uid, e.target_node.uid)
@@ -228,10 +228,12 @@ def temporary_qpu(
         quantum_elements=new_quantum_elements, quantum_operations=new_quantum_operations
     )
     for edge_key, parameters, quantum_element in new_topology_edges:
+        new_parameters = parameters.copy() if parameters else None
+        new_quantum_element = quantum_element.copy() if quantum_element else None
         new_qpu.topology.add_edge(
             *edge_key,
-            parameters=parameters,
-            quantum_element=quantum_element,
+            parameters=new_parameters,
+            quantum_element=new_quantum_element,
         )
     return new_qpu
 
