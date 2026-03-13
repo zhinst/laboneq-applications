@@ -48,8 +48,15 @@ class WorkflowAutomation(Automation):
     def _run_layer(
         self,
         layer_key: str,
-    ) -> tuple[str, dict]:
+    ) -> tuple[str | None, dict]:
         """Run the automation layer.
+
+        !!! note
+            This is an internal method that is meant to be called via `run_layer`.
+
+        !!! important
+            When the end of the graph is reached, return the new layer key `None`.
+            The `next_layer_key` method does this automatically.
 
         Arguments:
             layer_key: The layer key.
