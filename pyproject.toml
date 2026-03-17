@@ -78,7 +78,7 @@ include = ["laboneq_applications*"]
 namespaces = false
 
 [tool.setuptools.package-data]
-"laboneq_applications._automation.web_viewer" = [
+"laboneq_applications.automation.web_viewer" = [
   "app/static/js/*.js",
   "app/static/css/*.css",
   "app/static/images/*.png",
