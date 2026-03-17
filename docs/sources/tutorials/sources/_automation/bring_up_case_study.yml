@@ -1,5 +1,5 @@
 qs1:
-  element_workflow_parameters:
+  workflow_parameters:
     q0:
       frequencies:
         __linspace__:
@@ -27,13 +27,13 @@ qs1:
   evaluation_parameters:
     fit_r2_thresholds:
       q2: 1
-  workflow_options:
+  options:
     evaluate: True
     update: True
     count: 2048
     active_reset: True
 rabi1:
-  element_workflow_parameters:
+  workflow_parameters:
     q0:
       amplitudes:
         __linspace__:
@@ -58,13 +58,13 @@ rabi1:
           start: 0
           stop: 1
           num: 11
-  workflow_options:
+  options:
     evaluate: True
     update: True
     count: 2048
     active_reset: True
 ramsey1:
-  element_workflow_parameters:
+  workflow_parameters:
     q0:
       delays:
         __linspace__:
@@ -93,7 +93,7 @@ ramsey1:
           stop: 2.0e-5
           num: 51
       detunings: 670000.0
-  workflow_options:
+  options:
     evaluate: True
     update: True
     count: 2048

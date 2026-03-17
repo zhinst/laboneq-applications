@@ -16,6 +16,7 @@ its coupled resonator
 
 from __future__ import annotations
 
+import logging
 from typing import TYPE_CHECKING, Any
 
 from laboneq import workflow
@@ -271,7 +272,10 @@ def evaluate_experiment(
     Returns:
         The evaluation flags.
     """
-    raise NotImplementedError(
+    workflow.log(
+        logging.WARNING,
         "The `evaluate_experiment` task for "
-        "`resonator_spectroscopy` has not been implemented by the user."
+        "`resonator_spectroscopy` has not been implemented by the user. Marking "
+        "experiment as passed.",
     )
+    return {qubit.uid: {"success": True, "update": False}}

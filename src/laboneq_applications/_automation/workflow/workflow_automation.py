@@ -32,6 +32,13 @@ class WorkflowAutomation(Automation):
     session: Session
     qpu: QPU | None = None
 
+    def reset(self) -> None:
+        """Reset the automation framework."""
+        super().reset()
+
+        for layer in self.layers():
+            layer.eval_outputs = {}
+
     def sync_auto_params_with_layer_params(self, layer_key: str) -> None:
         """Synchronize the automation parameters with the layer parameters.
 

@@ -96,8 +96,6 @@ def evaluate_parameter_and_fit_r2_thresholds(
         parameter value updates are significant. If both the `success` and `update`
         flags are `True`, then the quantum element in the QPU will be updated.
 
-    Raises:
-        ValueError: If `parameter` is not found in `new_parameter_values`.
     """
     quantum_elements = validation.validate_and_convert_qubits_sweeps(quantum_elements)
 
@@ -118,9 +116,13 @@ def evaluate_parameter_and_fit_r2_thresholds(
     eval_flags = {}
     for q, q_params in new_parameter_values.items():
         if parameter not in q_params:
-            raise ValueError(
-                f"{parameter} not found in the new parameter values, {q_params}."
+            workflow.log(
+                logging.WARNING,
+                f"{parameter} not found in the new parameter values for {q}. "
+                f"Marking experiment as failed.",
             )
+            eval_flags[q] = {"success": False, "update": False}
+            continue
 
         eval_flags[q] = {"success": False, "update": False}
 

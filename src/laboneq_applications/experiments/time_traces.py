@@ -17,6 +17,7 @@ given by the user.
 
 from __future__ import annotations
 
+import logging
 from typing import TYPE_CHECKING, Any, Literal
 
 from laboneq import workflow
@@ -287,7 +288,9 @@ def evaluate_experiment(
     Returns:
         The evaluation flags.
     """
-    raise NotImplementedError(
+    workflow.log(
+        logging.WARNING,
         "The `evaluate_experiment` task for `time_traces` has not been implemented by "
-        "the user."
+        "the user. Marking experiment as passed.",
     )
+    return {q.uid: {"success": True, "update": False} for q in qubits}

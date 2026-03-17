@@ -158,7 +158,7 @@ def _get_raw_data_collection(
 
 
 @workflow.task
-def plot_raw_complex_data_1d(
+def plot_raw_complex_data_1d(  # noqa: C901
     qubits: QuantumElements,
     result: RunExperimentResults | Results,
     sweep_points: QubitSweepPoints,
@@ -250,12 +250,14 @@ def plot_raw_complex_data_1d(
                     ax.set_xlim(xlims)
 
         # Add legend
-        axs[0].legend(
-            loc="center left",
-            bbox_to_anchor=(1, 0),
-            handlelength=1.5,
-            frameon=False,
-        )
+        handles, _ = axs[0].get_legend_handles_labels()
+        if handles:
+            axs[0].legend(
+                loc="center left",
+                bbox_to_anchor=(1, 0),
+                handlelength=1.5,
+                frameon=False,
+            )
 
         if opts.save_figures:
             workflow.save_artifact(f"Raw_data_{q.uid}", fig)
@@ -421,7 +423,6 @@ def plot_raw_complex_data_2d(
                 nrows=2,
                 figsize=figure_size_raw_data,
                 sharex=True,
-                constrained_layout=True,
             )
             fig.align_labels()
             fig.subplots_adjust(hspace=0.1)

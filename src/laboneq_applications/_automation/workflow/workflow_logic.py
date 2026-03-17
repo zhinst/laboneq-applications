@@ -57,4 +57,4 @@ class AdaptFrequencyRange(WorkflowLogic):
                 frequencies - midpoint
             ) * multiplier + midpoint
 
-        return self.new_layer_key, {"element_workflow_parameters": new_params}
+        return self.new_layer_key, {"workflow_parameters": new_params}

@@ -33,6 +33,7 @@ in parallel on all the qubits.
 
 from __future__ import annotations
 
+import logging
 from typing import TYPE_CHECKING, Any
 
 import numpy as np
@@ -361,7 +362,9 @@ def evaluate_experiment(
     Returns:
         The evaluation flags.
     """
-    raise NotImplementedError(
+    workflow.log(
+        logging.WARNING,
         "The `evaluate_experiment` task for `drag_q_scaling` has not been implemented "
-        "by the user."
+        "by the user. Marking experiment as passed.",
     )
+    return {q.uid: {"success": True, "update": False} for q in qubits}

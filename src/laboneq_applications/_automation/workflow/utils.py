@@ -3,7 +3,6 @@
 
 from __future__ import annotations
 
-import warnings
 from typing import Any
 
 from laboneq.workflow import WorkflowResult
@@ -73,11 +72,4 @@ def get_eval_outputs(
         if "evaluate_experiment" in task_list:
             eval_output = workflow_result.tasks["evaluate_experiment"].output
             eval_outputs.update(eval_output)
-        else:
-            warnings.warn(
-                f"No `evaluate_experiment` task found in the experiment workflow "
-                f"{workflow_result._name}. "
-                f"Setting layer.status to 'passed'.",
-                stacklevel=2,
-            )
     return eval_outputs

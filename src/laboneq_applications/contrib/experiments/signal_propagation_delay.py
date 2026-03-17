@@ -15,6 +15,7 @@ This experiment only supports 1 qubit at the time.
 
 from __future__ import annotations
 
+import logging
 from typing import TYPE_CHECKING, Any
 
 from laboneq.dsl.quantum import QuantumElement, QuantumParameters
@@ -256,7 +257,10 @@ def evaluate_experiment(
     Returns:
         The evaluation flags.
     """
-    raise NotImplementedError(
+    workflow.log(
+        logging.WARNING,
         "The `evaluate_experiment` task for "
-        "`signal_propagation_delay` has not been implemented by the user."
+        "`signal_propagation_delay` has not been implemented by the user. Marking "
+        "experiment as passed.",
     )
+    return {qubit.uid: {"success": True, "update": False}}

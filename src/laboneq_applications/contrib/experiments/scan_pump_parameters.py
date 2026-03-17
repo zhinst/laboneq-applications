@@ -15,6 +15,7 @@ This experiment only supports 1 TWPA at the time.
 
 from __future__ import annotations
 
+import logging
 from typing import TYPE_CHECKING, Any
 
 from laboneq import workflow
@@ -391,7 +392,10 @@ def evaluate_experiment(
     Returns:
         The evaluation flags.
     """
-    raise NotImplementedError(
+    workflow.log(
+        logging.WARNING,
         "The `evaluate_experiment` task for "
-        "`scan_pump_parameters` has not been implemented by the user."
+        "`scan_pump_parameters` has not been implemented by the user. Marking "
+        "experiment as passed.",
     )
+    return {parametric_amplifier.uid: {"success": True, "update": False}}

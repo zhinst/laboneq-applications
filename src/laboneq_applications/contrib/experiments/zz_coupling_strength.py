@@ -18,6 +18,7 @@ The decoupling experiment has the following pulse sequence:
 
 from __future__ import annotations
 
+import logging
 from typing import TYPE_CHECKING, Any
 
 from laboneq import workflow
@@ -344,7 +345,10 @@ def evaluate_experiment(
     Returns:
         The evaluation flags.
     """
-    raise NotImplementedError(
+    workflow.log(
+        logging.WARNING,
         "The `evaluate_experiment` task for "
-        "`zz_coupling_strength` has not been implemented by the user."
+        "`zz_coupling_strength` has not been implemented by the user. Marking "
+        "experiment as passed.",
     )
+    return {tuple(pair): {"success": True, "update": False} for pair in qubit_pairs}

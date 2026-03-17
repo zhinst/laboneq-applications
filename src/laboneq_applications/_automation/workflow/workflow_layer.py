@@ -78,58 +78,63 @@ class WorkflowLayer(AutomationLayer):
         self.node_keys = value
 
     @property
+    def workflow_parameters(self) -> dict[str, dict[str, Any]]:
+        return self.parameters.get("workflow_parameters", {})
+
+    @workflow_parameters.setter
+    def workflow_parameters(self, value: dict[str, dict[str, Any]]) -> None:
+        self.parameters["workflow_parameters"] = value
+
+    @property
     def element_workflow_parameters(self) -> dict[str, dict[str, Any]]:
-        if "element_workflow_parameters" in self.parameters:
-            return self.parameters["element_workflow_parameters"]
-        return {}
+        wf_params = self.parameters.get("workflow_parameters", {})
+        return {k: v for k, v in wf_params.items() if k != "__common__"}
 
     @element_workflow_parameters.setter
     def element_workflow_parameters(self, value: dict[str, dict[str, Any]]) -> None:
-        self.parameters["element_workflow_parameters"] = value
+        common_wf_params = self.parameters.get("workflow_parameters", {}).get(
+            "__common__", {}
+        )
+        wf_params = {k: v for k, v in value.items() if k != "__common__"}
+        if common_wf_params:
+            wf_params["__common__"] = common_wf_params
+        self.parameters["workflow_parameters"] = wf_params
 
     @property
     def common_workflow_parameters(self) -> dict[str, Any]:
-        if "common_workflow_parameters" in self.parameters:
-            return self.parameters["common_workflow_parameters"]
-        return {}
+        return self.parameters.get("workflow_parameters", {}).get("__common__", {})
 
     @common_workflow_parameters.setter
     def common_workflow_parameters(self, value: dict[str, Any]) -> None:
-        self.parameters["common_workflow_parameters"] = value
+        self.parameters["workflow_parameters"]["__common__"] = value
 
     @property
     def evaluation_parameters(self) -> dict[str, Any]:
-        if "evaluation_parameters" in self.parameters:
-            return self.parameters["evaluation_parameters"]
-        return {}
+        return self.parameters.get("evaluation_parameters", {})
 
     @evaluation_parameters.setter
     def evaluation_parameters(self, value: dict[str, Any]) -> None:
         self.parameters["evaluation_parameters"] = value
 
     @property
-    def temporary_qpu_parameters(
+    def temporary_parameters(
         self,
     ) -> dict[str | tuple[str, str, str], dict | QuantumParameters]:
-        if "temporary_qpu_parameters" in self.parameters:
-            return self.parameters["temporary_qpu_parameters"]
-        return {}
+        return self.parameters.get("temporary_parameters", {})
 
-    @temporary_qpu_parameters.setter
-    def temporary_qpu_parameters(
+    @temporary_parameters.setter
+    def temporary_parameters(
         self, value: dict[str | tuple[str, str, str], dict | QuantumParameters]
     ) -> None:
-        self.parameters["temporary_qpu_parameters"] = value
+        self.parameters["temporary_parameters"] = value
 
     @property
-    def workflow_options(self) -> dict[str, Any]:
-        if "workflow_options" in self.parameters:
-            return self.parameters["workflow_options"]
-        return {}
+    def options(self) -> dict[str, Any]:
+        return self.parameters.get("options", {})
 
-    @workflow_options.setter
-    def workflow_options(self, value: dict[str, Any]) -> None:
-        self.parameters["workflow_options"] = value
+    @options.setter
+    def options(self, value: dict[str, Any]) -> None:
+        self.parameters["options"] = value
 
     @property
     def workflow_results(self) -> dict:
@@ -186,16 +191,24 @@ class WorkflowLayer(AutomationLayer):
         ):  # the type needs to match workflow parameters
             run_elements = run_elements[0]
 
-        # Prepare element workflow parameters
+        # Prepare workflow parameters
         grouped_element_workflow_parameters = group_element_workflow_parameters(
             self.element_workflow_parameters, run_elements
         )
 
-        # Prepare workflow options
-        built_workflow_options = self.workflow_builder.options()
-        if self.workflow_options:
-            for key, value in self.workflow_options.items():
-                set_option_method = getattr(built_workflow_options, key)
+        # Prepare evaluation parameters
+        if self.evaluation_parameters:
+            evaluation_parameters = {
+                "evaluation_parameters": self.evaluation_parameters
+            }
+        else:
+            evaluation_parameters = self.evaluation_parameters
+
+        # Prepare options
+        built_options = self.workflow_builder.options()
+        if self.options:
+            for key, value in self.options.items():
+                set_option_method = getattr(built_options, key)
                 set_option_method(value)
 
         # Build experiment workflow
@@ -205,9 +218,9 @@ class WorkflowLayer(AutomationLayer):
             run_elements,
             **grouped_element_workflow_parameters,
             **self.common_workflow_parameters,
-            evaluation_parameters=self.evaluation_parameters,
-            temporary_parameters=self.temporary_qpu_parameters,
-            options=built_workflow_options,
+            **evaluation_parameters,
+            temporary_parameters=self.temporary_parameters,
+            options=built_options,
         )
         workflow.storage_key = storage_key
 

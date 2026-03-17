@@ -1,8 +1,6 @@
 # Copyright 2026 Zurich Instruments AG
 # SPDX-License-Identifier: Apache-2.0
 
-"""Tests for laboneq_applications._automation.workflow.workflow_automation"""
-
 from __future__ import annotations
 
 import inspect
@@ -111,13 +109,13 @@ def session(device_setup) -> Session:
 def automation_parameters() -> dict:
     return {
         "qs1": {
-            "element_workflow_parameters": {
+            "workflow_parameters": {
                 "q0": {"frequencies": np.linspace(6.0e9, 6.50e9, 101)},
                 "q1": {"frequencies": np.linspace(6.0e9, 6.50e9, 101)},
                 "q2": {"frequencies": np.linspace(6.0e9, 6.50e9, 101)},
                 "q3": {"frequencies": np.linspace(6.0e9, 6.50e9, 101)},
             },
-            "workflow_options": {
+            "options": {
                 "evaluate": True,
                 "update": True,
                 "count": 2048,
@@ -125,49 +123,49 @@ def automation_parameters() -> dict:
             },
         },
         "qs2": {
-            "element_workflow_parameters": {
+            "workflow_parameters": {
                 "q0": {"frequencies": np.linspace(6.1e9, 6.5e9, 101)},
                 "q1": {"frequencies": np.linspace(6.1e9, 6.5e9, 101)},
                 "q2": {"frequencies": np.linspace(6.1e9, 6.5e9, 101)},
                 "q3": {"frequencies": np.linspace(6.1e9, 6.5e9, 101)},
             },
-            "workflow_options": {
+            "options": {
                 "evaluate": True,
                 "update": False,
             },
         },
         "r1": {
-            "element_workflow_parameters": {
+            "workflow_parameters": {
                 "q0": {
                     "delays": np.linspace(0.0e00, 2.0e-05, 50),
                     "detunings": 670000.0,
                 },
                 "q1": {"delays": np.linspace(2e-05, 5e-05, 50), "detunings": 670000.0},
             },
-            "workflow_options": {
+            "options": {
                 "evaluate": True,
                 "update": True,
             },
         },
         "qs3": {
-            "element_workflow_parameters": {
+            "workflow_parameters": {
                 "q0": {"frequencies": np.linspace(6.1e9, 6.5e9, 55)},
                 "q1": {"frequencies": np.linspace(6.1e9, 6.5e9, 55)},
                 "q2": {"frequencies": np.linspace(6.1e9, 6.5e9, 55)},
                 "q3": {"frequencies": np.linspace(6.1e9, 6.5e9, 55)},
             },
-            "workflow_options": {
+            "options": {
                 "evaluate": True,
                 "update": True,
                 "active_reset": True,
             },
         },
         "qs4": {
-            "element_workflow_parameters": {
+            "workflow_parameters": {
                 "q0": {"frequencies": np.linspace(6.0e9, 6.5e9, 55)},
                 "q2": {"frequencies": np.linspace(6.0e9, 6.5e9, 55)},
             },
-            "workflow_options": {
+            "options": {
                 "evaluate": True,
                 "update": True,
                 "count": 2048,
@@ -175,13 +173,13 @@ def automation_parameters() -> dict:
             },
         },
         "qs5": {
-            "element_workflow_parameters": {
+            "workflow_parameters": {
                 "q0": {"frequencies": np.linspace(6.0e9, 6.5e9, 55)},
                 "q1": {"frequencies": np.linspace(6.0e9, 6.5e9, 55)},
                 "q2": {"frequencies": np.linspace(6.0e9, 6.5e9, 55)},
                 "q3": {"frequencies": np.linspace(6.0e9, 6.5e9, 55)},
             },
-            "workflow_options": {
+            "options": {
                 "evaluate": True,
                 "update": True,
                 "count": 2048,
@@ -189,22 +187,22 @@ def automation_parameters() -> dict:
             },
         },
         "qs6": {
-            "element_workflow_parameters": {
+            "workflow_parameters": {
                 "q0": {"frequencies": np.linspace(6.0e9, 6.5e9, 55)},
             },
         },
         "r2": {
-            "element_workflow_parameters": {
+            "workflow_parameters": {
                 "q0": {"delays": np.linspace(0, 2.0e-05, 33), "detunings": 670000.0},
                 "q3": {"delays": np.linspace(0, 9.3e-05, 33), "detunings": 670000.0},
             },
-            "workflow_options": {
+            "options": {
                 "evaluate": False,
                 "update": False,
             },
         },
         "af1": {
-            "element_workflow_parameters": {
+            "workflow_parameters": {
                 "q0": {},
                 "q1": {},
                 "q2": {},
@@ -220,14 +218,14 @@ def automation_parameters() -> dict:
         "ra1": {
             "q0": {"amplitudes": np.linspace(0, 1, 11)},
             "q1": {"amplitudes": np.linspace(0, 1, 11)},
-            "workflow_options": {
+            "options": {
                 "evaluate": False,
                 "update": False,
                 "active_reset": True,
             },
         },
         "zz": {
-            "element_workflow_parameters": {
+            "workflow_parameters": {
                 ("q0", "q1"): {
                     "biases": list(np.linspace(-0.06, 0.06, 11)),
                     "delays": list(np.linspace(0, 10e-6, 11)),
@@ -251,7 +249,7 @@ def auto(session, qpu, automation_parameters) -> WorkflowAutomation:
 @pytest.fixture
 def workflow_parameters() -> dict:
     return {
-        "element_workflow_parameters": {
+        "workflow_parameters": {
             "q0": {
                 "frequencies": np.linspace(6e9, 6.2e9, 101),
             },
@@ -378,7 +376,7 @@ class TestWorkflowAutomation:
         assert r2.status == Status.PASSED
         assert qs3.status == Status.DEACTIVATED
 
-        # Assert status of nodes after runing
+        # Assert status of nodes after running
         assert [n.status for n in qs1.nodes.values()] == [Status.PASSED] * 4
         assert [n.status for n in qs2.nodes.values()] == [
             Status.DEACTIVATED_FAIL,
@@ -584,7 +582,7 @@ class TestWorkflowAutomation:
             isinstance(workflow_result, WorkflowResult)
             for workflow_result in layer1.results.values()
         )
-
+        assert layer1.eval_outputs
         assert auto.get_node("qs2_q0").status == Status.DEACTIVATED_FAIL
         assert auto.get_node("qs1_q1").status == Status.PASSED
         assert auto.get_node("qs1_q1").pass_count == 1
@@ -597,6 +595,7 @@ class TestWorkflowAutomation:
         assert layer1.pass_count == {"q0": 0, "q1": 0, "q2": 0, "q3": 0}
         assert layer1.timestamp == {"q0": None, "q1": None, "q2": None, "q3": None}
         assert not layer1.workflow_results
+        assert not layer1.eval_outputs
         assert auto.get_node("qs2_q0").status == Status.READY
         assert auto.get_node("qs1_q1").status == Status.READY
         assert auto.get_node("qs1_q1").pass_count == 0
@@ -643,7 +642,7 @@ class TestWorkflowAutomation:
 
         # Test passing temporary workflow parameters
         temp_parameters = {
-            "element_workflow_parameters": {
+            "workflow_parameters": {
                 "q0": {
                     "frequencies": np.linspace(6e9, 6.2e9, 101),
                 },
@@ -670,20 +669,13 @@ class TestWorkflowAutomation:
         workflow_input = next(iter(layer1.workflow_results.values())).input
         np.testing.assert_almost_equal(
             workflow_input["frequencies"],
-            [
-                v["frequencies"]
-                for v in temp_parameters["element_workflow_parameters"].values()
-            ],
+            [v["frequencies"] for v in temp_parameters["workflow_parameters"].values()],
         )
-        for qubit, qubit_parameters in layer1.parameters[
-            "element_workflow_parameters"
-        ].items():
+        for qubit, qubit_parameters in layer1.parameters["workflow_parameters"].items():
             for qubit_parameter, values in qubit_parameters.items():
                 np.testing.assert_almost_equal(
                     values,
-                    workflow_parameters["element_workflow_parameters"][qubit][
-                        qubit_parameter
-                    ],
+                    workflow_parameters["workflow_parameters"][qubit][qubit_parameter],
                 )
 
     def test_set_temp_logic(self, auto, ramsey_workflow):
@@ -706,7 +698,7 @@ class TestWorkflowAutomation:
         l2_logic = FixedParameterUpdate(
             new_layer_key="r2",
             parameter_changes={
-                "element_workflow_parameters": {
+                "workflow_parameters": {
                     "q0": {"detunings": -0.1},
                     "q3": {"detunings": -0.1},
                 },
@@ -715,29 +707,23 @@ class TestWorkflowAutomation:
             iterations=3,
         )
 
-        assert (
-            layer2.parameters["element_workflow_parameters"]["q0"]["detunings"]
-            == 670000.0
-        )
-        assert (
-            layer2.parameters["element_workflow_parameters"]["q3"]["detunings"]
-            == 670000.0
-        )
+        assert layer2.parameters["workflow_parameters"]["q0"]["detunings"] == 670000.0
+        assert layer2.parameters["workflow_parameters"]["q3"]["detunings"] == 670000.0
         layer2.logic = l2_logic
         auto.run()
         np.testing.assert_almost_equal(
-            layer2.parameters["element_workflow_parameters"]["q0"]["detunings"],
+            layer2.parameters["workflow_parameters"]["q0"]["detunings"],
             670000.0 * 0.9**3,
         )
         np.testing.assert_almost_equal(
-            layer2.parameters["element_workflow_parameters"]["q3"]["detunings"],
+            layer2.parameters["workflow_parameters"]["q3"]["detunings"],
             670000.0 * 0.9**3,
         )
 
         l1_logic = FixedParameterUpdate(
             new_layer_key="r1",
             parameter_changes={
-                "element_workflow_parameters": {
+                "workflow_parameters": {
                     "q0": {"delays": 1e-5},
                     "q1": {"delays": 1e-5},
                 }
@@ -748,22 +734,22 @@ class TestWorkflowAutomation:
 
         # Test recovery of parameters after execution of run layer
         np.testing.assert_equal(
-            layer1.parameters["element_workflow_parameters"]["q0"]["delays"],
+            layer1.parameters["workflow_parameters"]["q0"]["delays"],
             np.linspace(0, 2e-5, 50),
         )
         np.testing.assert_equal(
-            layer1.parameters["element_workflow_parameters"]["q1"]["delays"],
+            layer1.parameters["workflow_parameters"]["q1"]["delays"],
             np.linspace(2e-5, 5e-5, 50),
         )
         layer1.logic = l1_logic
         new_layer_key, _ = auto.run_layer("r1")
         assert new_layer_key == "r1"
         np.testing.assert_equal(
-            layer1.parameters["element_workflow_parameters"]["q0"]["delays"],
+            layer1.parameters["workflow_parameters"]["q0"]["delays"],
             np.linspace(0, 2e-5, 50) + 1e-5,
         )
         np.testing.assert_equal(
-            layer1.parameters["element_workflow_parameters"]["q1"]["delays"],
+            layer1.parameters["workflow_parameters"]["q1"]["delays"],
             np.linspace(2e-5, 5e-5, 50) + 1e-5,
         )
         assert layer1.eval_outputs == {
