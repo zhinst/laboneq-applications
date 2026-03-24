@@ -221,7 +221,7 @@ def calculate_population_1d(
     else:
         raw_data_cal_pt_0 = calibration_traces[0]
         raw_data_cal_pt_1 = calibration_traces[1]
-        cal_traces = np.array([raw_data_cal_pt_0, raw_data_cal_pt_1])
+        cal_traces = np.array([np.mean(raw_data_cal_pt_0), np.mean(raw_data_cal_pt_1)])
         data_raw_w_cal_tr = np.concatenate([raw_data, cal_traces])
         if do_pca:
             data_rot = principal_component_analysis(data_raw_w_cal_tr)
@@ -284,7 +284,7 @@ def extract_raw_data_dict(
     else:
         raw_data_cal_pt_0 = calibration_traces[0]
         raw_data_cal_pt_1 = calibration_traces[1]
-        cal_traces = np.array([raw_data_cal_pt_0, raw_data_cal_pt_1])
+        cal_traces = np.array([np.mean(raw_data_cal_pt_0), np.mean(raw_data_cal_pt_1)])
         data_raw_w_cal_tr = np.concatenate([raw_data, cal_traces])
     swpts_w_cal_tr = _extend_sweep_points_cal_traces(sweep_points, num_cal_traces)
 
@@ -512,6 +512,7 @@ def calculate_qubit_population_2d(
     sweep_points_1d: QubitSweepPoints,
     sweep_points_2d: QubitSweepPoints,
     options: CalculateQubitPopulationOptions | None = None,
+    result_handle: str = "",
 ) -> dict[str, dict[str, ArrayLike]]:
     """Calculates the qubit population from the raw data.
 
@@ -542,6 +543,10 @@ def calculate_qubit_population_2d(
             The options for building the workflow as an instance of
             [CalculateQubitPopulationOptions].
             See the docstrings of this class for more details.
+        result_handle:
+            An optional suffix appended to the qubit UID when looking up the result
+            handle, e.g. ``"_0"`` or ``"_1"`` for experiments that store multiple
+            measurement outcomes per qubit under distinct handles. Defaults to ``""``.
 
     Returns:
         dict with qubit UIDs as keys and the dictionary of processed data for each qubit
@@ -562,7 +567,7 @@ def calculate_qubit_population_2d(
     )
     processed_data_dict = {}
     for q, sp_1d, sp_2d in zip(qubits, sweep_points_1d, sweep_points_2d, strict=False):
-        raw_data = result[dsl.handles.result_handle(q.uid)].data
+        raw_data = result[dsl.handles.result_handle(q.uid + result_handle)].data
         if opts.use_cal_traces:
             calibration_traces = [
                 result[dsl.handles.calibration_trace_handle(q.uid, cs)].data

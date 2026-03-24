@@ -225,7 +225,7 @@ def plot_raw_complex_data_1d(  # noqa: C901
             for j, cs in enumerate(opts.cal_states):
                 for i, ax in enumerate(axs):
                     ct_handle = dsl.handles.calibration_trace_handle(q.uid, cs)
-                    cal_trace = (
+                    cal_trace = np.mean(
                         raw_result[ct_handle].data.real
                         if i == 0
                         else raw_result[ct_handle].data.imag
