@@ -6,24 +6,27 @@
                 <a href="https://www.zhinst.com/" target="_blank">
                     <img class="logo"
                          src="static/images/zhinst_logo_sep_horiz_2019.svg"
-                         alt="Zurich Instruments">
+                         alt="Zurich Instruments"
+                         title="Homepage"
+                    >
                 </a>
+            </div>
+            <div class="logo-group-center">
                 <a href="https://docs.zhinst.com/labone_q_user_manual/applications_library/index.html"
                    target="_blank">
                     <img class="logo"
                          src="static/images/Logo_laboneq_automation.png"
-                         alt="LabOne Q Automation">
+                         alt="LabOne Q Automation"
+                         title="Documentation"
+                    >
                 </a>
             </div>
-            <div id="automation-title" class="automation-title">
-                <span id="automation-title-string">{{ name }}</span>
-            </div>
             <div id="controls">
-                <button id="btnNodeView" class="controls-button" type="button">Node View</button>
-                <button id="btnLayerView" class="controls-button" type="button">Layer View</button>
-                <button id="btnResetZoom" class="controls-button" type="button">Reset Zoom</button>
-                <button id="btnRunAuto" class="controls-button" type="button">Run</button>
-                <button id="btnResetAuto" class="controls-button" type="button">Reset</button>
+                <button id="btnLayerView" class="controls-button" type="button" title="Layer View">Layers</button>
+                <button id="btnNodeView" class="controls-button" type="button" title="Node View">Nodes</button>
+                <button id="btnResetZoom" class="controls-button controls-button-icon" type="button" title="Reset Zoom">&#x2922;</button>
+                <button id="btnRunAuto" class="controls-button controls-button-icon" type="button" title="Run">&#x25B6;</button>
+                <button id="btnResetAuto" class="controls-button controls-button-icon" type="button" title="Reset">&#x21BA;</button>
             </div>
         </div>
         <div id="graph"></div>
@@ -40,6 +43,9 @@
                 <span id="status-title"></span>
             </h3>
             <div id="node-info-rows" class="legend-items"></div>
+        </div>
+        <div id="image-modal" style="display:none">
+            <img id="image-modal-img" src="" alt="Result image">
         </div>
     </div>
 </div>

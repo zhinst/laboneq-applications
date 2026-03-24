@@ -3,13 +3,14 @@
 
 let svg, g, zoom;
 let lastSelectedNode = null;
-let currentMode = "nodes";
+let currentMode = "layers";
 let cachedGraphData = null;
 let isTransitioning = false;
 
 const TRANSITION_DURATION = 750;
 
 const statusColorMap = {
+    root: "#009ee0",
     ready: "#a2daf4",
     running: "#ffcc33",
     passed: "#38e171",

@@ -75,9 +75,22 @@ function highlightLayer(layerKey) {
 
     const match = g.selectAll("g.node").filter((d) => d.layer === layerKey);
     if (!match.empty()) {
+        let minX = Infinity;
+        let leftmostTransform = match.attr("transform");
+        match.each(function () {
+            const t = d3.select(this).attr("transform");
+            const m = t && t.match(/translate\(([^,)]+)/);
+            if (m) {
+                const x = parseFloat(m[1]);
+                if (x < minX) {
+                    minX = x;
+                    leftmostTransform = t;
+                }
+            }
+        });
         g.append("text")
             .attr("class", "layer-label")
-            .attr("transform", match.attr("transform"))
+            .attr("transform", leftmostTransform)
             .attr("dx", -30)
             .attr("dy", -50)
             .attr("text-anchor", "left")

@@ -118,7 +118,7 @@ body {
 #status-legend h3,
 #layer-legend h3 {
     margin: 0 0 10px 0;
-    font-size: 24px;
+    font-size: 22px;
     font-weight: bold;
     color: var(--dark-gray);
 }
@@ -171,6 +171,21 @@ body {
     font-size: 20px;
 }
 
+.controls-button-icon {
+    padding: 0;
+    width: 36px;
+    height: 36px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    line-height: 1;
+}
+
+#btnResetZoom {
+    font-size: 24px;
+}
+
 .controls-button:hover {
     background-color: var(--zi-medium-blue);
 }
@@ -190,7 +205,7 @@ body {
 
 .legend-panel h3 {
     margin: 0 0 10px 0;
-    font-size: 24px;
+    font-size: 22px;
     font-weight: bold;
     color: var(--dark-gray);
 }
@@ -206,7 +221,7 @@ body {
     grid-template-columns: max-content 1fr;
     column-gap: 12px;
     align-items: baseline;
-    font-size: 20px;
+    font-size: 18px;
 }
 
 .legend-left {
@@ -238,17 +253,65 @@ body {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    font-size: 20px;
+    font-size: 18px;
     font-weight: bold;
 }
 
-.automation-title {
-    position: fixed;
+.logo-group-center {
+    position: absolute;
     left: 50%;
     transform: translateX(-50%);
     display: flex;
     align-items: center;
+    pointer-events: none;
+}
+
+.logo-group-center a {
+    pointer-events: auto;
+}
+
+/* Node result thumbnail */
+.node-result-thumbnail {
+    max-width: 260px;
+    width: 100%;
+    height: auto;
+    display: block;
+    margin-top: 8px;
+    border-radius: 4px;
+    border: 1px solid #ccc;
+    cursor: pointer;
+}
+.node-result-thumbnail:hover { opacity: 0.85; }
+
+#node-results-section h3 {
+    margin: 24px 0 12px 0;
+    font-size: 22px;
+    font-weight: bold;
+    color: var(--dark-gray);
+}
+
+/* Full-screen image modal */
+#image-modal {
+    position: fixed;
+    inset: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: none;
+    align-items: center;
     justify-content: center;
-    color: var(--zi-blue);
-    font-size: 32px;
+    z-index: 2000;
+    cursor: pointer;
+}
+#image-modal-img {
+    max-width: 90vw;
+    max-height: 90vh;
+    object-fit: contain;
+    border-radius: 6px;
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.5);
+    pointer-events: none;
+}
+
+/* Grey out graph when modal is open */
+#graph.modal-open {
+    filter: brightness(0.4) grayscale(0.3);
+    transition: filter 0.2s ease;
 }

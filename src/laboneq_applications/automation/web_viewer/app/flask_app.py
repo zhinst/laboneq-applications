@@ -19,6 +19,16 @@ def get_automation_instance() -> Automation | None:
     return app.config.get("AUTOMATION_INSTANCE")
 
 
+def set_log_path(log_path: Path | None) -> None:
+    """Attach log path to the Flask app."""
+    app.config["LOG_PATH"] = log_path
+
+
+def get_log_path() -> Path | None:
+    """Get the attached log path."""
+    return app.config.get("LOG_PATH")
+
+
 current_dir = Path(__file__).resolve().parent
 static_folder = current_dir / "static"
 
