@@ -3,6 +3,14 @@
 
 """Configuration for pytest."""
 
+import os
+
+# Force the matplotlib backend to be `agg` in the test suite so that `matplotlib`
+# doesn't try to infer it from the environment, making the test suite
+# less reproducible across different machines.
+os.environ["MPLBACKEND"] = "agg"
+
+
 from pathlib import Path
 
 import pytest
