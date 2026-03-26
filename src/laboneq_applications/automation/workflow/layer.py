@@ -217,19 +217,16 @@ class WorkflowLayer(AutomationLayer):
         )
 
         # Prepare evaluation parameters
-        if self.evaluation_parameters:
-            evaluation_parameters = {
-                "evaluation_parameters": self.evaluation_parameters
-            }
-        else:
-            evaluation_parameters = self.evaluation_parameters
+        evaluation_parameters = (
+            {"evaluation_parameters": self.evaluation_parameters}
+            if self.evaluation_parameters
+            else {}
+        )
 
         # Prepare options
         built_options = self.workflow_builder.options()
-        if self.options:
-            for key, value in self.options.items():
-                set_option_method = getattr(built_options, key)
-                set_option_method(value)
+        for key, value in self.options.items():
+            getattr(built_options, key)(value)
 
         # Build experiment workflow
         workflow = self.workflow_builder(
@@ -259,11 +256,8 @@ class WorkflowLayer(AutomationLayer):
 
         # Set node statuses (post run)
         for q in quantum_elements_tuple:
-            if q in eval_successes:
-                self.nodes[q].status = (
-                    Status.PASSED if eval_successes[q] else Status.FAILED
-                )
-            else:
-                self.nodes[q].status = Status.PASSED
+            self.nodes[q].status = (
+                Status.PASSED if eval_successes.get(q, True) else Status.FAILED
+            )
 
         return {quantum_elements_tuple: workflow_result}
