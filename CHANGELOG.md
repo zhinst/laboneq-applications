@@ -1,3 +1,37 @@
+# laboneq_applications 26.4.0b4 (2026-03-27)
+
+## Features
+
+- Added the `result_handle` argument to the `calibration_traces_rotation.calculate_qubit_population_2d` function, useful for storing multiple measurement outcomes per qubit. (QRL-692)
+
+## Bug Fixes
+
+- **Bug fix** Fixed a bug where several analysis methods did not properly support experiment results with multiple shots. (QRL-692)
+
+## Miscellaneous
+
+- Updated code after replacing `__end__` with `None` in `Automation.next_layer_key`. (QRL-641)
+- Made minor improvements to the automation web viewer.
+
+  Added the `Node results` section to the `Node info` panel. (QRL-668)
+- Renamed workflow automation parameter keys.
+
+  **Bug fix** Fixed a bug where evaluation parameters were assumed to be part of the experiment workflow argument list in `WorkflowLayer.run_executable`.
+
+  Added tests for `workflow_layer`, `workflow_node`, `workflow_logic`, and `utils`.
+
+  Added `reset` method to `WorkflowAutomation`.
+
+  Resolved warnings in `plot_raw_complex_data_1d`.
+
+  Softened errors to `logging.warning` so as not to interrupt an automation run. (QRL-672)
+- Renamed `_automation` to `automation`.
+
+  Dropped `workflow_` prefix for filenames that are already in a `workflow` folder.
+
+  Added docstrings, as mandated by ruff D103. (QRL-690)
+
+
 # laboneq_applications 26.4.0b3 (2026-03-13)
 
 ## Features
