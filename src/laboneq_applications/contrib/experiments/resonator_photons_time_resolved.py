@@ -266,7 +266,7 @@ def create_experiment(
         qubits, frequencies
     )
     qubits_validated, times = validate_and_convert_qubits_sweeps(qubits, times)
-    max_measure_section_length = qpu.measure_section_length(qubits)
+    max_measure_section_length = qop.measure_section_length(qubits)
     max_inspect_section_length = np.max(times) + max(
         q.parameters.spectroscopy_length for q in qubits
     )

@@ -2490,3 +2490,33 @@ class TestTunableTransmonOperations:
             "The active reset operation can only be applied on the states 'g', "
             "'e', 'f' at the moment."
         )
+
+    @pytest.mark.parametrize(
+        (
+            "max_readout_length",
+            "max_readout_integration_length",
+            "expected_section_length",
+        ),
+        [
+            pytest.param(2e-6, 1e-6, 2e-6, id="readout_length_is_longest"),
+            pytest.param(1e-6, 2e-6, 2e-6, id="readout_integration_length_is_longest"),
+        ],
+    )
+    def test_measure_section_length(
+        self,
+        qops,
+        two_tunable_transmon_platform,
+        max_readout_length,
+        max_readout_integration_length,
+        expected_section_length,
+    ):
+        qubits = two_tunable_transmon_platform.qpu.quantum_elements
+
+        for i, q in enumerate(qubits):
+            q.parameters.readout_integration_length = max_readout_integration_length * (
+                1.0 - i * 0.1
+            )
+            q.parameters.readout_length = max_readout_length * (1.0 - i * 0.1)
+
+        assert qops.measure_section_length(qubits) == expected_section_length
+        assert qops.measure_section_length(qubits[0]) == expected_section_length

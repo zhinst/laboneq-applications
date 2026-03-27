@@ -1160,6 +1160,30 @@ class TunableTransmonOperations(dsl.QuantumOperations):
                         sec.length = measure_section_length
                         self.passive_reset(q)
 
+    @staticmethod
+    def measure_section_length(
+        qubits: TunableTransmonQubit | Sequence[TunableTransmonQubit],
+    ) -> float:
+        """The length of the measure section.
+
+        The length returned is the maximum, over all supplied qubits, of the
+        larger of the readout pulse and readout kernel lengths.
+
+        Arguments:
+            qubits:
+                The qubits to consider for the section length determination.
+
+        Returns:
+            The length of a measure section that involves the supplied qubits.
+        """
+        if not isinstance(qubits, Sequence):
+            qubits = [qubits]
+
+        return max(
+            [q.parameters.readout_integration_length for q in qubits]
+            + [q.parameters.readout_length for q in qubits]
+        )
+
 
 @dsl.pulse_library.register_pulse_functional
 def x180_ef_reset_pulse(

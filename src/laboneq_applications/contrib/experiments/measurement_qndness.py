@@ -200,8 +200,8 @@ def create_experiment(
     # Define the custom options for the experiment
     qubits = validate_and_convert_qubits_sweeps(qubits)
     opts = QNDnessExperimentOptions() if options is None else options
-    max_measure_section_length = qpu.measure_section_length(qubits)
     qop = qpu.quantum_operations
+    max_measure_section_length = qop.measure_section_length(qubits)
 
     with dsl.acquire_loop_rt(
         count=opts.count,

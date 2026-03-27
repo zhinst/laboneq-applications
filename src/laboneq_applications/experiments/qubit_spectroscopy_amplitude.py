@@ -224,8 +224,8 @@ def create_experiment(
     _, frequencies = validate_and_convert_qubits_sweeps(qubits, frequencies)
     qubits, amplitudes = validate_and_convert_qubits_sweeps(qubits, amplitudes)
 
-    max_measure_section_length = qpu.measure_section_length(qubits)
     qop = qpu.quantum_operations
+    max_measure_section_length = qop.measure_section_length(qubits)
     with dsl.acquire_loop_rt(
         count=opts.count,
         averaging_mode=opts.averaging_mode,

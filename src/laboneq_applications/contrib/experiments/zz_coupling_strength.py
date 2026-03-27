@@ -251,7 +251,7 @@ def create_experiment(
     ]
 
     qop = qpu.quantum_operations
-    max_measure_section_length = qpu.measure_section_length(qubits)
+    max_measure_section_length = qop.measure_section_length(qubits)
 
     with dsl.sweep(
         name="coupler_bias_sweep",
