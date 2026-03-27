@@ -4,6 +4,7 @@
 """Flask routes to the pages of the web viewer."""
 
 import re
+from importlib.metadata import version
 from pathlib import Path
 
 from flask import Response, abort, jsonify, render_template, request, send_file
@@ -35,7 +36,11 @@ def index() -> str:
     """Serve the main HTML page."""
     automation = app.config.get("AUTOMATION_INSTANCE")
     name = "Automation Graph" if automation is None else automation.name
-    return render_template("index.html", name=name)
+    return render_template(
+        "index.html",
+        name=name,
+        version=version("laboneq"),
+    )
 
 
 @app.route("/reset", methods=["POST"])

@@ -5,7 +5,6 @@ let svg, g, zoom;
 let lastSelectedNode = null;
 let currentMode = "layers";
 let cachedGraphData = null;
-let isTransitioning = false;
 
 const TRANSITION_DURATION = 750;
 
@@ -35,16 +34,15 @@ async function fetchGraphData() {
 }
 
 function setupSVG() {
-    const container = document.getElementById("graph");
-
+    const { width, height } = getContainerSize();
     svg = d3
         .select("#graph")
         .append("svg")
-        .attr("width", container.clientWidth)
-        .attr("height", container.clientHeight)
+        .attr("width", width)
+        .attr("height", height)
         .on("click", function (event) {
             if (event.target === this) {
-                d3.select("#node-info").style("display", "none");
+                d3.select("#node-info").classed("visible", false);
                 if (lastSelectedNode) {
                     lastSelectedNode.classed("selected", false);
                     lastSelectedNode = null;
@@ -52,277 +50,198 @@ function setupSVG() {
                 }
             }
         });
-
     g = svg.append("g");
-
+    g.append("g").attr("class", "node-links");
+    g.append("g").attr("class", "layer-links");
+    g.append("g").attr("class", "node-canvas");
+    g.append("g").attr("class", "layer-canvas");
     zoom = d3
         .zoom()
-        .scaleExtent([0.1, 4])
+        .scaleExtent([0.75, 20])
         .on("zoom", (event) => g.attr("transform", event.transform));
-
     svg.call(zoom).call(zoom.transform, d3.zoomIdentity);
 }
 
-function computeScales(items, width, height, pad = 0.2) {
-    const xs = items.map((n) => n.x);
-    const ys = items.map((n) => n.y);
-    const minX = Math.min(...xs);
-    const maxX = Math.max(...xs);
-    const minY = Math.min(...ys);
-    const maxY = Math.max(...ys);
+function computePositions(items, width, height, pad = 0.15) {
+    const [minX, maxX] = d3.extent(items, (d) => d.x);
+    const [minY, maxY] = d3.extent(items, (d) => d.y);
 
     let xPad = pad * width;
     let yPad = pad * height;
+    if (Math.abs(maxX - minX) < 0.5) xPad = 0.15 * width;
+    if (Math.abs(maxY - minY) < 0.7 * height) yPad = 0.15 * height;
 
-    if (Math.abs(maxX - minX) < 0.5) {
-        xPad = (width - 0.5 * width) / 2;
-    }
-    if (Math.abs(maxY - minY) < 0.7 * height) {
-        yPad = (height - 0.7 * height) / 2;
-    }
+    const xScale = d3
+        .scaleLinear()
+        .domain([minX, maxX])
+        .range([xPad, width - xPad]);
+    const yScale = d3
+        .scaleLinear()
+        .domain([minY, maxY])
+        .range([height - yPad, yPad]);
 
-    return {
-        xScale: d3
-            .scaleLinear()
-            .domain([minX, maxX])
-            .range([xPad, width - xPad]),
-        yScale: d3
-            .scaleLinear()
-            .domain([minY, maxY])
-            .range([height - yPad, yPad]),
-    };
-}
-
-function itemPositions(items, xScale, yScale) {
     const pos = {};
-    items.forEach((n) => {
-        pos[n.key] = { x: xScale(n.x), y: yScale(n.y) };
+    items.forEach((d) => {
+        pos[d.key] = { x: xScale(d.x), y: yScale(d.y) };
     });
     return pos;
 }
 
 function buildLayerMap(layers) {
-    return new Map(layers.map((layer, i) => [layer.key, i, layer.status]));
+    return new Map(layers.map((layer, i) => [layer.key, i]));
 }
 
-function getContainerSize() {
-    const container = document.getElementById("graph");
-    return { width: container.clientWidth, height: container.clientHeight };
-}
+function buildNodeMap(nodes) {
+    const map = new Map();
 
-function getItemsAndLinks(graphData, mode) {
-    const isLayers = mode === "layers";
-    return {
-        items: isLayers ? graphData.layers : graphData.nodes,
-        links: isLayers ? graphData.layer_links : graphData.node_links,
-        isLayers,
-    };
-}
-
-/**
- * Compute positions for a given mode.
- */
-function computeLayout(graphData, mode) {
-    const { width, height } = getContainerSize();
-
-    const nodes = graphData.nodes || [];
-    const layers = graphData.layers || [];
-
-    if (!nodes.length || !layers.length) {
-        const { items } = getItemsAndLinks(graphData, mode);
-        if (!items?.length)
-            return {
-                items: [],
-                links: [],
-                pos: {},
-                isLayers: mode === "layers",
-            };
-
-        const { xScale, yScale } = computeScales(items, width, height);
-        const pos = itemPositions(items, xScale, yScale);
-        const { links, isLayers } = getItemsAndLinks(graphData, mode);
-        return { items, links, pos, isLayers };
+    for (const node of nodes) {
+        if (!map.has(node.layer)) {
+            map.set(node.layer, []);
+        }
+        map.get(node.layer).push(node);
     }
 
-    // Compute both node and layer positions so we can animate between them
-    const nodeScale = computeScales(nodes, width, height);
-    const layerScale = computeScales(layers, width, height);
+    return map;
+}
 
-    const nodePos = itemPositions(nodes, nodeScale.xScale, nodeScale.yScale);
-    const layerPos = itemPositions(
-        layers,
-        layerScale.xScale,
-        layerScale.yScale,
-    );
+function calculateNodeRadius(nodes, layers, width, height, mode) {
+    const nodeMap = buildNodeMap(nodes);
+    const nodeRadius = new Map();
+    const defaultBaseSize = 25;
+    var minSize = defaultBaseSize;
 
-    const toLayers = mode === "layers";
+    for (const layer of layers) {
+        const layerNodes = nodeMap.get(layer.key) || [];
+        let extent = 0;
 
-    const { items, links, isLayers } = getItemsAndLinks(graphData, mode);
-    if (toLayers) {
-        return { items, links, pos: layerPos, isLayers };
-    } else {
-        return { items, links, pos: nodePos, isLayers };
+        if (mode !== "layers" && layerNodes.length > 1) {
+            extent = layerNodes[layerNodes.length - 1].x - layerNodes[0].x;
+        }
+
+        const baseX =
+            layerNodes.length > 0
+                ? ((extent / layerNodes.length) * width) / 5
+                : defaultBaseSize;
+
+        const baseY = ((2.0 / layers.length) * height) / 6;
+
+        const baseSize = Math.min(
+            Math.min(baseX || defaultBaseSize, baseY || defaultBaseSize),
+            defaultBaseSize,
+        );
+        if (minSize > baseSize) {
+            minSize = baseSize;
+        }
     }
+
+    return minSize;
 }
 
-function computeTransitionNodePositions(graphData) {
-    const { width, height } = getContainerSize();
-
-    const nodes = graphData.nodes || [];
-    const layers = graphData.layers || [];
-    if (!nodes.length || !layers.length) return null;
-
-    const nodeScale = computeScales(nodes, width, height);
-    const layerScale = computeScales(layers, width, height);
-
-    const nodePos = itemPositions(nodes, nodeScale.xScale, nodeScale.yScale);
-    const layerPos = itemPositions(
-        layers,
-        layerScale.xScale,
-        layerScale.yScale,
-    );
-
-    const nodeLayerPos = {};
-    nodes.forEach((n) => {
-        nodeLayerPos[n.key] = layerPos[n.layer] || nodePos[n.key];
-    });
-
-    return { nodePos, nodeLayerPos };
+function nodeColor(d) {
+    return statusColorMap[d.status] || colorPalette.zi_blue;
 }
 
-function clearScene() {
-    g.selectAll("*").remove();
+function maybeTransition(selection, duration) {
+    return duration > 0 ? selection.transition().duration(duration) : selection;
 }
 
-function renderLinks({
+function renderLinks(
     links,
     pos,
-    keyFn = (d) => `${d[0]}->${d[1]}`,
-    initialPos = null,
-    animate = false,
-}) {
-    const startPos = initialPos || pos;
-
+    startPos,
+    duration,
+    { drawCanvas = ".node-links" },
+) {
+    const src = startPos || pos;
     const sel = g
+        .select(drawCanvas)
         .selectAll("line.link")
-        .data(links || [], keyFn)
+        .data(links || [], (d) => `${d[0]}->${d[1]}`)
         .join(
             (enter) =>
                 enter
                     .append("line")
                     .attr("class", "link")
-                    .attr("x1", (d) => startPos[d[0]]?.x)
-                    .attr("y1", (d) => startPos[d[0]]?.y)
-                    .attr("x2", (d) => startPos[d[1]]?.x)
-                    .attr("y2", (d) => startPos[d[1]]?.y),
+                    .attr("x1", (d) => src[d[0]]?.x)
+                    .attr("y1", (d) => src[d[0]]?.y)
+                    .attr("x2", (d) => src[d[1]]?.x)
+                    .attr("y2", (d) => src[d[1]]?.y),
             (update) => update,
             (exit) => exit.remove(),
         );
 
-    if (animate) {
-        sel.transition()
-            .duration(TRANSITION_DURATION)
-            .attr("x1", (d) => pos[d[0]]?.x)
-            .attr("y1", (d) => pos[d[0]]?.y)
-            .attr("x2", (d) => pos[d[1]]?.x)
-            .attr("y2", (d) => pos[d[1]]?.y);
-    } else {
-        sel.attr("x1", (d) => pos[d[0]]?.x)
-            .attr("y1", (d) => pos[d[0]]?.y)
-            .attr("x2", (d) => pos[d[1]]?.x)
-            .attr("y2", (d) => pos[d[1]]?.y);
-    }
+    maybeTransition(sel, duration)
+        .attr("x1", (d) => pos[d[0]]?.x)
+        .attr("y1", (d) => pos[d[0]]?.y)
+        .attr("x2", (d) => pos[d[1]]?.x)
+        .attr("y2", (d) => pos[d[1]]?.y);
 }
 
-function renderNodes({
+function renderNodes(
     items,
     pos,
-    layerMap,
-    isLayers,
-    initialPos = null,
-    animate = false,
-    toMode = "nodes",
-}) {
-    const startPos = initialPos || pos;
-    const toLayers = toMode === "layers";
+    {
+        startPos,
+        duration,
+        layerMap,
+        nodeRadius,
+        toLayers,
+        drawCanvas = ".node-canvas",
+    },
+) {
+    const src = startPos || pos;
+    const finalOpacity = toLayers ? 0 : 1;
+    const enterOpacity = duration > 0 ? 1 - finalOpacity : finalOpacity;
 
     const nodeSel = g
+        .select(drawCanvas)
         .selectAll("g.node")
         .data(items || [], (d) => d.key)
         .join(
             (enter) => {
-                const ng = enter
-                    .append("g")
-                    .attr("class", "node")
-                    .attr(
-                        "transform",
-                        (d) =>
-                            `translate(${startPos[d.key]?.x ?? 0},${startPos[d.key]?.y ?? 0})`,
-                    );
+                const ng = enter.append("g").attr("class", "node");
+
                 ng.append("circle")
                     .attr("class", "node-circle")
-                    .attr("r", (d) =>
-                        Array.isArray(d.quantum_elements) && !toLayers
-                            ? d.quantum_elements.length * 20
-                            : 30,
-                    )
-                    .attr(
-                        "fill",
-                        (d) => statusColorMap[d.status] || colorPalette.zi_blue,
-                    )
+                    .attr("fill", nodeColor)
                     .attr("stroke", colorPalette.gray)
-                    .attr("stroke-width", 2)
                     .on("click", (event, d) => {
+                        toLayers = currentMode === "layers";
                         if (lastSelectedNode)
                             lastSelectedNode.classed("selected", false);
                         const cur = d3.select(event.currentTarget.parentNode);
                         cur.classed("selected", true);
+
                         lastSelectedNode = cur;
-
-                        highlightLayer(d.layer);
-
+                        if (!toLayers) highlightLayer(d.layer);
                         const qe = Array.isArray(d.quantum_elements)
                             ? d.quantum_elements.join(", ")
                             : d.quantum_elements;
-                        updateNodeInfoLegend(d, qe, isLayers);
+                        updateNodeInfoLegend(d, qe, toLayers);
                     });
 
                 ng.on("mouseenter", function () {
                     d3.select(this)
                         .select("circle")
-                        .style("stroke", colorPalette.zi_blue)
-                        .style("stroke-width", 4);
-                    d3.select(this).raise();
+                        .style("stroke", colorPalette.zi_blue);
                 }).on("mouseleave", function () {
                     d3.select(this)
                         .select("circle")
                         .style("stroke", null)
                         .style("stroke-width", null);
-                    g.selectAll("g.node").sort(
-                        (a, b) => items.indexOf(a) - items.indexOf(b),
-                    );
                 });
 
                 ng.append("text")
                     .attr("class", "top-label")
                     .attr("text-anchor", "middle")
                     .attr("dominant-baseline", "top")
-                    .attr("fill", "black")
-                    .style("font-size", "25px")
-                    .style("pointer-events", "none")
                     .text((d) => layerMap.get(d.layer));
 
-                // Qubit key label exists only for nodes-mode view of nodes,
-                // but for transitions we keep it and fade it in/out.
                 ng.append("text")
                     .attr("class", "bottom-label")
                     .attr("text-anchor", "middle")
                     .attr("dominant-baseline", "central")
                     .attr("fill", "black")
-                    .attr("y", 15)
-                    .style("font-size", "18px")
-                    .style("pointer-events", "none")
-                    .style("opacity", toLayers ? 1 : 0)
                     .text((d) =>
                         Array.isArray(d.quantum_elements)
                             ? d.quantum_elements.join("-")
@@ -335,112 +254,96 @@ function renderNodes({
             (exit) => exit.remove(),
         );
 
-    // For settled modes: hide qubit key label when in layers, show when in nodes
-    if (!animate) {
-        nodeSel.select(".bottom-label").style("opacity", toLayers ? 0 : 1);
-    }
+    // Always update colors immediately
+    nodeSel.select(".node-circle").attr("fill", nodeColor);
 
-    if (animate) {
-        // Move nodes
-        nodeSel
-            .transition()
-            .duration(TRANSITION_DURATION)
-            .attr(
-                "transform",
-                (d) => `translate(${pos[d.key]?.x ?? 0},${pos[d.key]?.y ?? 0})`,
-            );
+    // Position, radius, label opacity — animated or immediate
+    maybeTransition(nodeSel, duration).attr(
+        "transform",
+        (d) => `translate(${pos[d.key].x},${pos[d.key].y})`,
+    );
 
-        // Fade out qubit label
-        nodeSel
-            .select(".bottom-label")
-            .transition()
-            .duration(TRANSITION_DURATION)
-            .style("opacity", toLayers ? 0 : 1);
+    maybeTransition(nodeSel.select(".node-circle"), duration)
+        .attr("r", (d) => nodeRadius)
+        .attr("stroke-width", (d) => nodeRadius / 10);
 
-        // Resize circle
-        nodeSel
-            .select(".node-circle")
-            .interrupt()
-            .transition()
-            .duration(TRANSITION_DURATION)
-            .attr("r", (d) =>
-                Array.isArray(d.quantum_elements) && !toLayers
-                    ? d.quantum_elements.length * 20
-                    : 30,
-            );
-    }
+    maybeTransition(nodeSel.select(".top-label"), duration).style(
+        "font-size",
+        (d) => `${nodeRadius}px`,
+    );
+
+    maybeTransition(nodeSel.select(".bottom-label"), duration)
+        .attr("y", (d) => `${nodeRadius / 2.5}px`)
+        .style("font-size", (d) => `${nodeRadius / 1.75}px`)
+        .style("opacity", finalOpacity);
 }
 
-/**
- * Single entry-point renderer.
- *
- * - Settled: animateFromMode = null
- * - Transition: animateFromMode = "nodes" or "layers"
- */
-function renderGraph(graphData, mode, { animateFromMode = null } = {}) {
-    const { items, links, pos, isLayers } = computeLayout(graphData, mode);
-    if (!items?.length) return;
+function renderGraph(
+    graphData,
+    mode,
+    { animateFromMode = null, duration = TRANSITION_DURATION } = {},
+) {
+    const nodes = graphData.nodes || [];
+    const layers = graphData.layers || [];
+    if (!nodes.length && !layers.length) return;
 
-    const layerMap = buildLayerMap(graphData.layers || []);
-    renderLayerLegend(graphData.layers || [], layerMap);
+    const layerMap = buildLayerMap(layers);
+    renderLayerLegend(layers, layerMap);
 
-    clearScene();
+    const { width, height } = getContainerSize();
+    const nodePos = nodes.length ? computePositions(nodes, width, height) : {};
+    const layerPos = layers.length
+        ? computePositions(layers, width, height)
+        : {};
 
-    const animate = animateFromMode !== null;
-
-    // Settled:
-    // - nodes mode: render nodes + node_links
-    // - layers mode: render layers + layer_links
-    if (!animate) {
-        renderLinks({ links, pos });
-        renderNodes({
-            items,
-            pos,
-            layerMap,
-            isLayers,
-            animate: false,
-            toMode: mode,
-        });
-
-        if (mode === "layers") {
-            g.selectAll("g.node .bottom-label").remove();
-        }
-        return;
-    }
-
-    // Transition nodes <--> layers:
-    const trans = computeTransitionNodePositions(graphData);
-    if (!trans) {
-        renderGraph(graphData, mode, { animateFromMode: null });
-        return;
-    }
+    const nodeRadius = calculateNodeRadius(nodes, layers, width, height, mode);
 
     const toLayers = mode === "layers";
-    const startPos = toLayers ? trans.nodePos : trans.nodeLayerPos;
-    const endPos = toLayers ? trans.nodeLayerPos : trans.nodePos;
-
-    renderLinks({
-        links: graphData.node_links || [],
-        pos: endPos,
-        initialPos: startPos,
-        animate: true,
+    const nodeLayerPos = {};
+    nodes.forEach((n) => {
+        nodeLayerPos[n.key] = layerPos[n.layer] || nodePos[n.key];
     });
-    renderNodes({
-        items: graphData.nodes || [],
-        pos: endPos,
-        initialPos: startPos,
+
+    const startPos = toLayers ? nodePos : nodeLayerPos;
+    const endPos = toLayers ? nodeLayerPos : nodePos;
+
+    // Plot the links between nodes
+    renderLinks(graphData.node_links, endPos, startPos, duration, {});
+    renderLinks(graphData.layer_links, layerPos, null, duration, {
+        drawCanvas: ".layer-links",
+    });
+
+    // Plot the node circles - this is performed always
+    // either in the node position or moved to the layer position
+    renderNodes(nodes, endPos, {
+        startPos,
+        duration: duration,
         layerMap,
-        isLayers: false,
-        animate: true,
-        toMode: mode,
+        nodeRadius,
+        toLayers,
     });
 
-    isTransitioning = true;
-    // End of transition: swtich to settled final view
-    window.setTimeout(() => {
-        renderGraph(graphData, mode, { animateFromMode: null });
-        isTransitioning = false;
-    }, TRANSITION_DURATION);
+    // Plot the layer circles
+    // They are shown only in "layers" mode, otherwise they are hidden
+    renderNodes(layers, layerPos, {
+        duration: duration,
+        layerMap,
+        toLayers,
+        nodeRadius,
+        drawCanvas: ".layer-canvas",
+    });
+
+    if (currentMode === "layers") {
+        setTimeout(() => {
+            hideCanvas(".node-links");
+            showCanvas(".layer-links");
+            showCanvas(".layer-canvas", duration);
+        }, duration);
+    } else {
+        hideCanvas(".layer-canvas");
+        hideCanvas(".layer-links");
+        showCanvas(".node-links");
+    }
 }
 
 function resetZoom() {
@@ -450,12 +353,9 @@ function resetZoom() {
 }
 
 function setMode(mode) {
-    if (currentMode === mode || isTransitioning) return;
-
+    if (currentMode === mode) return;
     const prevMode = currentMode;
     currentMode = mode;
-    updateViewToggleUI();
-
     if (cachedGraphData) {
         renderGraph(cachedGraphData, mode, { animateFromMode: prevMode });
     } else {
@@ -463,33 +363,30 @@ function setMode(mode) {
     }
 }
 
-async function refreshData({ force = false } = {}) {
-    if (isTransitioning) return;
-
+async function refreshData({
+    force = false,
+    duration = TRANSITION_DURATION,
+} = {}) {
     const graphData = await fetchGraphData();
     if (!graphData) return;
-
     if (!force && cachedGraphData.version === graphData.version) return;
-
+    clearHighlight();
     cachedGraphData = graphData;
-    renderGraph(graphData, currentMode, { animateFromMode: null });
+    renderGraph(graphData, currentMode, { duration: 0 });
 }
 
 async function init() {
     setupSVG();
     setupControls();
     renderStatusLegend();
-    await refreshData({ force: true });
-
+    await refreshData({ force: true, duration: 0 });
     setInterval(refreshData, 200);
-
     window.addEventListener("resize", () => {
         const { width, height } = getContainerSize();
         svg.attr("width", width).attr("height", height);
-        if (!isTransitioning && cachedGraphData) {
-            renderGraph(cachedGraphData, currentMode, {
-                animateFromMode: null,
-            });
+        clearHighlight();
+        if (cachedGraphData) {
+            renderGraph(cachedGraphData, currentMode);
         }
     });
 }

@@ -45,11 +45,7 @@ function renderLayerLegend(layers, layerMap) {
         )
         .text((d) => layerMap.get(d.key));
 
-    left.append("span").text((d) =>
-        d.key === "root"
-            ? "root"
-            : d.key,
-    );
+    left.append("span").text((d) => (d.key === "root" ? "root" : d.key));
 }
 
 function openImageModal(src) {
@@ -64,23 +60,75 @@ function closeImageModal() {
     document.getElementById("graph").classList.remove("modal-open");
 }
 
-document.getElementById("image-modal").addEventListener("click", closeImageModal);
+document
+    .getElementById("image-modal")
+    .addEventListener("click", closeImageModal);
 
 function updateNodeInfoLegend(d, qe, isLayers) {
-    d3.select("#node-results-section").remove();
+    const resultsSection = document.getElementById("node-results-section");
+    const thumbnailWrapper = resultsSection.querySelector(
+        ".node-result-thumbnail-wrapper",
+    );
+    const thumbnail = resultsSection.querySelector(".node-result-thumbnail");
+    const message = resultsSection.querySelector(".node-result-message");
+
+    resultsSection.hidden = true;
+    message.hidden = true;
+    thumbnailWrapper.classList.remove("visible");
+    thumbnail.removeAttribute("src");
+    thumbnail.onclick = null;
+
     d3.select("#status-title").text(isLayers ? "Layer info" : "Node info");
 
     const rows = [
-        ...(isLayers ? [{ label: "Key", value: d.key }] : [{ label: "ID", value: d.key }]),
+        ...(isLayers
+            ? [{ label: "Key", value: d.key }]
+            : [{ label: "ID", value: d.key }]),
         { label: "Status", value: d.status },
         ...(isLayers ? [] : [{ label: "Layer", value: d.layer }]),
-        ...(isLayers ? [{ label: "Sequential", value: d.key === "root" ? "N/A" : d.sequential }] : []),
+        ...(isLayers
+            ? [
+                  {
+                      label: "Sequential",
+                      value: d.key === "root" ? "N/A" : d.sequential,
+                  },
+              ]
+            : []),
         { label: "Elements", value: qe },
         { label: "Timestamp", value: d.timestamp || "N/A" },
-        { label: "Fail count", value: (d.key === "root" || d.key === "root_root") ? "N/A" : d.fail_count },
-        { label: "Pass count", value: (d.key === "root" || d.key === "root_root") ? "N/A" : d.pass_count },
-        ...(isLayers ? [{ label: "Depends on", value: d.key === "root" ? "N/A" : d.depends_on.join(", ") || "root" }] :
-            [{ label: "Depends on", value: (d.key === "root_root") ? "N/A" : d.depends_on.join(", ") || "root_root" }]),
+        {
+            label: "Fail count",
+            value:
+                d.key === "root" || d.key === "root_root"
+                    ? "N/A"
+                    : d.fail_count,
+        },
+        {
+            label: "Pass count",
+            value:
+                d.key === "root" || d.key === "root_root"
+                    ? "N/A"
+                    : d.pass_count,
+        },
+        ...(isLayers
+            ? [
+                  {
+                      label: "Depends on",
+                      value:
+                          d.key === "root"
+                              ? "N/A"
+                              : d.depends_on.join(", ") || "root",
+                  },
+              ]
+            : [
+                  {
+                      label: "Depends on",
+                      value:
+                          d.key === "root_root"
+                              ? "N/A"
+                              : d.depends_on.join(", ") || "root_root",
+                  },
+              ]),
     ];
 
     const sel = d3
@@ -91,36 +139,34 @@ function updateNodeInfoLegend(d, qe, isLayers) {
     sel.exit().remove();
 
     const enter = sel.enter().append("div").attr("class", "legend-row");
-
     enter.append("div").attr("class", "legend-left");
     enter.append("div").attr("class", "legend-right");
 
     const merged = enter.merge(sel);
-
     merged.select(".legend-left").text((r) => `${r.label}:`);
-
     merged.select(".legend-right").text((r) => r.value ?? "");
 
-    d3.select("#node-info").style("display", "block");
-
-    if (!isLayers && (d.status === "passed" || d.status === "failed") && cachedGraphData?.has_log_path) {
+    d3.select("#node-info").classed("visible", true);
+    if (
+        !isLayers &&
+        (d.status === "passed" || d.status === "failed") &&
+        cachedGraphData?.has_log_path
+    ) {
         const qeKey = Array.isArray(d.quantum_elements)
             ? d.quantum_elements.join("-")
             : String(d.quantum_elements);
-        const resultsSection = d3
-            .select("#node-info")
-            .append("div")
-            .attr("id", "node-results-section");
-        resultsSection.append("h3").text("Node results");
         const url = `/node-image?layer=${encodeURIComponent(d.layer)}&qe=${encodeURIComponent(qeKey)}`;
+
+        resultsSection.hidden = false;
+
         fetch(url)
             .then((resp) => {
                 if (resp.status === 204) {
-                    resultsSection.append("span").text("File not found");
+                    message.hidden = false;
                     return null;
                 }
                 if (!resp.ok) {
-                    d3.select("#node-results-section").remove();
+                    resultsSection.hidden = true;
                     return null;
                 }
                 return resp.blob();
@@ -128,12 +174,63 @@ function updateNodeInfoLegend(d, qe, isLayers) {
             .then((blob) => {
                 if (!blob) return;
                 const objectUrl = URL.createObjectURL(blob);
-                resultsSection
-                    .append("img")
-                    .attr("class", "node-result-thumbnail")
-                    .attr("src", objectUrl)
-                    .on("click", () => openImageModal(objectUrl));
+                thumbnail.onload = () =>
+                    thumbnailWrapper.classList.add("visible");
+                thumbnail.onclick = () => openImageModal(objectUrl);
+                thumbnail.src = objectUrl;
             })
-            .catch(() => d3.select("#node-results-section").remove());
+            .catch(() => {
+                resultsSection.hidden = true;
+            });
     }
 }
+
+function toggleCollapse(elementId, headerElement) {
+    const content = document.getElementById(elementId);
+    const isOpen = content.classList.contains("open");
+    setCollapsed(elementId, headerElement, isOpen);
+}
+
+document.querySelector(".layers-header").addEventListener("click", function () {
+    toggleCollapse("layer-legend-items", this);
+});
+
+document.querySelector(".status-header").addEventListener("click", function () {
+    toggleCollapse("status-legend-items", this);
+});
+
+function setCollapsed(elementId, headerElement, collapsed) {
+    const content = document.getElementById(elementId);
+    const chevron = headerElement.querySelector(".chevron");
+
+    if (collapsed) {
+        content.classList.remove("open");
+        chevron.classList.remove("expanded");
+    } else {
+        content.classList.add("open");
+        chevron.classList.add("expanded");
+    }
+}
+
+const COLLAPSE_THRESHOLD_WIDTH = 1200;
+const COLLAPSE_THRESHOLD_HEIGHT = 800;
+
+const resizeObserver = new ResizeObserver(() => {
+    const { width, height } = getContainerSize();
+
+    const layersHeader = document.querySelector(".layers-header");
+    const statusHeader = document.querySelector(".status-header");
+
+    if (
+        width < COLLAPSE_THRESHOLD_WIDTH ||
+        height < COLLAPSE_THRESHOLD_HEIGHT
+    ) {
+        setCollapsed("layer-legend-items", layersHeader, true);
+        setCollapsed("status-legend-items", statusHeader, true);
+    } else {
+        setCollapsed("layer-legend-items", layersHeader, false);
+        setCollapsed("status-legend-items", statusHeader, false);
+    }
+});
+
+resizeObserver.observe(document.getElementById("graph"));

@@ -1,57 +1,78 @@
 // Copyright 2026 Zurich Instruments AG
 // SPDX-License-Identifier: Apache-2.0
 
+let toastTimer = null;
+
 function setupControls() {
-    const btnNode = document.getElementById("btnNodeView");
-    const btnLayer = document.getElementById("btnLayerView");
+    const toggle = document.getElementById("viewToggle");
     const btnReset = document.getElementById("btnResetZoom");
     const btnRunAuto = document.getElementById("btnRunAuto");
     const btnResetAuto = document.getElementById("btnResetAuto");
 
-    if (btnNode) btnNode.addEventListener("click", () => setMode("nodes"));
-    if (btnLayer) btnLayer.addEventListener("click", () => setMode("layers"));
-    if (btnReset) btnReset.addEventListener("click", () => resetZoom());
-    if (btnRunAuto) btnRunAuto.addEventListener("click", () => runAutomation());
-    if (btnResetAuto)
-        btnResetAuto.addEventListener("click", () => resetAutomation());
+    toggle?.addEventListener("click", () => {
+        if (toggle.dataset.locked) return;
+        const next = toggle.dataset.active === "layers" ? "nodes" : "layers";
+        switchMode(toggle, next);
+    });
 
-    updateViewToggleUI();
+    if (btnReset) btnReset.addEventListener("click", resetZoom);
+    if (btnRunAuto) btnRunAuto.addEventListener("click", runAutomation);
+    if (btnResetAuto) btnResetAuto.addEventListener("click", resetAutomation);
 }
 
-function updateViewToggleUI() {
-    const btnNode = document.getElementById("btnNodeView");
-    const btnLayer = document.getElementById("btnLayerView");
+function switchMode(toggle, mode) {
+    toggle.dataset.active = mode;
+    toggle.dataset.locked = true;
 
-    if (!btnNode || !btnLayer) return;
+    clearHighlight();
+    setMode(mode);
 
-    btnNode.classList.toggle("active", currentMode === "nodes");
-    btnLayer.classList.toggle("active", currentMode === "layers");
+    setTimeout(() => {
+        delete toggle.dataset.locked;
+    }, TRANSITION_DURATION);
+}
+
+function showToast(html, { persistent = false, duration = 2500 } = {}) {
+    const el = document.getElementById("automation-status");
+
+    clearTimeout(toastTimer);
+    el.classList.remove("fading");
+    el.style.display = "block";
+    el.innerHTML = html;
+
+    if (persistent) return;
+
+    toastTimer = setTimeout(() => {
+        el.classList.add("fading");
+        toastTimer = setTimeout(() => {
+            el.style.display = "none";
+            el.classList.remove("fading");
+        }, 500); // matches transition duration
+    }, duration);
 }
 
 async function resetAutomation() {
+    if (!confirm("Are you sure you want to reset the automation?")) return;
+
     const resp = await fetch("/reset", { method: "POST" });
     const data = await resp.json().catch(() => ({}));
     if (resp.status == 202) {
         refreshData(true);
-        d3.select("#status")
-            .html("<strong>Automation reset</strong>!")
-            .style("display", "block");
+        showToast("<strong>Automation reset</strong>!");
     }
+    clearHighlight();
 }
 
 async function runAutomation() {
-    d3.select("#status")
-        .html("<strong>Automation:</strong> run started!")
-        .style("display", "block");
+    clearHighlight();
+
+    showToast("<strong>Automation:</strong> running...", { persistent: true });
 
     const resp = await fetch("/run", { method: "POST" });
     const data = await resp.json().catch(() => ({}));
 
     if (resp.status === 202) {
-        d3.select("#status")
-            .html("<strong>Automation:</strong> run finished!")
-            .style("display", "block");
-        return;
+        showToast("<strong>Automation:</strong> run finished!");
     }
 }
 
@@ -67,16 +88,12 @@ function highlightLayer(layerKey) {
             return `drop-shadow(0 0 8px ${color})`;
         });
 
-    g.selectAll(".link").style("stroke", (d) =>
-        d3.color(colorPalette.gray).darker(1.5),
-    );
-
     g.selectAll(".layer-label").remove();
-
     const match = g.selectAll("g.node").filter((d) => d.layer === layerKey);
     if (!match.empty()) {
         let minX = Infinity;
-        let leftmostTransform = match.attr("transform");
+        let leftmostNode = null;
+
         match.each(function () {
             const t = d3.select(this).attr("transform");
             const m = t && t.match(/translate\(([^,)]+)/);
@@ -84,21 +101,39 @@ function highlightLayer(layerKey) {
                 const x = parseFloat(m[1]);
                 if (x < minX) {
                     minX = x;
-                    leftmostTransform = t;
+                    leftmostNode = this;
                 }
             }
         });
-        g.append("text")
+
+        const nodeTransform = d3.select(leftmostNode).attr("transform");
+        const nodeBBox = leftmostNode.getBBox();
+        const gap = 16;
+        const px = 6;
+
+        const label = g
+            .append("g")
             .attr("class", "layer-label")
-            .attr("transform", leftmostTransform)
-            .attr("dx", -30)
-            .attr("dy", -50)
-            .attr("text-anchor", "left")
-            .style("fill", "black")
-            .style("font-size", "40px")
-            .style("font-weight", "bold")
-            .style("pointer-events", "none")
+            .attr("transform", nodeTransform);
+
+        const text = label
+            .append("text")
+            .attr("x", nodeBBox.x - gap)
+            .attr("dy", "0.35em")
+            .attr("text-anchor", "end")
+            .attr("font-size", nodeBBox.height * 0.7)
             .text(layerKey);
+
+        const textBBox = text.node().getBBox();
+
+        label
+            .insert("rect", "text")
+            .attr("x", textBBox.x - px)
+            .attr("y", nodeBBox.y)
+            .attr("width", textBBox.width + px * 2)
+            .attr("height", nodeBBox.height)
+            .attr("rx", textBBox.height / 4)
+            .attr("ry", textBBox.height / 4);
     }
 }
 
