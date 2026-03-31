@@ -14,6 +14,7 @@ from laboneq.automation import AutomationStatus as Status
 from laboneq.automation.layer import RootLayer
 from laboneq.automation.logic import FixedParameterUpdate
 from laboneq.automation.node import RootNode
+from laboneq.automation.web_viewer.server import start_web_viewer
 from laboneq.dsl.device.connection import create_connection
 from laboneq.dsl.device.device_setup import DeviceSetup
 from laboneq.dsl.device.instruments import HDAWG
@@ -26,7 +27,6 @@ from laboneq.dsl.session import Session
 from laboneq.workflow import WorkflowBuilder, logbook
 from laboneq.workflow.result import WorkflowResult
 
-from laboneq_applications.automation.web_viewer.server import start_web_viewer
 from laboneq_applications.automation.workflow.automation import (
     WorkflowAutomation,
 )

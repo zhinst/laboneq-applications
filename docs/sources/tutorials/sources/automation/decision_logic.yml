@@ -61,7 +61,7 @@ qs2:
     count: 2048
     active_reset: True
   logic:
-    class: AdaptFrequencyRange
+    class: laboneq_applications.automation.workflow.logic:AdaptFrequencyRange
     arguments:
       new_layer_key: qs2
       range_thresholds:
@@ -105,7 +105,7 @@ qs3:
     count: 2048
     active_reset: True
   logic:
-    class: FixedParameterUpdate
+    class: laboneq.automation.logic:FixedParameterUpdate
     arguments:
       new_layer_key: qs3
       parameter_changes:

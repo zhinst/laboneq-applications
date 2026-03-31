@@ -77,16 +77,6 @@ where = ["src"]
 include = ["laboneq_applications*"]
 namespaces = false
 
-[tool.setuptools.package-data]
-"laboneq_applications.automation.web_viewer" = [
-  "app/static/js/*.js",
-  "app/static/css/*.css",
-  "app/static/images/*.png",
-  "app/static/images/*.svg",
-  "app/static/favicon.ico",
-  "app/templates/*.html",
-]
-
 [tool.setuptools]
 zip-safe = false
 include-package-data = false
