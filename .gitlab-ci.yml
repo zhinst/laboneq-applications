@@ -13,11 +13,8 @@ stages:
 
 default:
   tags: [docker, linux]
-## github is rate limiting, use our mirror
-#  image: ghcr.io/astral-sh/uv:0.9.7-debian
-  # FIXME: Renovate is not updating this so we need to keep this in sync
-  # manually with pre-commit configuration
-  image: artifactory.zhinst.com/zi_registry/astral-sh/uv:0.10.7-debian
+  # github is rate limiting, use our mirror
+  image: artifactory.zhinst.com/zi_registry/astral-sh/uv:0.11.3-debian
 
 variables:
   PACKAGE_NAME: "laboneq-applications"
