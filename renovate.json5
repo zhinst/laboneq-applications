@@ -21,7 +21,7 @@
     commitMessageTopic: "versions in lock file(s) to the latest available",
     commitMessageExtra: null,
   },
-  prBodyNotes: ["Renovate can not yet create changelog entries, so instead we need to @skip-changelog-check"],
+  prHeader: "@skip-changelog-check\n\n",
   major: {
     dependencyDashboardApproval: true,
   },
