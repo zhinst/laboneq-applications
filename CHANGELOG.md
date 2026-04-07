@@ -1,3 +1,32 @@
+# laboneq_applications 26.4.0b5 (2026-04-09)
+
+## Bug Fixes
+
+- Introduced `TunableTransmonOperations.measure_section_length`.
+
+  The functionality to determine the length of the measure section has been
+  available on `laboneq.dsl.quantum.QPU`, but this functionality is not compatible
+  with all types of qubits. More specifically, it has only worked with tunable
+  transmons.
+
+  To avoid confusion and bugs with other types of qubits, the functionality is
+  moved to `TunableTransmonOperations`.
+
+  The method on `laboneq.dsl.quantum.QPU` will be deprecated and removed in a future
+  release. (QRL-644)
+
+## Miscellaneous
+
+- Changed tests to select matplotlib backend explicitly
+
+  Instead of relying on the environment where the tests are run,
+  a non-interactive backend is selected for the test suite. (QRL-677)
+- Simplify `WorkflowLayer.run_executable` method. (QRL-680)
+- Fix the overlapping of nodes in the automation web viewier. The size of the nodes is now computed dynamically based on the window size, number of layers and number of nodes per layer. (QRL-696)
+- The automation web viewer is now moved to the `laboneq` repository and can be imported from `laboneq.automation.web_viewer`. (QRL-703)
+- Extend fine-amplitude test to a larger number of qubits (QRL-660.tests)
+
+
 # laboneq_applications 26.4.0b4 (2026-03-27)
 
 ## Features
