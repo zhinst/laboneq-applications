@@ -271,14 +271,14 @@ def extract_qubit_parameters(
     }
 
     for q in qubits:
-        # Store the old T1 value
+        # Store the old T2 value
         old_t2 = q.parameters.ef_T2 if "f" in opts.transition else q.parameters.ge_T2
         qubit_parameters["old_parameter_values"][q.uid] = {
             f"{opts.transition}_T2": old_t2,
         }
 
         if opts.do_fitting and q.uid in fit_results:
-            # Extract and store the T1 value
+            # Extract and store the T2 value
             fit_res = fit_results[q.uid]
             dec_rt = unc.ufloat(
                 fit_res.params["decay_rate"].value, fit_res.params["decay_rate"].stderr

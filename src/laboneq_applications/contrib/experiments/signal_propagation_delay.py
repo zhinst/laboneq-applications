@@ -209,7 +209,7 @@ def create_experiment(
         create_experiment(
             qpu=qpu,
             qubit=temp_qubits[0],
-            delays=np.linspace(0e9, 100e9, 51),
+            delays=np.linspace(0e-9, 100e-9, 51),
             options=options,
         )
         ```

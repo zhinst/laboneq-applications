@@ -368,7 +368,7 @@ def plot_population(
     | None,
     options: PlotPopulationOptions | None = None,
 ) -> dict[str, mpl.figure.Figure]:
-    """Create the amplitude-Rabi plots.
+    """Create the amplitude-fine plots.
 
     Arguments:
         qubits:

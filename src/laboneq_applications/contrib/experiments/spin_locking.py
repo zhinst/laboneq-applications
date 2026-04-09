@@ -45,12 +45,11 @@ if TYPE_CHECKING:
 
 @workflow.task_options(base_class=TuneupExperimentOptions)
 class SpinLockingExperimentOptions:
-    """Base options for the resonator spectroscopy experiment.
+    """Base options for the spin locking experiment.
 
     Additional attributes:
-        refocus_pulse:
-            String to define the quantum operation in-between the x90 pulses.
-            Default: "y180".
+        pulse:
+            Dictionary to define the pulse parameters for the spin locking pulse.
     """
 
     pulse: dict = attrs.field(
@@ -64,10 +63,10 @@ class SpinLockingExperimentOptions:
 
 @workflow.workflow_options
 class SpinLockingWorkflowOptions:
-    """Option for spectroscopy workflow.
+    """Option for spin locking workflow.
 
     Attributes:
-        create_experiment (EchoExperimentOptions):
+        create_experiment (SpinLockingExperimentOptions):
             The options for creating the experiment.
     """
 
@@ -85,7 +84,7 @@ def experiment_workflow(
     temporary_parameters: dict[str, dict | QuantumParameters] | None = None,
     options: SpinLockingWorkflowOptions | None = None,
 ) -> None:
-    """The Hahn echo Workflow.
+    """The Spin Locking Workflow.
 
     The workflow consists of the following steps:
 
@@ -174,7 +173,7 @@ def create_experiment(
     rel_amp: float | None = None,
     options: SpinLockingExperimentOptions | None = None,
 ) -> Experiment:
-    """Creates a Hahn echo Experiment.
+    """Creates a Spin Locking Experiment.
 
     Arguments:
         qpu:
@@ -191,7 +190,7 @@ def create_experiment(
             the pi pulse amplitude of the specified transition.
         options:
             The options for building the experiment.
-            See [EchoExperimentOptions] and [BaseExperimentOptions] for
+            See [SpinLockingExperimentOptions] and [BaseExperimentOptions] for
             accepted options.
             Overwrites the options from [TuneupExperimentOptions] and
             [BaseExperimentOptions].

@@ -58,7 +58,7 @@ def experiment_workflow(
     temporary_parameters: dict[str, dict | QuantumParameters] | None = None,
     options: TuneUpWorkflowOptions | None = None,
 ) -> None:
-    """The Qubit Spectroscopy Workflow.
+    """The Amplitude Rabi Chevron Workflow.
 
     The workflow consists of the following steps:
 
@@ -154,7 +154,7 @@ def create_experiment(
     amplitudes: QubitSweepPoints,
     options: TuneupExperimentOptions | None = None,
 ) -> Experiment:
-    """Creates a Qubit Spectroscopy Experiment.
+    """Creates an Amplitude Rabi Chevron Experiment.
 
     Arguments:
         qpu:

@@ -64,7 +64,7 @@ def experiment_workflow(
     temporary_parameters: dict[str, dict | QuantumParameters] | None = None,
     options: TuneUpWorkflowOptions | None = None,
 ) -> None:
-    """The Randmized Benchmarking Workflow for single qubits.
+    """The Randomized Benchmarking Workflow for single qubits.
 
     The workflow consists of the following steps:
 
@@ -264,7 +264,7 @@ def create_experiment(
     quantum_operations: dsl.QuantumOperations | None = None,
     options: TuneupExperimentOptions | None = None,
 ) -> Experiment:
-    """Creates an Amplitude Rabi Experiment.
+    """Creates a single-qubit randomized benchmarking experiment.
 
     Arguments:
         qpu:
@@ -297,8 +297,7 @@ def create_experiment(
         create_experiment(
             qpu=qpu,
             qubits=qubits,
-            length_cliffords=[1,5,10,20,50],
-            variations=5,
+            qasm_rb_sequences=qasm_rb_sequences,
             options=options,
         )
         ```

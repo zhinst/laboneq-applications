@@ -48,7 +48,7 @@ if TYPE_CHECKING:
 # create additional options for the QNDness experiment
 @task_options(base_class=BaseExperimentOptions)
 class QNDnessExperimentOptions:
-    """Base options for the resonator spectroscopy experiment.
+    """Base options for the measurement QNDness experiment.
 
     Additional attributes:
         acquisition_type:

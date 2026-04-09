@@ -139,11 +139,10 @@ def analysis_workflow(
         options = TuneUpAnalysisWorkflowOptions()
         result = analysis_workflow(
             results=results
-            qubits=[q0, q1],
-            amplitudes=[
-                np.linspace(0, 1, 11),
-                np.linspace(0, 0.75, 11),
-            ],
+            qpu=qpu,
+            qubit_pairs=[["q0", "q1"]],
+            biases=[np.linspace(-0.1, 0.1, 21)],
+            delays=[np.linspace(0, 10e-6, 51)],
             options=options,
         ).run()
         ```
@@ -302,7 +301,7 @@ def plot_population(
     processed_data_dict: dict[str, dict[str, ArrayLike]],
     options: PlotPopulationOptions | None = None,
 ) -> dict[str, mpl.figure.Figure]:
-    """Create the Hahn echo plots.
+    """Create the ZZ coupling strength plots.
 
     Arguments:
         qubits:

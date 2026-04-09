@@ -114,7 +114,7 @@ def analysis_workflow(
     amplitudes: QubitSweepPoints,
     options: TuneUpAnalysisWorkflowOptions | None = None,
 ) -> None:
-    """The Time Rabi analysis Workflow.
+    """The Amplitude Rabi Chevron analysis Workflow.
 
     The workflow consists of the following steps:
 
@@ -149,9 +149,9 @@ def analysis_workflow(
         result = analysis_workflow(
             results=results
             qubits=[q0, q1],
-            lengths=[
-                np.linspace(10e-9, 100e-9, 11),
-                np.linspace(10e-9, 100e-9, 11),
+            amplitudes=[
+                np.linspace(0, 1, 11),
+                np.linspace(0, 1, 11),
             ],
             options=options,
         ).run()
@@ -255,7 +255,7 @@ def plot_population(
     processed_data_dict: dict[str, dict[str, ArrayLike]],
     options: PlotPopulationRabiChevronOptions | None = None,
 ) -> dict[str, mpl.figure.Figure]:
-    """Create the time-Rabi plots.
+    """Create the amplitude-Rabi chevron plots.
 
     Arguments:
         qubits:

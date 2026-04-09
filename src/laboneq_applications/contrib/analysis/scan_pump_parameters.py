@@ -3,7 +3,7 @@
 
 """This module defines the analysis for a TWPA tuneup experiment.
 
-The experiment is defined in laboneq_applications.twpa_experiments.
+The experiment is defined in laboneq_applications.contrib.experiments.
 
 In this analysis, we plot the phase diagram of the TWPA,
 sweeping pump frequency (x-axis) and pump power (y-axis) to obtain

@@ -165,13 +165,13 @@ def experiment_workflow(
 @dsl.qubit_experiment
 def create_experiment(
     qpu: QPU,
-    parametric_amplifier: TWPAParameters,
+    parametric_amplifier: TWPA,
     probe_frequency: ArrayLike,
     pump_power: ArrayLike,
     pump_on: bool = False,  # noqa: FBT001, FBT002
     options: TWPASpectroscopyExperimentOptions | None = None,
 ) -> Experiment:
-    """Creates a Phase Diagram Experiment.
+    """Creates a Gain Curve Experiment.
 
     Arguments:
         qpu:

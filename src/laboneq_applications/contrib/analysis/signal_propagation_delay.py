@@ -3,7 +3,7 @@
 
 """This module defines the analysis for a signal propagation delay experiment.
 
-The experiment is defined in laboneq_applications.experiments.
+The experiment is defined in laboneq_applications.contrib.experiments.
 
 In this analysis, we extract the optimum integration delay defined by the maximum of
 the integrated signal. Finally, we plot the data and mark the optimal delay.
@@ -62,7 +62,7 @@ def analysis_workflow(
     delays: QubitSweepPoints,
     options: TuneUpAnalysisWorkflowOptions | None = None,
 ) -> None:
-    """The Amplitude Rabi analysis Workflow.
+    """The Signal Propagation Delay analysis Workflow.
 
     The workflow consists of the following steps:
 

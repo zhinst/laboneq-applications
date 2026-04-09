@@ -59,7 +59,7 @@ def experiment_workflow(
     | None = None,
     options: TuneUpWorkflowOptions | None = None,
 ) -> None:
-    """The Qubit Spectroscopy Workflow.
+    """The Qubit Spectroscopy Amplitude Workflow.
 
     The workflow consists of the following steps:
 

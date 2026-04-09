@@ -146,7 +146,7 @@ def experiment_workflow(
         options.acquisition_type(AcquisitionType.SPECTROSCOPY)
         qpu = QPU(
             quantum_elements=[TunableTransmonQubit("q0"), TunableTransmonQubit("q1")],
-            quantum_operations=SpectroscopyExperimentOptions(),
+            quantum_operations=TunableTransmonOperations(),
         )
         temp_qubits = qpu.copy_quantum_elements()
         result = experiment_workflow(

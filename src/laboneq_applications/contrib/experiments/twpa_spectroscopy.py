@@ -159,11 +159,11 @@ def create_experiment(
             "count": 10,
             "spectroscopy_reset_delay": 3e-6
         }
-        options = TuneupExperimentOptions(**options)
-        setup = DeviceSetup()
+        options = TWPASpectroscopyExperimentOptions(**options)
+        twpa = TWPA("twpa0")
         qpu = QPU(
-            qubits=[TunableTransmonQubit("q0"), TunableTransmonQubit("q1")],
-            quantum_operations=TunableTransmonOperations(),
+            qubits=[twpa],
+            quantum_operations=TWPAOperations(),
         )
         create_experiment(
             qpu=qpu,

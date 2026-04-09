@@ -179,15 +179,15 @@ class ExtractQubitParametersOptions:
 
     Attributes:
         parking_sweet_spot:
-            Specifies which sweet spot to choose for the parking, either `uss` for
-            'lower sweep-spot' or `uss` for 'upper sweep-spot'
+            Specifies which sweet spot to choose for the parking, either `lss` for
+            'lower sweet-spot' or `uss` for 'upper sweet-spot'
             Default: `False`.
     """
 
     parking_sweet_spot: Literal["uss", "lss"] = workflow.option_field(
         default="uss",
         description="Specifies which sweet spot to choose for the qubit parking, "
-        "either `uss` for 'lower sweep-spot' or `uss` for 'upper sweep-spot'. The "
+        "either `lss` for 'lower sweet-spot' or `uss` for 'upper sweet-spot'. The "
         "value of this option determines which parking parameters extracted from the "
         "fit will be used to update the qubit parameter if `update==True` in the "
         "experiment-workflow options.",
@@ -300,7 +300,7 @@ def process_raw_data(
 
     Arguments:
         result:
-            The experiment results returned by the  run_experiment` task.
+            The experiment results returned by the `run_experiment` task.
         qubit:
             The qubit on which to run this task. The UID of this qubit must exist
             in the result.

@@ -188,7 +188,7 @@ def create_experiment(
             qubit or a list of qubits.
         delays:
             The delays to sweep over for each qubit. If `qubits` is a
-            single qubit, `amplitudes` must be a list of numbers or an array. Otherwise
+            single qubit, `delays` must be a list of numbers or an array. Otherwise
             it must be a list of lists of numbers or arrays.
         options:
             The options for building the experiment.

@@ -4,7 +4,7 @@
 """This module defines the analysis for a resonator photon number time resolution
 experiment.
 
-The experiment is defined in laboneq_applications.experiments.
+The experiment is defined in laboneq_applications.contrib.experiments.
 
 In this analysis, we determine the time resolved resonator photon number during
 readout. The photon number is determined by tracking the qubits frequency during

@@ -229,16 +229,16 @@ def create_experiment(
             "spectroscopy_reset_delay": 3e-6
         }
         options = TWPATuneUpExperimentOptions(**options)
-        setup = DeviceSetup()
         pa = TWPA("twpa0")
         qpu = QPU(
             qubits=[pa],
-            quantum_operations=TunableTransmonOperations(),
+            quantum_operations=TWPAOperations(),
         )
         create_experiment(
             qpu=qpu,
             parametric_amplifier=pa,
-            frequencies=np.linspace(7.1e9, 7.6e9, 501),
+            cancel_phase=np.linspace(0, 2 * np.pi, 51),
+            cancel_attenuation=np.linspace(0, 30, 31),
             options=options,
         )
         ```

@@ -3,7 +3,7 @@
 
 """This module defines the time rabi chevron experiment.
 
-In this experiment, we sweep the frequency and the amplitude
+In this experiment, we sweep the frequency and the length
 of the drive pulse.
 
 The time_rabi_chevron experiment has the following pulse sequence:
@@ -58,7 +58,7 @@ def experiment_workflow(
     temporary_parameters: dict[str, dict | QuantumParameters] | None = None,
     options: TuneUpWorkflowOptions | None = None,
 ) -> None:
-    """The Qubit Spectroscopy Workflow.
+    """The Time Rabi Chevron Workflow.
 
     The workflow consists of the following steps:
 
@@ -154,7 +154,7 @@ def create_experiment(
     lengths: QubitSweepPoints,
     options: TuneupExperimentOptions | None = None,
 ) -> Experiment:
-    """Creates a Qubit Spectroscopy Experiment.
+    """Creates a Time Rabi Chevron Experiment.
 
     Arguments:
         qpu:
@@ -182,15 +182,15 @@ def create_experiment(
 
     Raises:
         ValueError:
-            If the qubits, amplitudes, and frequencies are not of the same length.
+            If the qubits, lengths, and frequencies are not of the same length.
 
         ValueError:
-            If amplitudes and frequencies are not a list of numbers when a single
+            If lengths and frequencies are not a list of numbers when a single
             qubit is passed.
 
         ValueError:
             If frequencies is not a list of lists of numbers.
-            If amplitudes is not None or a list of lists of numbers.
+            If lengths is not None or a list of lists of numbers.
 
     Example:
         ```python

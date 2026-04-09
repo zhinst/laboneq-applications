@@ -210,7 +210,7 @@ def create_experiment(
     repetitions: QubitSweepPoints,
     options: TuneupExperimentOptions | None = None,
 ) -> Experiment:
-    """Creates an Amplitude Rabi experiment Workflow.
+    """Creates an Amplitude Fine experiment.
 
     Arguments:
         qpu:

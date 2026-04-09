@@ -3,7 +3,7 @@
 
 """This module defines the analysis for a time rabi chevron experiment.
 
-The experiment is defined in laboneq_applications.experiments.
+The experiment is defined in laboneq_applications.contrib.experiments.
 
 In this analysis, we first interpret the raw data into qubit populations using
 principal component analysis or rotation and projection on the measured calibration
@@ -83,7 +83,7 @@ def analysis_workflow(
     lengths: QubitSweepPoints,
     options: TuneUpAnalysisWorkflowOptions | None = None,
 ) -> None:
-    """The Time Rabi analysis Workflow.
+    """The Time Rabi Chevron analysis Workflow.
 
     The workflow consists of the following steps:
 
@@ -144,7 +144,7 @@ def plot_population(
     processed_data_dict: dict[str, dict[str, ArrayLike]],
     options: PlotPopulationRabiChevronOptions | None = None,
 ) -> dict[str, mpl.figure.Figure]:
-    """Create the time-Rabi plots.
+    """Create the time-Rabi chevron plots.
 
     Arguments:
         qubits:

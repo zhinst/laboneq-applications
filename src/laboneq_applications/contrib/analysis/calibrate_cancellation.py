@@ -3,7 +3,7 @@
 
 """This module defines the analysis for a cancellation tone calibration experiment.
 
-The experiment is defined in laboneq_applications.experiments.
+The experiment is defined in laboneq_applications.contrib.experiments.
 
 In this analysis, we first interpret the raw data into the signal magnitude and phase.
 """

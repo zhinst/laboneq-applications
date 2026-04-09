@@ -232,8 +232,8 @@ def create_experiment(
         temp_qubits = qpu.copy_quantum_elements()
         create_experiment(
             qpu=qpu,
-            qubits=temp_qubits,
-            states="gef"
+            qubit=temp_qubits[0],
+            state="g",
             options=options,
         )
         ```
