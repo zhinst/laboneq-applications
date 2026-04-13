@@ -1,32 +1,14 @@
 # How-to Guides - Superconducting Qubits
 
-The following guides are intended to help you become familiar with how different experiments can be written in LabOne Q. Depending on your specific use case and architecture, you will likely wish to modify these experiments and adapt them to your own use case. Please get in touch at <info@zhinst.com> and we will be happy discuss your application.
-
-
-## Pulse-level Experiments
-
-The pulse-level experiment how-to guides are intended to help you get familiar with writing and using your own pulse sequences in LabOne Q, from tune-up to advanced experiments including:
-
-### Spectroscopy
-
-* [Resonator Spectroscopy](02_pulse_sequences/01_tuneup/01_cw_resonator_spec_shfsg_shfqa_shfqc.ipynb)
-* [Resonator Spectroscopy vs Power](02_pulse_sequences/01_tuneup//03_resonator_spec_vs_power_shfsg_shfqa_shfqc.ipynb)
-
-### Control Pulse Tune-up
-
-* [Rabi](02_pulse_sequences/01_tuneup/06_amplitude_rabi.ipynb)
-* [Ramsey](02_pulse_sequences/01_tuneup/07_ramsey.ipynb)
-
-### Additional Experiments
-
-* [Active Reset](02_pulse_sequences/02_advanced_qubit_experiments/00_active_qubit_reset_shfsg_shfqa_shfqc.ipynb)
-* [Randomized Benchmarking](02_pulse_sequences/02_advanced_qubit_experiments/01_randomized_benchmarking.ipynb)
-
-Look at the navigation to see the full list of available experiments.
+The following guides are intended to help you become familiar with how different 
+experiments can be written in LabOne Q. Depending on your specific use case and architecture, 
+you will likely wish to modify these experiments and adapt them to your own use case. 
+Please get in touch at <info@zhinst.com> and we will be happy to discuss your application.
 
 ## Workflow-based Experiments
 
-These experiments use the new workflow and tasks components included in LabOne Q, along with qubits and quantum operations:
+These experiments use the [Workflow framework](https://docs.zhinst.com/labone_q_user_manual/core/functionality_and_concepts/07_workflow/concepts/index.html) in LabOne Q, 
+along with qubits and quantum operations:
 
 * [Resonator Spectroscopy](01_workflows/01_resonator_spectroscopy.ipynb)
 * [Resonator Spectroscopy DC Bias](01_workflows/02_resonator_spectroscopy_dcbias.ipynb)
@@ -43,6 +25,7 @@ These experiments use the new workflow and tasks components included in LabOne Q
 * [Measurement QNDness](01_workflows/13_qnd_measurement.ipynb)
 * [Time-Resolved Photon Number](01_workflows/14_photon_number_time_resolve.ipynb)
 * [ZZ Coupling Strength with Tunable Couplers](01_workflows/15_zz_coupling.ipynb)
+* [Single-Qubit Randomized Benchmarking](https://docs.zhinst.com/labone_q_user_manual/applications_library/reference/contrib/experiments/single_qubit_randomized_benchmarking.html)
 
 ## Tune-Up Guides
 
@@ -51,3 +34,26 @@ These guides teach you how to tune-up a quantum processor with superconducting q
 * [Qubit Tune-Up](03_tuneup_guides/00_tuneup_qubits.ipynb)
 * [Active Reset](03_tuneup_guides/01_tuneup_active_reset.ipynb)
 * [TWPA Tune-Up](03_tuneup_guides/02_tuneup_twpa.ipynb)
+
+
+## Pulse-level Experiments
+
+The pulse-level experiment how-to guides are intended to help you get familiar with writing 
+and using your own pulse sequences in LabOne Q, from tune-up to advanced experiments including:
+
+### Spectroscopy
+
+* [Resonator Spectroscopy](02_pulse_sequences/01_tuneup/01_cw_resonator_spec_shfsg_shfqa_shfqc.ipynb)
+* [Resonator Spectroscopy vs Power](02_pulse_sequences/01_tuneup/03_resonator_spec_vs_power_shfsg_shfqa_shfqc.ipynb)
+
+### Control Pulse Tune-up
+
+* [Rabi](02_pulse_sequences/01_tuneup/06_amplitude_rabi.ipynb)
+* [Ramsey](02_pulse_sequences/01_tuneup/07_ramsey.ipynb)
+
+### Additional Experiments
+
+* [Active Reset](02_pulse_sequences/02_advanced_qubit_experiments/00_active_qubit_reset_shfsg_shfqa_shfqc.ipynb)
+* [Randomized Benchmarking](../04_qasm/02_RandomizedBenchmarking_from_Qiskit.ipynb)
+
+Look at the navigation to see the full list of available experiments.
