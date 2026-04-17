@@ -19,8 +19,25 @@ if TYPE_CHECKING:
 class WorkflowLogic(AutomationLogic):
     """Workflow decision logic."""
 
-    def run_executable(self, layer: "WorkflowLayer") -> tuple[str, dict]:
-        """Run executable."""
+    def run_executable_core(self, layer: "WorkflowLayer") -> tuple[str | None, dict]:
+        """The core of the `run_executable` method.
+
+        !!! note
+            This is an internal method that is meant to be called via `run_executable`.
+
+        !!! tip
+            Use `WorkflowLayer.target_node_keys` and
+            `WorkflowLayer.target_parameters` instead
+            of `WorkflowLayer.node_keys` and `WorkflowLayer.parameters`, so that
+            optional overrides in `WorkflowAutomation.run_layer` are respected.
+
+        Arguments:
+            layer: The workflow automation layer.
+
+        Returns:
+            new_layer_key: The key of the next layer to be executed.
+            new_params: The dictionary of new automation parameters.
+        """
 
 
 @classformatter
@@ -40,7 +57,7 @@ class AdaptFrequencyRange(WorkflowLogic):
             raise ValueError(f"Value {x} is less than all bucket lower bounds!")
         return s[keys[idx]]
 
-    def run_executable(self, layer: "WorkflowLayer") -> tuple[str, dict]:
+    def run_executable_core(self, layer: "WorkflowLayer") -> tuple[str, dict]:
         """Run adapt frequency range."""
         new_params = {}
         for q in layer.quantum_elements:

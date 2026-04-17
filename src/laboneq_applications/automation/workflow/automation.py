@@ -7,7 +7,6 @@ from __future__ import annotations
 
 import attrs
 from laboneq.automation import Automation
-from laboneq.automation import AutomationStatus as Status
 from laboneq.core.utilities.dsl_dataclass_decorator import classformatter
 from laboneq.dsl import Session
 from laboneq.dsl.quantum import QPU
@@ -34,13 +33,6 @@ class WorkflowAutomation(Automation):
     session: Session
     qpu: QPU | None = None
 
-    def reset(self) -> None:
-        """Reset the automation framework."""
-        super().reset()
-
-        for layer in self.layers():
-            layer.eval_outputs = {}
-
     def sync_auto_params_with_layer_params(self, layer_key: str) -> None:
         """Synchronize the automation parameters with the layer parameters.
 
@@ -53,41 +45,3 @@ class WorkflowAutomation(Automation):
         layer = self.get_layer(layer_key)
         if layer.qpu:
             self.qpu = layer.qpu
-
-    def _run_layer(
-        self,
-        layer_key: str,
-    ) -> tuple[str | None, dict]:
-        """Run the automation layer.
-
-        !!! note
-            This is an internal method that is meant to be called via `run_layer`.
-
-        !!! important
-            When the end of the graph is reached, return the new layer key `None`.
-            The `next_layer_key` method does this automatically.
-
-        Arguments:
-            layer_key: The layer key.
-
-        Returns:
-            new_layer_key: The key of the next layer to be executed.
-            new_params: The dictionary of new automation parameters.
-        """
-        layer = self.get_layer(layer_key)
-
-        if not layer.sequential:
-            layer.run_executable(self)
-        else:
-            combined_results = {}
-            combined_eval_outputs = {}
-
-            for q in layer.quantum_elements:
-                if layer[q].status in Status.active():
-                    result = layer.run_executable(self, quantum_elements=[q])
-                    combined_results |= result
-                    combined_eval_outputs |= layer.eval_outputs
-            layer.workflow_results = combined_results
-            layer.eval_outputs = combined_eval_outputs
-
-        return self.next_layer_key(layer_key), {}

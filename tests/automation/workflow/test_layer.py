@@ -5,7 +5,7 @@
 
 import numpy as np
 import pytest
-from laboneq.automation import AutomationStatus
+from laboneq.automation import AutomationLayerResult, AutomationStatus
 from laboneq.dsl import Session
 from laboneq.dsl.quantum import QPU
 from laboneq.workflow import WorkflowResult
@@ -89,7 +89,6 @@ def layer() -> WorkflowLayer:
 class TestWorkflowLayer:
     def test_create(self, auto, layer):
         assert auto["af1"].qpu is None
-        assert auto["af1"].eval_outputs == {}
         assert isinstance(layer.qpu, QPU)
 
     def test_nodes(self, auto, layer):
@@ -115,6 +114,18 @@ class TestWorkflowLayer:
         assert layer.quantum_elements == ["q0", "q1", "q2", "q3"]
         layer.quantum_elements = ["q0", "q1"]
         assert layer.quantum_elements == ["q0", "q1"]
+
+    def test_active_quantum_elements(self, layer):
+        for node in layer.nodes.values():
+            node.status = AutomationStatus.READY
+        assert layer.active_quantum_elements == ["q0", "q1", "q2", "q3"]
+
+        layer.nodes["q1"].status = AutomationStatus.DEACTIVATED
+        layer.nodes["q3"].status = AutomationStatus.DEACTIVATED_FAIL
+        assert layer.active_quantum_elements == ["q0", "q2"]
+
+        layer.nodes["q0"].status = AutomationStatus.FAILED
+        assert layer.active_quantum_elements == ["q0", "q2"]
 
     def test_workflow_parameters(self, auto):
         assert np.array_equal(
@@ -233,8 +244,11 @@ class TestWorkflowLayer:
             "count": 2048,
             "active_reset": True,
         }
-        workflow_results = auto["af1"].run_executable(auto)
-        assert auto["af1"].workflow_results == workflow_results
+        output = auto["af1"].run_executable(auto)
+        assert output.successes == {}
+        workflow_results = auto["af1"].workflow_results
+        assert list(workflow_results.keys()) == [("q0", "q1", "q2", "q3")]
+        assert isinstance(workflow_results[("q0", "q1", "q2", "q3")], WorkflowResult)
         auto["af1"].workflow_results = {}
         assert auto["af1"].workflow_results == {}
 
@@ -242,7 +256,12 @@ class TestWorkflowLayer:
         auto["af1"].temporary_parameters = {}
         for node in auto["af1"].nodes.values():
             assert node.status == AutomationStatus.READY
-        workflow_results = auto["af1"].run_executable(auto)
+        output = auto["af1"].run_executable(auto)
+        assert output == AutomationLayerResult(
+            results=auto["af1"].workflow_results,
+            successes={"q0": False, "q1": False, "q2": False, "q3": False},
+        )
+        workflow_results = auto["af1"].workflow_results
         for node in auto["af1"].nodes.values():
             assert node.status == AutomationStatus.FAILED
         assert list(workflow_results.keys()) == [("q0", "q1", "q2", "q3")]
@@ -252,26 +271,4 @@ class TestWorkflowLayer:
         ].output == {
             "old_parameter_values": {"q0": {}, "q1": {}, "q2": {}, "q3": {}},
             "new_parameter_values": {"q0": {}, "q1": {}, "q2": {}, "q3": {}},
-        }
-        assert auto["af1"].eval_outputs == {
-            q.uid: {"success": False, "update": False}
-            for q in auto.qpu.quantum_elements
-        }
-
-        auto.reset()
-        for node in auto["af1"].nodes.values():
-            assert node.status == AutomationStatus.READY
-        workflow_results_2 = auto["af1"].run_executable(auto, ["q0", "q1"])
-        assert auto["af1"].nodes["q0"].status == AutomationStatus.FAILED
-        assert auto["af1"].nodes["q1"].status == AutomationStatus.FAILED
-        assert auto["af1"].nodes["q2"].status == AutomationStatus.READY
-        assert auto["af1"].nodes["q3"].status == AutomationStatus.READY
-        assert list(workflow_results_2.keys()) == [("q0", "q1")]
-        assert isinstance(workflow_results_2[("q0", "q1")], WorkflowResult)
-        assert workflow_results_2[("q0", "q1")].tasks["analysis_workflow"].output == {
-            "old_parameter_values": {"q0": {}, "q1": {}},
-            "new_parameter_values": {"q0": {}, "q1": {}},
-        }
-        assert auto["af1"].eval_outputs == {
-            q_uid: {"success": False, "update": False} for q_uid in ["q0", "q1"]
         }

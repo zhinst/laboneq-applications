@@ -9,7 +9,7 @@ from laboneq.dsl import Session
 
 from laboneq_applications.automation import WorkflowAutomation, WorkflowLayer
 from laboneq_applications.automation.workflow.utils import (
-    get_eval_outputs,
+    get_eval_successes,
     group_element_workflow_parameters,
 )
 from laboneq_applications.experiments import qubit_spectroscopy
@@ -103,10 +103,10 @@ class TestUtils:
         )
         assert output["amplitudes"] == [[0.1, 0.2], None]
 
-    def test_get_eval_outputs(self, auto):
-        workflow_results = auto["qs1"].run_executable(auto)
-        eval_outputs = get_eval_outputs(workflow_results)
+    def test_get_eval_successes(self, auto):
+        auto["qs1"].run_executable(auto)
+        eval_successes = get_eval_successes(
+            auto["qs1"].workflow_results[("q0", "q1", "q2", "q3")]
+        )
         for q in auto.qpu.quantum_elements:
-            assert np.array_equal(
-                eval_outputs[q.uid], {"success": True, "update": False}
-            )
+            assert eval_successes[q.uid]

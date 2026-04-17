@@ -8,15 +8,14 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any
 
 import attrs
-from laboneq.automation import AutomationLayer
-from laboneq.automation import AutomationStatus as Status
+from laboneq.automation import AutomationLayer, AutomationLayerResult, NodeKey
 from laboneq.core.utilities.dsl_dataclass_decorator import classformatter
 from laboneq.dsl.quantum import QPU, QuantumParameters
-from laboneq.workflow import WorkflowBuilder, WorkflowResult
+from laboneq.workflow import WorkflowBuilder
 
 from laboneq_applications.automation.workflow.node import WorkflowNode
 from laboneq_applications.automation.workflow.utils import (
-    get_eval_outputs,
+    get_eval_successes,
     group_element_workflow_parameters,
 )
 
@@ -33,14 +32,12 @@ class WorkflowLayer(AutomationLayer):
 
     Attributes:
         qpu: The QPU. By default, the QPU from the `Automation` instance is used.
-        eval_outputs: The layer evaluation outputs.
     """
 
     qpu: QPU | None = None
-    eval_outputs: dict[str, dict[str, bool]] = attrs.field(factory=dict, init=False)
 
     @property
-    def nodes(self) -> dict[str | tuple[str, ...], WorkflowNode]:
+    def nodes(self) -> dict[NodeKey, WorkflowNode]:
         """The node dictionary."""
         for node_key in self.node_keys:
             if node_key not in self._node_lookup:
@@ -74,19 +71,24 @@ class WorkflowLayer(AutomationLayer):
         self.function = value
 
     @property
-    def quantum_elements(self) -> list[str | tuple[str, ...]]:
-        """The quantum elements."""
-        return self.node_keys
+    def quantum_elements(self) -> list[NodeKey]:
+        """The quantum elements, respecting any override and selection."""
+        return self.target_node_keys
 
     @quantum_elements.setter
-    def quantum_elements(self, value: list[str | tuple[str, ...]]) -> None:
+    def quantum_elements(self, value: list[NodeKey]) -> None:
         """The quantum elements setter."""
         self.node_keys = value
 
     @property
+    def active_quantum_elements(self) -> list[NodeKey]:
+        """The active quantum elements, respecting any override and selection."""
+        return self.active_node_keys
+
+    @property
     def workflow_parameters(self) -> dict[str, dict[str, Any]]:
-        """The workflow parameters."""
-        return self.parameters.get("workflow_parameters", {})
+        """The workflow parameters, respecting any override."""
+        return self.target_parameters.get("workflow_parameters", {})
 
     @workflow_parameters.setter
     def workflow_parameters(self, value: dict[str, dict[str, Any]]) -> None:
@@ -95,8 +97,8 @@ class WorkflowLayer(AutomationLayer):
 
     @property
     def element_workflow_parameters(self) -> dict[str, dict[str, Any]]:
-        """The element workflow parameters."""
-        wf_params = self.parameters.get("workflow_parameters", {})
+        """The element workflow parameters, respecting any override."""
+        wf_params = self.target_parameters.get("workflow_parameters", {})
         return {k: v for k, v in wf_params.items() if k != "__common__"}
 
     @element_workflow_parameters.setter
@@ -112,8 +114,10 @@ class WorkflowLayer(AutomationLayer):
 
     @property
     def common_workflow_parameters(self) -> dict[str, Any]:
-        """The common workflow parameters."""
-        return self.parameters.get("workflow_parameters", {}).get("__common__", {})
+        """The common workflow parameters, respecting any override."""
+        return self.target_parameters.get("workflow_parameters", {}).get(
+            "__common__", {}
+        )
 
     @common_workflow_parameters.setter
     def common_workflow_parameters(self, value: dict[str, Any]) -> None:
@@ -122,8 +126,8 @@ class WorkflowLayer(AutomationLayer):
 
     @property
     def evaluation_parameters(self) -> dict[str, Any]:
-        """The evaluation parameters."""
-        return self.parameters.get("evaluation_parameters", {})
+        """The evaluation parameters, respecting any override."""
+        return self.target_parameters.get("evaluation_parameters", {})
 
     @evaluation_parameters.setter
     def evaluation_parameters(self, value: dict[str, Any]) -> None:
@@ -134,8 +138,8 @@ class WorkflowLayer(AutomationLayer):
     def temporary_parameters(
         self,
     ) -> dict[str | tuple[str, str, str], dict | QuantumParameters]:
-        """The temporary parameters."""
-        return self.parameters.get("temporary_parameters", {})
+        """The temporary parameters, respecting any override."""
+        return self.target_parameters.get("temporary_parameters", {})
 
     @temporary_parameters.setter
     def temporary_parameters(
@@ -146,8 +150,8 @@ class WorkflowLayer(AutomationLayer):
 
     @property
     def options(self) -> dict[str, Any]:
-        """The options."""
-        return self.parameters.get("options", {})
+        """The options, respecting any override."""
+        return self.target_parameters.get("options", {})
 
     @options.setter
     def options(self, value: dict[str, Any]) -> None:
@@ -164,56 +168,39 @@ class WorkflowLayer(AutomationLayer):
         """The workflow results setter."""
         self.results = value
 
-    def run_executable(
+    def run_executable_core(
         self,
         auto: WorkflowAutomation,
-        quantum_elements: list[str | tuple[str, ...]] | None = None,
-    ) -> dict[tuple[str, ...], WorkflowResult]:
+    ) -> AutomationLayerResult:
         """Run an experiment workflow.
 
         Arguments:
             auto: The workflow automation instance.
-            quantum_elements: A list of keys of quantum elements to use
-                in the experiment workflow (optional). If no list is provided,
-                then the workflow is run on all quantum elements in the layer.
 
         Returns:
-            A dictionary of workflow results, keyed by quantum elements.
+            The automation layer result.
         """
-        # Prepare quantum elements
-        if quantum_elements is None:
-            quantum_elements = self.quantum_elements
-            storage_key = (
-                f"{auto.timestamp}-{auto.name}",
-                self.key,
-            )
-        else:
+        # Prepare storage key
+        storage_key = (
+            f"{auto.timestamp}-{auto.name}",
+            self.key,
+        )
+        if self.target_node_keys != self.node_keys:
             quantum_elements_string = "_".join(
-                "-".join(map(str, q)) if isinstance(q, tuple) else q
-                for q in quantum_elements
+                q._key_str for q in self.target_nodes.values()
             )
-            storage_key = (
-                f"{auto.timestamp}-{auto.name}",
-                self.key,
-                quantum_elements_string,
-            )
+            storage_key = (*storage_key, quantum_elements_string)
 
-        run_elements = [
-            n.key
-            for n in self.nodes.values()
-            if n.status in Status.active() and n.key in quantum_elements
-        ]
-
-        quantum_elements_tuple = tuple(run_elements)
-
-        if len(run_elements) == 1 and not isinstance(
-            run_elements[0], tuple
-        ):  # the type needs to match workflow parameters
-            run_elements = run_elements[0]
+        # Prepare quantum elements
+        wf_active_quantum_elements = self.active_quantum_elements
+        if len(wf_active_quantum_elements) == 1 and not isinstance(
+            wf_active_quantum_elements[0], tuple
+        ):  # the active quantum elements type needs to match experiment workflows
+            wf_active_quantum_elements = wf_active_quantum_elements[0]
 
         # Prepare workflow parameters
         grouped_element_workflow_parameters = group_element_workflow_parameters(
-            self.element_workflow_parameters, run_elements
+            self.element_workflow_parameters, wf_active_quantum_elements
         )
 
         # Prepare evaluation parameters
@@ -232,7 +219,7 @@ class WorkflowLayer(AutomationLayer):
         workflow = self.workflow_builder(
             auto.session,
             auto.qpu,
-            run_elements,
+            wf_active_quantum_elements,
             **grouped_element_workflow_parameters,
             **self.common_workflow_parameters,
             **evaluation_parameters,
@@ -241,23 +228,13 @@ class WorkflowLayer(AutomationLayer):
         )
         workflow.storage_key = storage_key
 
-        # Set node statuses (pre run)
-        for q in quantum_elements_tuple:
-            node = self.nodes[q]
-            node.status = Status.RUNNING
-
         # Run experiment workflow
         workflow_result = workflow.run()
-        self.workflow_results[quantum_elements_tuple] = workflow_result
 
-        # Get evaluation output
-        self.eval_outputs = get_eval_outputs(self.workflow_results)
-        eval_successes = {k: v["success"] for k, v in self.eval_outputs.items()}
+        self.workflow_results[tuple(self.active_quantum_elements)] = workflow_result
+        eval_successes = get_eval_successes(workflow_result) or {}
 
-        # Set node statuses (post run)
-        for q in quantum_elements_tuple:
-            self.nodes[q].status = (
-                Status.PASSED if eval_successes.get(q, True) else Status.FAILED
-            )
-
-        return {quantum_elements_tuple: workflow_result}
+        return AutomationLayerResult(
+            results={tuple(self.active_quantum_elements): workflow_result},
+            successes=eval_successes,
+        )

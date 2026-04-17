@@ -571,7 +571,9 @@ def plot_qubit_spectroscopy(
         )
 
         if opts.save_figures:
-            workflow.save_artifact(f"Qubit_Spectroscopy_{q.uid}", fig)
+            workflow.save_artifact(
+                f"Qubit_Spectroscopy_{q.uid}", fig, metadata={"qubit_id": q.uid}
+            )
 
         if opts.close_figures:
             plt.close(fig)

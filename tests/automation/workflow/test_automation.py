@@ -252,9 +252,7 @@ def auto(session, qpu, automation_parameters) -> WorkflowAutomation:
 def workflow_parameters() -> dict:
     return {
         "workflow_parameters": {
-            "q0": {
-                "frequencies": np.linspace(6e9, 6.2e9, 101),
-            },
+            "q0": {"frequencies": np.linspace(6e9, 6.2e9, 101)},
             "q1": {"frequencies": np.linspace(6e9, 6.2e9, 101)},
             "q2": {"frequencies": np.linspace(6e9, 6.2e9, 101)},
             "q3": {"frequencies": np.linspace(6e9, 6.2e9, 101)},
@@ -298,10 +296,10 @@ class TestWorkflowAutomation:
         assert auto._layer_lookup == {"root": RootLayer()}
 
         # WorkflowAutomation methods
-        assert hasattr(auto, "_run_layer")
-        method2 = auto._run_layer
+        assert hasattr(auto, "run_layer")
+        method2 = auto.run_layer
         assert callable(method2)
-        assert len(inspect.signature(method2).parameters) == 1
+        assert len(inspect.signature(method2).parameters) == 4
 
     def test_run(
         self,
@@ -409,13 +407,6 @@ class TestWorkflowAutomation:
         output = auto.run_layer("qs1")
         assert isinstance(output, tuple)
         assert len(output) == 2
-        eval_outputs = qs1.eval_outputs
-        assert all(isinstance(k, str) for k in eval_outputs)
-        assert all(isinstance(v, dict) for v in eval_outputs.values())
-        for eval_output in eval_outputs.values():
-            for k, v in eval_output.items():
-                assert isinstance(k, str)
-                assert isinstance(v, bool)
         assert isinstance(qs1.workflow_results, dict)
         assert all(
             isinstance(workflow_result, WorkflowResult)
@@ -434,11 +425,6 @@ class TestWorkflowAutomation:
         output = auto.run_layer("qs1")
         assert isinstance(output, tuple)
         assert len(output) == 2
-        eval_outputs = qs1.eval_outputs
-        assert list(eval_outputs.keys()) == ["q0", "q1", "q2", "q3"]
-        assert all(isinstance(v, dict) for v in eval_outputs.values())
-        for eval_output in eval_outputs.values():
-            assert eval_output == {"success": True, "update": False}
         assert list(qs1.workflow_results.keys()) == [
             (q,) for q in ["q0", "q1", "q2", "q3"]
         ]
@@ -462,11 +448,6 @@ class TestWorkflowAutomation:
         output = auto.run_layer("qs1")
         assert isinstance(output, tuple)
         assert len(output) == 2
-        eval_outputs = qs1.eval_outputs
-        assert list(eval_outputs.keys()) == ["q0", "q1", "q2", "q3"]
-        assert all(isinstance(v, dict) for v in eval_outputs.values())
-        for eval_output in eval_outputs.values():
-            assert eval_output == {"success": True, "update": False}
         assert list(qs1.workflow_results.keys()) == [
             (q,) for q in ["q0", "q1", "q2", "q3"]
         ]
@@ -584,7 +565,6 @@ class TestWorkflowAutomation:
             isinstance(workflow_result, WorkflowResult)
             for workflow_result in layer1.results.values()
         )
-        assert layer1.eval_outputs
         assert auto.get_node("qs2_q0").status == Status.DEACTIVATED_FAIL
         assert auto.get_node("qs1_q1").status == Status.PASSED
         assert auto.get_node("qs1_q1").pass_count == 1
@@ -597,7 +577,6 @@ class TestWorkflowAutomation:
         assert layer1.pass_count == {"q0": 0, "q1": 0, "q2": 0, "q3": 0}
         assert layer1.timestamp == {"q0": None, "q1": None, "q2": None, "q3": None}
         assert not layer1.workflow_results
-        assert not layer1.eval_outputs
         assert auto.get_node("qs2_q0").status == Status.READY
         assert auto.get_node("qs1_q1").status == Status.READY
         assert auto.get_node("qs1_q1").pass_count == 0
@@ -754,10 +733,6 @@ class TestWorkflowAutomation:
             layer1.parameters["workflow_parameters"]["q1"]["delays"],
             np.linspace(2e-5, 5e-5, 50) + 1e-5,
         )
-        assert layer1.eval_outputs == {
-            "q0": {"success": True, "update": False},
-            "q1": {"success": True, "update": False},
-        }
 
     def test_zz_coupling(self, auto):
         qs_layer = WorkflowLayer(

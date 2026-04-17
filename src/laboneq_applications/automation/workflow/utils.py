@@ -7,6 +7,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from laboneq.automation import NodeKey
 from laboneq.workflow import WorkflowResult
 
 
@@ -54,24 +55,24 @@ def group_element_workflow_parameters(
     return grouped_element_workflow_parameters
 
 
-def get_eval_outputs(
-    workflow_results: dict[tuple[str], WorkflowResult],
-) -> dict[str, dict[str, bool]]:
-    """Get the evaluation output dictionary from the workflow results.
+def get_eval_successes(
+    workflow_result: WorkflowResult,
+) -> dict[NodeKey, bool] | None:
+    """Get the evaluation successes from the workflow result.
 
     !!! note
         This is a helper function for `run_executable`.
 
     Arguments:
-        workflow_results: The workflow results.
+        workflow_result: The workflow result.
 
     Returns:
-        The evaluation output.
+        The evaluation successes.
     """
-    eval_outputs = {}
-    for workflow_result in workflow_results.values():
-        task_list = [t.name for t in workflow_result.tasks]
-        if "evaluate_experiment" in task_list:
-            eval_output = workflow_result.tasks["evaluate_experiment"].output
-            eval_outputs.update(eval_output)
-    return eval_outputs
+    task_list = [t.name for t in workflow_result.tasks]
+    if "evaluate_experiment" in task_list:
+        return {
+            k: v["success"]
+            for k, v in workflow_result.tasks["evaluate_experiment"].output.items()
+        }
+    return None
