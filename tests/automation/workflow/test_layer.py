@@ -60,9 +60,7 @@ def auto() -> WorkflowAutomation:
     }
     auto_params = {"af1": af1_params}
 
-    auto = WorkflowAutomation(
-        session, qpu, automation_parameters=auto_params, name="example"
-    )
+    auto = WorkflowAutomation(session, qpu, parameters=auto_params, name="example")
 
     af1 = WorkflowLayer(
         amplitude_fine.experiment_workflow,
@@ -121,7 +119,7 @@ class TestWorkflowLayer:
         assert layer.active_quantum_elements == ["q0", "q1", "q2", "q3"]
 
         layer.nodes["q1"].status = AutomationStatus.DEACTIVATED
-        layer.nodes["q3"].status = AutomationStatus.DEACTIVATED_FAIL
+        layer.nodes["q3"].status = AutomationStatus.DEACTIVATED
         assert layer.active_quantum_elements == ["q0", "q2"]
 
         layer.nodes["q0"].status = AutomationStatus.FAILED
@@ -190,6 +188,16 @@ class TestWorkflowLayer:
             "phase_offset": 0.1,
         }
 
+    def test_common_workflow_parameters_without_existing_workflow_parameters(
+        self, layer
+    ):
+        assert "workflow_parameters" not in layer.parameters
+        layer.common_workflow_parameters = {"amplification_qop": "x180"}
+        assert layer.common_workflow_parameters == {"amplification_qop": "x180"}
+        assert layer.parameters["workflow_parameters"] == {
+            "__common__": {"amplification_qop": "x180"}
+        }
+
     def test_evaluation_parameters(self, auto):
         assert auto["af1"].evaluation_parameters == {
             "fit_r2_thresholds": {q.uid: 0.02 for q in auto.qpu.quantum_elements}
@@ -251,6 +259,58 @@ class TestWorkflowLayer:
         assert isinstance(workflow_results[("q0", "q1", "q2", "q3")], WorkflowResult)
         auto["af1"].workflow_results = {}
         assert auto["af1"].workflow_results == {}
+
+    def test_delete_workflow_parameters(self, auto):
+        del auto["af1"].workflow_parameters
+        assert auto["af1"].workflow_parameters == {}
+        assert "workflow_parameters" not in auto["af1"].parameters
+        with pytest.raises(KeyError):
+            del auto["af1"].workflow_parameters
+
+    def test_delete_element_workflow_parameters(self, auto):
+        qubits = auto.qpu.quantum_elements
+        del auto["af1"].element_workflow_parameters
+        assert auto["af1"].element_workflow_parameters == {}
+        assert all(
+            q.uid not in auto["af1"].parameters.get("workflow_parameters", {})
+            for q in qubits
+        )
+        assert auto["af1"].common_workflow_parameters == {
+            "amplification_qop": "x180",
+            "target_angle": 1.0,
+            "phase_offset": 0.0,
+        }
+
+    def test_delete_common_workflow_parameters(self, auto):
+        del auto["af1"].common_workflow_parameters
+        assert auto["af1"].common_workflow_parameters == {}
+        assert "__common__" not in auto["af1"].parameters.get("workflow_parameters", {})
+        assert auto["af1"].element_workflow_parameters == {
+            q.uid: {"repetitions": [1, 2, 3, 4]} for q in auto.qpu.quantum_elements
+        }
+        with pytest.raises(KeyError):
+            del auto["af1"].common_workflow_parameters
+
+    def test_delete_evaluation_parameters(self, auto):
+        del auto["af1"].evaluation_parameters
+        assert auto["af1"].evaluation_parameters == {}
+        assert "evaluation_parameters" not in auto["af1"].parameters
+        with pytest.raises(KeyError):
+            del auto["af1"].evaluation_parameters
+
+    def test_delete_temporary_parameters(self, auto):
+        del auto["af1"].temporary_parameters
+        assert auto["af1"].temporary_parameters == {}
+        assert "temporary_parameters" not in auto["af1"].parameters
+        with pytest.raises(KeyError):
+            del auto["af1"].temporary_parameters
+
+    def test_delete_options(self, auto):
+        del auto["af1"].options
+        assert auto["af1"].options == {}
+        assert "options" not in auto["af1"].parameters
+        with pytest.raises(KeyError):
+            del auto["af1"].options
 
     def test_run_executable(self, auto):
         auto["af1"].temporary_parameters = {}

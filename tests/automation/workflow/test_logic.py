@@ -42,9 +42,7 @@ def auto() -> WorkflowAutomation:
     }
     auto_params = {"qs1": qs1_params, "qs2": qs1_params}
 
-    auto = WorkflowAutomation(
-        session, qpu, automation_parameters=auto_params, name="example"
-    )
+    auto = WorkflowAutomation(session, qpu, parameters=auto_params, name="example")
 
     qs1 = WorkflowLayer(
         qubit_spectroscopy.experiment_workflow,
@@ -80,6 +78,31 @@ class TestAdaptFrequencyRange:
 
         with pytest.raises(ValueError, match="less than all bucket lower bounds"):
             AdaptFrequencyRange.get_bucket_value(s, -1)
+
+    def test_run_executable_sequential(self, auto):
+        auto["qs1"].sequential = True
+        auto.run_layer("qs1")
+        freq_logic = AdaptFrequencyRange(
+            new_layer_key="qs2",
+            range_thresholds=RANGE_THRESHOLDS,
+        )
+        next_key, updates = freq_logic.run_executable(auto["qs1"])
+
+        assert next_key == "qs2"
+        new_params = updates["workflow_parameters"]
+
+        freqs_q0 = auto["qs1"].workflow_parameters["q0"]["frequencies"]
+        freqs_q1 = auto["qs1"].workflow_parameters["q1"]["frequencies"]
+
+        # q0: range 500 MHz, multiplier 1.3
+        midpoint_q0 = (max(freqs_q0) + min(freqs_q0)) / 2
+        expected_q0 = (freqs_q0 - midpoint_q0) * 1.3 + midpoint_q0
+        np.testing.assert_allclose(new_params["q0"]["frequencies"], expected_q0)
+
+        # q1: range 200 MHz, multiplier 1.2
+        midpoint_q1 = (max(freqs_q1) + min(freqs_q1)) / 2
+        expected_q1 = (freqs_q1 - midpoint_q1) * 1.2 + midpoint_q1
+        np.testing.assert_allclose(new_params["q1"]["frequencies"], expected_q1)
 
     def test_run_executable(self, auto):
         auto.run_layer("qs1")

@@ -38,9 +38,7 @@ def auto() -> WorkflowAutomation:
     }
     auto_params = {"qs1": qs1_params}
 
-    auto = WorkflowAutomation(
-        session, qpu, automation_parameters=auto_params, name="example"
-    )
+    auto = WorkflowAutomation(session, qpu, parameters=auto_params, name="example")
 
     af1 = WorkflowLayer(
         qubit_spectroscopy.experiment_workflow,
