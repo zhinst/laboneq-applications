@@ -14,6 +14,7 @@ nav:
       - Qubits and Quantum Operations: tutorials/sources/quantum_operations.ipynb
       - Writing an Experiment Workflow: tutorials/sources/writing_experiments.ipynb
       - Logbooks: tutorials/sources/logbooks.ipynb
+      - Experiment Workflow Automation: tutorials/sources/experiment_workflow_automation.ipynb
     - How-to Guides:
         - how-to-guides/index.md
         - Superconducting Qubits:

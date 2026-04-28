@@ -23,7 +23,7 @@ show you how they make use of the qubit parameters to implement qubit gates.
 ## Writing New Experiment Workflows
 
 [This tutorial](sources/writing_experiments.ipynb) teaches you how to write new experiment workflows
-like the ones made provided by the Applications Library.
+like the ones provided by the Applications Library.
 
 ## Logbooks
 
@@ -32,6 +32,9 @@ The logbook store defines where a workflow will store the inputs and
 results of its tasks. For example, in a folder on disk. The store may also be
 used to retrieve data and to store your own data.
 
+## Experiment Workflow Automation
+
+[This tutorial](sources/experiment_workflow_automation.ipynb) explains how to use the LabOne Q Automation framework together with experiment workflows.
 
 > **_NOTE:_** Most of the examples are generated from Jupyter Notebook files and the source
 can be downloaded on each page by pressing the download button at the top right corner
