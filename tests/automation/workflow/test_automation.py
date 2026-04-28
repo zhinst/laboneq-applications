@@ -244,7 +244,7 @@ def automation_parameters() -> dict:
 @pytest.fixture
 def auto(session, qpu, automation_parameters) -> WorkflowAutomation:
     return WorkflowAutomation(
-        session, qpu=qpu, automation_parameters=automation_parameters, name="test"
+        session, qpu=qpu, parameters=automation_parameters, name="test"
     )
 
 
@@ -283,10 +283,11 @@ def amplitude_fine_workflow() -> WorkflowBuilder:
 class TestWorkflowAutomation:
     def test_create(self, session, qpu, automation_parameters):
         auto = WorkflowAutomation(
-            session, qpu, automation_parameters=automation_parameters, name="test"
+            session, qpu, parameters=automation_parameters, name="test"
         )
         assert auto.name == "test"
-        assert auto.automation_parameters == automation_parameters
+        assert auto._parameters is not automation_parameters
+        assert auto._parameters.keys() == automation_parameters.keys()
         assert auto.session == session
         assert auto.qpu == qpu
         assert isinstance(auto.timestamp, str)
@@ -299,7 +300,7 @@ class TestWorkflowAutomation:
         assert hasattr(auto, "run_layer")
         method2 = auto.run_layer
         assert callable(method2)
-        assert len(inspect.signature(method2).parameters) == 4
+        assert len(inspect.signature(method2).parameters) == 3
 
     def test_run(
         self,
@@ -371,7 +372,7 @@ class TestWorkflowAutomation:
 
         # Assert status of layers after runing
         assert qs1.status == Status.PASSED
-        assert qs2.status == Status.PASSED
+        assert qs2.status == Status.FAILED
         assert r1.status == Status.PASSED
         assert r2.status == Status.PASSED
         assert qs3.status == Status.DEACTIVATED
@@ -379,7 +380,7 @@ class TestWorkflowAutomation:
         # Assert status of nodes after running
         assert [n.status for n in qs1.nodes.values()] == [Status.PASSED] * 4
         assert [n.status for n in qs2.nodes.values()] == [
-            Status.DEACTIVATED_FAIL,
+            Status.FAILED,
             Status.PASSED,
             Status.PASSED,
             Status.PASSED,
@@ -565,7 +566,7 @@ class TestWorkflowAutomation:
             isinstance(workflow_result, WorkflowResult)
             for workflow_result in layer1.results.values()
         )
-        assert auto.get_node("qs2_q0").status == Status.DEACTIVATED_FAIL
+        assert auto.get_node("qs2_q0").status == Status.FAILED
         assert auto.get_node("qs1_q1").status == Status.PASSED
         assert auto.get_node("qs1_q1").pass_count == 1
         assert auto.get_node("qs2_q0").fail_count == 1

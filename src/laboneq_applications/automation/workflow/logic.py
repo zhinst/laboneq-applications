@@ -4,6 +4,7 @@
 """The workflow automation logic."""
 
 import bisect
+from abc import abstractmethod
 from typing import TYPE_CHECKING
 
 import attrs
@@ -19,6 +20,7 @@ if TYPE_CHECKING:
 class WorkflowLogic(AutomationLogic):
     """Workflow decision logic."""
 
+    @abstractmethod
     def run_executable_core(self, layer: "WorkflowLayer") -> tuple[str | None, dict]:
         """The core of the `run_executable` method.
 
@@ -63,7 +65,7 @@ class AdaptFrequencyRange(WorkflowLogic):
         for q in layer.quantum_elements:
             new_params[q] = {}
             frequencies = (
-                next(iter(layer.workflow_results.values()))
+                next(r for key, r in layer.workflow_results.items() if q in key)
                 .output.data[q]
                 .result.axis[0]
             )
