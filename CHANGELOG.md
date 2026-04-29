@@ -1,3 +1,22 @@
+# laboneq_applications 26.4.0 (2026-04-30)
+
+## Features
+
+- Released the LabOne Q Workflow Automation framework and added a [tutorial](https://docs.zhinst.com/labone_q_user_manual/applications_library/tutorials/sources/experiment_workflow_automation.html). (QRL-551)
+
+
+## Documentation
+
+- Added a new section to the \[Experiment Workflows tutorial](https://docs.zhinst.com/labone\_q\_user\_manual/applications\_library/tutorials/sources/experiment\_workflows.html) in the Applications Library explaining how to run an experiment workflow on previously measured results saved locally as JSON files.
+- Fixed incorrect docstrings across experiment and analysis modules where workflow names, parameter references, module paths, and code examples had drifted out of sync with the code.
+- Updated the How-to Guides landing page in the User's manual to show the experiment workflows before the pulse sequence guides. Also added a link to the single-qubit randomized benchmarking experiment workflow documentation.
+
+## Developer
+
+- Configured renovate to add @skip-changelog-check statement at the beginning of the MR description.
+  Developers are recommended to also add this statement in the beginning.
+
+
 # laboneq_applications 26.4.0b5 (2026-04-09)
 
 ## Bug Fixes
