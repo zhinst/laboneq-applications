@@ -1,3 +1,13 @@
+# laboneq_applications 26.7.0b1 (2026-05-06)
+
+## Developer
+
+- CI pipelines now pick the latest builds from `main` or `release-X.Y` branches of
+  laboneq that match the version within laboneq-applications commit (only
+  MAJOR.MINOR.PATCH part). Note that `release-X.Y` branch builds will take precedence.
+- Resolve sign for precomputed integration kernels in test fixtures (zhinst-utils update)
+
+
 # laboneq_applications 26.4.0 (2026-04-30)
 
 ## Features
