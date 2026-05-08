@@ -1,4 +1,4 @@
-# laboneq_applications 26.7.0b1 (2026-05-06)
+# laboneq_applications 26.7.0b1 (2026-05-08)
 
 ## Developer
 
