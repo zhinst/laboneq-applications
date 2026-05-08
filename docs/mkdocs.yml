@@ -200,6 +200,9 @@ plugins:
         # Exclude API references
         - "*#laboneq.*"
         - "*#laboneq_applications.*"
+      500:
+        # Exclude DOI resolvers
+        - "https://doi.org/*"
   zhinst-standalone:
     projects:
       - laboneq/laboneq
