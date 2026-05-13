@@ -4,27 +4,26 @@
     - linux
     - docker
   variables:
-    USE_LABONEQ_MAIN: "true"
+    ALLOW_INTERNAL_LABONEQ_BUILDS: "true"
     MPLBACKEND: "AGG"
     UV_NO_SYNC: "1" # don't implicitly sync during "uv run"
     ZIPYPI_INDEX_URL: "https://artifactory.zhinst.com/artifactory/api/pypi/ZIPyPI/simple"
   before_script:
     - |
-      if [[ $USE_LABONEQ_MAIN == "true" ]]; then
-        # WARNING: We rely on:
-        # * LabOne Q releases builds from the `main` branch as `.dev` versions to ZIPyPI.
-        # * LabOne Q releases builds from the `release-*` branches as alpha versions to ZIPyPI.
-        # * When this job runs, it will pick latest of .dev or alpha laboneq (alpha has precedence)
-        #   versions.
-        # This achieves:
-        # * Test laboneq-applications non-release branches against laboneq main
-        # * Test laboneq-applications release branches against laboneq release branches
-        # **as long as** release branches are created on two projects are
-        # created simultaneously **and** versions are bumped simultaneously.
-        CURRENT_DEV_VERSION="$(uv version --short)"
-        UPCOMING_BETA_VERSIONS="${CURRENT_DEV_VERSION%.dev*}b"
-        uv sync --prerelease=if-necessary-or-explicit --upgrade-package "laboneq>=$CURRENT_DEV_VERSION,<$UPCOMING_BETA_VERSIONS" \
-                --index=https://artifactory.zhinst.com/artifactory/api/pypi/ZIPyPI/simple
+      if [[ $ALLOW_INTERNAL_LABONEQ_BUILDS == "true" ]]; then
+        BASE_VERSION="$(uv version --short)"
+        BASE_VERSION="${BASE_VERSION%.dev*}"
+        # We assume that all release branch names start with "release-"
+        if [[ "$CI_COMMIT_REF_NAME" =~ ^release- ]]; then
+          PRERELEASE_TARGET="a0"
+          PRERELEASE_UPPER="b0"
+        else
+          PRERELEASE_TARGET=".dev0"
+          PRERELEASE_UPPER="a0"
+        fi
+        uv sync --prerelease=if-necessary-or-explicit \
+                --upgrade-package "laboneq>=${BASE_VERSION}${PRERELEASE_TARGET},<${BASE_VERSION}${PRERELEASE_UPPER}" \
+                --index=$ZIPYPI_INDEX_URL
       else
         uv lock --upgrade-package laboneq --prerelease allow
         uv sync
@@ -58,7 +57,7 @@ test:python-3.10:laboneq-release:
   extends: ".template_test"
   variables:
     UV_PYTHON: "3.10"
-    USE_LABONEQ_MAIN: "false"
+    ALLOW_INTERNAL_LABONEQ_BUILDS: "false"
   allow_failure: true
 
 test:coverage:
