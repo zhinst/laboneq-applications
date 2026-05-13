@@ -64,12 +64,13 @@ class TestDemoPlatform:
         base_lo_frequency = int(6.4e9)
         max_lo_frequency = int(8.4e9)
         lo_frequency_grid = int(2e8)
+        group_size = 20
         distinguishable_qubits = (
-            (max_lo_frequency - base_lo_frequency) // lo_frequency_grid * 2
+            (max_lo_frequency - base_lo_frequency) // lo_frequency_grid * group_size
         )
 
         assert drive_lo_frequencies[:distinguishable_qubits] == [
-            int((6.4 + (i // 2) * 0.2) * 1e9)
+            int((6.4 + (i // group_size) * 0.2) * 1e9)
             for i in range(min(distinguishable_qubits, num_qubits))
         ]
 

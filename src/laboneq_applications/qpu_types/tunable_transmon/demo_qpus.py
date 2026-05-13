@@ -260,10 +260,11 @@ def tunable_transmon_qubits(
             f"q{i}",
             setup.logical_signal_groups[f"q{i}"],
             parameters=TunableTransmonQubitParameters(
-                # A pair of neighbor qubits share the same LO frequency
+                # Groups of qubits share the same LO frequency.
+                # The LO advances in 200 MHz steps (SHF hardware constraint).
                 # Convert to integer, otherwise some configurations
                 #   may encounter issues with LabOne Q compiler
-                drive_lo_frequency=int(q_param(i // 2, 6.4, 1e9, dq=0.2, max_=8.4e9)),
+                drive_lo_frequency=int(q_param(i // 20, 6.4, 1e9, dq=0.2, max_=8.4e9)),
                 resonance_frequency_ge=q_param(i, 6.5, 1e9),
                 resonance_frequency_ef=q_param(i, 6.3, 1e9),
                 readout_lo_frequency=7e9,
