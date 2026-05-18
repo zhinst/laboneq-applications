@@ -51,7 +51,7 @@ if TYPE_CHECKING:
 def experiment_workflow(
     session: Session,
     qpu: QPU,
-    qubit: QuantumElement | str,
+    qubit: str,
     *,
     frequencies: ArrayLike,
     amplitudes: ArrayLike,
@@ -68,14 +68,14 @@ def experiment_workflow(
     - [run_experiment]()
     - [analysis_workflow]()
 
+    !!! version-removed "Removed in version 26.7.0."
+        The `qubit` argument of type `QuantumElement` has been removed.
+        Please pass `qubit` of type `str` instead, i.e., the quantum
+        element UID instead of the quantum element instance.
+
     !!! version-changed "Changed in version 26.4.0."
         All arguments apart from `session`, `qpu`, and `qubits` are now keyword
         arguments.
-
-    !!! version-changed "Deprecated in version 26.1.0."
-        The `qubit` argument of type `QuantumElement` is deprecated.
-        Please pass `qubit` of type `str` instead, i.e., the quantum
-        element UID instead of the quantum element instance.
 
     Arguments:
         session:
@@ -114,11 +114,10 @@ def experiment_workflow(
             quantum_elements=[TunableTransmonQubit("q0"), TunableTransmonQubit("q1")],
             quantum_operations=TunableTransmonOperations(),
         )
-        temp_qubits = qpu.copy_quantum_elements()
         result = run(
             session=session,
             qpu=qpu,
-            qubit=temp_qubits[0],
+            qubit="q0",
             frequencies=np.linspace(7.1e9, 7.6e9, 501),
             amplitudes=np.linspace(0.1, 1, 10),
             options=options,
@@ -200,10 +199,9 @@ def create_experiment(
             quantum_elements=[TunableTransmonQubit("q0"), TunableTransmonQubit("q1")],
             quantum_operations=TunableTransmonOperations(),
         )
-        temp_qubits = qpu.copy_quantum_elements()
         create_experiment(
             qpu=qpu,
-            qubit=temp_qubits[0],
+            qubit="q0",
             frequencies=np.linspace(7.1e9, 7.6e9, 501),
             amplitudes=np.linspace(0.1, 1, 10),
             options=options,

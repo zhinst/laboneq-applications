@@ -47,7 +47,7 @@ class TestTemporaryParameters:
         result_unmodified = amplitude_fine.experiment_workflow(
             session=session,
             qpu=qpu,
-            qubits=[qubits[0], qubits[1]],
+            qubits=[qubits[0].uid, qubits[1].uid],
             amplification_qop="x180",
             target_angle=1.0,
             phase_offset=0.0,
@@ -57,7 +57,7 @@ class TestTemporaryParameters:
         result_modified = amplitude_fine.experiment_workflow(
             session=session,
             qpu=qpu,
-            qubits=[qubits[0], qubits[1]],
+            qubits=[qubits[0].uid, qubits[1].uid],
             temporary_parameters={
                 qubits[0].uid: temporary_parameters_q0,
                 "q1": {"readout_lo_frequency": 8e9},
@@ -102,14 +102,14 @@ class TestTemporaryParameters:
         result_unmodified = amplitude_rabi.experiment_workflow(
             session=session,
             qpu=qpu,
-            qubits=[qubits[0], qubits[1]],
+            qubits=[qubits[0].uid, qubits[1].uid],
             amplitudes=[np.linspace(0, 1, 11), np.linspace(0, 0.75, 11)],
         ).run(until="create_experiment")
 
         result_modified = amplitude_rabi.experiment_workflow(
             session=session,
             qpu=qpu,
-            qubits=[qubits[0], qubits[1]],
+            qubits=[qubits[0].uid, qubits[1].uid],
             temporary_parameters={
                 qubits[0].uid: temporary_parameters_q0,
                 "q1": {"readout_lo_frequency": 8e9},
@@ -151,7 +151,7 @@ class TestTemporaryParameters:
         result_unmodified = dispersive_shift.experiment_workflow(
             session=session,
             qpu=qpu,
-            qubit=qubits[0],
+            qubit=qubits[0].uid,
             frequencies=np.linspace(1.8e9, 2.2e9, 101),
             states="ge",
         ).run(until="create_experiment")
@@ -159,7 +159,7 @@ class TestTemporaryParameters:
         result_modified = dispersive_shift.experiment_workflow(
             session=session,
             qpu=qpu,
-            qubit=qubits[0],
+            qubit=qubits[0].uid,
             temporary_parameters={
                 qubits[0].uid: temporary_parameters_q0,
             },  # pass temporary parameters
@@ -189,7 +189,7 @@ class TestTemporaryParameters:
         result_unmodified = drag_q_scaling.experiment_workflow(
             session=session,
             qpu=qpu,
-            qubits=[qubits[0], qubits[1]],
+            qubits=[qubits[0].uid, qubits[1].uid],
             q_scalings=[
                 np.linspace(-0.05, 0.05, 11),
                 np.linspace(-0.04, 0.04, 11),
@@ -199,7 +199,7 @@ class TestTemporaryParameters:
         result_modified = drag_q_scaling.experiment_workflow(
             session=session,
             qpu=qpu,
-            qubits=[qubits[0], qubits[1]],
+            qubits=[qubits[0].uid, qubits[1].uid],
             temporary_parameters={
                 qubits[0].uid: temporary_parameters_q0,
                 "q1": {"readout_lo_frequency": 8e9},
@@ -244,14 +244,14 @@ class TestTemporaryParameters:
         result_unmodified = echo.experiment_workflow(
             session=session,
             qpu=qpu,
-            qubits=[qubits[0], qubits[1]],
+            qubits=[qubits[0].uid, qubits[1].uid],
             delays=[np.linspace(0, 30e-6, 51), np.linspace(0, 30e-6, 51)],
         ).run(until="create_experiment")
 
         result_modified = echo.experiment_workflow(
             session=session,
             qpu=qpu,
-            qubits=[qubits[0], qubits[1]],
+            qubits=[qubits[0].uid, qubits[1].uid],
             temporary_parameters={
                 qubits[0].uid: temporary_parameters_q0,
                 "q1": {"readout_lo_frequency": 8e9},
@@ -293,14 +293,14 @@ class TestTemporaryParameters:
         result_unmodified = iq_blobs.experiment_workflow(
             session=session,
             qpu=qpu,
-            qubits=[qubits[0], qubits[1]],
+            qubits=[qubits[0].uid, qubits[1].uid],
             states="ge",
         ).run(until="create_experiment")
 
         result_modified = iq_blobs.experiment_workflow(
             session=session,
             qpu=qpu,
-            qubits=[qubits[0], qubits[1]],
+            qubits=[qubits[0].uid, qubits[1].uid],
             temporary_parameters={
                 qubits[0].uid: temporary_parameters_q0,
                 "q1": {"readout_lo_frequency": 8e9},
@@ -342,14 +342,14 @@ class TestTemporaryParameters:
         result_unmodified = lifetime_measurement.experiment_workflow(
             session=session,
             qpu=qpu,
-            qubits=[qubits[0], qubits[1]],
+            qubits=[qubits[0].uid, qubits[1].uid],
             delays=[[10e-9, 50e-9, 1], [10e-9, 50e-9, 1]],
         ).run(until="create_experiment")
 
         result_modified = lifetime_measurement.experiment_workflow(
             session=session,
             qpu=qpu,
-            qubits=[qubits[0], qubits[1]],
+            qubits=[qubits[0].uid, qubits[1].uid],
             temporary_parameters={
                 qubits[0].uid: temporary_parameters_q0,
                 "q1": {"readout_lo_frequency": 8e9},
@@ -391,7 +391,7 @@ class TestTemporaryParameters:
         result_unmodified = qubit_spectroscopy.experiment_workflow(
             session=session,
             qpu=qpu,
-            qubits=[qubits[0], qubits[1]],
+            qubits=[qubits[0].uid, qubits[1].uid],
             frequencies=[
                 np.linspace(6.0e9, 6.3e9, 101),
                 np.linspace(5.8e9, 6.2e9, 101),
@@ -401,7 +401,7 @@ class TestTemporaryParameters:
         result_modified = qubit_spectroscopy.experiment_workflow(
             session=session,
             qpu=qpu,
-            qubits=[qubits[0], qubits[1]],
+            qubits=[qubits[0].uid, qubits[1].uid],
             temporary_parameters={
                 qubits[0].uid: temporary_parameters_q0,
                 "q1": {"readout_lo_frequency": 8e9},
@@ -446,7 +446,7 @@ class TestTemporaryParameters:
         result_unmodified = qubit_spectroscopy_amplitude.experiment_workflow(
             session=session,
             qpu=qpu,
-            qubits=[qubits[0], qubits[1]],
+            qubits=[qubits[0].uid, qubits[1].uid],
             frequencies=[
                 np.linspace(5.8e9, 6.2e9, 101),
                 np.linspace(0.8e9, 1.2e9, 101),
@@ -457,7 +457,7 @@ class TestTemporaryParameters:
         result_modified = qubit_spectroscopy_amplitude.experiment_workflow(
             session=session,
             qpu=qpu,
-            qubits=[qubits[0], qubits[1]],
+            qubits=[qubits[0].uid, qubits[1].uid],
             temporary_parameters={
                 qubits[0].uid: temporary_parameters_q0,
                 "q1": {"readout_lo_frequency": 8e9},
@@ -503,7 +503,7 @@ class TestTemporaryParameters:
         result_unmodified = ramsey.experiment_workflow(
             session=session,
             qpu=qpu,
-            qubits=[qubits[0], qubits[1]],
+            qubits=[qubits[0].uid, qubits[1].uid],
             delays=[np.linspace(0, 20e-6, 51), np.linspace(0, 20e-6, 51)],
             detunings=[0.67e6, 0.67e6],
         ).run(until="create_experiment")
@@ -511,7 +511,7 @@ class TestTemporaryParameters:
         result_modified = ramsey.experiment_workflow(
             session=session,
             qpu=qpu,
-            qubits=[qubits[0], qubits[1]],
+            qubits=[qubits[0].uid, qubits[1].uid],
             temporary_parameters={
                 qubits[0].uid: temporary_parameters_q0,
                 "q1": {"readout_lo_frequency": 8e9},
@@ -554,14 +554,14 @@ class TestTemporaryParameters:
         result_unmodified = resonator_spectroscopy.experiment_workflow(
             session=session,
             qpu=qpu,
-            qubit=qubits[0],
+            qubit=qubits[0].uid,
             frequencies=np.linspace(7.1e9, 7.6e9, 501),
         ).run(until="create_experiment")
 
         result_modified = resonator_spectroscopy.experiment_workflow(
             session=session,
             qpu=qpu,
-            qubit=qubits[0],
+            qubit=qubits[0].uid,
             temporary_parameters={
                 qubits[0].uid: temporary_parameters_q0,
             },  # pass temporary parameters
@@ -590,7 +590,7 @@ class TestTemporaryParameters:
         result_unmodified = resonator_spectroscopy_amplitude.experiment_workflow(
             session=session,
             qpu=qpu,
-            qubit=qubits[0],
+            qubit=qubits[0].uid,
             frequencies=np.linspace(7.1e9, 7.6e9, 501),
             amplitudes=np.linspace(0.1, 1, 10),
         ).run(until="create_experiment")
@@ -598,7 +598,7 @@ class TestTemporaryParameters:
         result_modified = resonator_spectroscopy_amplitude.experiment_workflow(
             session=session,
             qpu=qpu,
-            qubit=qubits[0],
+            qubit=qubits[0].uid,
             temporary_parameters={
                 qubits[0].uid: temporary_parameters_q0,
             },  # pass temporary parameters
@@ -634,7 +634,7 @@ class TestTemporaryParameters:
         result_unmodified = time_traces.experiment_workflow(
             session=session,
             qpu=qpu,
-            qubits=qubits[0],
+            qubits=qubits[0].uid,
             states="gef",
             options=options,
         ).run(until="create_experiment")
@@ -642,7 +642,7 @@ class TestTemporaryParameters:
         result_modified = time_traces.experiment_workflow(
             session=session,
             qpu=qpu,
-            qubits=qubits[0],
+            qubits=qubits[0].uid,
             temporary_parameters={
                 qubits[0].uid: temporary_parameters_q0,
             },  # pass temporary parameters

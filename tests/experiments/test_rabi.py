@@ -144,7 +144,7 @@ class TestWorkflow:
         result = amplitude_rabi.experiment_workflow(
             session=single_tunable_transmon_platform.session(do_emulation=True),
             qpu=single_tunable_transmon_platform.qpu,
-            qubits=q0,
+            qubits=q0.uid,
             amplitudes=amplitudes,
             options=options,
         ).run()
@@ -185,7 +185,7 @@ class TestWorkflow:
         result = amplitude_rabi.experiment_workflow(
             session=single_tunable_transmon_platform.session(do_emulation=True),
             qpu=single_tunable_transmon_platform.qpu,
-            qubits=q0,
+            qubits=q0.uid,
             amplitudes=amplitudes,
             options=options,
         ).run()
@@ -203,7 +203,7 @@ class TestWorkflow:
         result = amplitude_rabi.experiment_workflow(
             session=single_tunable_transmon_platform.session(do_emulation=True),
             qpu=single_tunable_transmon_platform.qpu,
-            qubits=q0,
+            qubits=q0.uid,
             amplitudes=amplitudes,
             options=options,
         ).run()
@@ -220,7 +220,7 @@ class TestWorkflow:
         result = amplitude_rabi.experiment_workflow(
             session=two_tunable_transmon_platform.session(do_emulation=True),
             qpu=two_tunable_transmon_platform.qpu,
-            qubits=[q0, q1],
+            qubits=[q0.uid, q1.uid],
             amplitudes=amplitudes,
             options=options,
         ).run()

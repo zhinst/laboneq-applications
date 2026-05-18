@@ -85,6 +85,7 @@ def _check_generated_files_root(request: pytest.FixtureRequest):
             )
             pytest.fail(msg)
 
+
 @pytest.fixture(scope="session")
 def msd_sign() -> float:
     return -1.0 if Version(version("zhinst-utils")) >= Version("0.7.2") else 1.0

@@ -71,7 +71,7 @@ class ResonatorPhotonsExperimentOptions:
 def experiment_workflow(
     session: Session,
     qpu: QPU,
-    qubits: QuantumElements | list[str] | str,
+    qubits: list[str] | str,
     *,
     times: QubitSweepPoints,
     frequencies: QubitSweepPoints,
@@ -87,14 +87,14 @@ def experiment_workflow(
     - [run_experiment]()
     - [analysis_workflow]()
 
+    !!! version-removed "Removed in version 26.7.0."
+        The `qubits` argument of type `QuantumElements` has been removed.
+        Please pass `qubits` of type `list[str] | str` instead, i.e., the quantum
+        element UIDs instead of the quantum element instances.
+
     !!! version-changed "Changed in version 26.4.0."
         All arguments apart from `session`, `qpu`, and `qubits` are now keyword
         arguments.
-
-    !!! version-changed "Deprecated in version 26.1.0."
-        The `qubits` argument of type `QuantumElements` is deprecated.
-        Please pass `qubits` of type `list[str] | str` instead, i.e., the quantum
-        element UIDs instead of the quantum element instances.
 
     Arguments:
         session:
@@ -147,7 +147,7 @@ def experiment_workflow(
         result = resonator_photons_time_resolved.experiment_workflow(
             session=session,
             qpu=qpu,
-            qubits=qpu.quantum_elements[0],
+            qubits="q0",
             times=[
                 np.linspace(0, 3e-6, 21),
                 np.linspace(0, 3e-6, 21),

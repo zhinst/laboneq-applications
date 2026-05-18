@@ -13,14 +13,14 @@ class TestTwpaSpectroscopy:
     def test_twpa_spectroscopy(self, single_twpa_platform):
         platform = single_twpa_platform
         qpu = platform.qpu
-        [twpa] = platform.qpu.quantum_elements
+        [twpa] = qpu.quantum_elements
         options = twpa_spectroscopy.experiment_workflow.options()
         options.do_analysis(True)
         session = platform.session(do_emulation=True)
         wf = twpa_spectroscopy.experiment_workflow(
             session=session,
             qpu=qpu,
-            parametric_amplifier=twpa,
+            parametric_amplifier=twpa.uid,
             frequencies=twpa.parameters.probe_frequency
             + np.linspace(-100e6, 100e6, 101),
             options=options,

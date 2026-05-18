@@ -20,9 +20,8 @@ def create_time_traces_verifier(
     count,
 ):
     """Create a CompiledExperimentVerifier for the time trace measurement."""
-    qubits = tunable_transmon_platform.qpu.quantum_elements
-    if len(qubits) == 1:
-        qubits = [qubits[0]]
+    qpu = tunable_transmon_platform.qpu
+    qubit_uids = qpu.quantum_element_uids
     session = tunable_transmon_platform.session(do_emulation=True)
     options = time_traces.experiment_workflow.options()
     options.count(count)
@@ -32,8 +31,8 @@ def create_time_traces_verifier(
     # Run the experiment workflow
     res = time_traces.experiment_workflow(
         session=session,
-        qubits=qubits,
-        qpu=tunable_transmon_platform.qpu,
+        qubits=qubit_uids,
+        qpu=qpu,
         states=states,
         options=options,
     ).run()

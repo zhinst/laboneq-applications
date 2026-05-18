@@ -13,7 +13,8 @@ class TestResonatorPhotonsTimeResolved:
     def test_resonator_photons_time_resolved(self, two_tunable_transmon_platform):
         platform = two_tunable_transmon_platform
         qpu = platform.qpu
-        qubits = platform.qpu.quantum_elements
+        qubits = qpu.quantum_elements
+        qubit_uids = qpu.quantum_element_uids
         options = resonator_photons_time_resolved.experiment_workflow.options()
         options.do_analysis(True)
         session = platform.session(do_emulation=True)
@@ -25,7 +26,7 @@ class TestResonatorPhotonsTimeResolved:
         wf = resonator_photons_time_resolved.experiment_workflow(
             session=session,
             qpu=qpu,
-            qubits=qubits,
+            qubits=qubit_uids,
             times=times,
             frequencies=frequencies,
             options=options,

@@ -60,7 +60,7 @@ if TYPE_CHECKING:
 def experiment_workflow(  # noqa: PLR0913
     session: Session,
     qpu: QPU,
-    qubits: QuantumElements | list[str] | str,
+    qubits: list[str] | str,
     *,
     amplification_qop: str,
     target_angle: float,
@@ -83,15 +83,15 @@ def experiment_workflow(  # noqa: PLR0913
     - [evaluate_experiment]()
     - [update_qpu]()
 
+    !!! version-removed "Removed in version 26.7.0."
+        The `qubits` argument of type `QuantumElements` has been removed.
+        Please pass `qubits` of type `list[str] | str` instead, i.e., the quantum
+        element UIDs instead of the quantum element instances.
+
     !!! version-changed "Changed in version 26.4.0."
         The `evaluation_parameters` argument has been added. This argument replaces the
         `evaluation_parameter`, `evaluation_parameter_thresholds`, and
         `evaluation_fit_r2_thresholds` arguments.
-
-    !!! version-changed "Deprecated in version 26.1.0."
-        The `qubits` argument of type `QuantumElements` is deprecated.
-        Please pass `qubits` of type `list[str] | str` instead, i.e., the quantum
-        element UIDs instead of the quantum element instances.
 
     Arguments:
         session:
@@ -145,11 +145,10 @@ def experiment_workflow(  # noqa: PLR0913
             quantum_elements=TunableTransmonQubit.from_device_setup(setup),
             quantum_operations=TunableTransmonOperations(),
         )
-        temp_qubits = qpu.copy_quantum_elements()
         result = experiment_workflow(
             session=session,
             qpu=qpu,
-            qubits=temp_qubits,
+            qubits=["q0", "q1"],
             amplification_qop='x180',
             target_angle=1.0,
             phase_offset=0.0,
@@ -261,10 +260,9 @@ def create_experiment(
             quantum_elements=TunableTransmonQubit.from_device_setup(setup),
             quantum_operations=TunableTransmonOperations(),
         )
-        temp_qubits = qpu.copy_quantum_elements()
         create_experiment(
             qpu=qpu,
-            qubits=temp_qubits,
+            qubits=["q0", "q1"],
             amplification_qop="x180",
             repetitions=[
                 [1,2,3,4],
@@ -385,7 +383,7 @@ def evaluate_experiment(
 def experiment_workflow_x180(
     session: Session,
     qpu: QPU,
-    qubits: QuantumElements | list[str] | str,
+    qubits: list[str] | str,
     *,
     repetitions: QubitSweepPoints[int],
     evaluation_parameters: dict[str, Any] | None = None,
@@ -402,15 +400,15 @@ def experiment_workflow_x180(
         phase_offset = -np.pi / 2
         parameter_to_update = "drive_amplitude_pi"
 
+    !!! version-removed "Removed in version 26.7.0."
+        The `qubits` argument of type `QuantumElements` has been removed.
+        Please pass `qubits` of type `list[str] | str` instead, i.e., the quantum
+        element UIDs instead of the quantum element instances.
+
     !!! version-changed "Changed in version 26.4.0."
         The `evaluation_parameters` argument has been added, which is the dictionary of
         parameters used for the newly added evaluation task. All arguments apart from
         `session`, `qpu`, and `qubits` are now keyword arguments.
-
-    !!! version-changed "Deprecated in version 26.1.0."
-        The `qubits` argument of type `QuantumElements` is deprecated.
-        Please pass `qubits` of type `list[str] | str` instead, i.e., the quantum
-        element UIDs instead of the quantum element instances.
 
     Arguments:
         session:
@@ -453,11 +451,10 @@ def experiment_workflow_x180(
             quantum_elements=TunableTransmonQubit.from_device_setup(setup),
             quantum_operations=TunableTransmonOperations(),
         )
-        temp_qubits = qpu.copy_quantum_elements()
         result = experiment_workflow_x180(
             session=session,
             qpu=qpu,
-            qubits=temp_qubits,
+            qubits=["q0", "q1"],
             repetitions=[
                 [1,2,3,4],
                 [1,2,3,4],
@@ -515,7 +512,7 @@ def experiment_workflow_x180(
 def experiment_workflow_x90(
     session: Session,
     qpu: QPU,
-    qubits: QuantumElements | list[str] | str,
+    qubits: list[str] | str,
     *,
     repetitions: QubitSweepPoints[int],
     evaluation_parameters: dict[str, Any] | None = None,
@@ -532,15 +529,15 @@ def experiment_workflow_x90(
         phase_offset = -np.pi / 2
         parameter_to_update = "drive_amplitude_pi2"
 
+    !!! version-removed "Removed in version 26.7.0."
+        The `qubits` argument of type `QuantumElements` has been removed.
+        Please pass `qubits` of type `list[str] | str` instead, i.e., the quantum
+        element UIDs instead of the quantum element instances.
+
     !!! version-changed "Changed in version 26.4.0."
         The `evaluation_parameters` argument has been added, which is the dictionary of
         parameters used for the newly added evaluation task. All arguments apart from
         `session`, `qpu`, and `qubits` are now keyword arguments.
-
-    !!! version-changed "Deprecated in version 26.1.0."
-        The `qubits` argument of type `QuantumElements` is deprecated.
-        Please pass `qubits` of type `list[str] | str` instead, i.e., the quantum
-        element UIDs instead of the quantum element instances.
 
     Arguments:
         session:
@@ -583,11 +580,10 @@ def experiment_workflow_x90(
             quantum_elements=TunableTransmonQubit.from_device_setup(setup),
             quantum_operations=TunableTransmonOperations(),
         )
-        temp_qubits = qpu.copy_quantum_elements()
         result = experiment_workflow_x90(
             session=session,
             qpu=qpu,
-            qubits=temp_qubits,
+            qubits=["q0", "q1"],
             repetitions=[
                 [1,2,3,4],
                 [1,2,3,4],

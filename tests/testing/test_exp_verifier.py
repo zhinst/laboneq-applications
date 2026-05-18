@@ -42,7 +42,7 @@ def rabi_compiled(single_tunable_transmon_platform):
     options.do_analysis(value=False)  # TODO: fix tests to work with do_analysis=True
     res = amplitude_rabi.experiment_workflow(
         session=session,
-        qubits=q0,
+        qubits=q0.uid,
         qpu=single_tunable_transmon_platform.qpu,
         amplitudes=amplitudes,
         options=options,

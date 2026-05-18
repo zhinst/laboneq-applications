@@ -80,7 +80,7 @@ class IQBlobExperimentWorkflowOptions:
 def experiment_workflow(
     session: Session,
     qpu: QPU,
-    qubits: QuantumElements | list[str] | str,
+    qubits: list[str] | str,
     *,
     states: Sequence[str],
     temporary_parameters: dict[str | tuple[str, str, str], dict | QuantumParameters]
@@ -96,14 +96,14 @@ def experiment_workflow(
     - [run_experiment]()
     - [analysis_workflow]()
 
+    !!! version-removed "Removed in version 26.7.0."
+        The `qubits` argument of type `QuantumElements` has been removed.
+        Please pass `qubits` of type `list[str] | str` instead, i.e., the quantum
+        element UIDs instead of the quantum element instances.
+
     !!! version-changed "Changed in version 26.4.0."
         All arguments apart from `session`, `qpu`, and `qubits` are now keyword
         arguments.
-
-    !!! version-changed "Deprecated in version 26.1.0."
-        The `qubits` argument of type `QuantumElements` is deprecated.
-        Please pass `qubits` of type `list[str] | str` instead, i.e., the quantum
-        element UIDs instead of the quantum element instances.
 
     Arguments:
         session:
@@ -136,11 +136,10 @@ def experiment_workflow(
             quantum_elements=[TunableTransmonQubit("q0"), TunableTransmonQubit("q1")],
             quantum_operations=TunableTransmonOperations(),
         )
-        temp_qubits = qpu.copy_quantum_elements()
         result = experiment_workflow(
             session=session,
             qpu=qpu,
-            qubits=[temp_qubits[0],temp_qubits[1]],
+            qubits=["q0", "q1"],
             states="ge",
             options=options,
         )
@@ -195,10 +194,9 @@ def create_experiment(
             quantum_elements=[TunableTransmonQubit("q0"), TunableTransmonQubit("q1")],
             quantum_operations=TunableTransmonOperations(),
         )
-        temp_qubits = qpu.copy_quantum_elements()
         create_experiment(
             qpu=qpu,
-            qubits=[temp_qubits[0],temp_qubits[1]],
+            qubits=["q0", "q1"],
             states="ge",
             options=options,
         )

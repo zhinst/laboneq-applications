@@ -51,7 +51,7 @@ if TYPE_CHECKING:
 def experiment_workflow(
     session: Session,
     qpu: QPU,
-    qubits: QuantumElements | list[str] | str,
+    qubits: list[str] | str,
     *,
     lengths: QubitSweepPoints,
     evaluation_parameters: dict[str, Any] | None = None,
@@ -69,6 +69,11 @@ def experiment_workflow(
     - [evaluate_experiment]()
     - [update_qpu]()
 
+    !!! version-removed "Removed in version 26.7.0."
+        The `qubits` argument of type `QuantumElements` has been removed.
+        Please pass `qubits` of type `list[str] | str` instead, i.e., the quantum
+        element UIDs instead of the quantum element instances.
+
     !!! version-changed "Changed in version 26.4.0."
         The `evaluation_parameters` argument has been added, which is the dictionary of
         parameters used for the newly added evaluation task. All arguments apart from
@@ -78,11 +83,6 @@ def experiment_workflow(
         The `temporary_parameters` positional argument was added in the
         penultimate position. Note that this is a breaking change if
         calling the experiment workflow with the `options` positional argument.
-
-    !!! version-changed "Deprecated in version 26.1.0."
-        The `qubits` argument of type `QuantumElements` is deprecated.
-        Please pass `qubits` of type `list[str] | str` instead, i.e., the quantum
-        element UIDs instead of the quantum element instances.
 
     Arguments:
         session:
@@ -120,11 +120,10 @@ def experiment_workflow(
             qubits=[TunableTransmonQubit("q0"), TunableTransmonQubit("q1")],
             quantum_operations=TunableTransmonOperations(),
         )
-        temp_qubits = qpu.copy_qubits()
         result = experiment_workflow(
             session=session,
             qpu=qpu,
-            qubits=temp_qubits,
+            qubits=["q0", "q1"],
             lengths=[
                 np.linspace(100e-9, 500e-9, 11),
                 np.linspace(100e-9, 500e-9, 11),
@@ -214,10 +213,9 @@ def create_experiment(
             qubits=[TunableTransmonQubit("q0"), TunableTransmonQubit("q1")],
             quantum_operations=TunableTransmonOperations(),
         )
-        temp_qubits = qpu.copy_qubits()
         create_experiment(
             qpu=qpu,
-            qubits=temp_qubits,
+            qubits=["q0", "q1"],
             lengths=[
                 np.linspace(100e-9, 500e-9, 11),
                 np.linspace(100e-9, 500e-9, 11),

@@ -21,9 +21,11 @@ def create_qubitspec_verifier(
     readout_lengths=None,
 ):
     """Create a CompiledExperimentVerifier."""
-    qubits = tunable_transmon_platform.qpu.quantum_elements
-    if len(qubits) == 1:
-        qubits = qubits[0]
+    qpu = tunable_transmon_platform.qpu
+    qubits = qpu.quantum_elements
+    qubit_uids = qpu.quantum_element_uids
+    if len(qubit_uids) == 1:
+        qubit_uids = qubit_uids[0]
     if readout_lengths is not None:
         assert len(readout_lengths) == len(qubits)
         for i, rl in enumerate(readout_lengths):
@@ -35,8 +37,8 @@ def create_qubitspec_verifier(
 
     res = qubit_spectroscopy.experiment_workflow(
         session=session,
-        qubits=qubits,
-        qpu=tunable_transmon_platform.qpu,
+        qubits=qubit_uids,
+        qpu=qpu,
         frequencies=frequencies,
         options=options,
     ).run()

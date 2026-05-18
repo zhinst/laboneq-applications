@@ -42,7 +42,7 @@ def create_dispers_shift_verifier(
     # Run the experiment workflow
     res = dispersive_shift.experiment_workflow(
         session=session,
-        qubit=qubits[0],
+        qubit=qubits[0].uid,
         qpu=tunable_transmon_platform.qpu,
         frequencies=frequencies,
         states=states,

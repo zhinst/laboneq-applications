@@ -6,13 +6,11 @@
 from __future__ import annotations
 
 import logging
-import warnings
-from collections.abc import Sequence
 from typing import TYPE_CHECKING
 
 import attrs
 from laboneq import workflow
-from laboneq.dsl.quantum import QPU, QuantumElement, QuantumParameters
+from laboneq.dsl.quantum import QPU, QuantumParameters
 from typing_extensions import deprecated
 
 if TYPE_CHECKING:
@@ -241,12 +239,12 @@ def temporary_qpu(
 @workflow.task
 def temporary_quantum_elements_from_qpu(
     qpu: QPU,
-    quantum_elements: QuantumElements | list[str] | str | None = None,
+    quantum_elements: list[str] | str | None = None,
 ) -> QuantumElements:
     """Return temporarily-modified quantum elements from the QPU.
 
-    !!! version-changed "Deprecated in version 26.1.0."
-        The `qubits` argument of type `QuantumElements` is deprecated.
+    !!! version-removed "Removed in version 26.7.0."
+        The `qubits` argument of type `QuantumElements` has been removed.
         Please pass `qubits` of type `list[str] | str | None` instead, i.e., the quantum
         element UIDs instead of the quantum element instances.
 
@@ -260,47 +258,17 @@ def temporary_quantum_elements_from_qpu(
     Raises:
         TypeError: If the quantum elements have invalid type.
     """
-    if isinstance(quantum_elements, QuantumElement) or (
-        isinstance(quantum_elements, Sequence)
-        and any(isinstance(q, QuantumElement) for q in quantum_elements)
-    ):
-        warnings.warn(
-            "Argument `quantum_elements` of type `QuantumElements` is "
-            "deprecated in v26.1.0 and will no longer be supported in "
-            "v26.4.0. Please pass `quantum_elements` of type "
-            "`list[str] | str | None` instead, i.e. the quantum element UIDs "
-            "instead of the quantum element instances.",
-            FutureWarning,
-            stacklevel=2,
-        )
-
     if quantum_elements is None:
         return qpu.quantum_elements
-
-    if isinstance(quantum_elements, QuantumElement):
-        return qpu[quantum_elements.uid]
-
     if isinstance(quantum_elements, str):
         return qpu[quantum_elements]
-
-    if isinstance(quantum_elements, list):
-        quantum_elements_uids = []
-        for q in quantum_elements:
-            if isinstance(q, QuantumElement):
-                quantum_elements_uids.append(q.uid)
-            elif isinstance(q, str):
-                quantum_elements_uids.append(q)
-            else:
-                raise TypeError(
-                    f"The quantum elements list items have invalid type: {type(q)}. "
-                    f"Expected type: QuantumElement | str."
-                )
-
-        return [qpu[q] for q in quantum_elements_uids]
-
+    if isinstance(quantum_elements, list) and all(
+        isinstance(q, str) for q in quantum_elements
+    ):
+        return [qpu[q] for q in quantum_elements]
     raise TypeError(
-        f"The quantum elements have invalid type: {type(quantum_elements)}. "
-        f"Expected type: QuantumElements | list[str] | str | None."
+        f"The quantum elements have invalid type: {quantum_elements}. "
+        f"Expected type: list[str] | str | None."
     )
 
 

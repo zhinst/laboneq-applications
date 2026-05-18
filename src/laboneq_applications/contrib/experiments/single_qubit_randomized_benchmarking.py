@@ -55,7 +55,7 @@ if TYPE_CHECKING:
 def experiment_workflow(
     session: Session,
     qpu: QPU,
-    qubits: QuantumElements | list[str] | str,
+    qubits: list[str] | str,
     *,
     length_cliffords: list,
     variations: int = 1,
@@ -72,6 +72,11 @@ def experiment_workflow(
     - [compile_experiment]()
     - [run_experiment]()
 
+    !!! version-removed "Removed in version 26.7.0."
+        The `qubits` argument of type `QuantumElements` has been removed.
+        Please pass `qubits` of type `list[str] | str` instead, i.e., the quantum
+        element UIDs instead of the quantum element instances.
+
     !!! version-changed "Changed in version 26.4.0."
         All arguments apart from `session`, `qpu`, and `qubits` are now keyword
         arguments.
@@ -80,11 +85,6 @@ def experiment_workflow(
         The `temporary_parameters` positional argument was added in the
         penultimate position. Note that this is a breaking change if
         calling the experiment workflow with the `options` positional argument.
-
-    !!! version-changed "Deprecated in version 26.1.0."
-        The `qubits` argument of type `QuantumElements` is deprecated.
-        Please pass `qubits` of type `list[str] | str` instead, i.e., the quantum
-        element UIDs instead of the quantum element instances.
 
     Arguments:
         session:
@@ -125,7 +125,7 @@ def experiment_workflow(
         result = experiment_workflow(
             session=session,
             qpu=qpu,
-            qubits=temp_qubits,
+            qubits=["q0", "q1"],
             length_cliffords=[1,5,10,20,50],
             variations=5,
             options=options,

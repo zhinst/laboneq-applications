@@ -13,14 +13,14 @@ class TestCalibrateCancellation:
     def test_calibrate_cancellation(self, single_twpa_platform):
         platform = single_twpa_platform
         qpu = platform.qpu
-        [twpa] = platform.qpu.quantum_elements
+        [twpa] = qpu.quantum_elements
         options = calibrate_cancellation.experiment_workflow.options()
         options.do_analysis(True)
         session = platform.session(do_emulation=True)
         wf = calibrate_cancellation.experiment_workflow(
             session=session,
             qpu=qpu,
-            parametric_amplifier=twpa,
+            parametric_amplifier=twpa.uid,
             cancel_phase=np.linspace(0, np.pi, 11),
             cancel_attenuation=np.linspace(0, 10, 11),
             options=options,

@@ -104,7 +104,7 @@ class TestAmplitudeFine:
         res = amplitude_fine.experiment_workflow(
             session=platform.session(do_emulation=True),
             qpu=platform.qpu,
-            qubits=platform.qpu.quantum_elements,
+            qubits=platform.qpu.quantum_element_uids,
             amplification_qop="x180",
             target_angle=0,
             phase_offset=0.0,
@@ -267,7 +267,7 @@ def test_single_qubit_run_with_active_reset(
     repetitions = np.arange(21)
     workflow_result = amplitude_fine.experiment_workflow_x180(
         session=single_tunable_transmon_platform.session(do_emulation=True),
-        qubits=q0,
+        qubits=q0.uid,
         qpu=single_tunable_transmon_platform.qpu,
         repetitions=repetitions,
         options=options,
@@ -317,12 +317,14 @@ def test_two_qubit_run_with_active_reset(
     options.active_reset_states(active_reset_states)
     options.active_reset_repetitions(active_reset_repetitions)
     options.do_analysis(False)
-    qubits = two_tunable_transmon_platform.qpu.quantum_elements
+    qpu = two_tunable_transmon_platform.qpu
+    qubits = qpu.quantum_elements
+    qubit_uids = qpu.quantum_element_uids
     repetitions = np.arange(21)
     workflow_result = amplitude_fine.experiment_workflow_x180(
         session=two_tunable_transmon_platform.session(do_emulation=True),
-        qubits=qubits,
-        qpu=two_tunable_transmon_platform.qpu,
+        qubits=qubit_uids,
+        qpu=qpu,
         repetitions=[repetitions, repetitions],
         options=options,
     ).run()
@@ -363,7 +365,7 @@ def test_invalid_averaging_mode(single_tunable_transmon_platform):
     with pytest.raises(ValueError) as err:
         amplitude_fine.experiment_workflow(
             session=session,
-            qubits=q0,
+            qubits=q0.uid,
             qpu=single_tunable_transmon_platform.qpu,
             amplification_qop="x180",
             target_angle=0,

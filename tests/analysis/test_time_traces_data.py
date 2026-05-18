@@ -689,6 +689,7 @@ def results_single_qubit_gef(raw_data):
         }
     )
 
+
 @pytest.fixture
 def discrimination_thresholds_ge(msd_sign):
     return [msd_sign * 0.011669325]
@@ -902,7 +903,8 @@ def integration_kernels_ge(msd_sign):
 @pytest.fixture
 def integration_kernels_gef(msd_sign):
     return [
-        msd_sign * np.array(
+        msd_sign
+        * np.array(
             [
                 0.0575261 + 0.02577435j,
                 -0.00702834 + 0.04663356j,
@@ -1098,7 +1100,8 @@ def integration_kernels_gef(msd_sign):
                 0.04041054 + 0.91236486j,
             ]
         ),
-        msd_sign * np.array(
+        msd_sign
+        * np.array(
             [
                 0.04076991 + 6.54027709e-02j,
                 -0.03336353 + 8.07899603e-02j,
@@ -1300,7 +1303,8 @@ def integration_kernels_gef(msd_sign):
 @pytest.fixture
 def integration_kernels_filtered_gef(msd_sign):
     return [
-        msd_sign * np.array(
+        msd_sign
+        * np.array(
             [
                 0.05724266 + 0.02588977j,
                 0.00220398 + 0.05463475j,
@@ -1496,7 +1500,8 @@ def integration_kernels_filtered_gef(msd_sign):
                 0.039361 + 0.90893206j,
             ]
         ),
-        msd_sign * np.array(
+        msd_sign
+        * np.array(
             [
                 4.03373062e-02 + 0.0654145j,
                 -4.02159332e-02 + 0.0811149j,

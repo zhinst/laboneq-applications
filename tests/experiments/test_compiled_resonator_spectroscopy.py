@@ -32,7 +32,7 @@ def create_res_spectroscopy_verifier(
     options.do_analysis(False)  # TODO: fix tests to work with do_analysis=True
     res = resonator_spectroscopy.experiment_workflow(
         session=session,
-        qubit=qubit,
+        qubit=qubit.uid,
         qpu=tunable_transmon_platform.qpu,
         frequencies=frequencies,
         options=options,

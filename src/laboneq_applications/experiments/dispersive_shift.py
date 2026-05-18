@@ -79,7 +79,7 @@ class DispersiveShiftExperimentOptions:
 def experiment_workflow(
     session: Session,
     qpu: QPU,
-    qubit: QuantumElement | str,
+    qubit: str,
     *,
     frequencies: QubitSweepPoints,
     states: Sequence[str],
@@ -99,15 +99,15 @@ def experiment_workflow(
     - [evaluate_experiment]()
     - [update_qpu]()
 
+    !!! version-removed "Removed in version 26.7.0."
+        The `qubit` argument of type `QuantumElement` has been removed.
+        Please pass `qubit` of type `str` instead, i.e., the quantum
+        element UID instead of the quantum element instance.
+
     !!! version-changed "Changed in version 26.4.0."
         The `evaluation_parameters` argument has been added, which is the dictionary of
         parameters used for the newly added evaluation task. All arguments apart from
         `session`, `qpu`, and `qubits` are now keyword arguments.
-
-    !!! version-changed "Deprecated in version 26.1.0."
-        The `qubit` argument of type `QuantumElement` is deprecated.
-        Please pass `qubit` of type `str` instead, i.e., the quantum
-        element UID instead of the quantum element instance.
 
     Arguments:
         session:
@@ -148,11 +148,10 @@ def experiment_workflow(
             quantum_elements=[TunableTransmonQubit("q0"), TunableTransmonQubit("q1")],
             quantum_operations=TunableTransmonOperations(),
         )
-        temp_qubits = qpu.copy_quantum_elements()
         result = experiment_workflow(
             session=session,
             qpu=qpu,
-            qubits=temp_qubits[0],
+            qubit="q0",
             frequencies=np.linspace(1.8e9, 2.2e9, 101),
             states="ge"
             options=options,
@@ -238,10 +237,9 @@ def create_experiment(
             quantum_elements=[TunableTransmonQubit("q0"), TunableTransmonQubit("q1")],
             quantum_operations=TunableTransmonOperations(),
         )
-        temp_qubits = qpu.copy_quantum_elements()
         create_experiment(
             qpu=qpu,
-            qubits=temp_qubits[0],
+            qubit="q0",
             frequencies=np.linspace(1.8e9, 2.2e9, 101),
             states="ge"
             options=options,

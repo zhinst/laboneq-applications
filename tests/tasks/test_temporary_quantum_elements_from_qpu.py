@@ -34,10 +34,11 @@ class TestTemporaryQuantumElementsFromQPU:
     def test_run_standalone(self, two_tunable_transmon_platform, qubit_parameters):
         qpu = two_tunable_transmon_platform.qpu
         qubits = qpu.quantum_elements
+        qubit_uids = qpu.quantum_element_uids
 
         # check parameter update
         new_qpu = temporary_qpu(qpu, qubit_parameters)
-        new_qubits = temporary_quantum_elements_from_qpu(new_qpu, qubits)
+        new_qubits = temporary_quantum_elements_from_qpu(new_qpu, qubit_uids)
         assert qubits[0].parameters.ge_drive_amplitude_pi == 0.8
         assert qubits[0].parameters.ge_drive_amplitude_pi2 == 0.4
         assert qubits[1].parameters.resonance_frequency_ef == 6.31e9
@@ -57,19 +58,11 @@ class TestTemporaryQuantumElementsFromQPU:
             "q1": q1_params,
         }
         new_qpu = temporary_qpu(qpu, qubit_parameters_class)
-        new_qubits = temporary_quantum_elements_from_qpu(new_qpu, qubits)
+        new_qubits = temporary_quantum_elements_from_qpu(new_qpu, qubit_uids)
         assert qubits[0].parameters.ge_drive_amplitude_pi == 0.8
         assert qubits[1].parameters.resonance_frequency_ef == 6.31e9
         assert new_qubits[0].parameters.ge_drive_amplitude_pi == 0.55
         assert new_qubits[1].parameters.resonance_frequency_ef == 5.58e9
-
-        # check single qubit update (QuantumElement)
-        new_qpu = temporary_qpu(qpu, qubit_parameters)
-        new_q0 = temporary_quantum_elements_from_qpu(new_qpu, qubits[0])
-        assert qubits[0].parameters.ge_drive_amplitude_pi == 0.8
-        assert qubits[0].parameters.ge_drive_amplitude_pi2 == 0.4
-        assert new_q0.parameters.ge_drive_amplitude_pi == 0.55
-        assert new_q0.parameters.ge_drive_amplitude_pi2 == 0.255
 
         # check single qubit update (str)
         new_qpu = temporary_qpu(qpu, qubit_parameters)
@@ -90,17 +83,19 @@ class TestTemporaryQuantumElementsFromQPU:
 
         # check type errors
         with pytest.raises(TypeError) as err:
-            new_qubits = temporary_quantum_elements_from_qpu(new_qpu, {"q0": qubits[0]})
-        assert (
-            str(err.value) == "The quantum elements have invalid type: <class 'dict'>. "
-            "Expected type: QuantumElements | list[str] | str | None."
-        )
+            temporary_quantum_elements_from_qpu(new_qpu, qubits[0])
+        assert "Expected type: list[str] | str | None" in str(err.value)
         with pytest.raises(TypeError) as err:
-            new_qubits = temporary_quantum_elements_from_qpu(new_qpu, [1, 2, 3])
+            temporary_quantum_elements_from_qpu(new_qpu, qubits)
+        assert "Expected type: list[str] | str | None" in str(err.value)
+        with pytest.raises(TypeError) as err:
+            temporary_quantum_elements_from_qpu(new_qpu, {"q0": qubits[0]})
+        assert "Expected type: list[str] | str | None" in str(err.value)
+        with pytest.raises(TypeError) as err:
+            temporary_quantum_elements_from_qpu(new_qpu, [1, 2, 3])
         assert (
-            str(err.value)
-            == "The quantum elements list items have invalid type: <class 'int'>. "
-            "Expected type: QuantumElement | str."
+            str(err.value) == "The quantum elements have invalid type: [1, 2, 3]. "
+            "Expected type: list[str] | str | None."
         )
 
     def test_twpa(self):
@@ -122,12 +117,13 @@ class TestTemporaryQuantumElementsFromQPU:
 
     def test_partial_modify(self, two_tunable_transmon_platform, qubit_parameters):
         qpu = two_tunable_transmon_platform.qpu
-        qubits = two_tunable_transmon_platform.qpu.quantum_elements
+        qubits = qpu.quantum_elements
+        qubit_uids = qpu.quantum_element_uids
 
         # check with dict
         partial_parameters = {"q0": qubit_parameters["q0"]}
         new_qpu = temporary_qpu(qpu, partial_parameters)
-        new_qubits = temporary_quantum_elements_from_qpu(new_qpu, qubits)
+        new_qubits = temporary_quantum_elements_from_qpu(new_qpu, qubit_uids)
         assert qubits[0].parameters.ge_drive_amplitude_pi == 0.8
         assert qubits[0].parameters.ge_drive_amplitude_pi2 == 0.4
         assert new_qubits[0].parameters.ge_drive_amplitude_pi == 0.55
@@ -136,7 +132,7 @@ class TestTemporaryQuantumElementsFromQPU:
 
         # check with None
         new_qpu = temporary_qpu(qpu, None)
-        new_qubits = temporary_quantum_elements_from_qpu(new_qpu, qubits)
+        new_qubits = temporary_quantum_elements_from_qpu(new_qpu, qubit_uids)
         assert new_qubits[0] == qubits[0]
         assert new_qubits[1] == qubits[1]
 
@@ -147,19 +143,19 @@ class TestTemporaryQuantumElementsFromQPU:
 
     def test_run_in_workflow(self, two_tunable_transmon_platform, qubit_parameters):
         qpu = two_tunable_transmon_platform.qpu
-        qubits = two_tunable_transmon_platform.qpu.quantum_elements
+        qubit_uids = qpu.quantum_element_uids
 
         @task
-        def dumb_task(qubits):
-            return qubits
+        def dumb_task(qubits_):
+            return qubits_
 
         @workflow
-        def test_workflow(qpu, qubits, qubit_parameters):
-            new_qpu = temporary_qpu(qpu, qubit_parameters)
-            qubits = temporary_quantum_elements_from_qpu(new_qpu, qubits)
-            dumb_task(qubits)
+        def test_workflow(qpu_, qubit_uids_, qubit_parameters_):
+            new_qpu = temporary_qpu(qpu_, qubit_parameters_)
+            qubits_ = temporary_quantum_elements_from_qpu(new_qpu, qubit_uids_)
+            dumb_task(qubits_)
 
-        res = test_workflow(qpu, qubits, qubit_parameters).run()
+        res = test_workflow(qpu, qubit_uids, qubit_parameters).run()
         assert len(res.tasks) == 3
         qubits = res.tasks["dumb_task"].output
         assert qubits[0].parameters.ge_drive_amplitude_pi == 0.55

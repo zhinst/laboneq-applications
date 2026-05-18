@@ -77,7 +77,7 @@ class SpinLockingWorkflowOptions:
 def experiment_workflow(
     session: Session,
     qpu: QPU,
-    qubits: QuantumElements | list[str] | str,
+    qubits: list[str] | str,
     *,
     lengths: QubitSweepPoints,
     rel_amp: float | None = None,
@@ -92,6 +92,11 @@ def experiment_workflow(
     - [compile_experiment]()
     - [run_experiment]()
 
+    !!! version-removed "Removed in version 26.7.0."
+        The `qubits` argument of type `QuantumElements` has been removed.
+        Please pass `qubits` of type `list[str] | str` instead, i.e., the quantum
+        element UIDs instead of the quantum element instances.
+
     !!! version-changed "Changed in version 26.4.0."
         All arguments apart from `session`, `qpu`, and `qubits` are now keyword
         arguments.
@@ -100,11 +105,6 @@ def experiment_workflow(
         The `temporary_parameters` positional argument was added in the
         penultimate position. Note that this is a breaking change if
         calling the experiment workflow with the `options` positional argument.
-
-    !!! version-changed "Deprecated in version 26.1.0."
-        The `qubits` argument of type `QuantumElements` is deprecated.
-        Please pass `qubits` of type `list[str] | str` instead, i.e., the quantum
-        element UIDs instead of the quantum element instances.
 
     Arguments:
         session:
@@ -142,11 +142,10 @@ def experiment_workflow(
             qubits=[TunableTransmonQubit("q0"), TunableTransmonQubit("q1")],
             quantum_operations=TunableTransmonOperations(),
         )
-        temp_qubits = qpu.copy_qubits()
         result = experiment_workflow(
             session=session,
             qpu=qpu,
-            qubits=temp_qubits,
+            qubits=["q0", "q1"],
             lengths=[[1e-6, 5e-6, 10e-6]], [1e-6, 5e-6, 10e-6]],
             options=options,
         ).run()
@@ -219,10 +218,9 @@ def create_experiment(
             qubits=[TunableTransmonQubit("q0"), TunableTransmonQubit("q1")],
             quantum_operations=TunableTransmonOperations(),
         )
-        temp_qubits = qpu.copy_qubits()
         create_experiment(
             qpu=qpu,
-            qubits=temp_qubits,
+            qubits=["q0", "q1"],
             lengths=[[1e-6, 5e-6, 10e-6], [1e-6, 5e-6, 10e-6]]
             options=options,
         )

@@ -49,7 +49,7 @@ if TYPE_CHECKING:
 def experiment_workflow(
     session: Session,
     qpu: QPU,
-    parametric_amplifier: TWPA | str,
+    parametric_amplifier: str,
     *,
     frequencies: ArrayLike,
     temporary_parameters: dict[str, dict | TWPAParameters] | None = None,
@@ -63,14 +63,14 @@ def experiment_workflow(
     - [compile_experiment]()
     - [run_experiment]()
 
+    !!! version-removed "Removed in version 26.7.0."
+        The `parametric_amplifier` argument of type `TWPA` has been removed.
+        Please pass `parametric_amplifier` of type `str` instead, i.e., the quantum
+        element UID instead of the quantum element instance.
+
     !!! version-changed "Changed in version 26.4.0."
         All arguments apart from `session`, `qpu`, and `qubits` are now keyword
         arguments.
-
-    !!! version-changed "Deprecated in version 26.1.0."
-        The `parametric_amplifier` argument of type `TWPA` is deprecated.
-        Please pass `parametric_amplifier` of type `str` instead, i.e., the quantum
-        element UID instead of the quantum element instance.
 
     Arguments:
         session:
@@ -101,11 +101,10 @@ def experiment_workflow(
             pas=[twpa],
             quantum_operations=TWPAOperations(),
         )
-        temp_qubits = qpu.copy_qubits()
         result = experiment_workflow(
             session=session,
             qpu=qpu,
-            parametric_amplifier=twpa,
+            parametric_amplifier="twpa0",
             frequencies=np.linspace(7.1e9, 7.6e9, 501),
         ).run()
         ```

@@ -13,7 +13,8 @@ class TestAmplitudeRabiChevron:
     def test_amplitude_rabi_chevron(self, two_tunable_transmon_platform):
         platform = two_tunable_transmon_platform
         qpu = platform.qpu
-        qubits = platform.qpu.quantum_elements
+        qubits = qpu.quantum_elements
+        qubit_uids = qpu.quantum_element_uids
         options = amplitude_rabi_chevron.experiment_workflow.options()
         options.do_analysis(True)
         session = platform.session(do_emulation=True)
@@ -24,7 +25,7 @@ class TestAmplitudeRabiChevron:
         wf = amplitude_rabi_chevron.experiment_workflow(
             session=session,
             qpu=qpu,
-            qubits=qubits,
+            qubits=qubit_uids,
             amplitudes=[
                 np.arange(0, 1, 0.1),
                 np.arange(0, 1, 0.1),

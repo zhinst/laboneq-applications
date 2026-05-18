@@ -34,7 +34,7 @@ def create_res_spectroscopy_amp_verifier(
     options.spectroscopy_reset_delay(spectroscopy_reset_delay)
     res = resonator_spectroscopy_amplitude.experiment_workflow(
         session=session,
-        qubit=qubit,
+        qubit=qubit.uid,
         qpu=tunable_transmon_platform.qpu,
         frequencies=frequencies,
         amplitudes=amplitudes,

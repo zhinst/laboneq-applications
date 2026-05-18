@@ -50,12 +50,14 @@ def create_rabi_verifier(
     # For new experiments: add more arguments here if needed
 ):
     """Create a CompiledExperimentVerifier for the amplitude rabi experiment."""
-    qubits = tunable_transmon_platform.qpu.quantum_elements
+    qpu = tunable_transmon_platform.qpu
+    qubits = qpu.quantum_elements
+    qubit_uids = qpu.quantum_element_uids
+    if len(qubit_uids) == 1:
+        qubit_uids = qubit_uids[0]
     for q in qubits:
         q.parameters.ge_drive_length = _LENGTH_GE
         q.parameters.ef_drive_length = _LENGTH_EF
-    if len(qubits) == 1:
-        qubits = qubits[0]
     if readout_lengths is not None:
         assert len(readout_lengths) == len(qubits)
         for i, rl in enumerate(readout_lengths):
@@ -73,8 +75,8 @@ def create_rabi_verifier(
     # For new experiments: use the correct experiment name
     res = amplitude_rabi.experiment_workflow(
         session=session,
-        qubits=qubits,
-        qpu=tunable_transmon_platform.qpu,
+        qubits=qubit_uids,
+        qpu=qpu,
         amplitudes=amplitudes,
         options=options,
     ).run()
@@ -618,7 +620,7 @@ def test_single_qubit_run_with_active_reset(
     amplitudes = np.linspace(0, 1, 11)
     workflow_result = amplitude_rabi.experiment_workflow(
         session=single_tunable_transmon_platform.session(do_emulation=True),
-        qubits=q0,
+        qubits=q0.uid,
         qpu=single_tunable_transmon_platform.qpu,
         amplitudes=amplitudes,
         options=options,
@@ -668,12 +670,14 @@ def test_two_qubit_run_with_active_reset(
     options.active_reset_states(active_reset_states)
     options.active_reset_repetitions(active_reset_repetitions)
     options.do_analysis(False)
-    qubits = two_tunable_transmon_platform.qpu.quantum_elements
+    qpu = two_tunable_transmon_platform.qpu
+    qubits = qpu.quantum_elements
+    qubit_uids = qpu.quantum_element_uids
     amplitudes = np.linspace(0, 1, 11)
     workflow_result = amplitude_rabi.experiment_workflow(
         session=two_tunable_transmon_platform.session(do_emulation=True),
-        qubits=qubits,
-        qpu=two_tunable_transmon_platform.qpu,
+        qubits=qubit_uids,
+        qpu=qpu,
         amplitudes=[amplitudes, amplitudes],
         options=options,
     ).run()
@@ -714,7 +718,7 @@ def test_invalid_averaging_mode(single_tunable_transmon_platform):
     with pytest.raises(ValueError) as err:
         amplitude_rabi.experiment_workflow(
             session=session,
-            qubits=q0,
+            qubits=q0.uid,
             qpu=single_tunable_transmon_platform.qpu,
             amplitudes=np.linspace(0, 1, 10),
             options=options,
