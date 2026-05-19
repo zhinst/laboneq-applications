@@ -21,7 +21,7 @@ class TestMeasureGainCurve:
             session=session,
             qpu=qpu,
             parametric_amplifier=twpa.uid,
-            probe_frequency=np.linspace(6.8e9, 7.2e9, 101),
+            probe_frequency=np.linspace(6.1e9, 6.9e9, 101),
             pump_power=np.linspace(0, 10, 11),
             options=options,
         )

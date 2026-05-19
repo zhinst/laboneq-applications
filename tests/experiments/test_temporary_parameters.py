@@ -42,7 +42,7 @@ class TestTemporaryParameters:
         session, qpu, qubits = workflow_platform
 
         temporary_parameters_q0 = qubits[0].parameters.copy()
-        temporary_parameters_q0.drive_lo_frequency = 1e9
+        temporary_parameters_q0.drive_lo_frequency = 6e9
 
         result_unmodified = amplitude_fine.experiment_workflow(
             session=session,
@@ -78,7 +78,7 @@ class TestTemporaryParameters:
             result_modified.tasks["create_experiment"]
             .output.signals["q0/drive"]
             .calibration.local_oscillator.frequency
-            == 1e9
+            == 6e9
         )
         assert (
             result_unmodified.tasks["create_experiment"]
@@ -97,7 +97,7 @@ class TestTemporaryParameters:
         session, qpu, qubits = workflow_platform
 
         temporary_parameters_q0 = qubits[0].parameters.copy()
-        temporary_parameters_q0.drive_lo_frequency = 1e9
+        temporary_parameters_q0.drive_lo_frequency = 6e9
 
         result_unmodified = amplitude_rabi.experiment_workflow(
             session=session,
@@ -127,7 +127,7 @@ class TestTemporaryParameters:
             result_modified.tasks["create_experiment"]
             .output.signals["q0/drive"]
             .calibration.local_oscillator.frequency
-            == 1e9
+            == 6e9
         )
         assert (
             result_unmodified.tasks["create_experiment"]
@@ -146,7 +146,7 @@ class TestTemporaryParameters:
         session, qpu, qubits = workflow_platform
 
         temporary_parameters_q0 = qubits[0].parameters.copy()
-        temporary_parameters_q0.drive_lo_frequency = 1e9
+        temporary_parameters_q0.drive_lo_frequency = 6e9
 
         result_unmodified = dispersive_shift.experiment_workflow(
             session=session,
@@ -177,14 +177,14 @@ class TestTemporaryParameters:
             result_modified.tasks["create_experiment"]
             .output.signals["q0/drive"]
             .calibration.local_oscillator.frequency
-            == 1e9
+            == 6e9
         )
 
     def test_drag_q_scaling(self, workflow_platform):
         session, qpu, qubits = workflow_platform
 
         temporary_parameters_q0 = qubits[0].parameters.copy()
-        temporary_parameters_q0.drive_lo_frequency = 1e9
+        temporary_parameters_q0.drive_lo_frequency = 6e9
 
         result_unmodified = drag_q_scaling.experiment_workflow(
             session=session,
@@ -220,7 +220,7 @@ class TestTemporaryParameters:
             result_modified.tasks["create_experiment"]
             .output.signals["q0/drive"]
             .calibration.local_oscillator.frequency
-            == 1e9
+            == 6e9
         )
         assert (
             result_unmodified.tasks["create_experiment"]
@@ -239,7 +239,7 @@ class TestTemporaryParameters:
         session, qpu, qubits = workflow_platform
 
         temporary_parameters_q0 = qubits[0].parameters.copy()
-        temporary_parameters_q0.drive_lo_frequency = 1e9
+        temporary_parameters_q0.drive_lo_frequency = 6e9
 
         result_unmodified = echo.experiment_workflow(
             session=session,
@@ -269,7 +269,7 @@ class TestTemporaryParameters:
             result_modified.tasks["create_experiment"]
             .output.signals["q0/drive"]
             .calibration.local_oscillator.frequency
-            == 1e9
+            == 6e9
         )
         assert (
             result_unmodified.tasks["create_experiment"]
@@ -288,7 +288,7 @@ class TestTemporaryParameters:
         session, qpu, qubits = workflow_platform
 
         temporary_parameters_q0 = qubits[0].parameters.copy()
-        temporary_parameters_q0.drive_lo_frequency = 1e9
+        temporary_parameters_q0.drive_lo_frequency = 6e9
 
         result_unmodified = iq_blobs.experiment_workflow(
             session=session,
@@ -318,7 +318,7 @@ class TestTemporaryParameters:
             result_modified.tasks["create_experiment"]
             .output.signals["q0/drive"]
             .calibration.local_oscillator.frequency
-            == 1e9
+            == 6e9
         )
         assert (
             result_unmodified.tasks["create_experiment"]
@@ -337,7 +337,7 @@ class TestTemporaryParameters:
         session, qpu, qubits = workflow_platform
 
         temporary_parameters_q0 = qubits[0].parameters.copy()
-        temporary_parameters_q0.drive_lo_frequency = 1e9
+        temporary_parameters_q0.drive_lo_frequency = 6e9
 
         result_unmodified = lifetime_measurement.experiment_workflow(
             session=session,
@@ -367,7 +367,7 @@ class TestTemporaryParameters:
             result_modified.tasks["create_experiment"]
             .output.signals["q0/drive"]
             .calibration.local_oscillator.frequency
-            == 1e9
+            == 6e9
         )
         assert (
             result_unmodified.tasks["create_experiment"]
@@ -386,7 +386,7 @@ class TestTemporaryParameters:
         session, qpu, qubits = workflow_platform
 
         temporary_parameters_q0 = qubits[0].parameters.copy()
-        temporary_parameters_q0.drive_lo_frequency = 1e9
+        temporary_parameters_q0.drive_lo_frequency = 6e9
 
         result_unmodified = qubit_spectroscopy.experiment_workflow(
             session=session,
@@ -422,7 +422,7 @@ class TestTemporaryParameters:
             result_modified.tasks["create_experiment"]
             .output.signals["q0/drive"]
             .calibration.local_oscillator.frequency
-            == 1e9
+            == 6e9
         )
         assert (
             result_unmodified.tasks["create_experiment"]
@@ -441,7 +441,7 @@ class TestTemporaryParameters:
         session, qpu, qubits = workflow_platform
 
         temporary_parameters_q0 = qubits[0].parameters.copy()
-        temporary_parameters_q0.drive_lo_frequency = 1e9
+        temporary_parameters_q0.drive_lo_frequency = 6e9
 
         result_unmodified = qubit_spectroscopy_amplitude.experiment_workflow(
             session=session,
@@ -479,7 +479,7 @@ class TestTemporaryParameters:
             result_modified.tasks["create_experiment"]
             .output.signals["q0/drive"]
             .calibration.local_oscillator.frequency
-            == 1e9
+            == 6e9
         )
         assert (
             result_unmodified.tasks["create_experiment"]
@@ -498,7 +498,7 @@ class TestTemporaryParameters:
         session, qpu, qubits = workflow_platform
 
         temporary_parameters_q0 = qubits[0].parameters.copy()
-        temporary_parameters_q0.drive_lo_frequency = 1e9
+        temporary_parameters_q0.drive_lo_frequency = 6e9
 
         result_unmodified = ramsey.experiment_workflow(
             session=session,
@@ -530,7 +530,7 @@ class TestTemporaryParameters:
             result_modified.tasks["create_experiment"]
             .output.signals["q0/drive"]
             .calibration.local_oscillator.frequency
-            == 1e9
+            == 6e9
         )
         assert (
             result_unmodified.tasks["create_experiment"]
@@ -549,7 +549,7 @@ class TestTemporaryParameters:
         session, qpu, qubits = workflow_platform
 
         temporary_parameters_q0 = qubits[0].parameters.copy()
-        temporary_parameters_q0.drive_lo_frequency = 1e9
+        temporary_parameters_q0.drive_lo_frequency = 6e9
 
         result_unmodified = resonator_spectroscopy.experiment_workflow(
             session=session,
@@ -578,14 +578,14 @@ class TestTemporaryParameters:
             result_modified.tasks["create_experiment"]
             .output.signals["q0/drive"]
             .calibration.local_oscillator.frequency
-            == 1e9
+            == 6e9
         )
 
     def test_resonator_spectroscopy_amplitude(self, workflow_platform):
         session, qpu, qubits = workflow_platform
 
         temporary_parameters_q0 = qubits[0].parameters.copy()
-        temporary_parameters_q0.drive_lo_frequency = 1e9
+        temporary_parameters_q0.drive_lo_frequency = 6e9
 
         result_unmodified = resonator_spectroscopy_amplitude.experiment_workflow(
             session=session,
@@ -616,7 +616,7 @@ class TestTemporaryParameters:
             result_modified.tasks["create_experiment"]
             .output.signals["q0/drive"]
             .calibration.local_oscillator.frequency
-            == 1e9
+            == 6e9
         )
 
     def test_time_traces(self, workflow_platform):
@@ -629,7 +629,7 @@ class TestTemporaryParameters:
         options.do_analysis(False)
 
         temporary_parameters_q0 = qubits[0].parameters.copy()
-        temporary_parameters_q0.drive_lo_frequency = 1e9
+        temporary_parameters_q0.drive_lo_frequency = 6e9
 
         result_unmodified = time_traces.experiment_workflow(
             session=session,
@@ -660,5 +660,5 @@ class TestTemporaryParameters:
             result_modified.tasks["create_experiment"]
             .output.signals["q0/drive"]
             .calibration.local_oscillator.frequency
-            == 1e9
+            == 6e9
         )

@@ -370,7 +370,7 @@ class TestTunableTransmonOperations:
         ("rf", "freq", "oscillator_freq"),
         [
             pytest.param(True, 7.1e9, 0.1e9, id="rf"),
-            pytest.param(False, 1.5e9, 1.5e9, id="oscillator"),
+            pytest.param(False, 0.5e9, 0.5e9, id="oscillator"),
         ],
     )
     def test_set_frequency_readout(

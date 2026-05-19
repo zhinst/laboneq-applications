@@ -131,10 +131,10 @@ class TWPA(QuantumElement):
                 uid=f"{self.uid}_readout_local_osc",
                 frequency=self.parameters.readout_lo_frequency,
             )
-        if self.parameters.probe_frequency is not None:
+        if self.parameters.readout_frequency is not None:
             readout_oscillator = Oscillator(
                 uid=f"{self.uid}_readout_acquire_osc",
-                frequency=self.parameters.probe_frequency,
+                frequency=self.parameters.readout_frequency,
                 modulation_type=ModulationType.AUTO,
             )
 
@@ -142,7 +142,7 @@ class TWPA(QuantumElement):
 
         # Apply calibration to the measure signal
         sig_cal = SignalCalibration()
-        if self.parameters.probe_frequency is not None:
+        if self.parameters.readout_frequency is not None:
             sig_cal.oscillator = readout_oscillator
         sig_cal.local_oscillator = readout_lo
         sig_cal.range = self.parameters.readout_range_out
@@ -151,7 +151,7 @@ class TWPA(QuantumElement):
 
         # Apply calibration to the acquire signal
         sig_cal = SignalCalibration()
-        if self.parameters.probe_frequency is not None:
+        if self.parameters.readout_frequency is not None:
             sig_cal.oscillator = readout_oscillator
         sig_cal.local_oscillator = readout_lo
         sig_cal.range = self.parameters.readout_range_in
