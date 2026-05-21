@@ -1,3 +1,15 @@
+# laboneq_applications 26.7.0b2 (2026-05-22)
+
+## Removals from the Codebase
+
+- Removed support for `qubit`/`qubits`/`parametric_amplifier` arguments of type `QuantumElement`/`QuantumElements`/`TWPA` in experiment workflows. Removed support for `quantum_elements` arguments of type `QuantumElements` in the `temporary_quantum_elements_from_qpu` task. Please pass the quantum element UIDs instead of the quantum element instances.
+
+## Developer
+
+- Adjusted demo QPU drive LO frequency assignments to keep intermediate frequencies within the ±1 GHz range now enforced by the LabOne Q compiler.
+- Fixed the failed tests after rejecting IF frequencies >= 1 GHz on SHF instruments.
+
+
 # laboneq_applications 26.7.0b1 (2026-05-08)
 
 ## Developer
