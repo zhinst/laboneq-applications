@@ -1909,7 +1909,7 @@ wheels = [
 
 [[package]]
 name = "laboneq"
-version = "26.4.0"
+version = "26.7.0b2"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "attrs" },
@@ -1953,10 +1953,10 @@ dependencies = [
     { name = "zhinst-utils" },
 ]
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/c2/81/837a5a9da621e7e07a790256ffdbbc0504e482aa4e9a299fd1d255f77e49/laboneq-26.4.0-cp310-abi3-macosx_10_12_x86_64.macosx_11_0_arm64.macosx_10_12_universal2.whl", hash = "sha256:273e740cdf8a9fdf2b5747978c197bcf2b4a32e86f1905bb0a1d3b54463d86f9", size = 6974387, upload-time = "2026-04-29T14:22:04.74Z" },
-    { url = "https://files.pythonhosted.org/packages/ff/f3/111904d5406e98743c3153c079ca6821668f65785da83968de9f88170934/laboneq-26.4.0-cp310-abi3-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:b91972d1194bd3f7fd97af3f2434d227d9fa078089085acdbb754b787d3edf83", size = 3874315, upload-time = "2026-04-29T14:22:14.846Z" },
-    { url = "https://files.pythonhosted.org/packages/da/e8/d18b9700491433f1e49c91321d134d58c68c3d1e2ef2ae92d9cbb1875c0a/laboneq-26.4.0-cp310-abi3-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:5c8a03d2357d7ded71290a90ee100a1c2a0f91da543e6d47d0d9984064ad8a02", size = 4049359, upload-time = "2026-04-29T14:22:11.681Z" },
-    { url = "https://files.pythonhosted.org/packages/f5/a7/f0bc9191519d8b970437c0d4a0eebc25951c479b9b28b5c3ea0a58639b4c/laboneq-26.4.0-cp310-abi3-win_amd64.whl", hash = "sha256:24128a2d779778dcd07c9c9d8acf4acf60a8a9af8aa68fbaaae90b8635713b81", size = 3876641, upload-time = "2026-04-29T14:22:08.491Z" },
+    { url = "https://files.pythonhosted.org/packages/32/36/0df3330dc40d6139d08124929c1f84446ab31c78255eabdd1c213f2ed3e9/laboneq-26.7.0b2-cp310-abi3-macosx_10_12_x86_64.macosx_11_0_arm64.macosx_10_12_universal2.whl", hash = "sha256:4c929e1f6ed7521fd12e989e538a9e69add42f8d478280d9968af803fa87c622", size = 7239570, upload-time = "2026-05-22T08:16:36.884Z" },
+    { url = "https://files.pythonhosted.org/packages/aa/1a/578569a2e2607eeb7ea8850953a3891b8a0652fff56092727292fbc32073/laboneq-26.7.0b2-cp310-abi3-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:30e2c149bebc59de4de5a786849e7b643bd36ac62f7ae5f3207f1c08fa13b9d4", size = 4000404, upload-time = "2026-05-22T08:16:43.104Z" },
+    { url = "https://files.pythonhosted.org/packages/04/9a/57a8ece1fb2f8099d95f16214f6bd6c2d5789974f2d35207840cffb82726/laboneq-26.7.0b2-cp310-abi3-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:6752ab38cba2289ba233320f8d949038c270f925991969f5976114216297c31b", size = 4186029, upload-time = "2026-05-22T08:16:40.329Z" },
+    { url = "https://files.pythonhosted.org/packages/f1/43/01942f6fed7e3f2c2ac44f73c4df158c172cbe4cb45fcd4b172e12cf43e6/laboneq-26.7.0b2-cp310-abi3-win_amd64.whl", hash = "sha256:451609c37d6ab3cb5ac9f8f03f3aa9e8e2a41ba5bd05d1b01d21bb3f6a15bf2b", size = 4007839, upload-time = "2026-05-22T08:16:45.107Z" },
 ]
 
 [[package]]
@@ -2004,7 +2004,7 @@ tools = [
 
 [package.metadata]
 requires-dist = [
-    { name = "laboneq", specifier = ">=2.58.0" },
+    { name = "laboneq", specifier = "==26.7.0b2" },
     { name = "lmfit", specifier = ">=1.3.0" },
     { name = "matplotlib", specifier = ">=3.10" },
     { name = "numpy", specifier = ">=2" },
@@ -2950,7 +2950,7 @@ name = "pexpect"
 version = "4.9.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "ptyprocess" },
+    { name = "ptyprocess", marker = "(python_full_version < '3.11' and sys_platform == 'emscripten') or (python_full_version < '3.11' and sys_platform == 'win32') or (sys_platform != 'emscripten' and sys_platform != 'win32')" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/42/92/cc564bf6381ff43ce1f4d06852fc19a2f11d180f23dc32d9588bee2f149d/pexpect-4.9.0.tar.gz", hash = "sha256:ee7d41123f3c9911050ea2c2dac107568dc43b2d3b0c7557a33212c398ead30f", size = 166450, upload-time = "2023-11-25T09:07:26.339Z" }
 wheels = [
@@ -5628,7 +5628,7 @@ wheels = [
 
 [[package]]
 name = "zhinst-utils"
-version = "0.7.1"
+version = "0.7.2"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "numpy", version = "2.2.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
@@ -5637,7 +5637,7 @@ dependencies = [
     { name = "zhinst-timing-models" },
 ]
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/b9/11/a95ff528b1ae63671f7c905663fc1e82f8cf29fa885a4d18c157f0702600/zhinst_utils-0.7.1-py3-none-any.whl", hash = "sha256:c267d9830f984a8040503f3f5c5ea34780a8284950f3ba5109edd60aaf35da95", size = 52900, upload-time = "2026-01-14T14:21:07.959Z" },
+    { url = "https://files.pythonhosted.org/packages/e2/b7/078423f1d5aed4c60e64a72b1456805f199b46ed06997f37d5b55c260632/zhinst_utils-0.7.2-py3-none-any.whl", hash = "sha256:08f81fddfac41fe6b65d052b437a3220502c495d2dc14e1ef5316f447aefa530", size = 52905, upload-time = "2026-04-27T13:20:06.873Z" },
 ]
 
 [[package]]
