@@ -63,7 +63,7 @@ if TYPE_CHECKING:
     from laboneq_applications.typing import QubitSweepPoints
 
 
-@workflow.workflow(name="zz_coupling_strength_exp")
+@workflow.workflow(name="zz_coupling_strength")
 def experiment_workflow(
     session: Session,
     qpu: QPU,
@@ -113,12 +113,12 @@ def experiment_workflow(
         temporary_parameters:
             The temporary parameters with which to update the QPU.
         options:
-            The options for building the workflow.
-            In addition to options from [WorkflowOptions]
+            The options for building the workflow, passed as an instance of
+            [TuneUpWorkflowOptions].
 
     Returns:
-        result:
-            The result of the workflow.
+        WorkflowBuilder:
+            The builder for the experiment workflow.
     """
     temp_qpu = temporary_qpu(qpu, temporary_parameters)
     exp = create_experiment(
@@ -200,7 +200,8 @@ def create_experiment(
             more than once per pair.
 
         ValueError:
-            If one of the edges of `target_tag` is not of type `TunableCoupler`.
+            If one of the coupler edges between the pairs is not of type
+            [TunableCoupler].
 
         ValueError:
             If the experiment uses calibration traces and the averaging mode is

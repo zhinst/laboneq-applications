@@ -18,6 +18,7 @@ import pytest
 from packaging.version import Version
 
 __all__ = [
+    "four_tunable_transmon_cz_platform",  # fixture
     "reset_uids",  # autouse fixture
     "single_bosonic_qubit_platform",  # fixture
     "single_tunable_transmon_platform",  # fixture
@@ -27,6 +28,7 @@ __all__ = [
 ]
 
 from tests.helpers.demo_qpus import (
+    four_tunable_transmon_cz_platform,
     single_bosonic_qubit_platform,
     single_tunable_transmon_platform,
     single_twpa_platform,
