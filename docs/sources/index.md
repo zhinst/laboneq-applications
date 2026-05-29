@@ -22,6 +22,7 @@ How-to guides are executable examples notebooks, demonstrating how to implement 
 * [Superconducting Qubits](how-to-guides/sources/01_superconducting_qubits/index.md)
 * [Spin Qubits](how-to-guides/sources/02_spin_qubits/index.md)
 * [Color Centers](how-to-guides/sources/03_color_centers/index.md)
+* [Bosonic Qubits](how-to-guides/sources/03a_bosonic_qubits/index.md)
 
 LabOne Q also supports integration with OpenQASM. The how-to guides in the [OpenQASM section](how-to-guides/sources/04_qasm/index.md) 
 show you how to execute your OpenQASM experiments with LabOne Q. 

@@ -53,6 +53,8 @@ This section of the documentation provides practical how-to guides and example n
 
 </div>
 
+-   __[Bosonic Qubits](sources/03a_bosonic_qubits/index.md)__
+
 -   __[QASM](sources/04_qasm/index.md)__
 
 > **_NOTE:_** Most of the examples are generated from Jupyter Notebook files and the source

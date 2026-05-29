@@ -19,14 +19,18 @@ from packaging.version import Version
 
 __all__ = [
     "reset_uids",  # autouse fixture
+    "single_bosonic_qubit_platform",  # fixture
     "single_tunable_transmon_platform",  # fixture
     "single_twpa_platform",  # fixture
+    "two_bosonic_qubit_platform",  # fixture
     "two_tunable_transmon_platform",  # fixture
 ]
 
 from tests.helpers.demo_qpus import (
+    single_bosonic_qubit_platform,
     single_tunable_transmon_platform,
     single_twpa_platform,
+    two_bosonic_qubit_platform,
     two_tunable_transmon_platform,
 )
 from tests.helpers.dsl import ExpectedDSLStructure, reset_uids
