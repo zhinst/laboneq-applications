@@ -83,7 +83,6 @@ include-package-data = false
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-asyncio_default_fixture_loop_scope = "function"
 
 [tool.ruff]
 include = ["pyproject.toml", "src/**/*.py", "tests/**/*.py", "ci/**/*.py", "docs/sources/**/*.ipynb"]
