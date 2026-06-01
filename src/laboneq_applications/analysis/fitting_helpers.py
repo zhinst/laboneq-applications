@@ -191,7 +191,7 @@ def get_pi_pi2_xvalues_on_cos(
     x = np.asarray(x)
     freq = np.asarray(frequency)
     ph = np.asarray(phase)
-    if np.any(freq == 0):
+    if np.any(unumpy.nominal_values(freq) == 0):
         warnings.warn(
             "The frequency of the cosine function is zero. "
             "Returning empty arrays for the pi and pi/2 x-values.",

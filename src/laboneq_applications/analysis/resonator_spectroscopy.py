@@ -348,7 +348,7 @@ def extract_qubit_parameters(
         take_extremum = np.argmax if opts.find_peaks else np.argmin
         freqs = processed_data_dict["sweep_points"]
         signal_magnitude = processed_data_dict["magnitude"]
-        rr_freq = unc.ufloat(
+        rr_freq = unc.core.Variable(
             freqs[take_extremum(signal_magnitude)],
             0,
         )
