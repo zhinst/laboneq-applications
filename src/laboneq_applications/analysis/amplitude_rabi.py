@@ -20,6 +20,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import uncertainties as unc
 from laboneq import workflow
+from uncertainties import unumpy
 
 from laboneq_applications.analysis.calibration_traces_rotation import (
     calculate_qubit_population,
@@ -247,11 +248,15 @@ def extract_qubit_parameters(
 
             # if pca is done, it can happen that the pi-pulse amplitude
             # is in pi_amps_bottom and the pi/2-pulse amplitude in pi2_amps_fall
-            pi_amps = np.sort(np.concatenate([pi_amps_top, pi_amps_bottom]))
-            pi2_amps = np.sort(np.concatenate([pi2_amps_rise, pi2_amps_fall]))
+            pi_amps = np.concatenate([pi_amps_top, pi_amps_bottom])
+            pi_amps = pi_amps[np.argsort(unumpy.nominal_values(pi_amps))]
+            pi2_amps = np.concatenate([pi2_amps_rise, pi2_amps_fall])
+            pi2_amps = pi2_amps[np.argsort(unumpy.nominal_values(pi2_amps))]
             try:
                 pi2_amp = pi2_amps[0]
-                pi_amp = pi_amps[pi_amps > pi2_amp][0]
+                pi_amp = pi_amps[
+                    unumpy.nominal_values(pi_amps) > unumpy.nominal_values(pi2_amp)
+                ][0]
             except IndexError:
                 workflow.log(
                     logging.ERROR,
