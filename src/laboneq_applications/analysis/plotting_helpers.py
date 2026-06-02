@@ -570,7 +570,6 @@ def plot_signal_magnitude_and_phase_2d(
                 constrained_layout=True,
             )
             fig.align_labels()
-            fig.subplots_adjust(hspace=0.1)
             axs[0].set_title(timestamped_title(f"Magnitude_Phase_{plot_identifier}"))
             axs[1].set_xlabel(label_sweep_points_1d)
 
