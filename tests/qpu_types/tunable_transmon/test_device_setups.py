@@ -62,7 +62,7 @@ class TestDemoPlatform:
         drive_lo_frequencies = [q.parameters.drive_lo_frequency for q in qubits]
 
         base_lo_frequency = int(6.4e9)
-        max_lo_frequency = int(8.4e9)
+        max_lo_frequency = int(7.2e9)
         lo_frequency_grid = int(2e8)
         group_size = 20
         distinguishable_qubits = (

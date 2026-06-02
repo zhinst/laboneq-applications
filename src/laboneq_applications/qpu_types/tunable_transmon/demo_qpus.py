@@ -264,11 +264,11 @@ def tunable_transmon_qubits(
                 # The LO advances in 200 MHz steps (SHF hardware constraint).
                 # Convert to integer, otherwise some configurations
                 #   may encounter issues with LabOne Q compiler
-                drive_lo_frequency=int(q_param(i // 20, 6.4, 1e9, dq=0.2, max_=8.4e9)),
-                resonance_frequency_ge=q_param(i, 6.5, 1e9),
-                resonance_frequency_ef=q_param(i, 6.3, 1e9),
+                drive_lo_frequency=int(q_param(i // 20, 6.4, 1e9, dq=0.2, max_=7.2e9)),
+                resonance_frequency_ge=q_param(i, 6.5, 1e9, dq=0.01, max_=7.0e9),
+                resonance_frequency_ef=q_param(i, 6.3, 1e9, dq=0.01, max_=7.0e9),
                 readout_lo_frequency=7e9,
-                readout_resonator_frequency=q_param(i, 7.1, 1e9),
+                readout_resonator_frequency=q_param(i, 7.1, 1e9, dq=0.01, max_=8.0e9),
                 ge_drive_amplitude_pi=q_param(i, 0.8, max_=1.0),
                 ge_drive_amplitude_pi2=q_param(i, 0.4, max_=1.0),
                 ge_drive_length=51e-9,
