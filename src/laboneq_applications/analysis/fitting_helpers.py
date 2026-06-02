@@ -12,6 +12,8 @@ from typing import TYPE_CHECKING
 import lmfit
 import numpy as np
 from laboneq.analysis import fitting as fit_mods
+from numpy.typing import NDArray
+from uncertainties import unumpy
 
 if TYPE_CHECKING:
     from typing import Literal
@@ -186,25 +188,30 @@ def get_pi_pi2_xvalues_on_cos(
 
     """
     n = np.arange(-20, 20)
-    try:
-        pi_xvals = (n * np.pi - phase) / frequency
-        pi2_xvals = (n * np.pi + np.pi / 2 - phase) / frequency
-    except ZeroDivisionError:
+    x = np.asarray(x)
+    freq = np.asarray(frequency)
+    ph = np.asarray(phase)
+    if np.any(freq == 0):
         warnings.warn(
             "The frequency of the cosine function is zero. "
             "Returning empty arrays for the pi and pi/2 x-values.",
             stacklevel=2,
         )
         return np.array([]), np.array([]), np.array([]), np.array([])
+
+    pi_xvals = (n * np.pi - ph) / freq
+    pi2_xvals = (n * np.pi + np.pi / 2 - ph) / freq
+
     pi_xvals_top = pi_xvals[0::2]
     pi_xvals_bottom = pi_xvals[1::2]
     pi2_xvals_rising = pi2_xvals[1::2]
     pi2_xvals_falling = pi2_xvals[0::2]
 
-    def mask_func(cos_xvals: ArrayLike) -> ArrayLike:
+    def mask_func(cos_x: ArrayLike) -> NDArray:
+        cos_xvals = unumpy.nominal_values(cos_x)
         return np.logical_and(
-            cos_xvals >= min(x),
-            cos_xvals <= max(x),
+            cos_xvals >= np.min(x),
+            cos_xvals <= np.max(x),
         )
 
     pixv_top = pi_xvals_top[mask_func(pi_xvals_top)]

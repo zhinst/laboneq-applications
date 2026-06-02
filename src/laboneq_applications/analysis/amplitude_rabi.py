@@ -232,11 +232,11 @@ def extract_qubit_parameters(
             swpts_fit = processed_data_dict[q.uid]["sweep_points"]
             freq_fit = unc.ufloat(
                 fit_res.params["frequency"].value,
-                fit_res.params["frequency"].stderr,
+                fit_res.params["frequency"].stderr or np.nan,
             )
             phase_fit = unc.ufloat(
                 fit_res.params["phase"].value,
-                fit_res.params["phase"].stderr,
+                fit_res.params["phase"].stderr or np.nan,
             )
             (
                 pi_amps_top,

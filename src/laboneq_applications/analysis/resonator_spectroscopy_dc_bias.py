@@ -458,11 +458,11 @@ def process_fit_results(
 
     freq_fit = unc.ufloat(
         fit_result.params["frequency"].value,
-        fit_result.params["frequency"].stderr,
+        fit_result.params["frequency"].stderr or np.nan,
     )
     phase_fit = unc.ufloat(
         fit_result.params["phase"].value,
-        fit_result.params["phase"].stderr,
+        fit_result.params["phase"].stderr or np.nan,
     )
     voltages_fit = fit_result.userkws["x"]
     # extract all the possible upper and lower sweep-spot values on the cosine fit curve

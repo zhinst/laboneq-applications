@@ -327,13 +327,13 @@ def extract_qubit_parameters(
             fit_res = fit_results[q.uid]
             freq_fit = unc.ufloat(
                 fit_res.params["frequency"].value,
-                fit_res.params["frequency"].stderr,
+                fit_res.params["frequency"].stderr or np.nan,
             )
             introduced_detuning = detunings[i]
             qb_freq = old_qb_freq + introduced_detuning - freq_fit
             t2_star = unc.ufloat(
                 fit_res.params["decay_time"].value,
-                fit_res.params["decay_time"].stderr,
+                fit_res.params["decay_time"].stderr or np.nan,
             )
 
             qubit_parameters["new_parameter_values"][q.uid] = {
