@@ -1,12 +1,15 @@
-# Copyright 2024 Zurich Instruments AG
+# Copyright 2026 Zurich Instruments AG
 # SPDX-License-Identifier: Apache-2.0
 
 """Tests for laboneq_applications.qpu_types.tunable_transmon.device_setups."""
 
 import re
 
+import numpy as np
 import pytest
+from laboneq.dsl.session import Session
 
+from laboneq_applications.experiments import qubit_spectroscopy
 from laboneq_applications.qpu_types.tunable_transmon import demo_platform
 
 
@@ -106,3 +109,20 @@ class TestDemoPlatform:
     def test_invalid_instrument_choice(self):
         with pytest.raises(ValueError, match="Invalid choice for leader instrument"):
             demo_platform(1, "invalid")
+
+    @pytest.mark.parametrize("num_qubits", [1, 10, 100, 192])
+    def test_many_qubits_compile(self, num_qubits):
+        platform = demo_platform(num_qubits, leader_instrument="QHub")
+        setup = platform.setup
+        session = Session(setup)
+        session.connect(do_emulation=True)
+        qpu = platform.qpu
+        qubit_uids = qpu.quantum_element_uids
+
+        # A smoke test that the demo platform can be used to compile an experiment
+        qubit_spectroscopy.experiment_workflow(
+            session=session,
+            qubits=qubit_uids,
+            qpu=qpu,
+            frequencies=[np.linspace(6.5e9, 7.0e9, 11) for _ in qubit_uids],
+        ).run(until="run_experiment")
