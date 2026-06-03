@@ -19,6 +19,7 @@ class TestDisplacementCalibration:
 
         options = displacement_calibration.experiment_workflow.options()
         options.do_analysis(True)
+        options.show_plot(False)
 
         session = platform.session(do_emulation=True)
 

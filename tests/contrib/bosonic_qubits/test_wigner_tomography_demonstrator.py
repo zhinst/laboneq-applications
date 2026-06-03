@@ -18,6 +18,7 @@ class TestWignerTomographyDemonstrator:
 
         options = wigner_tomography_demonstrator.experiment_workflow.options()
         options.do_analysis(True)
+        options.show_plot(False)
 
         session = platform.session(do_emulation=True)
 
@@ -39,6 +40,7 @@ class TestWignerTomographyDemonstrator:
 
         options = wigner_tomography_demonstrator.experiment_workflow.options()
         options.do_analysis(True)
+        options.show_plot(False)
 
         session = platform.session(do_emulation=True)
 

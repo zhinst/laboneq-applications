@@ -19,6 +19,7 @@ class TestSnapCalibration:
         options = snap_calibration.experiment_workflow.options()
         options.do_analysis(True)
         options.do_phase_calibration(False)
+        options.show_plot(False)
 
         session = platform.session(do_emulation=True)
 
@@ -44,6 +45,7 @@ class TestSnapCalibration:
         options = snap_calibration.experiment_workflow.options()
         options.do_analysis(False)
         options.do_phase_calibration(True)
+        options.show_plot(False)
 
         session = platform.session(do_emulation=True)
 
@@ -69,6 +71,7 @@ class TestSnapCalibration:
         options = snap_calibration.experiment_workflow.options()
         options.do_analysis(True)
         options.do_phase_calibration(True)
+        options.show_plot(False)
 
         session = platform.session(do_emulation=True)
 
