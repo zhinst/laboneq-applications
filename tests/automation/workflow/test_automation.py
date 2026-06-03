@@ -143,6 +143,11 @@ def automation_parameters() -> dict:
                     "detunings": 670000.0,
                 },
                 "q1": {"delays": np.linspace(2e-05, 5e-05, 50), "detunings": 670000.0},
+                "q2": {
+                    "delays": np.linspace(0.0e00, 2.0e-05, 50),
+                    "detunings": 670000.0,
+                },
+                "q3": {"delays": np.linspace(2e-05, 5e-05, 50), "detunings": 670000.0},
             },
             "options": {
                 "evaluate": True,
