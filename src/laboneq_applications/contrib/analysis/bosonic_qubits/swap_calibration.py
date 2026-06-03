@@ -20,7 +20,8 @@ from typing import TYPE_CHECKING
 import matplotlib.pyplot as plt
 import numpy as np
 from laboneq import workflow
-from scipy.optimize import curve_fit
+
+from laboneq_applications.analysis.fitting_helpers import fit_data_lmfit
 
 if TYPE_CHECKING:
     import matplotlib as mpl
@@ -283,25 +284,27 @@ def _fit_damped_cosine(
 
         decay_guess = float((x[-1] - x[0]) * 2.0)
 
-        popt, _ = curve_fit(
+        param_hints = {
+            "amplitude": {"value": amp_guess, "min": 0},
+            "frequency": {"value": freq_guess, "min": 0},
+            "phase": {"value": 0.0, "min": -2 * np.pi, "max": 2 * np.pi},
+            "decay": {"value": decay_guess, "min": 0},
+            "offset": {"value": offset_guess},
+        }
+        fit_res = fit_data_lmfit(
             _damped_cosine_model,
             x,
             data,
-            p0=[
-                amp_guess,
-                freq_guess,
-                0.0,
-                decay_guess,
-                offset_guess,
-            ],
-            bounds=(
-                [0, 0, -2 * np.pi, 0, -np.inf],
-                [np.inf, np.inf, 2 * np.pi, np.inf, np.inf],
-            ),
-            maxfev=10000,
+            param_hints=param_hints,
         )
-        success = True
-    except (RuntimeError, ValueError):
+        popt = np.array(
+            [
+                fit_res.best_values[k]
+                for k in ("amplitude", "frequency", "phase", "decay", "offset")
+            ]
+        )
+        success = bool(fit_res.success)
+    except (RuntimeError, ValueError, TypeError):
         popt = np.array(
             [
                 0.0,

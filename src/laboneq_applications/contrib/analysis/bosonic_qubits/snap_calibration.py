@@ -25,7 +25,8 @@ from typing import TYPE_CHECKING
 import matplotlib.pyplot as plt
 import numpy as np
 from laboneq import workflow
-from scipy.optimize import curve_fit
+
+from laboneq_applications.analysis.fitting_helpers import fit_data_lmfit
 
 if TYPE_CHECKING:
     from laboneq.dsl.quantum.qpu import QPU
@@ -303,19 +304,22 @@ def _fit_snap_rabi(
         amp_pi_guess = float(2 * amplitudes[max_idx])
         amp_pi_guess = max(amp_pi_guess, amplitudes[1])
 
-        popt, _ = curve_fit(
+        param_hints = {
+            "amp_pi": {"value": amp_pi_guess, "min": float(amplitudes[1])},
+            "contrast": {"value": contrast_guess, "min": 0},
+            "offset": {"value": offset_guess},
+        }
+        fit_res = fit_data_lmfit(
             _snap_rabi_model,
             amplitudes,
             data,
-            p0=[amp_pi_guess, contrast_guess, offset_guess],
-            bounds=(
-                [amplitudes[1], 0, -np.inf],
-                [np.inf, np.inf, np.inf],
-            ),
-            maxfev=10000,
+            param_hints=param_hints,
         )
-        success = True
-    except (RuntimeError, ValueError):
+        popt = np.array(
+            [fit_res.best_values[k] for k in ("amp_pi", "contrast", "offset")]
+        )
+        success = bool(fit_res.success)
+    except (RuntimeError, ValueError, TypeError):
         popt = np.array(
             [
                 amplitudes[-1] / 2,
@@ -344,7 +348,7 @@ def _fit_snap_rabi(
 
 
 def _sinusoid_model(
-    phi: np.ndarray,
+    x: np.ndarray,
     amplitude: float,
     phase_offset: float,
     offset: float,
@@ -354,7 +358,7 @@ def _sinusoid_model(
     W(φ) = amplitude · cos(φ + φ₀) + offset
 
     Arguments:
-        phi: Drive phase array (radians).
+        x: Drive phase array (radians).
         amplitude: Oscillation amplitude.
         phase_offset: Phase offset φ₀.
         offset: Baseline offset.
@@ -362,7 +366,7 @@ def _sinusoid_model(
     Returns:
         Model values.
     """
-    return amplitude * np.cos(phi + phase_offset) + offset
+    return amplitude * np.cos(x + phase_offset) + offset
 
 
 def _fit_sinusoid(
@@ -387,15 +391,22 @@ def _fit_sinusoid(
         )
         phase_guess = float(-phases[np.argmax(data)])
 
-        popt, _ = curve_fit(
+        param_hints = {
+            "amplitude": {"value": amp_guess},
+            "phase_offset": {"value": phase_guess},
+            "offset": {"value": offset_guess},
+        }
+        fit_res = fit_data_lmfit(
             _sinusoid_model,
             phases,
             data,
-            p0=[amp_guess, phase_guess, offset_guess],
-            maxfev=10000,
+            param_hints=param_hints,
         )
-        success = True
-    except (RuntimeError, ValueError):
+        popt = np.array(
+            [fit_res.best_values[k] for k in ("amplitude", "phase_offset", "offset")]
+        )
+        success = bool(fit_res.success)
+    except (RuntimeError, ValueError, TypeError):
         popt = np.array([0.0, 0.0, float(np.mean(data))])
         success = False
 

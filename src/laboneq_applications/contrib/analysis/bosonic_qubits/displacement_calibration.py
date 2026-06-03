@@ -11,8 +11,9 @@ import matplotlib.pyplot as plt
 import numpy as np
 from laboneq import workflow
 from laboneq.simple import dsl
-from scipy.optimize import curve_fit
 from scipy.special import gammaln
+
+from laboneq_applications.analysis.fitting_helpers import fit_data_lmfit
 
 if TYPE_CHECKING:
     from laboneq.dsl.quantum.qpu import QPU
@@ -274,7 +275,7 @@ def _generate_plots(
 # =====================================================================
 
 
-def _poisson_pmf(n: np.ndarray, n_bar: float) -> np.ndarray:
+def _poisson_pmf(x: np.ndarray, n_bar: float) -> np.ndarray:
     """Poisson probability mass function.
 
     P(n) = n_bar^n * exp(-n_bar) / n!
@@ -282,14 +283,14 @@ def _poisson_pmf(n: np.ndarray, n_bar: float) -> np.ndarray:
     Uses gammaln for numerical stability.
 
     Arguments:
-        n: photon number array.
+        x: photon number array.
         n_bar: mean photon number.
 
     Returns:
         Poisson probabilities.
     """
     n_bar_safe = np.maximum(n_bar, 1e-15)
-    return np.exp(n * np.log(n_bar_safe) - n_bar_safe - gammaln(n + 1))
+    return np.exp(x * np.log(n_bar_safe) - n_bar_safe - gammaln(x + 1))
 
 
 def _extract_photon_distribution(
@@ -381,15 +382,14 @@ def _fit_coherent_state(
     n_bar_guess = max(n_bar_guess, 0.01)
 
     try:
-        popt, _ = curve_fit(
+        fit_res = fit_data_lmfit(
             _poisson_pmf,
             photon_numbers,
             probabilities,
-            p0=[n_bar_guess],
-            bounds=(0.0, np.inf),
+            param_hints={"n_bar": {"value": n_bar_guess, "min": 0.0}},
         )
-        n_bar_fit = float(popt[0])
-    except (RuntimeError, ValueError):
+        n_bar_fit = float(fit_res.best_values["n_bar"])
+    except (RuntimeError, ValueError, TypeError):
         n_bar_fit = n_bar_guess
 
     fit_distribution = _poisson_pmf(photon_numbers, n_bar_fit)

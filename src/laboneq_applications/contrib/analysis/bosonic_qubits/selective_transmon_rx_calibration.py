@@ -27,7 +27,8 @@ from typing import TYPE_CHECKING
 import matplotlib.pyplot as plt
 import numpy as np
 from laboneq import workflow
-from scipy.optimize import curve_fit
+
+from laboneq_applications.analysis.fitting_helpers import fit_data_lmfit
 
 if TYPE_CHECKING:
     from laboneq.dsl.quantum.qpu import QPU
@@ -483,15 +484,25 @@ def _fit_rabi(
     if data[0] < offset_guess:
         amplitude_guess = -amplitude_guess
 
-    p0 = [amplitude_guess, freq_guess, phase_guess, offset_guess]
+    param_hints = {
+        "amplitude": {"value": amplitude_guess},
+        "frequency": {"value": freq_guess},
+        "phase": {"value": phase_guess},
+        "offset": {"value": offset_guess},
+    }
 
     try:
-        popt, _ = curve_fit(
+        fit_res = fit_data_lmfit(
             _rabi_model,
             x,
             data,
-            p0=p0,
-            maxfev=10000,
+            param_hints=param_hints,
+        )
+        popt = np.array(
+            [
+                fit_res.best_values[k]
+                for k in ("amplitude", "frequency", "phase", "offset")
+            ]
         )
 
         freq_fit = abs(popt[1])
@@ -506,14 +517,14 @@ def _fit_rabi(
 
         return {
             "params": tuple(popt),
-            "success": True,
+            "success": bool(fit_res.success),
             "amp_pi": amp_pi,
             "amp_pi2": amp_pi2,
             "fit_x": fit_x,
             "fit_y": fit_y,
         }
 
-    except (RuntimeError, ValueError):
+    except (RuntimeError, ValueError, TypeError):
         return {
             "params": None,
             "success": False,
