@@ -578,6 +578,9 @@ def _generate_plots(
             )
     if opts.show_plot:
         plt.show()
+    else:
+        for fig in figures.values():
+            plt.close(fig)
 
     return figures
 

@@ -264,6 +264,9 @@ def _generate_plots(
             )
     if opts.show_plot:
         plt.show()
+    else:
+        for fig in qubit_result["figures"].values():
+            plt.close(fig)
 
 
 # =====================================================================

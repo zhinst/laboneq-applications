@@ -474,6 +474,8 @@ def _plot_amplitude_calibration(
         )
     if opts.show_plot:
         plt.show()
+    else:
+        plt.close(fig)
 
     return fig
 
@@ -530,6 +532,8 @@ def _plot_phase_calibration(
         )
     if opts.show_plot:
         plt.show()
+    else:
+        plt.close(fig)
 
     return fig
 

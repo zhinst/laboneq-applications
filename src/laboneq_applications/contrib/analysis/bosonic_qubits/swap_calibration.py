@@ -578,6 +578,8 @@ def _save_and_show(
         )
     if opts.show_plot:
         plt.show()
+    else:
+        plt.close(fig)
 
 
 # ═════════════════════════════════════════════════════════════
