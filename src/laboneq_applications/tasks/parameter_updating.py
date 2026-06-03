@@ -11,7 +11,6 @@ from typing import TYPE_CHECKING
 import attrs
 from laboneq import workflow
 from laboneq.dsl.quantum import QPU, QuantumParameters
-from typing_extensions import deprecated
 
 if TYPE_CHECKING:
     import uncertainties as unc
@@ -93,52 +92,6 @@ def update_qpu(
         parameters_numeric[key] = params_dict_numeric
 
     qpu.update(parameters_numeric)
-
-
-@workflow.task
-@deprecated(
-    "The update_qubits task is deprecated. Use `update_qpu` instead. ",
-    category=FutureWarning,
-)
-def update_qubits(
-    qpu: QPU,
-    qubit_parameters: dict[
-        str,
-        dict[str, dict[str, int | float | unc.core.Variable | None]],
-    ],
-) -> None:
-    """Updates the parameters of the qubits in the qpu.
-
-    !!! version-changed "Deprecated in version 2.14.0."
-        The task `update_qubits` was deprecated and replaced with the
-        more general task `update_qpu`. The new task `update_qpu` works for both
-        quantum elements and topology edges.
-
-    Args:
-        qpu: the qpu containing the qubits to be updated.
-        qubit_parameters: qubit parameters and the new values to be updated.
-            This  dictionary has the following form:
-            ```python
-            {
-                q.uid: {
-                    qb_param_name: qb_param_value
-                    }
-            }
-            ```
-    """
-    qubit_parameters_numeric = {}
-    for qid, params_dict in qubit_parameters.items():
-        if len(params_dict) == 0:
-            workflow.comment(
-                f"{qid} could not be updated because its "
-                f"parameters could not be extracted."
-            )
-        params_dict_numeric = {
-            k: v.nominal_value if hasattr(v, "nominal_value") else v
-            for k, v in params_dict.items()
-        }
-        qubit_parameters_numeric[qid] = params_dict_numeric
-    qpu.update(qubit_parameters_numeric)
 
 
 @workflow.task
@@ -270,77 +223,3 @@ def temporary_quantum_elements_from_qpu(
         f"The quantum elements have invalid type: {quantum_elements}. "
         f"Expected type: list[str] | str | None."
     )
-
-
-@workflow.task
-@deprecated(
-    "The temporary_modify task is deprecated. Use `temporary_qpu` instead. "
-    "Instead of passing temporary qubits to an experiment, we now pass a temporary "
-    "QPU.",
-    category=FutureWarning,
-)
-def temporary_modify(
-    qubits: QuantumElements,
-    temporary_parameters: dict[str, dict | QuantumParameters] | None = None,
-) -> QuantumElements:
-    """Modify the quantum elements temporarily with the given parameters.
-
-    Args:
-        qubits: the quantum elements to be temporarily modified.
-        temporary_parameters: the parameters to be temporarily modified.
-            If None, the quantum elements are returned as is.
-            The dictionary has the following form:
-            ```python
-            {
-                quantum_element_uid: {
-                    "quantum_element_uid": param_value
-                }
-            }
-            ```
-            or
-            ```python
-            {
-                "quantum_element_uid": QuantumParameters
-            }
-            ```
-
-    Returns:
-        The list of quantum elements with the temporary parameters applied, including
-        the original quantum elements that were not modified.
-        If a single quantum element is passed, returns the modified quantum element.
-
-    Raises:
-        TypeError: If the temporary parameters have invalid type.
-
-    !!! version-changed "Deprecated in version 2.54.0."
-            The task `temporary_modify` was deprecated and replaced with the task
-            `temporary_qpu`. Instead of passing temporary qubits to an experiment, we
-            now pass a temporary QPU.
-    """
-    if not temporary_parameters:
-        return qubits
-
-    if not _valid_temporary_parameters(temporary_parameters):
-        raise TypeError(
-            f"The temporary parameters have invalid type: {type(temporary_parameters)}."
-            f" Expected type: dict[str, dict | QuantumParameters] | None."
-        )
-
-    _single_qubit = False
-    if not isinstance(qubits, list):
-        qubits = [qubits]
-        _single_qubit = True
-
-    new_qubits = []
-    for q in qubits:
-        if q.uid in temporary_parameters:
-            temp_param = temporary_parameters[q.uid]
-            if isinstance(temp_param, QuantumParameters):
-                temp_param = attrs.asdict(temp_param)
-            new_q = q.replace(**temp_param)
-            new_qubits.append(new_q)
-        else:
-            new_qubits.append(q)
-    if _single_qubit:
-        return new_qubits[0]
-    return new_qubits
