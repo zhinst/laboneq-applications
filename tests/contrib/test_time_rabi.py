@@ -5,10 +5,16 @@
 """Smoke-tests for the time_rabi experiments."""
 
 import numpy as np
+import pytest
 
 from laboneq_applications.contrib.experiments import time_rabi
 
 
+# The emulated acquisition data is constant, so the cosine fit in the
+# analysis yields a zero frequency and no pi-pulse lengths can be extracted.
+@pytest.mark.filterwarnings(
+    "ignore:The frequency of the cosine function is zero:UserWarning"
+)
 class TestTimeRabi:
     def test_time_rabi(self, two_tunable_transmon_platform):
         platform = two_tunable_transmon_platform

@@ -133,6 +133,11 @@ def test_update_qubits(two_tunable_transmon_platform):
     )
 
 
+# The emulated acquisition data is constant, so the cosine fit in the
+# analysis yields a zero frequency and no pi-pulse amplitudes can be extracted.
+@pytest.mark.filterwarnings(
+    "ignore:The frequency of the cosine function is zero:UserWarning"
+)
 class TestWorkflow:
     def test_create_and_run(self, single_tunable_transmon_platform):
         [q0] = single_tunable_transmon_platform.qpu.quantum_elements
