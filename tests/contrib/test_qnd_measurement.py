@@ -4,9 +4,15 @@
 
 """Smoke-tests for the measurement_qndness experiments."""
 
+import pytest
+
 from laboneq_applications.contrib.experiments import measurement_qndness
 
 
+# The emulated acquisition data is constant, so the shots contain only
+# a single label and the confusion matrix in the analysis cannot be
+# given the correct shape.
+@pytest.mark.filterwarnings("ignore:A single label was found:UserWarning")
 class TestQNDMeasurement:
     def test_qnd_measurement(self, two_tunable_transmon_platform):
         platform = two_tunable_transmon_platform
