@@ -4,9 +4,16 @@
 
 """Smoke-tests for the two_qubit_rb experiment."""
 
+import pytest
+
 from laboneq_applications.contrib.experiments.two_qubit import two_qubit_rb
 
 
+# Qiskit's transpiler plugin discovery eagerly instantiates qiskit-ibm-runtime's
+# deprecated IBMFractionalTranslationPlugin, triggering this internal warning.
+@pytest.mark.filterwarnings(
+    "ignore:Since backends now support running jobs:DeprecationWarning"
+)
 class TestTwoQubitRB:
     def test_two_qubit_rb(self, four_tunable_transmon_cz_platform):
         platform = four_tunable_transmon_cz_platform

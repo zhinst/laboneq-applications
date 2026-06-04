@@ -4,11 +4,18 @@
 
 """Smoke-tests for the single_qubit_randomized_benchmarking experiments."""
 
+import pytest
+
 from laboneq_applications.contrib.experiments import (
     single_qubit_randomized_benchmarking,
 )
 
 
+# Qiskit's transpiler plugin discovery eagerly instantiates qiskit-ibm-runtime's
+# deprecated IBMFractionalTranslationPlugin, triggering this internal warning.
+@pytest.mark.filterwarnings(
+    "ignore:Since backends now support running jobs:DeprecationWarning"
+)
 class TestSingleQubitRandomizedBenchmarking:
     def test_single_qubit_randomized_benchmarking(self, two_tunable_transmon_platform):
         platform = two_tunable_transmon_platform
