@@ -290,7 +290,10 @@ def cosine_oscillatory_decay_fit(
     param_hints_default = {  # good guesses for fitting a qubit state population
         "frequency": {"value": freqs_guess},
         "phase": {"value": phase_guess},
-        "decay_time": {"value": 3 * np.max(x) / 2, "min": 0},
+        "decay_time": {
+            "value": 3 * np.max(x) / 2,
+            "min": np.finfo(float).eps,
+        },  # avoid division by zero
         "amplitude": {"value": 0.5, "vary": True},
         "oscillation_offset": {"value": 0},
         "exponential_offset": {"value": np.mean(data)},
@@ -339,7 +342,10 @@ def lorentzian_fit(
         param_hints = {
             "amplitude": {"value": np.max(data) * width_guess},
             "position": {"value": x[np.argmax(data)]},
-            "width": {"value": width_guess, "min": 1e-9},  # avoid division by zero
+            "width": {
+                "value": width_guess,
+                "min": np.finfo(float).eps,
+            },  # avoid division by zero
             "offset": {"value": 0},
         }
         fit_res_peak = fit_data_lmfit(
