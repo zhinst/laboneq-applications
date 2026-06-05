@@ -4,19 +4,19 @@
 """This module defines the DRAG quadrature-scaling calibration experiment.
 
 In this experiment, we determine the quadrature scaling factor, beta, of a DRAG pulse,
-which is optimal for cancelling dynamics phase errors that occur during the application
-of the pulse. The DRAG drive pulse has the following form:
+which is optimal for cancelling dynamic phase errors that occur during the application
+of the pulse. The DRAG drive pulse has the form
 
 v(t) = i(t) + q(t),
 
-where the quadrature component is give by the derivative of the in-phase component,
-scaled by a scaling factor beta:
+where the quadrature component is given by the derivative of the in-phase component,
+scaled by a scaling factor beta
 
-q(t) = beta * d(i(t)) / d(t)
+q(t) = beta * d(i(t)) / d(t).
 
 In order to determine the optimal beta for compensating phase errors, we apply a pulse
 sequence that is sensitive to phase errors and sweep the value of beta for all the
-drive pulses in the sequence. In the experiment workflow defined in this file, we
+drive pulses in the sequence. In the experiment workflow, defined in this file, we
 refer to the beta parameter as a q-scaling.
 
 The DRAG quadrature-scaling calibration experiment has the following pulse sequence:
