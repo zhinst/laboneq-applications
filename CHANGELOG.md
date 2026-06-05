@@ -4,9 +4,9 @@
 
 - Added the following experiment and analysis workflows to `contrib`, useful for two-qubit tune-up: single-qubit phase correction for parametric CZ calibration (`para_cz_corr_sq_phases_tc`), parametric CZ flux frequency vs amplitude calibration (`para_cz_flux_freq_vs_amp_tc`), parametric CZ flux frequency vs duration calibration (`para_cz_flux_freq_vs_dur_tc`), parametric CZ pulse-duration calibration (`para_cz_flux_pulse_dur_tc`), parametric CZ frequency vs RZ phase (`para_cz_freq_vs_phase`), two-qubit randomized benchmarking (`two_qubit_rb`). To achieve this, we added the necessary parameters (`CzParameters`), operations (`TunableCouplerOperations` with `cz` method), and pulses (`modulated_flux`) for the tunable coupler.
 
-  **Breaking change:** Changed the `name` of the ZZ coupling strength experiment workflow from `zz_coupling_strength_exp` to `zz_coupling_strength`. (QRL-668)
-- Added the bosonic qubit type, quantum operations, and demo platform, along with a selection of experiments, including: displacement calibration, memory spectroscopy, selective transmon Rx calibration, SNAP gate calibration, SWAP gate calibration, and Wigner tomography. (QRL-753)
-- Update the VQE example to use QPU, QuantumOperations and OpenQASMTranspiler.
+  **Breaking change:** Changed the `name` of the ZZ coupling strength experiment workflow from `zz_coupling_strength_exp` to `zz_coupling_strength`.
+- Added the bosonic qubit type, quantum operations, and demo platform, along with a selection of experiments, including: displacement calibration, memory spectroscopy, selective transmon Rx calibration, SNAP gate calibration, SWAP gate calibration, and Wigner tomography.
+- Updated the VQE example to use QPU, QuantumOperations, and OpenQASMTranspiler.
 
   Previously the VQE example used `GateStore` and `exp_from_qasm_list` which
   are deprecated interfaces to the LabOne Q `OpenQASMTranspiler`. The `GateStore`
@@ -15,17 +15,16 @@
 
 ## Removals from the Codebase
 
-- Removed the deprecated `update_qubits` task (use `update_qpu` instead) and the deprecated `temporary_modify` task (use `temporary_qpu` instead). (QRL-774)
+- Removed the deprecated `update_qubits` task (use `update_qpu` instead) and the deprecated `temporary_modify` task (use `temporary_qpu` instead).
 
 ## Miscellaneous
 
-- Fixed inconsistencies in bosonic qubit analysis workflows. (QRL-775)
-- Fix demo tunable transmon platform not working for many qubits due to some parameters exceeding the allowed frequency band and add a smoke test to verify that an experiment with 192 qubits can be compiled.
-- Fix demo tunable transmon platform not working for many qubits due to some parameters exceeding the allowed frequency band.
+- Fixed a bug where bosonic qubit analysis workflows had inconsistencies.
+- Fixed a bug where the demo tunable transmon platform did not work for many qubits due to some parameters exceeding the allowed frequency band. Added a smoke test to verify that an experiment with 192 qubits can be compiled.
 
 ## Developer
 
-- Fix unintended warnings in example notebooks. The few warnings that remain are either intentional, due to emulation mode, or related to internal packages. (QRL-758)
+- Fixed unintended warnings in example notebooks. The few warnings that remain are either intentional, due to emulation mode, or related to internal packages.
 
 
 # laboneq_applications 26.7.0b2 (2026-05-22)
