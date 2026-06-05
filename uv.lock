@@ -1020,48 +1020,6 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/a2/55/8f8cab2afd404cf578136ef2cc5dfb50baa1761b68c9da1fb1e4eed343c9/docopt-0.6.2.tar.gz", hash = "sha256:49b3a825280bd66b3aa83585ef59c4a8c82f2c8a522dbe754a8bc8d08c85c491", size = 25901, upload-time = "2014-06-16T11:18:57.406Z" }
 
 [[package]]
-name = "engineering-notation"
-version = "0.10.0"
-source = { registry = "https://pypi.org/simple" }
-resolution-markers = [
-    "python_full_version < '3.11'",
-]
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/29/1e/cf61798657ff598417693ed1b4552afa9300203120e4fe84809ec1c3f157/engineering_notation-0.10.0-py3-none-any.whl", hash = "sha256:49ff22ba8377673c8cd5f45298b87c41946b5a84583806a4655760124e22c451", size = 6769, upload-time = "2023-10-11T10:34:59.434Z" },
-]
-
-[[package]]
-name = "engineering-notation"
-version = "0.12.0"
-source = { registry = "https://pypi.org/simple" }
-resolution-markers = [
-    "python_full_version == '3.11.*' and sys_platform == 'win32'",
-    "python_full_version == '3.11.*' and sys_platform == 'emscripten'",
-    "python_full_version == '3.11.*' and sys_platform != 'emscripten' and sys_platform != 'win32'",
-]
-sdist = { url = "https://files.pythonhosted.org/packages/ba/c0/6f8517647bdb1b7ffba6870179e003b744e6d310b6fae951ee5744a8511f/engineering_notation-0.12.0.tar.gz", hash = "sha256:a93a2ebff9b83c57a7bc2c585fe9a73f6a7d7381984636a187262f72bd9a1a16", size = 7276, upload-time = "2026-01-26T14:46:49.846Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/8b/cd/1ea70eda458f26309752829b79da233269989243396e34d4fcade625d911/engineering_notation-0.12.0-py3-none-any.whl", hash = "sha256:1bc8e9525910ca265f413b1a0ad5b98704602b0c78e0d9836d823add547a10c5", size = 5591, upload-time = "2026-01-26T14:46:50.424Z" },
-]
-
-[[package]]
-name = "engineering-notation"
-version = "0.13.2"
-source = { registry = "https://pypi.org/simple" }
-resolution-markers = [
-    "python_full_version >= '3.14' and sys_platform == 'win32'",
-    "python_full_version >= '3.14' and sys_platform == 'emscripten'",
-    "python_full_version >= '3.14' and sys_platform != 'emscripten' and sys_platform != 'win32'",
-    "python_full_version >= '3.12' and python_full_version < '3.14' and sys_platform == 'win32'",
-    "python_full_version >= '3.12' and python_full_version < '3.14' and sys_platform == 'emscripten'",
-    "python_full_version >= '3.12' and python_full_version < '3.14' and sys_platform != 'emscripten' and sys_platform != 'win32'",
-]
-sdist = { url = "https://files.pythonhosted.org/packages/2e/f7/a0d9421470fce62daa50a4d2f5536620be788320bcf3fc7269a182681a8a/engineering_notation-0.13.2.tar.gz", hash = "sha256:66c2af001cd4872866349d44154db03e4788d1b49d1d7a1ea0218349d77396ac", size = 9970, upload-time = "2026-04-03T19:43:08.408Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/f7/64/22e95293e02cce677d4731dbed81ce9d47c94faf7afc293543e3f76d1bfd/engineering_notation-0.13.2-py3-none-any.whl", hash = "sha256:7cac77a60061ef6fee7e59db9e85b08fa341c7ef6eff408120d0c73ec70d9468", size = 6679, upload-time = "2026-04-03T19:43:07.606Z" },
-]
-
-[[package]]
 name = "exceptiongroup"
 version = "1.3.1"
 source = { registry = "https://pypi.org/simple" }
@@ -1946,15 +1904,12 @@ wheels = [
 
 [[package]]
 name = "laboneq"
-version = "26.4.0"
+version = "26.7.0b3"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "attrs" },
     { name = "cattrs" },
     { name = "cycler" },
-    { name = "engineering-notation", version = "0.10.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
-    { name = "engineering-notation", version = "0.12.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version == '3.11.*'" },
-    { name = "engineering-notation", version = "0.13.2", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12'" },
     { name = "fastapi" },
     { name = "flask" },
     { name = "httpx" },
@@ -1973,7 +1928,6 @@ dependencies = [
     { name = "pygments" },
     { name = "python-box" },
     { name = "pyyaml" },
-    { name = "requests" },
     { name = "rich" },
     { name = "scipy", version = "1.15.3", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
     { name = "scipy", version = "1.17.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
@@ -1990,10 +1944,10 @@ dependencies = [
     { name = "zhinst-utils" },
 ]
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/c2/81/837a5a9da621e7e07a790256ffdbbc0504e482aa4e9a299fd1d255f77e49/laboneq-26.4.0-cp310-abi3-macosx_10_12_x86_64.macosx_11_0_arm64.macosx_10_12_universal2.whl", hash = "sha256:273e740cdf8a9fdf2b5747978c197bcf2b4a32e86f1905bb0a1d3b54463d86f9", size = 6974387, upload-time = "2026-04-29T14:22:04.74Z" },
-    { url = "https://files.pythonhosted.org/packages/ff/f3/111904d5406e98743c3153c079ca6821668f65785da83968de9f88170934/laboneq-26.4.0-cp310-abi3-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:b91972d1194bd3f7fd97af3f2434d227d9fa078089085acdbb754b787d3edf83", size = 3874315, upload-time = "2026-04-29T14:22:14.846Z" },
-    { url = "https://files.pythonhosted.org/packages/da/e8/d18b9700491433f1e49c91321d134d58c68c3d1e2ef2ae92d9cbb1875c0a/laboneq-26.4.0-cp310-abi3-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:5c8a03d2357d7ded71290a90ee100a1c2a0f91da543e6d47d0d9984064ad8a02", size = 4049359, upload-time = "2026-04-29T14:22:11.681Z" },
-    { url = "https://files.pythonhosted.org/packages/f5/a7/f0bc9191519d8b970437c0d4a0eebc25951c479b9b28b5c3ea0a58639b4c/laboneq-26.4.0-cp310-abi3-win_amd64.whl", hash = "sha256:24128a2d779778dcd07c9c9d8acf4acf60a8a9af8aa68fbaaae90b8635713b81", size = 3876641, upload-time = "2026-04-29T14:22:08.491Z" },
+    { url = "https://files.pythonhosted.org/packages/39/89/d1c31654adb5d673857dbee7eba113aa57827d1cf98386d0fd7999356045/laboneq-26.7.0b3-cp310-abi3-macosx_10_12_x86_64.macosx_11_0_arm64.macosx_10_12_universal2.whl", hash = "sha256:45e4f0f1f3075bbb24990f4547ae336ca6b47cdc9587aa44caf4fbab2524c79a", size = 7310780, upload-time = "2026-06-05T09:53:36.704Z" },
+    { url = "https://files.pythonhosted.org/packages/b0/65/cbed21e29e4bc9f43680f2f6fb67ed1532e697ebae9bdf3e6124ef4ed964/laboneq-26.7.0b3-cp310-abi3-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:f0a0940cb8178d1ae33bec02b68ad153fa740df895b41e36c7ca08495459e926", size = 4016167, upload-time = "2026-06-05T09:53:33.855Z" },
+    { url = "https://files.pythonhosted.org/packages/9f/9a/8aedf1f6c2e0715553eb0e1381a52672caff7bd1c513c5c3d9917b59e2d4/laboneq-26.7.0b3-cp310-abi3-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:f0756a5ba20a135fdb8084665e3bd26e6f5b0513681b01e694f16290ac95bff1", size = 4205649, upload-time = "2026-06-05T09:53:31.995Z" },
+    { url = "https://files.pythonhosted.org/packages/4a/26/c98de7d55cca8493cd9de434da956491258f7bda2404239783e5e7f1b283/laboneq-26.7.0b3-cp310-abi3-win_amd64.whl", hash = "sha256:15670c41205eb5c3305acd3d462175714de242dfeb87660f1cd4afb92ec9b626", size = 4022948, upload-time = "2026-06-05T09:53:29.498Z" },
 ]
 
 [[package]]
@@ -2041,7 +1995,7 @@ tools = [
 
 [package.metadata]
 requires-dist = [
-    { name = "laboneq", specifier = ">=2.58.0" },
+    { name = "laboneq", specifier = "==26.7.0b3" },
     { name = "lmfit", specifier = ">=1.3.0" },
     { name = "matplotlib", specifier = ">=3.10" },
     { name = "numpy", specifier = ">=2" },
@@ -2986,7 +2940,7 @@ name = "pexpect"
 version = "4.9.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "ptyprocess" },
+    { name = "ptyprocess", marker = "(python_full_version < '3.11' and sys_platform == 'emscripten') or (python_full_version < '3.11' and sys_platform == 'win32') or (sys_platform != 'emscripten' and sys_platform != 'win32')" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/42/92/cc564bf6381ff43ce1f4d06852fc19a2f11d180f23dc32d9588bee2f149d/pexpect-4.9.0.tar.gz", hash = "sha256:ee7d41123f3c9911050ea2c2dac107568dc43b2d3b0c7557a33212c398ead30f", size = 166450, upload-time = "2023-11-25T09:07:26.339Z" }
 wheels = [
@@ -5735,7 +5689,7 @@ wheels = [
 
 [[package]]
 name = "zhinst-comms-schemas"
-version = "4.0.0"
+version = "4.1.3"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "numpy", version = "2.2.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
@@ -5744,9 +5698,9 @@ dependencies = [
     { name = "typing-extensions" },
     { name = "zhinst-comms" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/dd/4b/1f4ed2a9293d10ca9f9cc58cc252ae702dc576c0c38ffaa952c4834a241e/zhinst_comms_schemas-4.0.0.tar.gz", hash = "sha256:7a061c730ee42e9a9976072fe642715512cf470437587c38f8f85c9b2b0e7ca7", size = 104345, upload-time = "2025-10-13T12:10:50.627Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/a4/66/9a22db12e9daabc5258e47bc634471fb3ad2506d5b82150606ff08b9a72e/zhinst_comms_schemas-4.1.3.tar.gz", hash = "sha256:a3883d04819b7b77638713a1dd723842091ca3148c23a40d9ac84ea912752759", size = 104848, upload-time = "2026-06-04T08:34:18.223Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/7f/16/8eafb8780f7d8f99c8d400727dd8545e9fa9c9a699068b762f0a7e8b3b52/zhinst_comms_schemas-4.0.0-py3-none-any.whl", hash = "sha256:288837272387682a95d528f4153ef1e8a77c31f3011ec1abf1a455dc303cdea1", size = 79460, upload-time = "2025-10-13T12:10:48.959Z" },
+    { url = "https://files.pythonhosted.org/packages/fb/05/60a3eac4fa188db1ec42b8427e9930d4957f7efd41e788e342a09e032d31/zhinst_comms_schemas-4.1.3-py3-none-any.whl", hash = "sha256:3a2485c1b167c5f726ba009ba7766a23403a277b4baad80cd52cb8e5d7cc8f6c", size = 79831, upload-time = "2026-06-04T08:34:16.855Z" },
 ]
 
 [[package]]
@@ -5820,7 +5774,7 @@ wheels = [
 
 [[package]]
 name = "zhinst-utils"
-version = "0.7.1"
+version = "0.7.2"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "numpy", version = "2.2.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
@@ -5829,7 +5783,7 @@ dependencies = [
     { name = "zhinst-timing-models" },
 ]
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/b9/11/a95ff528b1ae63671f7c905663fc1e82f8cf29fa885a4d18c157f0702600/zhinst_utils-0.7.1-py3-none-any.whl", hash = "sha256:c267d9830f984a8040503f3f5c5ea34780a8284950f3ba5109edd60aaf35da95", size = 52900, upload-time = "2026-01-14T14:21:07.959Z" },
+    { url = "https://files.pythonhosted.org/packages/e2/b7/078423f1d5aed4c60e64a72b1456805f199b46ed06997f37d5b55c260632/zhinst_utils-0.7.2-py3-none-any.whl", hash = "sha256:08f81fddfac41fe6b65d052b437a3220502c495d2dc14e1ef5316f447aefa530", size = 52905, upload-time = "2026-04-27T13:20:06.873Z" },
 ]
 
 [[package]]
