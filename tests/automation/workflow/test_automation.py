@@ -45,6 +45,21 @@ from laboneq_applications.qpu_types.tunable_transmon import (
 
 
 @pytest.fixture
+def web_viewer_factory(auto):
+    viewers = []
+
+    def _start_server(**kwargs):
+        kwargs.setdefault("port", 0)
+        viewer = start_web_viewer(auto, **kwargs)
+        viewers.append(viewer)
+        return viewer
+
+    yield _start_server
+
+    for viewer in viewers:
+        viewer.stop()
+
+@pytest.fixture
 def folder_store(tmp_path):
     store = logbook.FolderStore(tmp_path)
     store.activate()
@@ -440,9 +455,9 @@ class TestWorkflowAutomation:
         )
 
     def test_run_layer_sequentially_with_web_view(
-        self, auto, qubit_spectroscopy_workflow
+        self, auto, qubit_spectroscopy_workflow, web_viewer_factory
     ):
-        start_web_viewer(auto, port=5003)
+        viewer = web_viewer_factory(port=0)
         qs1 = WorkflowLayer(
             qubit_spectroscopy_workflow,
             ["q0", "q1", "q2", "q3"],
@@ -461,6 +476,7 @@ class TestWorkflowAutomation:
             isinstance(workflow_result, WorkflowResult)
             for workflow_result in qs1.workflow_results.values()
         )
+        viewer.stop()
 
     def test_run_layer_sequentially_with_folder_store(
         self, auto, qubit_spectroscopy_workflow, folder_store
