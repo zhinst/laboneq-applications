@@ -84,10 +84,10 @@ def _create_leader_instrument(
     leader_instrument_type: Literal["PQSC", "QHub"],
 ) -> PQSC | QHUB:
     if leader_instrument_type == "PQSC":
-        return PQSC(uid="device_pqsc", address="dev125", device_options="PQSC")
+        return PQSC(uid="device_pqsc", address="dev125")
 
     if leader_instrument_type == "QHub":
-        return QHUB(uid="device_qhub", address="dev125", device_options="QHub")
+        return QHUB(uid="device_qhub", address="dev125")
 
     raise ValueError(
         f"Invalid choice for leader instrument {leader_instrument_type}, "
