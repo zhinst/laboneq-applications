@@ -88,9 +88,7 @@ class TestQubitSpectroscopySingleQubit:
         )
 
         # Loop over 3 qops per q_scaling, each iteration having x90 followed by qop.
-        expected_drive_count = count * (
-            3 * 2 * len(q_scalings) + int(use_cal_traces)
-        )
+        expected_drive_count = count * (3 * 2 * len(q_scalings) + int(use_cal_traces))
         verifier.assert_number_of_pulses(
             "q0/drive",
             expected_drive_count,
@@ -116,7 +114,7 @@ class TestQubitSpectroscopySingleQubit:
 
         expected_measure_count = count * (
             3 * len(q_scalings) + int(use_cal_traces) * 2
-        ) # 3 quantum operations per q_scaling
+        )  # 3 quantum operations per q_scaling
         verifier.assert_number_of_pulses(
             "q0/measure",
             expected_measure_count,

@@ -1,6 +1,7 @@
 lint:python:
   stage: pre-build
   script:
+    - uv run --only-group tools ruff format --check .
     - uv run --only-group tools ruff check .
   rules:
     - !reference [.non_triggered]

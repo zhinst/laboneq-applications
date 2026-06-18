@@ -59,6 +59,7 @@ def web_viewer_factory(auto):
     for viewer in viewers:
         viewer.stop()
 
+
 @pytest.fixture
 def folder_store(tmp_path):
     store = logbook.FolderStore(tmp_path)
