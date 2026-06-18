@@ -814,7 +814,7 @@ dependencies = [
 [package.metadata]
 requires-dist = [
     { name = "mkdocs-htmlproofer-plugin", specifier = ">=1.3.0" },
-    { name = "mkdocs-zhinst", specifier = ">=0.0.26", index = "https://artifactory.zhinst.com/artifactory/api/pypi/ZIPyPI/simple" },
+    { name = "mkdocs-zhinst", specifier = ">=0.0.44", index = "https://artifactory.zhinst.com/artifactory/api/pypi/ZIPyPI/simple" },
 ]
 
 [[package]]
@@ -1318,7 +1318,7 @@ codespell = [
 
 [[package]]
 name = "mkdocs-zhinst"
-version = "0.0.44"
+version = "0.0.45"
 source = { registry = "https://artifactory.zhinst.com/artifactory/api/pypi/ZIPyPI/simple" }
 dependencies = [
     { name = "click" },
@@ -1343,9 +1343,9 @@ dependencies = [
     { name = "python-gitlab" },
     { name = "symspellpy", marker = "python_full_version < '3.14'" },
 ]
-sdist = { url = "https://artifactory.zhinst.com/artifactory/api/pypi/ZIPyPI/mkdocs-zhinst/0.0.44/mkdocs_zhinst-0.0.44.tar.gz", hash = "sha256:5186a71e610109125d3384489b8ea09cd6cc47f4f2658de144bdd80cb548c831" }
+sdist = { url = "https://artifactory.zhinst.com/artifactory/api/pypi/ZIPyPI/mkdocs-zhinst/0.0.45/mkdocs_zhinst-0.0.45.tar.gz", hash = "sha256:ab9cfa5dbda269c2b7dfa77f6f509e015b35594408b66b93bd3056a40fa46398" }
 wheels = [
-    { url = "https://artifactory.zhinst.com/artifactory/api/pypi/ZIPyPI/mkdocs-zhinst/0.0.44/mkdocs_zhinst-0.0.44-py3-none-any.whl", hash = "sha256:204e1ef9049c12d8d1a6eba31ac2b41d263b39ddca129c268e6608cb8ce976d9" },
+    { url = "https://artifactory.zhinst.com/artifactory/api/pypi/ZIPyPI/mkdocs-zhinst/0.0.45/mkdocs_zhinst-0.0.45-py3-none-any.whl", hash = "sha256:41e2a2882823d2e9520c3d5459abde63b3c32fcef66f2cb31298a97fb4b95823" },
 ]
 
 [[package]]
