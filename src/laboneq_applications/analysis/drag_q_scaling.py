@@ -336,11 +336,11 @@ def extract_qubit_parameters(
             for i, pulse_id in enumerate(["xy", "xmy"]):
                 gradient[i] = unc.ufloat(
                     fit_results[q.uid][pulse_id].params["gradient"].value,
-                    fit_results[q.uid][pulse_id].params["gradient"].stderr,
+                    fit_results[q.uid][pulse_id].params["gradient"].stderr or np.nan,
                 )
                 intercept[i] = unc.ufloat(
                     fit_results[q.uid][pulse_id].params["intercept"].value,
-                    fit_results[q.uid][pulse_id].params["intercept"].stderr,
+                    fit_results[q.uid][pulse_id].params["intercept"].stderr or np.nan,
                 )
             intercept_diff_mean = intercept[0] - intercept[1]
             slope_diff_mean = gradient[1] - gradient[0]

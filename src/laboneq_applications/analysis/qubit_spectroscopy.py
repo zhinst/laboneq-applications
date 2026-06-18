@@ -462,7 +462,7 @@ def extract_qubit_parameters(
             fit_res = fit_results[q.uid]
             qb_freq = unc.ufloat(
                 fit_res.params["position"].value,
-                fit_res.params["position"].stderr,
+                fit_res.params["position"].stderr or np.nan,
             )
 
             qubit_parameters["new_parameter_values"][q.uid] = {
