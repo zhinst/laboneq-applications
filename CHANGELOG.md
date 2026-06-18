@@ -1,3 +1,12 @@
+# laboneq_applications 26.7.0b4 (2026-06-18)
+
+## Miscellaneous
+
+- Add missing unit tests for the DRAG quadrature-scaling calibration experiment. (QRL-781)
+- Fix automation tests where the web viewer thread was not stopped upon test failure.
+- Removed device options for PQSC & QHUB when using `demo_platform()`
+
+
 # laboneq_applications 26.7.0b3 (2026-06-05)
 
 ## Features
