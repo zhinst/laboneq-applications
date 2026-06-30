@@ -1,3 +1,14 @@
+# laboneq_applications 26.7.0b5 (2026-07-02)
+
+## Miscellaneous
+
+- In some analysis workflows `ufloat` issues a warning if the standard deviation is zero. Replace the standard deviation with `np.nan` if zero.
+
+## Developer
+
+- The lint:python stage of the CI was running only ruff check. Some formatting errors slip past this. Format the code and add ruff format to CI.
+
+
 # laboneq_applications 26.7.0b4 (2026-06-18)
 
 ## Miscellaneous
