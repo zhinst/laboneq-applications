@@ -64,7 +64,7 @@ def principal_component_analysis(raw_data: ArrayLike) -> ArrayLike:
             (eigvecs[0, np.argmin(eigvals)], eigvecs[1, np.argmin(eigvals)]),
             (eigvecs[0, np.argmax(eigvals)], eigvecs[1, np.argmax(eigvals)]),
         ],
-    )
+    ).real
 
     # compute final, projected data; only the first row is of interest (it is the
     # principal axis
