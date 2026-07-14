@@ -1,3 +1,10 @@
+# laboneq_applications 26.7.0b6 (2026-07-16)
+
+## Bug Fixes
+
+- The behavior of `numpy.linalg.eig` changed in version `2.5.0` of numpy (https://numpy.org/doc/stable/release/2.5.0-notes.html#linalg-eig-and-linalg-eigvals-now-always-return-complex-arrays). The code was updated to handle the change.
+
+
 # laboneq_applications 26.7.0b5 (2026-07-02)
 
 ## Miscellaneous
