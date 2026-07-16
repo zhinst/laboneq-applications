@@ -14,7 +14,7 @@ stages:
 default:
   tags: [docker, linux]
   # github is rate limiting, use our mirror
-  image: artifactory.zhinst.com/zi_registry/astral-sh/uv:0.11.17-debian
+  image: artifactory.zhinst.com/zi_registry/astral-sh/uv:0.11.29-debian
 
 variables:
   PACKAGE_NAME: "laboneq-applications"
