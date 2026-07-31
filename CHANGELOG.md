@@ -1,3 +1,8 @@
+# laboneq_applications 26.7.0 (2026-07-31)
+
+No changes since previous release (`laboneq_applications 26.7.0b6`).
+
+
 # laboneq_applications 26.7.0b6 (2026-07-16)
 
 ## Bug Fixes
