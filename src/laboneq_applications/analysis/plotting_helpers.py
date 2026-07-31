@@ -602,7 +602,7 @@ def plot_signal_magnitude_and_phase_2d(
                 y_values=sp_2d,
                 z_values=np.angle(raw_data),
                 label_y_values=label_sweep_points_2d,
-                label_z_values="Transmission Signal\nPhase, $|S_{21}|$ (a.u.)",
+                label_z_values="Transmission Signal\nPhase of $S_{21}$ (a.u.)",
                 scaling_x_values=scaling_sweep_points_1d,
                 scaling_y_values=scaling_sweep_points_2d,
                 figure=fig,

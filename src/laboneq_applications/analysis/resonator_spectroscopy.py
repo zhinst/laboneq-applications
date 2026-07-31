@@ -408,7 +408,7 @@ def plot_magnitude_phase(
     )
     axs[0].set_ylabel("Transmission Signal\nMagnitude, $|S_{21}|$ (a.u.)")
     axs[1].plot(sweep_points / 1e9, phase, "-", zorder=2, label="data")
-    axs[1].set_ylabel("Transmission Signal\nPhase, $|S_{21}|$ (a.u.)")
+    axs[1].set_ylabel("Transmission Signal\nPhase of $S_{21}$ (a.u.)")
     axs[1].set_xlabel("Readout Frequency, $f_{\\mathrm{RO}}$ (GHz)")
     fig.align_ylabels()
     fig.subplots_adjust(hspace=0.1)

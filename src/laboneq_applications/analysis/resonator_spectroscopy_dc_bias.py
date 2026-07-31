@@ -723,7 +723,7 @@ def plot_signal_phase(
         z_values=phase,
         label_x_values="Readout Frequency, $f_{\\mathrm{RO}}$ (GHz)",
         label_y_values="DC Bias Voltage $V$ (V)",
-        label_z_values="Transmission Signal\nPhase, $|S_{21}|$ (a.u.)",
+        label_z_values="Transmission Signal\nPhase of $S_{21}$ (a.u.)",
         scaling_x_values=1e-9,
         close_figures=False,
     )
