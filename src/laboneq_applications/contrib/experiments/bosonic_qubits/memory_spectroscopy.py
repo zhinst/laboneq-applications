@@ -114,8 +114,9 @@ def experiment_workflow(
         ```python
         options = experiment_workflow.options()
         options.count(10)
+        # QPU from a two-qubit device setup
         qpu = QPU(
-            qubits=[BosonicQubit("q0"), BosonicQubit("q1")],
+            quantum_elements=BosonicQubit.from_device_setup(setup),
             quantum_operations=BosonicQubitOperations(),
         )
         result = experiment_workflow(
@@ -177,7 +178,8 @@ def create_experiment(
         options:
             The options for building the experiment.
             See [MemorySpectroscopyExperimentOptions] and
-            [BaseExperimentOptions] for accepted options.
+            [BaseExperimentOptions][laboneq_applications.experiments.options.BaseExperimentOptions]
+            for accepted options.
 
     Returns:
         experiment:
@@ -195,16 +197,17 @@ def create_experiment(
             "count": 10,
             "averaging_mode": "cyclic",
             "acquisition_type": "integration_trigger",
-            "cal_traces": True,
         }
         options = MemorySpectroscopyExperimentOptions(**options)
+        # QPU from a two-qubit device setup
         qpu = QPU(
-            qubits=[BosonicQubit("q0"), BosonicQubit("q1")],
+            quantum_elements=BosonicQubit.from_device_setup(setup),
             quantum_operations=BosonicQubitOperations(),
         )
+        q0, q1 = qpu["q0"], qpu["q1"]
         create_experiment(
             qpu=qpu,
-            qubits=["q0", "q1"],
+            qubits=[q0, q1],
             frequencies=[
                 np.linspace(6.0e9, 6.2e9, 101),
                 np.linspace(6.0e9, 6.2e9, 101),

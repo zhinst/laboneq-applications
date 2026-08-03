@@ -68,7 +68,6 @@ def experiment_workflow(
     - [compile_experiment]()
     - [run_experiment]()
     - [analysis_workflow]()
-    - [update_pas]()
 
     !!! version-removed "Removed in version 26.7.0."
         The `parametric_amplifier` argument of type `TWPA` has been removed.
@@ -99,7 +98,8 @@ def experiment_workflow(
             The temporary parameters to update the parametric amplifiers with.
         options:
             The options for building the workflow.
-            In addition to options from [WorkflowOptions], the following
+            In addition to options from
+            [WorkflowOptions][laboneq.workflow.WorkflowOptions], the following
             custom options are supported:
                 - create_experiment: The options for creating the experiment.
 
@@ -110,11 +110,11 @@ def experiment_workflow(
     Example:
         ```python
         options = experiment_workflow.options()
-        options.create_experiment.count(10)
-        pa = TWPA("twpa0")
+        options.count(10)
+        # QPU from a single-TWPA device setup
         qpu = QPU(
-            qubits=[pa],
-            quantum_operations=paOperations(),
+            quantum_elements=TWPA.from_device_setup(setup),
+            quantum_operations=TWPAOperations(),
         )
         result = experiment_workflow(
             session=session,
@@ -188,8 +188,9 @@ def create_experiment(
             The flag to turn on the pump.
         options:
             The options for building the experiment.
-            See [TWPASpectroscopyExperimentOptions] and [BaseExperimentOptions] for
-            accepted options.
+            See [TWPASpectroscopyExperimentOptions] and
+            [BaseExperimentOptions][laboneq_applications.experiments.options.BaseExperimentOptions]
+            for accepted options.
             Overwrites the options from [TWPASpectroscopyExperimentOptions].
             If the `use_probe_from_ppc` option is set to True, the acquisition type
             is set to AcquisitionType.SPECTROSCOPY_PSD.
@@ -201,19 +202,17 @@ def create_experiment(
 
     Example:
         ```python
-        options = TWPASpectroscopyExperimentOptions()
-        setup = DeviceSetup()
-        pa = TWPA("twpa0")
+        # QPU from a single-TWPA device setup
         qpu = QPU(
-            qubits=[pa],
-            quantum_operations=paOperations(),
+            quantum_elements=TWPA.from_device_setup(setup),
+            quantum_operations=TWPAOperations(),
         )
+        twpa0 = qpu["twpa0"]
         create_experiment(
             qpu=qpu,
-            parametric_amplifier=pa,
+            parametric_amplifier=twpa0,
             pump_power=np.linspace(0, 10, 501),
             probe_frequency=np.linspace(7.1e9, 7.6e9, 501),
-            options=options,
         )
         ```
     """

@@ -101,12 +101,12 @@ def analysis_workflow(
     The workflow consists of the following steps:
     - [validate_and_extract_edges_from_qubit_pairs]()
     - [extract_nodes_from_edges]()
-    - [calculate_qubit_population]()
+    - [calculate_qubit_population_2d]()
     - [fit_data]()
     - [extract_edge_parameters]()
     - [plot_fitted_frequencies]()
     - [plot_raw_complex_data_2d]()
-    - [plot_population2d]()
+    - [plot_population]()
 
     Arguments:
         result:
@@ -125,9 +125,10 @@ def analysis_workflow(
         options:
             The options for building the workflow, passed as an instance of
                 [TuneUpAnalysisWorkflowOptions].
-            In addition to options from [WorkflowOptions], the following
+            In addition to options from
+            [WorkflowOptions][laboneq.workflow.WorkflowOptions], the following
             custom options are supported: `do_fitting`, `do_plotting`, and the options
-            of the [TuneupAnalysisOptions] class. See the docstring of
+            of the [TuneUpAnalysisWorkflowOptions] class. See the docstring of
             [TuneUpAnalysisWorkflowOptions] for more details.
 
     Returns:
@@ -136,14 +137,16 @@ def analysis_workflow(
 
     Example:
         ```python
-        options = TuneUpAnalysisWorkflowOptions()
-        result = analysis_workflow(
-            results=results
+        qpu = QPU(
+            quantum_elements=TunableTransmonQubit.from_device_setup(setup),
+            quantum_operations=TunableTransmonOperations(),
+        )
+        analysis_result = analysis_workflow(
+            result=result,
             qpu=qpu,
             qubit_pairs=[["q0", "q1"]],
             biases=[np.linspace(-0.1, 0.1, 21)],
             delays=[np.linspace(0, 10e-6, 51)],
-            options=options,
         ).run()
         ```
     """
@@ -220,7 +223,7 @@ def fit_data(
             and the sweep points of the experiment.
         options:
             The options for building the workflow as an instance of
-            [FitDataZZCouplingsOptions]. See the docstrings of this class
+            [FitDataZZCouplingStrengthOptions]. See the docstrings of this class
             for more details.
 
     Returns:
@@ -307,15 +310,12 @@ def plot_population(
         qubits:
             The qubits on which to run the task. May be either a single qubit or
             a list of qubits. The UIDs of these qubits must exist in
-            `processed_data_dict`, `fit_results` and `qubit_parameters`.
+            `processed_data_dict`.
         processed_data_dict:
             The processed data dictionary returned by `process_raw_data`.
         options:
-            The options for processing the raw data.
-            See [PlotPopulationOptions], ?[TuneupExperimentOptions]? and
-            [BaseExperimentOptions] for accepted options.
-            Overwrites the options from [PlotPopulationOptions],
-            [TuneupExperimentOptions] and [BaseExperimentOptions].
+            The options for creating the plots.
+            See [PlotPopulationOptions] for accepted options.
 
     Returns:
         Dictionary with qubit UIDs as keys and the figures for each qubit as values.
@@ -384,7 +384,7 @@ def extract_edge_parameters(
         fit_results: The fit-results dictionary returned by `fit_data`.
         options:
             The options for extracting the qubit parameters.
-            See [ExtractEdgeParameterOptions] for accepted options.
+            See [ExtractEdgeParametersOptions] for accepted options.
 
     Returns:
         Dictionary with extracted tunable coupler parameters and the previous values
@@ -395,12 +395,12 @@ def extract_edge_parameters(
                 c.uid: {
                     tc_param_name: tc_param_value
                 },
-            }
+            },
             "old_parameter_values": {
                 c.uid: {
                     tc_param_name: tc_param_value
                 },
-            }
+            },
         }
         ```
         If the `do_fitting` option is False, the `new_parameter_values` are not

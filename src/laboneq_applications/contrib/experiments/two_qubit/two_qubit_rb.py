@@ -125,10 +125,15 @@ def experiment_workflow(
         ```python
         options = experiment_workflow.options()
         options.count(10)
+        # QPU from a two-qubit device setup
+        qpu = QPU(
+            quantum_elements=TunableTransmonQubit.from_device_setup(setup),
+            quantum_operations=TunableTransmonOperations(),
+        )
         result = experiment_workflow(
             session=session,
             qpu=qpu,
-            qubit_pairs=[[q0, q1]],
+            qubit_pairs=[["q0", "q1"]],
             length_cliffords=[1, 5, 10, 20, 50],
             variations=5,
             options=options,

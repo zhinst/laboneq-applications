@@ -118,7 +118,8 @@ def experiment_workflow(
             The temporary parameters to update the qubits with.
         options:
             The options for building the workflow.
-            In addition to options from [WorkflowOptions], the following
+            In addition to options from
+            [WorkflowOptions][laboneq.workflow.WorkflowOptions], the following
             custom options are supported:
                 - `create_experiment`: The options for creating the experiment.
 
@@ -128,13 +129,15 @@ def experiment_workflow(
 
     Example:
         ```python
-        options = resonator_photons_time_resolved.experiment_workflow.options()
+        options = experiment_workflow.options()
         options.count(2**9)
         options.delay_between_measurements(1e-6)
+        # QPU from a two-qubit device setup
         qpu = QPU(
-            qubits=[TunableTransmonQubit("q0"), TunableTransmonQubit("q1")],
+            quantum_elements=TunableTransmonQubit.from_device_setup(setup),
             quantum_operations=TunableTransmonOperations(),
         )
+        qubits = qpu.quantum_elements
 
         temporary_parameters = {}
         for q in qubits:
@@ -144,17 +147,17 @@ def experiment_workflow(
             temp_pars.spectroscopy_length = 80e-9
             temporary_parameters[q.uid] = temp_pars
 
-        result = resonator_photons_time_resolved.experiment_workflow(
+        center_q1 = 6.0e9
+        center_q2 = 6.1e9
+        span = 0.2e9
+        result = experiment_workflow(
             session=session,
             qpu=qpu,
-            qubits="q0",
-            times=[
-                np.linspace(0, 3e-6, 21),
-                np.linspace(0, 3e-6, 21),
-            ],
+            qubits=["q0", "q1"],
+            times=[np.linspace(0, 3e-6, 21), np.linspace(0, 3e-6, 21)],
             frequencies=[
-                np.linspace(center_q1 - off, center_q1 + off, 151),
-                np.linspace(center_q2 - off, center_q2 + off, 151),
+                np.linspace(center_q1 - span/2, center_q1 + span/2, 151),
+                np.linspace(center_q2 - span/2, center_q2 + span/2, 151),
             ],
             temporary_parameters=temporary_parameters,
             options=options,
@@ -227,35 +230,29 @@ def create_experiment(
 
     Example:
         ```python
-        options = resonator_photons_time_resolved.experiment_workflow.options()
-        options.count(2**9)
-        options.delay_between_measurements(1e-6)
+        options = ResonatorPhotonsExperimentOptions()
+        options.count = 2**9
+        options.delay_between_measurements = 1e-6
+        # QPU from a two-qubit device setup
         qpu = QPU(
-            qubits=[TunableTransmonQubit("q0"), TunableTransmonQubit("q1")],
+            quantum_elements=TunableTransmonQubit.from_device_setup(setup),
             quantum_operations=TunableTransmonOperations(),
         )
-        temporary_parameters = {}
-        for q in qubits:
-            temp_pars = deepcopy(q.parameters)
-            temp_pars.drive_range = -10
-            temp_pars.spectroscopy_amplitude = 0.25
-            temp_pars.spectroscopy_length = 80e-9
-            temporary_parameters[q.uid] = temp_pars
-
+        q0, q1 = qpu["q0"], qpu["q1"]
+        qubits = [q0, q1]
+        center_q1 = 6.0e9
+        center_q2 = 6.1e9
+        span = 0.2e9
         create_experiment(
             qpu=qpu,
-            qubits=qpu.quantum_elements[0],
-            times=[
-                np.linspace(0, 3e-6, 21),
-                np.linspace(0, 3e-6, 21),
-            ],
+            qubits=qubits,
+            times=[np.linspace(0, 3e-6, 21), np.linspace(0, 3e-6, 21)],
             frequencies=[
-                np.linspace(center_q1 - off, center_q1 + off, 151),
-                np.linspace(center_q2 - off, center_q2 + off, 151),
+                np.linspace(center_q1 - span / 2, center_q1 + span / 2, 151),
+                np.linspace(center_q2 - span / 2, center_q2 + span / 2, 151),
             ],
-            temporary_parameters=temporary_parameters,
             options=options,
-        ).run()
+        )
         ```
     """
     # Define the custom options for the experiment

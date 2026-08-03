@@ -113,10 +113,10 @@ def experiment_workflow(
     Example:
         ```python
         options = experiment_workflow.options()
-        options.create_experiment.count(10)
-        pa = TWPA("twpa0")
+        options.count(10)
+        # QPU from a single-TWPA device setup
         qpu = QPU(
-            qubits=[pa],
+            quantum_elements=TWPA.from_device_setup(setup),
             quantum_operations=TWPAOperations(),
         )
         result = experiment_workflow(
@@ -213,9 +213,11 @@ def create_experiment(
             Enable or disable the cancellation tone.
         options:
             The options for building the experiment.
-            See [TWPATuneUpExperimentOptions] and [BaseExperimentOptions] for
-            accepted options.
-            Overwrites the options from [BaseExperimentOptions].
+            See [TWPATuneUpExperimentOptions] and
+            [BaseExperimentOptions][laboneq_applications.experiments.options.BaseExperimentOptions]
+            for accepted options.
+            Overwrites the options from
+            [BaseExperimentOptions][laboneq_applications.experiments.options.BaseExperimentOptions].
 
     Returns:
         experiment:
@@ -225,17 +227,18 @@ def create_experiment(
         ```python
         options = {
             "count": 10,
-            "spectroscopy_reset_delay": 3e-6
+            "spectroscopy_reset_delay": 3e-6,
         }
         options = TWPATuneUpExperimentOptions(**options)
-        pa = TWPA("twpa0")
+        # QPU from a single-TWPA device setup
         qpu = QPU(
-            qubits=[pa],
+            quantum_elements=TWPA.from_device_setup(setup),
             quantum_operations=TWPAOperations(),
         )
+        twpa0 = qpu["twpa0"]
         create_experiment(
             qpu=qpu,
-            parametric_amplifier=pa,
+            parametric_amplifier=twpa0,
             cancel_phase=np.linspace(0, 2 * np.pi, 51),
             cancel_attenuation=np.linspace(0, 30, 31),
             options=options,

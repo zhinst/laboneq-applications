@@ -143,7 +143,8 @@ def experiment_workflow(
             The temporary parameters to update the qubits with.
         options:
             The options for building the workflow.
-            In addition to options from [WorkflowOptions], the following
+            In addition to options from
+            [WorkflowOptions][laboneq.workflow.WorkflowOptions], the following
             custom options are supported:
                 - create_experiment: The options for creating the experiment.
 
@@ -159,33 +160,48 @@ def experiment_workflow(
         Length sweep:
 
         ```python
-        result = swap_calibration.experiment_workflow(
+        # QPU from a single-qubit device setup
+        qpu = QPU(
+            quantum_elements=BosonicQubit.from_device_setup(setup),
+            quantum_operations=BosonicQubitOperations(),
+        )
+        result = experiment_workflow(
             session=session,
             qpu=qpu,
-            qubits=qpu.quantum_element_uids,
-            swap_durations=[np.linspace(100e-9, 600e-9, 51)],
+            qubits="q0",
+            swap_durations=np.linspace(100e-9, 600e-9, 51),
         ).run()
         ```
 
         Amplitude sweep:
 
         ```python
-        result = swap_calibration.experiment_workflow(
+        # QPU from a single-qubit device setup
+        qpu = QPU(
+            quantum_elements=BosonicQubit.from_device_setup(setup),
+            quantum_operations=BosonicQubitOperations(),
+        )
+        result = experiment_workflow(
             session=session,
             qpu=qpu,
-            qubits=qpu.quantum_element_uids,
-            swap_amplitudes=[np.linspace(0.1, 0.9, 51)],
+            qubits="q0",
+            swap_amplitudes=np.linspace(0.1, 0.9, 51),
         ).run()
         ```
 
         2D sweep (length x amplitude):
 
         ```python
-        result = swap_calibration.experiment_workflow(
+        # QPU from a single-qubit device setup
+        qpu = QPU(
+            quantum_elements=BosonicQubit.from_device_setup(setup),
+            quantum_operations=BosonicQubitOperations(),
+        )
+        result = experiment_workflow(
             session=session,
             qpu=qpu,
-            qubits=qpu.quantum_element_uids,
-            swap_durations=[np.linspace(100e-9, 600e-9, 21)],
+            qubits="q0",
+            swap_durations=np.linspace(100e-9, 600e-9, 21),
             swap_amplitudes=[np.linspace(0.1, 0.9, 21)],
         ).run()
         ```

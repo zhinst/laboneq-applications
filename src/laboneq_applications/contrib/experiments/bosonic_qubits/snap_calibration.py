@@ -242,11 +242,16 @@ def experiment_workflow(
 
     Example:
         ```python
-        result = snap_calibration.experiment_workflow(
+        # QPU from a single-qubit device setup
+        qpu = QPU(
+            quantum_elements=BosonicQubit.from_device_setup(setup),
+            quantum_operations=BosonicQubitOperations(),
+        )
+        result = experiment_workflow(
             session=session,
             qpu=qpu,
-            qubits=qpu.quantum_elements[0].uid,
-            amplitudes_transmon=[np.linspace(0.1, 0.9, 51)],
+            qubits="q0",
+            amplitudes_transmon=np.linspace(0.1, 0.9, 51),
             photon_number_memory=3,
         ).run()
         ```

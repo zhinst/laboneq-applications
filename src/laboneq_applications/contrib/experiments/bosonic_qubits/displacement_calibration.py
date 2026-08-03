@@ -129,7 +129,8 @@ def experiment_workflow(
             The temporary parameters to update the qubits with.
         options:
             The options for building the workflow.
-            In addition to options from [WorkflowOptions], the following
+            In addition to options from
+            [WorkflowOptions][laboneq.workflow.WorkflowOptions], the following
             custom options are supported:
                 - create_experiment: The options for creating the experiment.
 
@@ -141,16 +142,17 @@ def experiment_workflow(
         ```python
         options = experiment_workflow.options()
         options.count(10)
+        # QPU from a single-qubit device setup
         qpu = QPU(
-            qubits=[BosonicQubit("q0")],
+            quantum_elements=BosonicQubit.from_device_setup(setup),
             quantum_operations=BosonicQubitOperations(),
         )
         result = experiment_workflow(
             session=session,
             qpu=qpu,
             qubits="q0",
-            amplitudes=[np.linspace(0.0, 1.0, 51)],
-            frequencies=[np.linspace(4.9e9, 5.1e9, 101)],
+            amplitudes=np.linspace(0.0, 1.0, 51),
+            frequencies=np.linspace(4.9e9, 5.1e9, 101),
             options=options,
         ).run()
         ```
@@ -211,7 +213,8 @@ def create_experiment(
         options:
             The options for building the experiment.
             See [DisplacementCalibrationExperimentOptions] and
-            [BaseExperimentOptions] for accepted options.
+            [BaseExperimentOptions][laboneq_applications.experiments.options.BaseExperimentOptions]
+            for accepted options.
 
     Returns:
         experiment:
@@ -229,18 +232,20 @@ def create_experiment(
             "count": 10,
             "averaging_mode": "cyclic",
             "acquisition_type": "integration_trigger",
-            "cal_traces": True,
+            "use_cal_traces": True,
         }
         options = DisplacementCalibrationExperimentOptions(**options)
+        # QPU from a single-qubit device setup
         qpu = QPU(
-            qubits=[BosonicQubit("q0")],
+            quantum_elements=BosonicQubit.from_device_setup(setup),
             quantum_operations=BosonicQubitOperations(),
         )
+        q0 = qpu["q0"]
         create_experiment(
             qpu=qpu,
-            qubits="q0",
-            amplitudes=[np.linspace(0.0, 1.0, 51)],
-            frequencies=[np.linspace(4.9e9, 5.1e9, 101)],
+            qubits=q0,
+            amplitudes=np.linspace(0.0, 1.0, 51),
+            frequencies=np.linspace(4.9e9, 5.1e9, 101),
             options=options,
         )
         ```

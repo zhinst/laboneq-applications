@@ -112,10 +112,10 @@ def experiment_workflow(
     Example:
         ```python
         options = experiment_workflow.options()
-        options.create_experiment.count(10)
-        twpa = TWPA("twpa0")
+        options.count(10)
+        # QPU from a single-TWPA device setup
         qpu = QPU(
-            qubits=[twpa],
+            quantum_elements=TWPA.from_device_setup(setup),
             quantum_operations=TWPAOperations(),
         )
         result = experiment_workflow(
@@ -273,9 +273,11 @@ def create_experiment(
             Whether to turn on the probe tone.
         options:
             The options for building the experiment.
-            See [TWPATuneUpExperimentOptions] and [BaseExperimentOptions] for
-            accepted options.
-            Overwrites the options from [BaseExperimentOptions].
+            See [TWPATuneUpExperimentOptions] and
+            [BaseExperimentOptions][laboneq_applications.experiments.options.BaseExperimentOptions]
+            for accepted options.
+            Overwrites the options from
+            [BaseExperimentOptions][laboneq_applications.experiments.options.BaseExperimentOptions].
 
     Returns:
         experiment:
@@ -285,17 +287,18 @@ def create_experiment(
         ```python
         options = {
             "count": 10,
-            "spectroscopy_reset_delay": 3e-6
+            "spectroscopy_reset_delay": 3e-6,
         }
         options = TWPATuneUpExperimentOptions(**options)
-        twpa = TWPA("twpa0")
+        # QPU from a single-TWPA device setup
         qpu = QPU(
-            pas=[twpa],
+            quantum_elements=TWPA.from_device_setup(setup),
             quantum_operations=TWPAOperations(),
         )
+        twpa0 = qpu["twpa0"]
         create_experiment(
             qpu=qpu,
-            parametric_amplifier=twpa,
+            parametric_amplifier=twpa0,
             pump_power=np.linspace(0, 10, 501),
             pump_frequency=np.linspace(7.1e9, 7.6e9, 501),
             options=options,

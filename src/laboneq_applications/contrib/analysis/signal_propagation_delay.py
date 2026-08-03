@@ -89,13 +89,10 @@ def analysis_workflow(
 
     Example:
         ```python
-        options = TuneUpAnalysisWorkflowOptions()
-        result = analysis_workflow(
-            results=results
-            qubits=q0,
+        analysis_result = analysis_workflow(
+            result=result,
+            qubit="q0",
             delays=np.linspace(0e-9, 200e-9, 21),
-            ],
-            options=options,
         ).run()
         ```
     """
@@ -138,12 +135,12 @@ def extract_qubit_parameters(
                 q.uid: {
                     qb_param_name: qb_param_value
                 },
-            }
+            },
             "old_parameter_values": {
                 q.uid: {
                     qb_param_name: qb_param_value
                 },
-            }
+            },
         }
         ```
         If the do_fitting option is False, the new_parameter_values are not extracted

@@ -189,10 +189,15 @@ def experiment_workflow(
         1D line cut along the real axis:
 
         ```python
-        result = wigner_tomography_demonstrator.experiment_workflow(
+        # QPU from a single-qubit device setup
+        qpu = QPU(
+            quantum_elements=BosonicQubit.from_device_setup(setup),
+            quantum_operations=BosonicQubitOperations(),
+        )
+        result = experiment_workflow(
             session=session,
             qpu=qpu,
-            qubits=qpu.quantum_element_uids,
+            qubits="q0",
             beta_re_values=[np.linspace(-4, 4, 41)],
         ).run()
         ```
@@ -200,10 +205,15 @@ def experiment_workflow(
         Full 2D phase-space scan:
 
         ```python
-        result = wigner_tomography_demonstrator.experiment_workflow(
+        # QPU from a single-qubit device setup
+        qpu = QPU(
+            quantum_elements=BosonicQubit.from_device_setup(setup),
+            quantum_operations=BosonicQubitOperations(),
+        )
+        result = experiment_workflow(
             session=session,
             qpu=qpu,
-            qubits=qpu.quantum_element_uids,
+            qubits="q0",
             beta_re_values=[np.linspace(-4, 4, 41)],
             beta_im_values=[np.linspace(-4, 4, 41)],
         ).run()

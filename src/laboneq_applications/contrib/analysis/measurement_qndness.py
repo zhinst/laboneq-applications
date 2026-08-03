@@ -67,11 +67,9 @@ def analysis_workflow(
 
     Example:
         ```python
-        options = analysis_workflow.options()
-        result = analysis_workflow(
-            results=results
-            qubits=[q0, q1],
-            options=options,
+        analysis_result = analysis_workflow(
+            result=result,
+            qubits=["q0", "q1"],
         ).run()
         ```
     """

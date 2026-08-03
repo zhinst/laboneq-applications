@@ -120,7 +120,8 @@ def experiment_workflow(
             The temporary parameters to update the qubits with.
         options:
             The options for building the workflow.
-            In addition to options from [WorkflowOptions], the following
+            In addition to options from
+            [WorkflowOptions][laboneq.workflow.WorkflowOptions], the following
             custom options are supported:
             - create_experiment: The options for creating the experiment.
 
@@ -132,13 +133,14 @@ def experiment_workflow(
         options = experiment_workflow.options()
         options.count(2**9)
         options.delay_between_measurements(1e-6)
+        # QPU from a two-qubit device setup
         qpu = QPU(
-            qubits=[TunableTransmonQubit("q0"), TunableTransmonQubit("q1")],
+            quantum_elements=TunableTransmonQubit.from_device_setup(setup),
             quantum_operations=TunableTransmonOperations(),
         )
         qubits = qpu.quantum_elements
         temporary_parameters = {}
-        for q in qubits_to_measure:
+        for q in qubits:
             temp_pars = deepcopy(q.parameters)
             temporary_parameters[q.uid] = temp_pars
         result = experiment_workflow(
@@ -177,8 +179,9 @@ def create_experiment(
             qubit or a list of qubits.
         options:
             The options for building the experiment.
-            See [QNDnessExperimentOptions] and [BaseExperimentOptions] for
-            accepted options.
+            See [QNDnessExperimentOptions] and
+            [BaseExperimentOptions][laboneq_applications.experiments.options.BaseExperimentOptions]
+            for accepted options.
 
     Returns:
         Experiment: The generated LabOne Q experiment instance to be compiled
@@ -186,14 +189,15 @@ def create_experiment(
 
     Example:
         ```python
-        options = QNDnessExperimentOptions()
+        # QPU from a two-qubit device setup
         qpu = QPU(
-            qubits=[q1, q2],
+            quantum_elements=TunableTransmonQubit.from_device_setup(setup),
+            quantum_operations=TunableTransmonOperations(),
         )
+        q0, q1 = qpu["q0"], qpu["q1"]
         create_experiment(
             qpu=qpu,
-            qubits=[q1, q2],
-            options=options,
+            qubits=[q0, q1],
         )
         ```
     """

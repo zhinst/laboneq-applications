@@ -86,7 +86,8 @@ def experiment_workflow(
             The temporary parameters to update the TWPA with.
         options:
             The options for building the workflow.
-            In addition to options from [WorkflowOptions]
+            In addition to options from
+            [WorkflowOptions][laboneq.workflow.WorkflowOptions]
 
     Returns:
         result:
@@ -96,9 +97,9 @@ def experiment_workflow(
         ```python
         options = experiment_workflow.options()
         options.spectroscopy_reset_delay(3e-6)
-        twpa = TWPA("twpa0")
+        # QPU from a single-TWPA device setup
         qpu = QPU(
-            pas=[twpa],
+            quantum_elements=TWPA.from_device_setup(setup),
             quantum_operations=TWPAOperations(),
         )
         result = experiment_workflow(
@@ -106,6 +107,7 @@ def experiment_workflow(
             qpu=qpu,
             parametric_amplifier="twpa0",
             frequencies=np.linspace(7.1e9, 7.6e9, 501),
+            options=options,
         ).run()
         ```
     """
@@ -144,9 +146,11 @@ def create_experiment(
             sent to the TWPA. Must be a list of numbers or an array.
         options:
             The options for building the experiment.
-            See [TWPASpectroscopyExperimentOptions] and [BaseExperimentOptions] for
-            accepted options.
-            Overwrites the options from [BaseExperimentOptions].
+            See [TWPASpectroscopyExperimentOptions] and
+            [BaseExperimentOptions][laboneq_applications.experiments.options.BaseExperimentOptions]
+            for accepted options.
+            Overwrites the options from
+            [BaseExperimentOptions][laboneq_applications.experiments.options.BaseExperimentOptions].
 
     Returns:
         experiment:
@@ -156,17 +160,18 @@ def create_experiment(
         ```python
         options = {
             "count": 10,
-            "spectroscopy_reset_delay": 3e-6
+            "spectroscopy_reset_delay": 3e-6,
         }
         options = TWPASpectroscopyExperimentOptions(**options)
-        twpa = TWPA("twpa0")
+        # QPU from a single-TWPA device setup
         qpu = QPU(
-            qubits=[twpa],
+            quantum_elements=TWPA.from_device_setup(setup),
             quantum_operations=TWPAOperations(),
         )
+        twpa0 = qpu["twpa0"]
         create_experiment(
             qpu=qpu,
-            parametric_amplifier=twpa,
+            parametric_amplifier=twpa0,
             frequencies=np.linspace(7.1e9, 7.6e9, 501),
             options=options,
         )

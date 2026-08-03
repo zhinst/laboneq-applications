@@ -68,9 +68,13 @@ def experiment_workflow(
 
     The workflow consists of the following steps:
 
+    - [get_gate_map]()
+    - [add_qasm_operations]()
+    - [create_sq_rb_qasm]()
     - [create_experiment]()
     - [compile_experiment]()
     - [run_experiment]()
+    - [analysis_workflow]()
 
     !!! version-removed "Removed in version 26.7.0."
         The `qubits` argument of type `QuantumElements` has been removed.
@@ -109,7 +113,8 @@ def experiment_workflow(
             The temporary parameters to update the qubits with.
         options:
             The options for building the workflow.
-            In addition to options from [WorkflowOptions], the following
+            In addition to options from
+            [WorkflowOptions][laboneq.workflow.WorkflowOptions], the following
             custom options are supported:
                 - create_experiment: The options for creating the experiment.
 
@@ -122,11 +127,16 @@ def experiment_workflow(
         options = experiment_workflow.options()
         options.count(10)
         options.transition("ge")
+        # QPU from a two-qubit device setup
+        qpu = QPU(
+            quantum_elements=TunableTransmonQubit.from_device_setup(setup),
+            quantum_operations=TunableTransmonOperations(),
+        )
         result = experiment_workflow(
             session=session,
             qpu=qpu,
             qubits=["q0", "q1"],
-            length_cliffords=[1,5,10,20,50],
+            length_cliffords=[1, 5, 10, 20, 50],
             variations=5,
             options=options,
         ).run()
@@ -223,7 +233,8 @@ def create_sq_rb_qasm(
             A seed used to initialize numpy.random.default_rng when generating circuits.
         options:
             The options for building the workflow.
-            In addition to options from [WorkflowOptions], the following
+            In addition to options from
+            [WorkflowOptions][laboneq.workflow.WorkflowOptions], the following
             custom options are supported:
                 - create_experiment: The options for creating the experiment.
 
@@ -279,7 +290,8 @@ def create_experiment(
             If None, the set from qpu.quantum_operations is used.
         options:
             The options for building the workflow.
-            In addition to options from [WorkflowOptions], the following
+            In addition to options from
+            [WorkflowOptions][laboneq.workflow.WorkflowOptions], the following
             custom options are supported:
                 - create_experiment: The options for creating the experiment.
 
@@ -294,9 +306,21 @@ def create_experiment(
         ```python
         options = TuneupExperimentOptions()
         options.count = 10
+        # QPU from a two-qubit device setup
+        qpu = QPU(
+            quantum_elements=TunableTransmonQubit.from_device_setup(setup),
+            quantum_operations=TunableTransmonOperations(),
+        )
+        gate_map = get_gate_map()
+        qasm_rb_sequences = create_sq_rb_qasm(
+            length_cliffords=[1, 5, 10, 20, 50],
+            gate_map=gate_map,
+            variations=5,
+        )
+        q0, q1 = qpu["q0"], qpu["q1"]
         create_experiment(
             qpu=qpu,
-            qubits=qubits,
+            qubits=[q0, q1],
             qasm_rb_sequences=qasm_rb_sequences,
             options=options,
         )

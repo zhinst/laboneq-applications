@@ -125,7 +125,8 @@ def experiment_workflow(
             The temporary parameters to update the qubits with.
         options:
             The options for building the workflow.
-            In addition to options from [WorkflowOptions], the following
+            In addition to options from
+            [WorkflowOptions][laboneq.workflow.WorkflowOptions], the following
             custom options are supported:
                 - create_experiment: The options for creating the experiment.
 
@@ -138,15 +139,16 @@ def experiment_workflow(
         options = experiment_workflow.options()
         options.count(10)
         options.transition("ge")
+        # QPU from a two-qubit device setup
         qpu = QPU(
-            qubits=[TunableTransmonQubit("q0"), TunableTransmonQubit("q1")],
+            quantum_elements=TunableTransmonQubit.from_device_setup(setup),
             quantum_operations=TunableTransmonOperations(),
         )
         result = experiment_workflow(
             session=session,
             qpu=qpu,
             qubits=["q0", "q1"],
-            lengths=[[1e-6, 5e-6, 10e-6]], [1e-6, 5e-6, 10e-6]],
+            lengths=[[1e-6, 5e-6, 10e-6], [1e-6, 5e-6, 10e-6]],
             options=options,
         ).run()
         ```
@@ -189,10 +191,11 @@ def create_experiment(
             the pi pulse amplitude of the specified transition.
         options:
             The options for building the experiment.
-            See [SpinLockingExperimentOptions] and [BaseExperimentOptions] for
-            accepted options.
+            See [SpinLockingExperimentOptions] and
+            [BaseExperimentOptions][laboneq_applications.experiments.options.BaseExperimentOptions]
+            for accepted options.
             Overwrites the options from [TuneupExperimentOptions] and
-            [BaseExperimentOptions].
+            [BaseExperimentOptions][laboneq_applications.experiments.options.BaseExperimentOptions].
 
     Returns:
         experiment:
@@ -209,19 +212,19 @@ def create_experiment(
             "transition": "ge",
             "averaging_mode": "cyclic",
             "acquisition_type": "integration_trigger",
-            "cal_traces": True,
+            "use_cal_traces": True,
         }
-        options = TuneupExperimentOptions(**options)
-        setup = DeviceSetup()
+        options = SpinLockingExperimentOptions(**options)
+        # QPU from a two-qubit device setup
         qpu = QPU(
-            setup=DeviceSetup("my_device"),
-            qubits=[TunableTransmonQubit("q0"), TunableTransmonQubit("q1")],
+            quantum_elements=TunableTransmonQubit.from_device_setup(setup),
             quantum_operations=TunableTransmonOperations(),
         )
+        q0, q1 = qpu["q0"], qpu["q1"]
         create_experiment(
             qpu=qpu,
-            qubits=["q0", "q1"],
-            lengths=[[1e-6, 5e-6, 10e-6], [1e-6, 5e-6, 10e-6]]
+            qubits=[q0, q1],
+            lengths=[[1e-6, 5e-6, 10e-6], [1e-6, 5e-6, 10e-6]],
             options=options,
         )
         ```
@@ -294,8 +297,8 @@ def gaussian_square_sweep(
             Whether to zero the pulse at the boundaries
 
     Keyword Arguments:
-        uid ([str][]): Unique identifier of the pulse
-        amplitude ([float][]): Amplitude of the pulse
+        uid (`str`): Unique identifier of the pulse
+        amplitude (`float`): Amplitude of the pulse
 
     Returns:
         pulse (Pulse): Gaussian square pulse.

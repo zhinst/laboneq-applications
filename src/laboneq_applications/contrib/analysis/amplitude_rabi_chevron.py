@@ -145,15 +145,11 @@ def analysis_workflow(
 
     Example:
         ```python
-        options = TuneUpAnalysisWorkflowOptions()
-        result = analysis_workflow(
-            results=results
-            qubits=[q0, q1],
-            amplitudes=[
-                np.linspace(0, 1, 11),
-                np.linspace(0, 1, 11),
-            ],
-            options=options,
+        analysis_result = analysis_workflow(
+            result=result,
+            qubits=["q0", "q1"],
+            frequencies=[np.linspace(1.5e9, 2.0e9, 11), np.linspace(1.5e9, 2.0e9, 11)],
+            amplitudes=[np.linspace(0, 1, 11), np.linspace(0, 1, 11)],
         ).run()
         ```
     """

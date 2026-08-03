@@ -91,18 +91,14 @@ def analysis_workflow(
 
     Example:
         ```python
-        result = analysis_workflow(
-            results=results
-            qubits=[q0, q1],
-            times=[
-                np.linspace(0, 3e-6, 21),
-                np.linspace(0, 3e-6, 21),
-            ],
+        analysis_result = analysis_workflow(
+            result=result,
+            qubits=["q0", "q1"],
+            times=[np.linspace(0, 3e-6, 21), np.linspace(0, 3e-6, 21)],
             frequencies=[
                 np.linspace(6.0e9, 6.3e9, 201),
                 np.linspace(5.8e9, 6.1e9, 201),
             ],
-            options=analysis_workflow.options(),
         ).run()
         ```
     """
@@ -216,16 +212,14 @@ def plot_resonator_photon_number(
         qubits:
             The qubits on which to run the analysis. May be either a single qubit
             or a list of qubits. The UIDs of these qubits must exist in the
-            `processed_data_dict` and `qubit_parameters`.
+            `processed_data_dict`.
         processed_data_dict:
             The processed data dictionary returned by
             `calculate_signal_magnitude_and_phase`.
         fit_results: The fit-results dictionary returned by `fit_data`.
-        qubit_parameters: The qubit-parameters dictionary returned by
-            `extract_qubit_parameters`.
         options:
             The options for this task as an instance of
-            [PlotQubitSpectroscopyOptions]. See the docstring of this class for
+            [BasePlottingOptions]. See the docstring of this class for
             more details.
 
     Returns:

@@ -193,11 +193,16 @@ def experiment_workflow(
         ```python
         options = experiment_workflow.options()
         options.count(1024)
+        # QPU from a single-qubit device setup
+        qpu = QPU(
+            quantum_elements=BosonicQubit.from_device_setup(setup),
+            quantum_operations=BosonicQubitOperations(),
+        )
         result = experiment_workflow(
             session=session,
             qpu=qpu,
-            qubits=qpu.quantum_element_uids,
-            amplitudes_transmon=[np.linspace(0.0, 1.0, 51)],
+            qubits="q0",
+            amplitudes_transmon=np.linspace(0.0, 1.0, 51),
             photon_numbers_memory=[0, 1, 2, 3],
             options=options,
         ).run()

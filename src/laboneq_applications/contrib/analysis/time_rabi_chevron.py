@@ -114,19 +114,11 @@ def analysis_workflow(
 
     Example:
         ```python
-        options = analysis_workflow.options()
-        result = analysis_workflow(
-            results=results
-            qubits=[q0, q1],
-            frequencies=[
-                np.linspace(1.5e9, 2.0e9, 11),
-                np.linsapce(1.5e9, 2.0e9, 11),
-            ],
-            lengths=[
-                np.linspace(10e-9, 100e-9, 11),
-                np.linspace(10e-9, 100e-9, 11),
-            ],
-            options=options,
+        analysis_result = analysis_workflow(
+            result=result,
+            qubits=["q0", "q1"],
+            frequencies=[np.linspace(1.5e9, 2.0e9, 11), np.linspace(1.5e9, 2.0e9, 11)],
+            lengths=[np.linspace(10e-9, 100e-9, 11), np.linspace(10e-9, 100e-9, 11)],
         ).run()
         ```
     """

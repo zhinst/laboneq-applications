@@ -105,7 +105,8 @@ def experiment_workflow(
             The temporary parameters to update the qubit with.
         options:
             The options for building the workflow.
-            In addition to options from [WorkflowOptions], the following
+            In addition to options from
+            [WorkflowOptions][laboneq.workflow.WorkflowOptions], the following
             custom options are supported:
                 - create_experiment: The options for creating the experiment.
 
@@ -115,19 +116,20 @@ def experiment_workflow(
 
     Example:
         ```python
-        options = SpectroscopyWorkflowOptions()
-        options.create_experiment.count = 10
+        options = experiment_workflow.options()
+        options.count(10)
+        # QPU from a single-qubit device setup
         qpu = QPU(
-            qubit=[TunableTransmonQubit("q0"), TunableTransmonQubit("q1")],
+            quantum_elements=TunableTransmonQubit.from_device_setup(setup),
             quantum_operations=TunableTransmonOperations(),
         )
-        result = run(
+        result = experiment_workflow(
             session=session,
             qpu=qpu,
             qubit="q0",
             delays=np.linspace(0e-9, 100e-9, 51),
             options=options,
-        )
+        ).run()
         ```
     """
     temp_qpu = temporary_qpu(qpu, temporary_parameters)
@@ -184,10 +186,11 @@ def create_experiment(
             Delay between subsequent measurements.
         options:
             The options for building the experiment.
-            See [TuneupExperimentOptions] and [BaseExperimentOptions] for
-            accepted options.
+            See [TuneupExperimentOptions] and
+            [BaseExperimentOptions][laboneq_applications.experiments.options.BaseExperimentOptions]
+            for accepted options.
             Overwrites the options from [TuneupExperimentOptions] and
-            [BaseExperimentOptions].
+            [BaseExperimentOptions][laboneq_applications.experiments.options.BaseExperimentOptions].
 
     Returns:
         experiment:
@@ -199,14 +202,15 @@ def create_experiment(
             "count": 10,
         }
         options = TuneupExperimentOptions(**options)
-        setup = DeviceSetup()
+        # QPU from a single-qubit device setup
         qpu = QPU(
-            qubits=[TunableTransmonQubit("q0"), TunableTransmonQubit("q1")],
+            quantum_elements=TunableTransmonQubit.from_device_setup(setup),
             quantum_operations=TunableTransmonOperations(),
         )
+        q0 = qpu["q0"]
         create_experiment(
             qpu=qpu,
-            qubit="q0",
+            qubit=q0,
             delays=np.linspace(0e-9, 100e-9, 51),
             options=options,
         )
