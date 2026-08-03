@@ -122,7 +122,8 @@ def experiment_workflow(
             `(tag, source node UID, target node UID)`.
         options:
             The options for building the workflow as an instance of
-            [TuneUpWorkflowOptions]. See the docstring of this class for more details.
+            [IQBlobExperimentWorkflowOptions]. See the docstring of this class for more
+            details.
 
     Returns:
         WorkflowBuilder:
@@ -132,8 +133,9 @@ def experiment_workflow(
         ```python
         options = experiment_workflow.options()
         options.count(10)
+        # QPU from a two-qubit device setup
         qpu = QPU(
-            quantum_elements=[TunableTransmonQubit("q0"), TunableTransmonQubit("q1")],
+            quantum_elements=TunableTransmonQubit.from_device_setup(setup),
             quantum_operations=TunableTransmonOperations(),
         )
         result = experiment_workflow(
@@ -142,7 +144,7 @@ def experiment_workflow(
             qubits=["q0", "q1"],
             states="ge",
             options=options,
-        )
+        ).run()
         ```
     """
     temp_qpu = temporary_qpu(qpu, temporary_parameters)
@@ -188,15 +190,16 @@ def create_experiment(
     Example:
         ```python
         options = IQBlobExperimentOptions()
-        options.count(10)
-        setup = DeviceSetup("my_device")
+        options.count = 10
+        # QPU from a two-qubit device setup
         qpu = QPU(
-            quantum_elements=[TunableTransmonQubit("q0"), TunableTransmonQubit("q1")],
+            quantum_elements=TunableTransmonQubit.from_device_setup(setup),
             quantum_operations=TunableTransmonOperations(),
         )
+        q0, q1 = qpu["q0"], qpu["q1"]
         create_experiment(
             qpu=qpu,
-            qubits=["q0", "q1"],
+            qubits=[q0, q1],
             states="ge",
             options=options,
         )

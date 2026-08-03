@@ -144,8 +144,9 @@ def experiment_workflow(
         options = experiment_workflow.options()
         options.count(10)
         options.acquisition_type(AcquisitionType.SPECTROSCOPY)
+        # QPU from a single-qubit device setup
         qpu = QPU(
-            quantum_elements=[TunableTransmonQubit("q0"), TunableTransmonQubit("q1")],
+            quantum_elements=TunableTransmonQubit.from_device_setup(setup),
             quantum_operations=TunableTransmonOperations(),
         )
         result = experiment_workflow(
@@ -153,7 +154,7 @@ def experiment_workflow(
             qpu=qpu,
             qubit="q0",
             frequencies=np.linspace(1.8e9, 2.2e9, 101),
-            states="ge"
+            states="ge",
             options=options,
         ).run()
         ```
@@ -215,7 +216,8 @@ def create_experiment(
             e.g. "gef", or a list of letters, e.g. ["g","e","f"].
         options:
             The options for building the experiment as an instance of
-            [BaseExperimentOptions]. See docstring of this class for more details.
+            [BaseExperimentOptions][laboneq_applications.experiments.options.BaseExperimentOptions].
+            See docstring of this class for more details.
 
     Returns:
         experiment:
@@ -230,18 +232,20 @@ def create_experiment(
 
     Example:
         ```python
-        options = ResonatorSpectroscopyExperimentOptions()
-        options.count(10)
-        options.acquisition_type(AcquisitionType.SPECTROSCOPY)
+        options = DispersiveShiftExperimentOptions()
+        options.count = 10
+        options.acquisition_type = AcquisitionType.SPECTROSCOPY
+        # QPU from a single-qubit device setup
         qpu = QPU(
-            quantum_elements=[TunableTransmonQubit("q0"), TunableTransmonQubit("q1")],
+            quantum_elements=TunableTransmonQubit.from_device_setup(setup),
             quantum_operations=TunableTransmonOperations(),
         )
+        q0 = qpu["q0"]
         create_experiment(
             qpu=qpu,
-            qubit="q0",
+            qubit=q0,
             frequencies=np.linspace(1.8e9, 2.2e9, 101),
-            states="ge"
+            states="ge",
             options=options,
         )
         ```

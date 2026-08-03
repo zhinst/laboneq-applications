@@ -210,11 +210,12 @@ def analysis_workflow(
         options:
             The options for building the workflow, passed as an instance of
                 [QubitSpectroscopyAnalysisWorkflowOptions].
-            In addition to options from [WorkflowOptions], the following
+            In addition to options from
+            [WorkflowOptions][laboneq.workflow.WorkflowOptions], the following
             custom options are supported: do_plotting, do_raw_data_plotting,
             do_plotting_qubit_spectroscopy and the options of
-            the [QubitSpectroscopyAnalysisOptions] class. See the docstring of
-            [QubitSpectroscopyAnalysisOptions] for more details.
+            the [QubitSpectroscopyAnalysisWorkflowOptions] class. See the docstring of
+            [QubitSpectroscopyAnalysisWorkflowOptions] for more details.
 
     Returns:
         WorkflowBuilder:
@@ -222,14 +223,10 @@ def analysis_workflow(
 
     Example:
         ```python
-        result = analysis_workflow(
-            results=results
+        analysis_result = analysis_workflow(
+            result=result,
             qubits=[q0, q1],
-            frequencies=[
-                np.linspace(6.0, 6.3, 301),
-                np.linspace(5.8, 6.1, 301),
-            ],
-            options=analysis_workflow.options(),
+            frequencies=[np.linspace(6.0, 6.3, 301), np.linspace(5.8, 6.1, 301)],
         ).run()
         ```
     """
@@ -431,7 +428,7 @@ def extract_qubit_parameters(
                 q.uid: {
                     qb_param_name: qb_param_value
                 },
-            }
+            },
             "old_parameter_values": {
                 q.uid: {
                     qb_param_name: qb_param_value

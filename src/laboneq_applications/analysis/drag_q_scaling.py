@@ -97,8 +97,8 @@ def analysis_workflow(
         ```python
         options = analysis_workflow.options()
         options.close_figures(False)
-        result = analysis_workflow(
-            results=results
+        analysis_result = analysis_workflow(
+            result=result,
             qubits=[q0, q1],
             q_scalings=[
                 np.linspace(-0.05, 0.05, 11),
@@ -298,7 +298,7 @@ def extract_qubit_parameters(
                 q.uid: {
                     qb_param_name: qb_param_value
                 },
-            }
+            },
             "old_parameter_values": {
                 q.uid: {
                     qb_param_name: qb_param_value

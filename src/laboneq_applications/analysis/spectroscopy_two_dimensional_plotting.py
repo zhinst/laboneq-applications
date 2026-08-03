@@ -108,14 +108,13 @@ def analysis_workflow(
 
     Example:
         ```python
-        result = analysis_workflow(
-            results=results
+        analysis_result = analysis_workflow(
+            result=result,
             qubits=[q0, q1],
-            frequencies=[
-                np.linspace(6.0, 6.3, 301),
-                np.linspace(5.8, 6.1, 301),
-            ],
-            options=analysis_workflow.options(),
+            sweep_points_1d=[np.linspace(6.0, 6.3, 301), np.linspace(5.8, 6.1, 301)],
+            sweep_points_2d=[np.linspace(0, 1, 11), np.linspace(0, 1, 11)],
+            label_sweep_points_1d="Qubit Frequency (Hz)",
+            label_sweep_points_2d="Spectroscopy-Drive Amplitude (a.u.)",
         ).run()
         ```
     """

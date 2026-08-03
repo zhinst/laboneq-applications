@@ -210,7 +210,7 @@ def analysis_workflow(
     - [fit_data]()
     - [process_fit_results]()
     - [extract_qubit_parameters]()
-    - [plot_raw_complex_data_1d]()
+    - [plot_raw_complex_data_2d]()
     - [plot_signal_magnitude]()
     - [plot_signal_phase]()
 
@@ -235,12 +235,11 @@ def analysis_workflow(
 
     Example:
         ```python
-        result = analysis_workflow(
-            results=results
+        analysis_result = analysis_workflow(
+            result=result,
             qubit=q0,
             frequencies=np.linspace(7.0, 7.1, 101),
             voltages=np.linspace(0, 1, 11),
-            options=analysis_workflow.options(),
         ).run()
         ```
     """
@@ -528,7 +527,7 @@ def extract_qubit_parameters(
                 q.uid: {
                     qb_param_name: qb_param_value
                 },
-            }
+            },
             "old_parameter_values": {
                 q.uid: {
                     qb_param_name: qb_param_value

@@ -89,15 +89,10 @@ def analysis_workflow(
 
     Example:
         ```python
-        options = TuneUpAnalysisWorkflowOptions()
-        result = analysis_workflow(
-            results=results
+        analysis_result = analysis_workflow(
+            result=result,
             qubits=[q0, q1],
-            amplitudes=[
-                np.linspace(0, 1, 11),
-                np.linspace(0, 0.75, 11),
-            ],
-            options=options,
+            amplitudes=[np.linspace(0, 1, 11), np.linspace(0, 0.75, 11)],
         ).run()
         ```
     """
@@ -190,7 +185,7 @@ def extract_qubit_parameters(
                 q.uid: {
                     qb_param_name: qb_param_value
                 },
-            }
+            },
             "old_parameter_values": {
                 q.uid: {
                     qb_param_name: qb_param_value

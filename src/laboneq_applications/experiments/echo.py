@@ -139,20 +139,21 @@ def experiment_workflow(
 
     Example:
         ```python
-        options = EchoWorkflowOptions()
+        options = experiment_workflow.options()
         options.count(10)
         options.transition("ge")
+        # QPU from a two-qubit device setup
         qpu = QPU(
-            quantum_elements=[TunableTransmonQubit("q0"), TunableTransmonQubit("q1")],
+            quantum_elements=TunableTransmonQubit.from_device_setup(setup),
             quantum_operations=TunableTransmonOperations(),
         )
-        result = run(
+        result = experiment_workflow(
             session=session,
             qpu=qpu,
             qubits=["q0", "q1"],
             delays=[np.linspace(0, 30e-6, 51), np.linspace(0, 30e-6, 51)],
             options=options,
-        )
+        ).run()
         ```
     """
     temp_qpu = temporary_qpu(qpu, temporary_parameters)
@@ -227,17 +228,18 @@ def create_experiment(
 
     Example:
         ```python
-        options = TuneupExperimentOptions()
+        options = EchoExperimentOptions()
         options.count = 10
-        options.cal_traces = True
-        setup = DeviceSetup("my_device")
+        options.use_cal_traces = True
+        # QPU from a two-qubit device setup
         qpu = QPU(
-            quantum_elements=[TunableTransmonQubit("q0"), TunableTransmonQubit("q1")],
+            quantum_elements=TunableTransmonQubit.from_device_setup(setup),
             quantum_operations=TunableTransmonOperations(),
         )
+        q0, q1 = qpu["q0"], qpu["q1"]
         create_experiment(
             qpu=qpu,
-            qubits=["q0", "q1"],
+            qubits=[q0, q1],
             delays=[np.linspace(0, 30e-6, 51), np.linspace(0, 30e-6, 51)],
             options=options,
         )

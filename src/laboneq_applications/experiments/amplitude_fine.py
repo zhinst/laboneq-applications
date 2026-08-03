@@ -127,7 +127,8 @@ def experiment_workflow(  # noqa: PLR0913
             `(tag, source node UID, target node UID)`.
         options:
             The options for building the workflow.
-            In addition to options from [WorkflowOptions], the following
+            In addition to options from
+            [WorkflowOptions][laboneq.workflow.WorkflowOptions], the following
             custom options are supported:
                 - create_experiment: The options for creating the experiment.
 
@@ -137,7 +138,7 @@ def experiment_workflow(  # noqa: PLR0913
 
     Example:
         ```python
-        options = amplitude_fine.experiment_workflow.options()
+        options = experiment_workflow.options()
         options.count(10)
         options.transition("ge")
         # QPU from a two-qubit device setup
@@ -149,13 +150,10 @@ def experiment_workflow(  # noqa: PLR0913
             session=session,
             qpu=qpu,
             qubits=["q0", "q1"],
-            amplification_qop='x180',
+            amplification_qop="x180",
             target_angle=1.0,
             phase_offset=0.0,
-            repetitions=[
-                [1,2,3,4],
-                [1,2,3,4],
-            ],
+            repetitions=[[1, 2, 3, 4], [1, 2, 3, 4]],
             options=options,
         ).run()
         ```
@@ -227,10 +225,11 @@ def create_experiment(
             integers. Otherwise, it must be a list of lists of integers.
         options:
             The options for building the experiment.
-            See [TuneupExperimentOptions] and [BaseExperimentOptions] for
-            accepted options.
+            See [TuneupExperimentOptions] and
+            [BaseExperimentOptions][laboneq_applications.experiments.options.BaseExperimentOptions]
+            for accepted options.
             Overwrites the options from [TuneupExperimentOptions] and
-            [BaseExperimentOptions].
+            [BaseExperimentOptions][laboneq_applications.experiments.options.BaseExperimentOptions].
 
     Returns:
         experiment:
@@ -260,14 +259,12 @@ def create_experiment(
             quantum_elements=TunableTransmonQubit.from_device_setup(setup),
             quantum_operations=TunableTransmonOperations(),
         )
+        q0, q1 = qpu["q0"], qpu["q1"]
         create_experiment(
             qpu=qpu,
-            qubits=["q0", "q1"],
+            qubits=[q0, q1],
             amplification_qop="x180",
-            repetitions=[
-                [1,2,3,4],
-                [1,2,3,4],
-            ],
+            repetitions=[[1, 2, 3, 4], [1, 2, 3, 4]],
             options=options,
         )
         ```
@@ -433,7 +430,8 @@ def experiment_workflow_x180(
             `(tag, source node UID, target node UID)`.
         options:
             The options for building the workflow.
-            In addition to options from [WorkflowOptions], the following
+            In addition to options from
+            [WorkflowOptions][laboneq.workflow.WorkflowOptions], the following
             custom options are supported:
                 - create_experiment: The options for creating the experiment.
 
@@ -443,7 +441,7 @@ def experiment_workflow_x180(
 
     Example:
         ```python
-        options = amplitude_fine.experiment_workflow.options()
+        options = experiment_workflow_x180.options()
         options.count(10)
         options.transition("ge")
         # QPU from a two-qubit device setup
@@ -455,10 +453,7 @@ def experiment_workflow_x180(
             session=session,
             qpu=qpu,
             qubits=["q0", "q1"],
-            repetitions=[
-                [1,2,3,4],
-                [1,2,3,4],
-            ],
+            repetitions=[[1, 2, 3, 4], [1, 2, 3, 4]],
             options=options,
         ).run()
         ```
@@ -562,7 +557,8 @@ def experiment_workflow_x90(
             `(tag, source node UID, target node UID)`.
         options:
             The options for building the workflow.
-            In addition to options from [WorkflowOptions], the following
+            In addition to options from
+            [WorkflowOptions][laboneq.workflow.WorkflowOptions], the following
             custom options are supported:
                 - create_experiment: The options for creating the experiment.
 
@@ -572,7 +568,7 @@ def experiment_workflow_x90(
 
     Example:
         ```python
-        options = amplitude_fine.experiment_workflow.options()
+        options = experiment_workflow_x90.options()
         options.count(10)
         options.transition("ge")
         # QPU from a two-qubit device setup
@@ -584,10 +580,7 @@ def experiment_workflow_x90(
             session=session,
             qpu=qpu,
             qubits=["q0", "q1"],
-            repetitions=[
-                [1,2,3,4],
-                [1,2,3,4],
-            ],
+            repetitions=[[1, 2, 3, 4], [1, 2, 3, 4]],
             options=options,
         ).run()
         ```

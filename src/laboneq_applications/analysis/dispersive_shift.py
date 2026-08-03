@@ -107,13 +107,11 @@ def analysis_workflow(
 
     Example:
         ```python
-        options = analysis_workflow.options()
-        result = analysis_workflow(
-            results=results
+        analysis_result = analysis_workflow(
+            result=result,
             qubit=q0,
             frequencies=np.linspace(7.0, 7.1, 101),
             states="gef",
-            options=options,
         ).run()
         ```
     """
@@ -222,7 +220,7 @@ def extract_qubit_parameters(
                 q.uid: {
                     qb_param_name: qb_param_value
                 },
-            }
+            },
             "old_parameter_values": {
                 q.uid: {
                     qb_param_name: qb_param_value

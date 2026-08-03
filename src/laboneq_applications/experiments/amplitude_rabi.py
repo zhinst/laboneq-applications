@@ -110,7 +110,8 @@ def experiment_workflow(
             `(tag, source node UID, target node UID)`.
         options:
             The options for building the workflow.
-            In addition to options from [WorkflowOptions], the following
+            In addition to options from
+            [WorkflowOptions][laboneq.workflow.WorkflowOptions], the following
             custom options are supported:
                 - create_experiment: The options for creating the experiment.
 
@@ -120,21 +121,19 @@ def experiment_workflow(
 
     Example:
         ```python
-        options = TuneUpExperimentWorkflowOptions()
-        options.create_experiment.count = 10
-        options.create_experiment.transition = "ge"
+        options = experiment_workflow.options()
+        options.count(10)
+        options.transition("ge")
+        # QPU from a two-qubit device setup
         qpu = QPU(
-            quantum_elements=[TunableTransmonQubit("q0"), TunableTransmonQubit("q1")],
+            quantum_elements=TunableTransmonQubit.from_device_setup(setup),
             quantum_operations=TunableTransmonOperations(),
         )
         result = experiment_workflow(
             session=session,
             qpu=qpu,
             qubits=["q0", "q1"],
-            amplitudes=[
-                np.linspace(0, 1, 11),
-                np.linspace(0, 0.75, 11),
-            ],
+            amplitudes=[np.linspace(0, 1, 11), np.linspace(0, 0.75, 11)],
             options=options,
         ).run()
         ```
@@ -192,10 +191,11 @@ def create_experiment(
             it must be a list of lists of numbers or arrays.
         options:
             The options for building the experiment.
-            See [TuneupExperimentOptions] and [BaseExperimentOptions] for
-            accepted options.
+            See [TuneupExperimentOptions] and
+            [BaseExperimentOptions][laboneq_applications.experiments.options.BaseExperimentOptions]
+            for accepted options.
             Overwrites the options from [TuneupExperimentOptions] and
-            [BaseExperimentOptions].
+            [BaseExperimentOptions][laboneq_applications.experiments.options.BaseExperimentOptions].
 
     Returns:
         experiment:
@@ -222,20 +222,19 @@ def create_experiment(
             "transition": "ge",
             "averaging_mode": "cyclic",
             "acquisition_type": "integration_trigger",
-            "cal_traces": True,
+            "use_cal_traces": True,
         }
         options = TuneupExperimentOptions(**options)
+        # QPU from a two-qubit device setup
         qpu = QPU(
-            quantum_elements=[TunableTransmonQubit("q0"), TunableTransmonQubit("q1")],
+            quantum_elements=TunableTransmonQubit.from_device_setup(setup),
             quantum_operations=TunableTransmonOperations(),
         )
+        q0, q1 = qpu["q0"], qpu["q1"]
         create_experiment(
             qpu=qpu,
-            qubits=["q0", "q1"],
-            amplitudes=[
-                np.linspace(0, 1, 11),
-                np.linspace(0, 0.75, 11),
-            ],
+            qubits=[q0, q1],
+            amplitudes=[np.linspace(0, 1, 11), np.linspace(0, 0.75, 11)],
             options=options,
         )
         ```

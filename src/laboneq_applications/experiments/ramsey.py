@@ -122,7 +122,8 @@ def experiment_workflow(
             `(tag, source node UID, target node UID)`.
         options:
             The options for building the workflow.
-            In addition to options from [WorkflowOptions], the following
+            In addition to options from
+            [WorkflowOptions][laboneq.workflow.WorkflowOptions], the following
             custom options are supported:
                 - create_experiment: The options for creating the experiment.
 
@@ -133,11 +134,11 @@ def experiment_workflow(
     Example:
         ```python
         options = experiment_workflow.options()
-        options.create_experiment.count(10)
-        options.create_experiment.transition("ge")
-        setup = DeviceSetup("my_device")
+        options.count(10)
+        options.transition("ge")
+        # QPU from a two-qubit device setup
         qpu = QPU(
-            quantum_elements=[TunableTransmonQubit("q0"), TunableTransmonQubit("q1")],
+            quantum_elements=TunableTransmonQubit.from_device_setup(setup),
             quantum_operations=TunableTransmonOperations(),
         )
         result = experiment_workflow(
@@ -145,7 +146,7 @@ def experiment_workflow(
             qpu=qpu,
             qubits=["q0", "q1"],
             delays=[[0.1, 0.5, 1], [0.1, 0.5, 1]],
-            detunings = {'q0':1e6,'q1':1.346e6},
+            detunings=[1e6, 1.346e6],
             options=options,
         ).run()
         ```
@@ -215,10 +216,11 @@ def create_experiment(
             in `qubits`.
         options:
             The options for building the experiment.
-            See [TuneupExperimentOptions] and [BaseExperimentOptions] for
-            accepted options.
+            See [TuneupExperimentOptions] and
+            [BaseExperimentOptions][laboneq_applications.experiments.options.BaseExperimentOptions]
+            for accepted options.
             Overwrites the options from [TuneupExperimentOptions] and
-            [BaseExperimentOptions].
+            [BaseExperimentOptions][laboneq_applications.experiments.options.BaseExperimentOptions].
 
     Returns:
         experiment:
@@ -241,20 +243,17 @@ def create_experiment(
 
     Example:
         ```python
-        options = TuneupExperimentOptions()
+        # QPU from a two-qubit device setup
         qpu = QPU(
-            quantum_elements=[TunableTransmonQubit("q0"), TunableTransmonQubit("q1")],
+            quantum_elements=TunableTransmonQubit.from_device_setup(setup),
             quantum_operations=TunableTransmonOperations(),
         )
+        q0, q1 = qpu["q0"], qpu["q1"]
         create_experiment(
             qpu=qpu,
-            qubits=["q0", "q1"],
-            delays=[
-                np.linspace(0, 20e-6, 51),
-                np.linspace(0, 30e-6, 52),
-            ],
-            detunings = [1e6, 1.346e6],
-            options=options,
+            qubits=[q0, q1],
+            delays=[np.linspace(0, 20e-6, 51), np.linspace(0, 30e-6, 52)],
+            detunings=[1e6, 1.346e6],
         )
         ```
     """

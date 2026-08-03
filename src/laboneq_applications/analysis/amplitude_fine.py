@@ -101,14 +101,13 @@ def analysis_workflow(
         ```python
         options = analysis_workflow.options()
         options.close_figures(False)
-        result = analysis_workflow(
-            results=results
+        analysis_result = analysis_workflow(
+            result=result,
             qubits=[q0, q1],
-            amplification_qop='x180',
-            repetitions=[
-                [1,2,3,4],
-                [1,2,3,4],
-            ],
+            amplification_qop="x180",
+            target_angle=np.pi,
+            phase_offset=-np.pi / 2,
+            repetitions=[[1, 2, 3, 4], [1, 2, 3, 4]],
             options=options,
         ).run()
         ```
@@ -302,7 +301,7 @@ def extract_qubit_parameters(
                 q.uid: {
                     qb_param_name: qb_param_value
                 },
-            }
+            },
             "old_parameter_values": {
                 q.uid: {
                     qb_param_name: qb_param_value

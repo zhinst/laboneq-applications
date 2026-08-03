@@ -87,7 +87,9 @@ class FitDataEchoOptions:
 class PlotRawDataEchoOptions:
     """Options for the `plot_raw_complex_data_1d` task of the Echo analysis.
 
-    See [PlotRawDataOptions] for additional accepted options.
+    See
+    [PlotRawDataOptions][laboneq_applications.analysis.plotting_helpers.PlotRawDataOptions]
+    for additional accepted options.
 
     Attributes:
         transition:
@@ -145,13 +147,10 @@ def analysis_workflow(
         ```python
         options = analysis_workflow.options()
         options.close_figures(False)
-        result = analysis_workflow(
-            results=results
+        analysis_result = analysis_workflow(
+            result=result,
             qubits=[q0, q1],
-            delays=[
-                np.linspace(0, 10e-6, 11),
-                np.linspace(0, 10e-6, 11),
-            ],
+            delays=[np.linspace(0, 10e-6, 11), np.linspace(0, 10e-6, 11)],
             options=options,
         ).run()
         ```
@@ -250,7 +249,7 @@ def extract_qubit_parameters(
                 q.uid: {
                     qb_param_name: qb_param_value
                 },
-            }
+            },
             "old_parameter_values": {
                 q.uid: {
                     qb_param_name: qb_param_value

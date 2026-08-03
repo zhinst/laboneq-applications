@@ -167,15 +167,11 @@ def analysis_workflow(
 
     Example:
         ```python
-        result = analysis_workflow(
-            results=results
+        analysis_result = analysis_workflow(
+            result=result,
             qubits=[q0, q1],
-            delays=[
-                np.linspace(0, 20e-6, 51),
-                np.linspace(0, 30e-6, 52),
-            ],
-            detunings = [1e6, 1.346e6],
-            options=analysis_workflow.options()
+            delays=[np.linspace(0, 20e-6, 51), np.linspace(0, 30e-6, 52)],
+            detunings=[1e6, 1.346e6],
         ).run()
         ```
     """
@@ -284,7 +280,7 @@ def extract_qubit_parameters(
                 q.uid: {
                     qb_param_name: qb_param_value
                 },
-            }
+            },
             "old_parameter_values": {
                 q.uid: {
                     qb_param_name: qb_param_value

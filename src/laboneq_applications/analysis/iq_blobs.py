@@ -115,14 +115,10 @@ def analysis_workflow(
 
     Example:
         ```python
-        result = analysis_workflow(
-            results=results
+        analysis_result = analysis_workflow(
+            result=result,
             qubits=[q0, q1],
-            amplitudes=[
-                np.linspace(0, 1, 11),
-                np.linspace(0, 0.75, 11),
-            ],
-            options=analysis_workflow.options(),
+            states="gef",
         ).run()
         ```
     """
