@@ -188,11 +188,9 @@ class TestTunableTransmonOperations:
                                         length=1e-7,
                                         pulse_parameters={
                                             "frequency": -200e6,
-                                            "pulse_params": (
-                                                ("function", "drag"),
-                                                ("beta", 0.01),
-                                                ("sigma", 0.21),
-                                            ),
+                                            "envelope_function": "drag",
+                                            "beta": 0.01,
+                                            "sigma": 0.21,
                                         },
                                     ),
                                 ),
@@ -2429,11 +2427,9 @@ class TestTunableTransmonOperations:
                     length=1e-7,
                     pulse_parameters={
                         "frequency": -200e6,
-                        "pulse_params": (
-                            ("function", "drag"),
-                            ("beta", 0.01),
-                            ("sigma", 0.21),
-                        ),
+                        "envelope_function": "drag",
+                        "beta": 0.01,
+                        "sigma": 0.21,
                     },
                 ),
             ),

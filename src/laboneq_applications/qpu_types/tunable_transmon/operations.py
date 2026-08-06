@@ -1004,11 +1004,13 @@ class TunableTransmonOperations(dsl.QuantumOperations):
         drive_line_ge, _ = q.transition_parameters("ge")
         _, params_ef = q.transition_parameters("ef")
         frequency = q.parameters.drive_frequency_ef - q.parameters.drive_frequency_ge
-        drag_params = list(params_ef["pulse"].items())
+        envelope_params = dict(params_ef["pulse"])
         rst_pls_params = {
             "function": "x180_ef_reset_pulse",
             "frequency": frequency,
-            "pulse_params": tuple(drag_params),
+            "envelope_function": envelope_params.pop("function"),
+            # the remaining parameters of the ef pulse are passed on to its sampler
+            **envelope_params,
         }
         reset_pulse = dsl.create_pulse(rst_pls_params, name="x180_ef_reset")
         dsl.play(
@@ -1189,9 +1191,9 @@ class TunableTransmonOperations(dsl.QuantumOperations):
 def x180_ef_reset_pulse(
     x: np.ndarray,
     frequency: float,
-    pulse_params: list[tuple],
     length: float,
-    **_,
+    envelope_function: str = "drag",
+    **envelope_params,
 ) -> np.ndarray:
     """Modulated x180 pulse on the ef transition, used for active reset.
 
@@ -1200,20 +1202,23 @@ def x180_ef_reset_pulse(
             Array between -1 and 1.
         frequency:
             Modulation frequency of the pulse.
-        pulse_params:
-            Parameters of the pulse functional.
         length:
             Pulse length.
-        **_: keyword arguments
+        envelope_function:
+            Name of the pulse functional used to sample the pulse envelope.
+        **envelope_params: keyword arguments
+            The parameters of `envelope_function`, for example `beta` and `sigma`
+            for the default `drag` envelope. Also contains the keyword arguments
+            that LabOne Q passes to every sampler:
+
             uid ([str][]): Unique identifier of the pulse
-            length ([float][]): Length of the pulse in seconds
             amplitude ([float][]): Amplitude of the pulse
+            sampling_rate ([float][]): Sampling rate of the device
 
     Returns:
         the array describing the pulse waveform
     """
-    pls_kwags = dict(pulse_params)
-    pulse_func = pls_kwags.pop("function")
     time = 0.5 * (x + 1) * length
-    wfm = dsl.pulse_library.pulse_factory(pulse_func)(**pls_kwags).evaluate(x)
+    envelope_sampler = dsl.pulse_library.pulse_sampler(envelope_function)
+    wfm = envelope_sampler(x, length=length, **envelope_params)
     return np.exp(-1j * 2 * np.pi * frequency * time) * wfm
