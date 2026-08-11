@@ -7,6 +7,7 @@ watch:
 
 nav:
     - Home: index.md
+    - deployment.md
     - Tutorials:
       - tutorials/index.md
       - Getting Started - Defining your Experimental Setup: tutorials/sources/getting_started.ipynb
