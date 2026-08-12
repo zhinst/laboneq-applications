@@ -52,10 +52,11 @@
   },
   poetry: {enabled: false,},
   reviewers: [
+    "alifo",
     "barta",
     "caglark",
     "chavdard",
     "josepha",
-    "simonc",
+    "michaelw",
   ]
 }
