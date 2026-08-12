@@ -158,6 +158,9 @@ lint.ignore = [
 "ci/*" = [
   # part of an implicit namespace package
   "INP001",
+  # License headers are only enforced for src/ and tests/, which are the paths
+  # scanned by the check-license hook (see ci/scripts/check_license.py).
+  "CPY001",
 ]
 # License check script
 "ci/scripts/check_license.py" = [
@@ -223,6 +226,9 @@ lint.ignore = [
   "PLR0913",
   # Allow unnecessary list comprehension
   "C416",
+  # License headers are only enforced for src/ and tests/, which are the paths
+  # scanned by the check-license hook (see ci/scripts/check_license.py).
+  "CPY001",
 ]
 
 [tool.ruff.lint.isort]

@@ -123,7 +123,7 @@ def timestamped_title(title: str, dt: datetime | None = None) -> str:
 
 def _get_raw_data_collection(
     result: RunExperimentResults, qubit: QuantumElement
-) -> list[tuple[None | str, AcquiredResultLegacy | AcquiredResultRunExp]]:
+) -> list[tuple[str | None, AcquiredResultLegacy | AcquiredResultRunExp]]:
     """Collect the measured data that can be either nested or not.
 
     Args:
@@ -625,7 +625,7 @@ def plot_signal_magnitude_and_phase_2d(
 
 
 @workflow.task
-def plot_data_2d(  # noqa: C901, PLR0912, PLR0913
+def plot_data_2d(  # noqa: C901, PLR0912, PLR0913, PLR0917
     x_values: ArrayLike,
     y_values: ArrayLike,
     z_values: np.ndarray,
