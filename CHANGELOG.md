@@ -1,3 +1,20 @@
+# laboneq_applications 26.10.0b1 (2026-08-13)
+
+## Features
+
+- LabOne Q Applications Library now declares a `zqcs` extra which installs the correct version of the ZQCS backend package. (QRL-873)
+
+## Documentation
+
+- Adds a new page [Deployment](https://docs.zhinst.com/labone_q_user_manual/applications_library/deployment.html) to the user manual explaining our recommended way to work with the Applications Library repository.
+- Fixed mistakes and inconsistencies in experiment docstring code examples.
+- Update the Qiskit VQE example notebook to remove the usage of deprecated method `CompiledExperiment.replace_pulse`, and demonstrate more explicit parameter update process.
+
+## Miscellaneous
+
+- Minor fix in the labels of spectroscopy plots when the phase of the transmission signal is plotted.
+
+
 # laboneq_applications 26.7.0 (2026-07-31)
 
 No changes since previous release (`laboneq_applications 26.7.0b6`).
