@@ -2,17 +2,17 @@
 
 ## Features
 
-- LabOne Q Applications Library now declares a `zqcs` extra which installs the correct version of the ZQCS backend package. (QRL-873)
+- LabOne Q Applications Library now declares a `zqcs` extra that installs the correct version of the ZQCS backend package.
 
 ## Documentation
 
-- Adds a new page [Deployment](https://docs.zhinst.com/labone_q_user_manual/applications_library/deployment.html) to the user manual explaining our recommended way to work with the Applications Library repository.
+- Added a new page [Deployment](https://docs.zhinst.com/labone_q_user_manual/applications_library/deployment.html) to the user manual explaining our recommended way to work with the Applications Library repository.
 - Fixed mistakes and inconsistencies in experiment docstring code examples.
-- Update the Qiskit VQE example notebook to remove the usage of deprecated method `CompiledExperiment.replace_pulse`, and demonstrate more explicit parameter update process.
+- Updated the Qiskit VQE example notebook to remove the usage of the deprecated method `CompiledExperiment.replace_pulse`, and to demonstrate a more explicit parameter update process.
 
 ## Miscellaneous
 
-- Minor fix in the labels of spectroscopy plots when the phase of the transmission signal is plotted.
+- Fixed a bug where the labels of spectroscopy plots were incorrect when the phase of the transmission signal was plotted.
 
 
 # laboneq_applications 26.7.0 (2026-07-31)
@@ -42,7 +42,7 @@ No changes since previous release (`laboneq_applications 26.7.0b6`).
 
 ## Miscellaneous
 
-- Add missing unit tests for the DRAG quadrature-scaling calibration experiment. (QRL-781)
+- Add missing unit tests for the DRAG quadrature-scaling calibration experiment.
 - Fix automation tests where the web viewer thread was not stopped upon test failure.
 - Removed device options for PQSC & QHUB when using `demo_platform()`
 
@@ -102,7 +102,7 @@ No changes since previous release (`laboneq_applications 26.7.0b6`).
 
 ## Features
 
-- Released the LabOne Q Workflow Automation framework and added a [tutorial](https://docs.zhinst.com/labone_q_user_manual/applications_library/tutorials/sources/experiment_workflow_automation.html). (QRL-551)
+- Released the LabOne Q Workflow Automation framework and added a [tutorial](https://docs.zhinst.com/labone_q_user_manual/applications_library/tutorials/sources/experiment_workflow_automation.html).
 
 
 ## Documentation
@@ -204,12 +204,12 @@ No changes since previous release (`laboneq_applications 26.7.0b6`).
 
 ## Miscellaneous
 
-- Add `serialization` notebook tutorial for LabOne Q Automation. (QRL-538)
-- Visual improvements and refactoring of the automation web viewer. (QRL-647)
-- Fix sequential run of layers not working with the live visualization. (QRL-648)
-- Fix folder store not working with sequential run of layers in the automation framework. (QRL-650)
-- Implement support for two qubit experiments in the automation framework. (QRL-652)
-- Fix the folder store not working with two qubit gates when run sequentially. The folder store now creates sub-folders in the base folder `automation.timestamp-automation.name/layer.key/`. The sub-folders of the type `q1-q2/`, `q2-q3/`, ..., `qN-qM/` for two qubit gates and `q1/`, `q2/`, ..., `qN/` for single qubits. (QRL-662)
+- Add `serialization` notebook tutorial for LabOne Q Automation.
+- Visual improvements and refactoring of the automation web viewer.
+- Fix sequential run of layers not working with the live visualization.
+- Fix folder store not working with sequential run of layers in the automation framework.
+- Implement support for two qubit experiments in the automation framework.
+- Fix the folder store not working with two qubit gates when run sequentially. The folder store now creates sub-folders in the base folder `automation.timestamp-automation.name/layer.key/`. The sub-folders of the type `q1-q2/`, `q2-q3/`, ..., `qN-qM/` for two qubit gates and `q1/`, `q2/`, ..., `qN/` for single qubits.
 - Add live plotting to automation framework.
 - Added minor improvements to automation web viewer.
 
@@ -230,8 +230,8 @@ No changes since previous release (`laboneq_applications 26.7.0b6`).
 
 ## Miscellaneous
 
-- Added unit tests for the extraction of automation parameters in `workflow_automation`. (QRL-565)
-- Add unit tests for the setting of temporary workflow parameters when running a layer. (QRL-618)
+- Added unit tests for the extraction of automation parameters in `workflow_automation`.
+- Add unit tests for the setting of temporary workflow parameters when running a layer.
 - Adds the possibility to `run_layer` with temporary workflow options provided as a dictionary and adds unit tests for the new functionality.
 
 
@@ -243,7 +243,7 @@ No changes since previous release (`laboneq_applications 26.7.0b6`).
 
   **Breaking change** Edited the signature of experiment workflows, such that workflow parameters are keyword only.
 
-  Added the `evaluate_experiment` task to all experiment workflows. (QRL-570)
+  Added the `evaluate_experiment` task to all experiment workflows.
 - Added a new `"continuous"` option for specifying kernel pulses for acquire and measurement
   integration kernels on `TunableTransmons`. The new option causes the hardware to integrate
   for the entire integration length, weighting all samples equally. This is useful for
@@ -257,12 +257,12 @@ No changes since previous release (`laboneq_applications 26.7.0b6`).
 
 ## Miscellaneous
 
-- Corrected `.pre-commit-config.yaml` to conform to `pyproject.toml`. Previously, the pre-commit hooks and the CI gave different results. (QRL-571)
-- Changed pre-commit hooks to use `include` list instead of `exclude` list, to more closely match the `pyproject.toml`. Updated the `pyproject.toml` ruff tooling to target the lowest python version: 3.10. (QRL-574)
-- Removed uses of `update_quantum_elements` and replaced with `update`. (QRL-584)
-- Added unit tests for create, run, and reset methods of `workflow_automation`. (QRL-605)
-- Added a notebook with examples of workflow automation with inline decision logic. The examples show how to set up the decision logic in python without importing parameters from a `yaml` file. (QRL-608)
-- Fix the `run_layer` method so that it updates its evaluation outputs when the nodes are run sequentially. (QRL-616)
+- Corrected `.pre-commit-config.yaml` to conform to `pyproject.toml`. Previously, the pre-commit hooks and the CI gave different results.
+- Changed pre-commit hooks to use `include` list instead of `exclude` list, to more closely match the `pyproject.toml`. Updated the `pyproject.toml` ruff tooling to target the lowest python version: 3.10.
+- Removed uses of `update_quantum_elements` and replaced with `update`.
+- Added unit tests for create, run, and reset methods of `workflow_automation`.
+- Added a notebook with examples of workflow automation with inline decision logic. The examples show how to set up the decision logic in python without importing parameters from a `yaml` file.
+- Fix the `run_layer` method so that it updates its evaluation outputs when the nodes are run sequentially.
 - Added "deprecate" and "remove" types to towncrier.
 - Fix misspelling of 'Bloch sphere'.
 - Improve the `check:changelog` CI pipeline job, such that we try to fetch a deep clone of main, if possible. This solves the issue that occurs when a branch is so far off of main that `git fetch origin main` cannot find a common history. If we cannot fetch a deep clone, fall back to a shallow clone.
@@ -272,7 +272,7 @@ No changes since previous release (`laboneq_applications 26.7.0b6`).
 ## Developer
 
 - Fix CI issue which was causing latest LabOne Q release to be installed instead of the
-  latest builds from `laboneq` repo's `main` branch. (QRL-596)
+  latest builds from `laboneq` repo's `main` branch.
 - Fixed renovate configuration so that it can also update image versions pulled from the
   internal docker registry mirroring ghcr.io.
 
