@@ -41,6 +41,11 @@ dependencies = [
   "qiskit_experiments >= 0.10.0",
 ]
 
+[project.optional-dependencies]
+# ZQCS support comes from laboneq's own `zqcs` extra, which pulls in the exactly
+# matching zhinst-zqcs build.
+zqcs = ["laboneq[zqcs]"]
+
 [project.urls]
 Changelog = "https://docs.zhinst.com/labone_q_user_manual/release_notes/"
 Documentation = "https://docs.zhinst.com/labone_q_user_manual/applications_library/"
