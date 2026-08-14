@@ -5,8 +5,6 @@
     - docker
   variables:
     ALLOW_INTERNAL_LABONEQ_BUILDS: "true"
-    # Set to an empty string to run the job without the ZQCS backend.
-    WITH_ZQCS: "true"
     MPLBACKEND: "AGG"
     UV_NO_SYNC: "1" # don't implicitly sync during "uv run"
     ZIPYPI_INDEX_URL: "https://artifactory.zhinst.com/artifactory/api/pypi/ZIPyPI/simple"
@@ -23,12 +21,12 @@
           PRERELEASE_TARGET=".dev0"
           PRERELEASE_UPPER="a0"
         fi
-        uv sync ${WITH_ZQCS:+--extra zqcs} --prerelease=if-necessary-or-explicit \
+        uv sync --prerelease=if-necessary-or-explicit \
                 --upgrade-package "laboneq>=${BASE_VERSION}${PRERELEASE_TARGET},<${BASE_VERSION}${PRERELEASE_UPPER}" \
                 --index=$ZIPYPI_INDEX_URL
       else
         uv lock --upgrade-package laboneq --prerelease allow
-        uv sync ${WITH_ZQCS:+--extra zqcs}
+        uv sync
       fi
   script:
     - uv run pytest tests -n=auto -vv --ignore=tests/contrib
@@ -88,11 +86,6 @@ test:docs_notebooks:python-3.10:
     - uv run ci/scripts/notebook_activate_folder_store.py docs
     - uv run pytest --nbmake docs/sources --nbmake-kernel=python --nbmake-timeout=240 -n=auto --durations=0
 
-test:no_zqcs:
-  extends: ".template_test"
-  variables:
-    WITH_ZQCS: ""
-
 test:contrib_smoke_test:
   extends: ".template_test"
   script:
@@ -106,7 +99,7 @@ test:laboneq-feature-branch:
   stage: test
   script:
     - |
-      uv sync --extra zqcs --prerelease=if-necessary-or-explicit \
+      uv sync --prerelease=if-necessary-or-explicit \
               --upgrade-package laboneq==${VERSION} \
               --index=$LABONEQ_INDEX_URL
     - uv run pytest tests -n=auto -vv
@@ -120,7 +113,7 @@ test:laboneq-feature-branch:
     - echo "Triggered by $UPSTREAM_PROJECT_PATH/$UPSTREAM_PROJECT_PATH"
     - echo "Running tests with laboneq version $LABONEQ_VERSION"
     - |
-      uv sync --extra zqcs --prerelease=if-necessary-or-explicit \
+      uv sync --prerelease=if-necessary-or-explicit \
               --upgrade-package laboneq==${LABONEQ_VERSION} \
               --index=$LABONEQ_INDEX_URL
   rules:
