@@ -1,9 +1,5 @@
 # laboneq_applications 26.10.0b1 (2026-08-13)
 
-## Features
-
-- LabOne Q Applications Library now declares a `zqcs` extra that installs the correct version of the ZQCS backend package.
-
 ## Documentation
 
 - Added a new page [Deployment](https://docs.zhinst.com/labone_q_user_manual/applications_library/deployment.html) to the user manual explaining our recommended way to work with the Applications Library repository.
