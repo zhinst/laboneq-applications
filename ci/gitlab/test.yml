@@ -4,7 +4,7 @@
     - linux
     - docker
   variables:
-    ALLOW_INTERNAL_LABONEQ_BUILDS: "true"
+    ALLOW_INTERNAL_LABONEQ_BUILDS: "false"
     MPLBACKEND: "AGG"
     UV_NO_SYNC: "1" # don't implicitly sync during "uv run"
     ZIPYPI_INDEX_URL: "https://artifactory.zhinst.com/artifactory/api/pypi/ZIPyPI/simple"
