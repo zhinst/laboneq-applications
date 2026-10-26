@@ -18,23 +18,21 @@ qubits.
 
 from __future__ import annotations
 
-from collections.abc import Sequence
 from typing import TYPE_CHECKING
 
-from laboneq import openqasm3
+import numpy as np
 from laboneq.dsl.quantum import QuantumParameters
 from laboneq.simple import Experiment, SweepParameter, dsl, workflow
 from laboneq.workflow.tasks import (
     compile_experiment,
     run_experiment,
 )
-from qiskit import qasm3, transpile
 from qiskit_experiments.library import randomized_benchmarking
 
 from laboneq_applications.contrib.analysis.single_qubit_randomized_benchmarking import (
     analysis_workflow,
 )
-from laboneq_applications.core.validation import validate_and_convert_qubits_sweeps
+from laboneq_applications.conversion import as_quantum_element_list
 from laboneq_applications.experiments.options import (
     TuneupExperimentOptions,
     TuneUpWorkflowOptions,
@@ -68,20 +66,28 @@ def experiment_workflow(
 
     The workflow consists of the following steps:
 
-    - [create_experiment]()
-    - [compile_experiment]()
-    - [run_experiment]()
+    - [generate_clifford_sequences][]
+    - [create_experiment][]
+    - [compile_experiment][]
+    - [run_experiment][]
+    - [analysis_workflow][]
 
-    !!! version-removed "Removed in version 26.7.0."
+    !!! version-changed "Changed in version 26.10.0"
+        The experiment no longer routes its Clifford sequences through OpenQASM.
+        `create_sq_rb_qasm` is now `generate_clifford_sequences`, returns the
+        gates themselves and applies the default `gate_map` itself, so
+        `add_qasm_operations` and `get_gate_map` are gone.
+
+    !!! version-removed "Removed in version 26.7.0"
         The `qubits` argument of type `QuantumElements` has been removed.
         Please pass `qubits` of type `list[str] | str` instead, i.e., the quantum
         element UIDs instead of the quantum element instances.
 
-    !!! version-changed "Changed in version 26.4.0."
+    !!! version-changed "Changed in version 26.4.0"
         All arguments apart from `session`, `qpu`, and `qubits` are now keyword
         arguments.
 
-    !!! version-changed "Changed in version 26.1.0."
+    !!! version-changed "Changed in version 26.1.0"
         The `temporary_parameters` positional argument was added in the
         penultimate position. Note that this is a breaking change if
         calling the experiment workflow with the `options` positional argument.
@@ -102,16 +108,18 @@ def experiment_workflow(
             A seed used to initialize numpy.random.default_rng when generating circuits.
             Default is None and provides a random seed.
         gate_map:
-            Dictionary to define the native gate set in QASM and the corresponding
+            Dictionary to define the native gate set in qiskit and the corresponding
             quantum_operations's in LabOne Q.
             Default: {"id":None, "sx":"x90", "x":"x180", "rz":"rz"}.
         temporary_parameters:
             The temporary parameters to update the qubits with.
         options:
             The options for building the workflow.
-            In addition to options from [WorkflowOptions], the following
+            In addition to options from
+            [WorkflowOptions][laboneq.workflow.WorkflowOptions], the following
             custom options are supported:
-                - create_experiment: The options for creating the experiment.
+
+            - create_experiment: The options for creating the experiment.
 
     Returns:
         result:
@@ -122,21 +130,22 @@ def experiment_workflow(
         options = experiment_workflow.options()
         options.count(10)
         options.transition("ge")
+        # QPU from a two-qubit device setup
+        qpu = QPU(
+            quantum_elements=TunableTransmonQubit.from_device_setup(setup),
+            quantum_operations=TunableTransmonOperations(),
+        )
         result = experiment_workflow(
             session=session,
             qpu=qpu,
             qubits=["q0", "q1"],
-            length_cliffords=[1,5,10,20,50],
+            length_cliffords=[1, 5, 10, 20, 50],
             variations=5,
             options=options,
         ).run()
         ```
     """
-    gate_map = get_gate_map(gate_map)
-
-    quantum_operations = add_qasm_operations(qpu.quantum_operations, gate_map)
-
-    qasm_rb_sequences = create_sq_rb_qasm(
+    clifford_sequences = generate_clifford_sequences(
         length_cliffords=length_cliffords,
         gate_map=gate_map,
         variations=variations,
@@ -144,115 +153,71 @@ def experiment_workflow(
     )
 
     temp_qpu = temporary_qpu(qpu, temporary_parameters)
-    qubits = temporary_quantum_elements_from_qpu(temp_qpu, qubits)
-    exp = create_experiment(
-        qpu,
-        qubits,
-        qasm_rb_sequences,
-        quantum_operations=quantum_operations,
-    )
+    temp_qubits = temporary_quantum_elements_from_qpu(temp_qpu, qubits)
+    exp = create_experiment(temp_qpu, temp_qubits, clifford_sequences)
     compiled_exp = compile_experiment(session, exp)
     result = run_experiment(session, compiled_exp)
     with workflow.if_(options.do_analysis):
-        analysis_workflow(result, qubits, length_cliffords, variations)
+        analysis_workflow(result, temp_qubits, length_cliffords, variations)
     workflow.return_(result)
 
 
 @workflow.task
-def get_gate_map(gate_map: dict[str, str] | None = None) -> dict[str, str]:
-    """Helper task to generate the default gate map.
-
-    Args:
-        gate_map: a dictionary specifying the names of the qasm operations as keys
-            and the corresponding names in the set of quantum operations as values.
-            If this is not provided, the default map
-            {"sx": "x90", "x": "x180", "rz": "rz"} is returned.
-
-    Returns:
-        the gate map
-    """
-    return (
-        {"sx": "x90", "x": "x180", "rz": "rz"}
-        if gate_map is None or len(gate_map) == 0
-        else gate_map
-    )
-
-
-@workflow.task
-def add_qasm_operations(
-    quantum_operations: dsl.QuantumOperations,
-    gate_map: dict[str, str],
-) -> dsl.QuantumOperations:
-    """Helper task to add qasm operations to the set of quantum operations.
-
-    The qasm operations are added as aliases of existing operations in the set.
-
-    Args:
-        quantum_operations: the set of quantum operations to add to.
-        gate_map: a dictionary specifying the names of the qasm operations as keys
-            and the corresponding names in the set of quantum operations as values.
-
-    Returns:
-        the extended set of quantum operations
-    """
-    for alias, qop_name in gate_map.items():
-        quantum_operations[alias] = quantum_operations[qop_name]
-
-    return quantum_operations
-
-
-@workflow.task
-def create_sq_rb_qasm(
+def generate_clifford_sequences(
     length_cliffords: list,
-    gate_map: dict,
+    gate_map: dict | None = None,
     variations: int = 1,
     seed: int | None = None,
     options: TuneupExperimentOptions | None = None,
-) -> list:
-    """Creates RB sequences as QASM experiments.
+) -> tuple[list[tuple], ...]:
+    """Creates the RB Clifford sequences as lists of gates.
 
     Arguments:
         length_cliffords:
             A list of RB sequences lengths.
         gate_map:
-            Dictionary to define the native gate set in QASM and the corresponding
+            Dictionary to define the native gate set in qiskit and the corresponding
             quantum operations in LabOne Q.
+            Default: {"sx":"x90", "x":"x180", "rz":"rz"}.
         variations:
             Number of samples to generate for each sequence length.
         seed:
             A seed used to initialize numpy.random.default_rng when generating circuits.
         options:
             The options for building the workflow.
-            In addition to options from [WorkflowOptions], the following
+            In addition to options from
+            [WorkflowOptions][laboneq.workflow.WorkflowOptions], the following
             custom options are supported:
-                - create_experiment: The options for creating the experiment.
+
+            - create_experiment: The options for creating the experiment.
 
     Returns:
-        experiment:
-            The generated LabOne Q experiment instance to be compiled and executed.
+        One list per Clifford sequence of `(operation, *parameters)` gates, where
+            `operation` names a quantum operation.
     """
+    gate_map = gate_map or {"sx": "x90", "x": "x180", "rz": "rz"}
     # create rb sequences from qiskit
-    qiskit_circuits = randomized_benchmarking.StandardRB(
+    rb_experiment = randomized_benchmarking.StandardRB(
         physical_qubits=[0],
         lengths=length_cliffords,
         num_samples=variations,
         seed=seed,
-    ).circuits()
-
-    # remove measurement from qiskit circuit
-    # measurement will be added later again in L1Q
-    for circuit in qiskit_circuits:
-        circuit.remove_final_measurements()
-
-    # transpile to basis gates
-    basis_gates = list(gate_map.keys())
-    transpiled_circuits = transpile(
-        qiskit_circuits,
-        basis_gates=basis_gates,
     )
+    rb_experiment.set_transpile_options(basis_gates=list(gate_map))
 
-    # return QASM list of circuits
-    return [qasm3.dumps(circuit) for circuit in transpiled_circuits]
+    # Barriers only order the gates, which the list already does.
+    # Measure will be added later in LabOne Q DSL
+    # The tuple is needed because the folder store serializes lists
+    # through numpy, which cannot hold sequences of different lengths.
+    return tuple(
+        [
+            (gate_map[g.operation.name], *(float(p) for p in g.operation.params))
+            for clifford in circuit.data
+            if clifford.operation.name not in ("barrier", "measure")
+            for g in clifford.operation.definition.data
+        ]
+        for circuit in rb_experiment.circuits()
+    )
 
 
 @workflow.task
@@ -260,8 +225,7 @@ def create_sq_rb_qasm(
 def create_experiment(
     qpu: QPU,
     qubits: QuantumElements,
-    qasm_rb_sequences: list,
-    quantum_operations: dsl.QuantumOperations | None = None,
+    clifford_sequences: tuple[list[tuple], ...],
     options: TuneupExperimentOptions | None = None,
 ) -> Experiment:
     """Creates a single-qubit randomized benchmarking experiment.
@@ -272,16 +236,15 @@ def create_experiment(
         qubits:
             The qubits to run the experiments on. May be either a single
             qubit or a list of qubits.
-        qasm_rb_sequences:
-            RB sequences as QASM experiments.
-        quantum_operations:
-            A set of quantum operations to use for the experiment.
-            If None, the set from qpu.quantum_operations is used.
+        clifford_sequences:
+            The RB sequences that [generate_clifford_sequences][] returns.
         options:
             The options for building the workflow.
-            In addition to options from [WorkflowOptions], the following
+            In addition to options from
+            [WorkflowOptions][laboneq.workflow.WorkflowOptions], the following
             custom options are supported:
-                - create_experiment: The options for creating the experiment.
+
+            - create_experiment: The options for creating the experiment.
 
     Returns:
         experiment:
@@ -289,15 +252,27 @@ def create_experiment(
 
     Raises:
         ValueError:
+            If the quantum operations cannot prepare the initial state of the
+            transition or one of the calibration states.
 
     Example:
         ```python
         options = TuneupExperimentOptions()
         options.count = 10
+        # QPU from a two-qubit device setup
+        qpu = QPU(
+            quantum_elements=TunableTransmonQubit.from_device_setup(setup),
+            quantum_operations=TunableTransmonOperations(),
+        )
+        clifford_sequences = generate_clifford_sequences(
+            length_cliffords=[1, 5, 10, 20, 50],
+            variations=5,
+        )
+        q0, q1 = qpu["q0"], qpu["q1"]
         create_experiment(
             qpu=qpu,
-            qubits=qubits,
-            qasm_rb_sequences=qasm_rb_sequences,
+            qubits=[q0, q1],
+            clifford_sequences=clifford_sequences,
             options=options,
         )
         ```
@@ -306,13 +281,8 @@ def create_experiment(
 
     # TODO: so far clifford sequences are identical for all qubits
     # finally have different clifford sequences on all qubits
-    if isinstance(qubits, Sequence):
-        indices = [range(len(qasm_rb_sequences)) for _ in qubits]
-    else:
-        indices = range(len(qasm_rb_sequences))
-    qubits, indices = validate_and_convert_qubits_sweeps(qubits, indices)
-    qasm_transpiler = openqasm3.OpenQASMTranspiler(qpu)
-    qop = qpu.quantum_operations if quantum_operations is None else quantum_operations
+    indices = np.arange(len(clifford_sequences))
+    qop = qpu.quantum_operations
     with dsl.acquire_loop_rt(
         count=opts.count,
         averaging_mode=opts.averaging_mode,
@@ -321,10 +291,10 @@ def create_experiment(
         repetition_time=opts.repetition_time,
         reset_oscillator_phase=opts.reset_oscillator_phase,
     ):
-        for q, q_indices in zip(qubits, indices, strict=False):
+        for q in as_quantum_element_list(qubits):
             with dsl.sweep(
                 name=f"rb_{q.uid}",
-                parameter=SweepParameter(f"index_{q.uid}", q_indices),
+                parameter=SweepParameter(f"index_{q.uid}", indices),
             ) as index:
                 with dsl.section(
                     name=f"prep_{q.uid}",
@@ -337,9 +307,10 @@ def create_experiment(
                     with dsl.match(
                         sweep_parameter=index,
                     ):
-                        for i, sequence in enumerate(qasm_rb_sequences):
+                        for i, sequence in enumerate(clifford_sequences):
                             with dsl.case(i):
-                                qasm_transpiler.section(sequence, qubit_map={"q": [q]})
+                                for operation, *params in sequence:
+                                    qop[operation](q, *params)
 
                 with dsl.section(
                     name=f"measure_{q.uid}",

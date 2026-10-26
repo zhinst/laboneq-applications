@@ -32,12 +32,14 @@ from laboneq_applications.analysis.options import (
     TuneUpAnalysisWorkflowOptions,
 )
 from laboneq_applications.analysis.plotting_helpers import timestamped_title
+from laboneq_applications.conversion import as_quantum_element_list
 from laboneq_applications.core.validation import (
-    validate_and_convert_qubits_sweeps,
-    validate_and_extract_edges_from_qubit_pairs,
+    validate_flux_driven_edges,
 )
-from laboneq_applications.qpu_types.tunable_coupler import TunableCoupler
-from laboneq_applications.tasks import extract_nodes_from_edges
+from laboneq_applications.tasks import (
+    extract_edges_from_qubit_pairs,
+    extract_nodes_from_edges,
+)
 
 if TYPE_CHECKING:
     import matplotlib as mpl
@@ -67,12 +69,12 @@ def analysis_workflow(
 
     The workflow consists of the following steps:
 
-    - [calculate_qubit_population_2d]() (for handles ``_0`` and ``_1``)
-    - [fit_phase_oscillations]()
-    - [fit_conditional_phase]()
-    - [extract_edge_parameters]()
-    - [plot_population_2d]()
-    - [plot_phase_offset_vs_frequency]()
+    - [calculate_qubit_population_2d][] (for handles ``_0`` and ``_1``)
+    - [fit_phase_oscillations][]
+    - [fit_conditional_phase][]
+    - [extract_edge_parameters][]
+    - [plot_population_2d][]
+    - [plot_phase_offset_vs_frequency][]
 
     Arguments:
         result:
@@ -88,15 +90,18 @@ def analysis_workflow(
             RZ gate phases swept in the inner loop (per qubit pair).
         options:
             The options for building the workflow, passed as an instance of
-            [TuneUpAnalysisWorkflowOptions].
+            [TuneUpAnalysisWorkflowOptions][].
 
     Returns:
         WorkflowBuilder:
             The builder for the analysis workflow.
     """
-    edges = validate_and_extract_edges_from_qubit_pairs(
-        qpu, "cz", qubit_pairs, element_class=TunableCoupler
+    edges = extract_edges_from_qubit_pairs(
+        qpu,
+        qubit_pairs,
+        tag="cz",
     )
+    validate_flux_driven_edges(edges)
     qubits_target = extract_nodes_from_edges(edges, "target")
 
     processed_data_dict_0 = calculate_qubit_population_2d(
@@ -177,14 +182,14 @@ def fit_phase_oscillations(
 
     Returns:
         Dictionary keyed by qubit UID. Each value is a dict with keys ``"_0"``
-        and ``"_1"``, each containing:
+            and ``"_1"``, each containing:
 
-        - ``frequencies``: CZ frequency array [N_freq].
-        - ``phase_offsets``: fitted φ₀ per frequency [N_freq] (rad), unwrapped.
-        - ``phase_offsets_err``: uncertainty of φ₀ [N_freq] (rad), NaN on failure.
-        - ``amplitudes``: fitted amplitude A [N_freq].
+            - ``frequencies``: CZ frequency array [N_freq].
+            - ``phase_offsets``: fitted φ₀ per frequency [N_freq] (rad), unwrapped.
+            - ``phase_offsets_err``: uncertainty of φ₀ [N_freq] (rad), NaN on failure.
+            - ``amplitudes``: fitted amplitude A [N_freq].
     """
-    qubits = validate_and_convert_qubits_sweeps(qubits)
+    qubits = as_quantum_element_list(qubits)
 
     results = {}
     for q in qubits:
@@ -279,7 +284,7 @@ def plot_population_2d(
         Dictionary keyed by ``"{qubit_uid}_{handle}"`` with figures as values.
     """
     opts = PlotPopulationOptions() if options is None else options
-    qubits = validate_and_convert_qubits_sweeps(qubits)
+    qubits = as_quantum_element_list(qubits)
     figures = {}
 
     for q in qubits:
@@ -343,16 +348,16 @@ def fit_conditional_phase(
 
     Arguments:
         fit_results:
-            Output of [fit_phase_oscillations](), keyed by qubit UID.
+            Output of [fit_phase_oscillations][], keyed by qubit UID.
 
     Returns:
         Dictionary keyed by qubit UID. Each value contains:
 
-        - ``frequencies``: valid CZ frequency array (non-NaN points) [N].
-        - ``delta_phi``: conditional phase Δφ [N] (rad).
-        - ``delta_phi_err``: propagated uncertainty [N] (rad).
-        - ``poly_coeffs``: degree-3 polynomial coefficients (highest power first).
-        - ``optimal_frequency``: frequency where polynomial crosses π (Hz), or NaN.
+            - ``frequencies``: valid CZ frequency array (non-NaN points) [N].
+            - ``delta_phi``: conditional phase Δφ [N] (rad).
+            - ``delta_phi_err``: propagated uncertainty [N] (rad).
+            - ``poly_coeffs``: degree-3 polynomial coefficients (highest power first).
+            - ``optimal_frequency``: frequency where polynomial crosses π (Hz), or NaN.
     """
     poly_results = {}
 
@@ -424,7 +429,7 @@ def plot_phase_offset_vs_frequency(
 
     Arguments:
         poly_results:
-            Output of [fit_conditional_phase](), keyed by qubit UID.
+            Output of [fit_conditional_phase][], keyed by qubit UID.
         options:
             Plot options (save, close figures).
 
@@ -494,12 +499,13 @@ def extract_edge_parameters(
         edges:
             The topology edges of the calibrated qubit pairs.
         poly_results:
-            Output of [fit_conditional_phase](), keyed by target qubit UID.
+            Output of [fit_conditional_phase][], keyed by target qubit UID.
 
     Returns:
         Dictionary with ``new_parameter_values`` and ``old_parameter_values``,
-        each keyed by ``("cz", source_uid, target_uid)`` and containing the dotted
-        parameter path ``"coupler_pulse.frequency"`` compatible with ``qpu.update()``.
+            each keyed by ``("cz", source_uid, target_uid)`` and containing the dotted
+            parameter path ``"coupler_pulse.frequency"`` compatible with
+            ``qpu.update()``.
     """
     edge_parameters = {
         "old_parameter_values": {

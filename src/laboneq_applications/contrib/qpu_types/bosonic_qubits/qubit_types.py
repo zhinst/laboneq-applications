@@ -69,7 +69,8 @@ class BosonicQubitParameters(QuantumParameters):
         memory_drive_pulse:
             Pulse parameters for memory cavity drive pulses.
         memory_drive_range:
-            Power range for the memory cavity drive line (dBm).
+            Power range for the memory cavity drive line (dBm). Defaults to
+            `None`, in which case the range configured on the instrument is used.
         memory_spectroscopy_amplitude:
             Amplitude of the memory cavity spectroscopy pulse.
         memory_spectroscopy_length:
@@ -93,7 +94,8 @@ class BosonicQubitParameters(QuantumParameters):
             frequency from which all number-dependent frequencies
             are derived: f(n) = f(0) + n * chi.
         transmon_drive_range:
-            Power range for the ancilla transmon drive line (dBm).
+            Power range for the ancilla transmon drive line (dBm). Defaults to
+            `None`, in which case the range configured on the instrument is used.
         transmon_spectroscopy_amplitude:
             Amplitude of the transmon spectroscopy pulse.
         transmon_spectroscopy_length:
@@ -138,7 +140,11 @@ class BosonicQubitParameters(QuantumParameters):
             selective π-pulse amplitude for the SNAP gate.
         snap_drive_phase_per_n:
             Dictionary mapping photon number n (as str) to the calibrated
-            drive-phase offset for the SNAP gate (radians).
+            drive-phase offset for the SNAP gate (radians): the intercept
+            of the fitted cavity phase theta(phi) = slope * phi + intercept.
+        snap_drive_phase_slope_sign_per_n:
+            Dictionary mapping photon number n (as str) to the sign (+1 or
+            -1) of the slope of the fitted cavity phase theta(phi).
 
         # --- SWAP gate parameters ---
 
@@ -150,8 +156,12 @@ class BosonicQubitParameters(QuantumParameters):
             Envelope definition for the SWAP pulse. A constant
             (square) pulse is the default.
         swap_drive_range:
-            Voltage range for the SWAP drive line (dBm).
-            Default: 5.
+            Voltage range for the SWAP drive line (dBm). Defaults to `None`, in
+            which case the range configured on the instrument is used.
+        swap_drive_on_sg_channel:
+            Whether the SWAP drive line is driven by an SG channel. If true, the SG
+            channel is put into LF mode with its local oscillator at 0 Hz.
+            Default: `False`.
 
         # --- Cross-coupling parameters ---
 
@@ -184,9 +194,11 @@ class BosonicQubitParameters(QuantumParameters):
         readout_integration_discrimination_thresholds:
             Either None or a list of thresholds.
         readout_range_out:
-            Readout output power range (dBm).
+            Readout output power range (dBm). Defaults to `None`, in which case
+            the range configured on the instrument is used.
         readout_range_in:
-            Readout input power range (dBm).
+            Readout input power range (dBm). Defaults to `None`, in which case
+            the range configured on the instrument is used.
 
         # --- Reset parameters ---
 
@@ -205,7 +217,8 @@ class BosonicQubitParameters(QuantumParameters):
         # --- Flux parameters ---
 
         flux_range:
-            Voltage range for the flux control line (volts).
+            Voltage range for the flux control line (volts). Defaults to `None`,
+            in which case the range configured on the instrument is used.
         dc_slot:
             Slot number on the DC source for applying DC voltage.
         dc_voltage_parking:
@@ -231,7 +244,7 @@ class BosonicQubitParameters(QuantumParameters):
             "function": "const",
         },
     )
-    memory_drive_range: float = 10
+    memory_drive_range: float | None = None
 
     memory_spectroscopy_amplitude: float | None = 1
     memory_spectroscopy_length: float | None = 5e-6
@@ -252,7 +265,7 @@ class BosonicQubitParameters(QuantumParameters):
 
     transmon_lo_frequency: float | None = None
     transmon_resonance_frequency_at_n0: float | None = None
-    transmon_drive_range: float = 10
+    transmon_drive_range: float | None = None
 
     transmon_spectroscopy_amplitude: float | None = 1
     transmon_spectroscopy_length: float | None = 5e-6
@@ -286,11 +299,12 @@ class BosonicQubitParameters(QuantumParameters):
     # ----------------------------------------------------------------
     # SNAP gate parameters
     # ----------------------------------------------------------------
-    # Both are dictionaries keyed by Fock-state index (as str),
+    # All are dictionaries keyed by Fock-state index (as str),
     # e.g. {"0": 0.45, "1": 0.42, "2": 0.39, ...}
 
     snap_drive_amp_per_n: dict[str, float] = attrs.field(factory=dict)
     snap_drive_phase_per_n: dict[str, float] = attrs.field(factory=dict)
+    snap_drive_phase_slope_sign_per_n: dict[str, float] = attrs.field(factory=dict)
 
     # ----------------------------------------------------------------
     # SWAP gate parameters
@@ -307,7 +321,8 @@ class BosonicQubitParameters(QuantumParameters):
             "function": "const",
         },
     )
-    swap_drive_range: float = 5
+    swap_drive_range: float | None = None
+    swap_drive_on_sg_channel: bool = False
 
     # ----------------------------------------------------------------
     # Memory-Transmon-coupling parameters
@@ -335,8 +350,8 @@ class BosonicQubitParameters(QuantumParameters):
     readout_integration_kernels: list[dict] | None = None
     readout_integration_discrimination_thresholds: list[float] | None = None
 
-    readout_range_out: float = 5
-    readout_range_in: float = 10
+    readout_range_out: float | None = None
+    readout_range_in: float | None = None
 
     # ----------------------------------------------------------------
     # Displacement calibration result
@@ -354,7 +369,7 @@ class BosonicQubitParameters(QuantumParameters):
     # Flux parameters
     # ----------------------------------------------------------------
 
-    flux_range: float = 5
+    flux_range: float | None = None
     dc_slot: int | None = 0
     dc_voltage_parking: float | None = 0.0
 
@@ -433,7 +448,7 @@ class BosonicQubitParameters(QuantumParameters):
 
         Returns:
             The baseband frequency, or None if required frequencies
-            are not set.
+                are not set.
 
         Raises:
             ValueError:
@@ -520,6 +535,7 @@ class BosonicQubit(QuantumElement):
     """A bosonic qubit encoded in a memory cavity with a transmon ancilla.
 
     The bosonic qubit consists of three modes:
+
     - **Memory cavity**: stores the bosonic-encoded quantum state.
     - **Ancilla transmon**: provides nonlinearity for control and
       readout of the memory cavity via the dispersive interaction.
@@ -532,20 +548,24 @@ class BosonicQubit(QuantumElement):
 
     Signal lines:
         Required:
-            - `drive_memory`: drive line for the memory cavity.
-            - `drive_transmon`: standard drive for the transmon (n=0).
-            - `measure`: readout pulse output.
-            - `acquire`: readout acquisition.
+
+        - `drive_memory`: drive line for the memory cavity.
+        - `drive_transmon`: standard drive for the transmon (n=0).
+        - `measure`: readout pulse output.
+        - `acquire`: readout acquisition.
+
         Optional:
-            - `swap_drive`: dedicated LF line (second SG channel)
-              used for DC flux SWAP pulses between the ancilla
-              transmon and the memory cavity.
-            - `drive_transmon_selective_n0` ...
-              `drive_transmon_selective_n9`:
-              Number-selective transmon drive lines, each tuned to
-              f_transmon(n) = f_transmon(0) + n * chi.
-              These are mapped to the same physical output as
-              `drive_transmon` but have independent oscillators.
+
+        - `swap_drive`: dedicated line used for DC flux SWAP pulses
+          between the ancilla transmon and the memory cavity. Either a
+          baseband channel such as an HDAWG output, or an SG channel in
+          LF mode, in which case `swap_drive_on_sg_channel` must be set.
+        - `drive_transmon_selective_n0` ...
+          `drive_transmon_selective_n9`:
+          Number-selective transmon drive lines, each tuned to
+          f_transmon(n) = f_transmon(0) + n * chi.
+          These are mapped to the same physical output as
+          `drive_transmon` but have independent oscillators.
     """
 
     PARAMETERS_TYPE = BosonicQubitParameters
@@ -701,7 +721,7 @@ class BosonicQubit(QuantumElement):
 
         Returns:
             A list consisting of a single constant pulse with
-            length equal to `readout_integration_length`.
+                length equal to `readout_integration_length`.
         """
         return [
             dsl.create_pulse(
@@ -777,6 +797,7 @@ class BosonicQubit(QuantumElement):
         """Generate calibration from parameters and signal lines.
 
         Includes calibration entries for:
+
         - Memory cavity drive
         - Standard transmon drive (at n=0 frequency)
         - Photon-number-selective transmon drives (n=0..max_n)
@@ -898,13 +919,13 @@ class BosonicQubit(QuantumElement):
                 )
             calibration_items[self.signals["acquire"]] = sig_cal
 
-        # --- SWAP drive (LF mode, DC flux pulses) ---
+        # --- SWAP drive (DC flux pulses) ---
 
         if "swap_drive" in self.signals:
-            calibration_items[self.signals["swap_drive"]] = SignalCalibration(
-                range=self.parameters.swap_drive_range,
-                local_oscillator=Oscillator(frequency=0.0e9),
-                port_mode=PortMode.LF,
-            )
+            sig_cal = SignalCalibration(range=self.parameters.swap_drive_range)
+            if self.parameters.swap_drive_on_sg_channel:
+                sig_cal.local_oscillator = Oscillator(frequency=0.0)
+                sig_cal.port_mode = PortMode.LF
+            calibration_items[self.signals["swap_drive"]] = sig_cal
 
         return Calibration(calibration_items)

@@ -35,7 +35,10 @@ from laboneq.simple import (
 from laboneq.workflow.tasks import compile_experiment, run_experiment
 
 from laboneq_applications.analysis.amplitude_fine import analysis_workflow
-from laboneq_applications.core.validation import validate_and_convert_qubits_sweeps
+from laboneq_applications.conversion import (
+    as_quantum_element_list,
+    sweeps_per_quantum_element,
+)
 from laboneq_applications.experiments.options import (
     TuneupExperimentOptions,
     TuneUpWorkflowOptions,
@@ -76,19 +79,19 @@ def experiment_workflow(  # noqa: PLR0913
 
     The workflow consists of the following steps:
 
-    - [create_experiment]()
-    - [compile_experiment]()
-    - [run_experiment]()
-    - [analysis_workflow]()
-    - [evaluate_experiment]()
-    - [update_qpu]()
+    - [create_experiment][]
+    - [compile_experiment][]
+    - [run_experiment][]
+    - [analysis_workflow][]
+    - [evaluate_experiment][]
+    - [update_qpu][]
 
-    !!! version-removed "Removed in version 26.7.0."
+    !!! version-removed "Removed in version 26.7.0"
         The `qubits` argument of type `QuantumElements` has been removed.
         Please pass `qubits` of type `list[str] | str` instead, i.e., the quantum
         element UIDs instead of the quantum element instances.
 
-    !!! version-changed "Changed in version 26.4.0."
+    !!! version-changed "Changed in version 26.4.0"
         The `evaluation_parameters` argument has been added. This argument replaces the
         `evaluation_parameter`, `evaluation_parameter_thresholds`, and
         `evaluation_fit_r2_thresholds` arguments.
@@ -127,9 +130,11 @@ def experiment_workflow(  # noqa: PLR0913
             `(tag, source node UID, target node UID)`.
         options:
             The options for building the workflow.
-            In addition to options from [WorkflowOptions], the following
+            In addition to options from
+            [WorkflowOptions][laboneq.workflow.WorkflowOptions], the following
             custom options are supported:
-                - create_experiment: The options for creating the experiment.
+
+            - create_experiment: The options for creating the experiment.
 
     Returns:
         WorkflowBuilder:
@@ -137,7 +142,7 @@ def experiment_workflow(  # noqa: PLR0913
 
     Example:
         ```python
-        options = amplitude_fine.experiment_workflow.options()
+        options = experiment_workflow.options()
         options.count(10)
         options.transition("ge")
         # QPU from a two-qubit device setup
@@ -149,22 +154,19 @@ def experiment_workflow(  # noqa: PLR0913
             session=session,
             qpu=qpu,
             qubits=["q0", "q1"],
-            amplification_qop='x180',
+            amplification_qop="x180",
             target_angle=1.0,
             phase_offset=0.0,
-            repetitions=[
-                [1,2,3,4],
-                [1,2,3,4],
-            ],
+            repetitions=[[1, 2, 3, 4], [1, 2, 3, 4]],
             options=options,
         ).run()
         ```
     """
     temp_qpu = temporary_qpu(qpu, temporary_parameters)
-    qubits = temporary_quantum_elements_from_qpu(temp_qpu, qubits)
+    temp_qubits = temporary_quantum_elements_from_qpu(temp_qpu, qubits)
     exp = create_experiment(
         temp_qpu,
-        qubits,
+        temp_qubits,
         amplification_qop,
         repetitions=repetitions,
     )
@@ -173,7 +175,7 @@ def experiment_workflow(  # noqa: PLR0913
     with workflow.if_(options.do_analysis):
         analysis_results = analysis_workflow(
             result,
-            qubits,
+            temp_qubits,
             amplification_qop,
             repetitions,
             target_angle,
@@ -183,7 +185,7 @@ def experiment_workflow(  # noqa: PLR0913
         qubit_parameters = analysis_results.output
         with workflow.if_(options.evaluate):
             eval_flags = evaluate_experiment(
-                analysis_results, qubits, evaluation_parameters
+                analysis_results, temp_qubits, evaluation_parameters
             )
             with workflow.if_(options.update):
                 update_qpu(
@@ -227,10 +229,11 @@ def create_experiment(
             integers. Otherwise, it must be a list of lists of integers.
         options:
             The options for building the experiment.
-            See [TuneupExperimentOptions] and [BaseExperimentOptions] for
-            accepted options.
-            Overwrites the options from [TuneupExperimentOptions] and
-            [BaseExperimentOptions].
+            See [TuneupExperimentOptions][] and
+            [BaseExperimentOptions][laboneq_applications.experiments.options.BaseExperimentOptions]
+            for accepted options.
+            Overwrites the options from [TuneupExperimentOptions][] and
+            [BaseExperimentOptions][laboneq_applications.experiments.options.BaseExperimentOptions].
 
     Returns:
         experiment:
@@ -260,21 +263,19 @@ def create_experiment(
             quantum_elements=TunableTransmonQubit.from_device_setup(setup),
             quantum_operations=TunableTransmonOperations(),
         )
+        q0, q1 = qpu["q0"], qpu["q1"]
         create_experiment(
             qpu=qpu,
-            qubits=["q0", "q1"],
+            qubits=[q0, q1],
             amplification_qop="x180",
-            repetitions=[
-                [1,2,3,4],
-                [1,2,3,4],
-            ],
+            repetitions=[[1, 2, 3, 4], [1, 2, 3, 4]],
             options=options,
         )
         ```
     """
     # Define the custom options for the experiment
     opts = TuneupExperimentOptions() if options is None else options
-    qubits, repetitions = validate_and_convert_qubits_sweeps(qubits, repetitions)
+    qubits = as_quantum_element_list(qubits)
     if (
         opts.use_cal_traces
         and AveragingMode(opts.averaging_mode) == AveragingMode.SEQUENTIAL
@@ -285,9 +286,9 @@ def create_experiment(
             "outside the sweep."
         )
 
-    reps_sweep_pars = [
-        SweepParameter(f"repetitions_{q.uid}", q_reps, axis_name=f"{q.uid}")
-        for q, q_reps in zip(qubits, repetitions, strict=False)
+    qubit_sweeps = [
+        (q, SweepParameter(f"repetitions_{q.uid}", q_reps, axis_name=f"{q.uid}"))
+        for q, q_reps in sweeps_per_quantum_element(qubits, repetitions)
     ]
     qop = qpu.quantum_operations
     # We will fix the length of the measure section to the longest section among
@@ -304,7 +305,7 @@ def create_experiment(
     ):
         with dsl.sweep(
             name="amplitude_fine_sweep",
-            parameter=reps_sweep_pars,
+            parameter=[reps for _, reps in qubit_sweeps],
         ):
             if opts.active_reset:
                 qop.active_reset(
@@ -315,7 +316,7 @@ def create_experiment(
                 )
             with dsl.section(name="main", alignment=SectionAlignment.RIGHT):
                 with dsl.section(name="main_drive", alignment=SectionAlignment.RIGHT):
-                    for qbidx, q in enumerate(qubits):
+                    for q, reps in qubit_sweeps:
                         qop.prepare_state.omit_section(q, opts.transition[0])
                         sec = qop.x90(q, transition=opts.transition)
                         sec.alignment = SectionAlignment.RIGHT
@@ -323,9 +324,9 @@ def create_experiment(
                             name=f"match_{q.uid}", alignment=SectionAlignment.RIGHT
                         ):
                             with dsl.match(
-                                sweep_parameter=reps_sweep_pars[qbidx],
+                                sweep_parameter=reps,
                             ):
-                                for _i, num in enumerate(repetitions[qbidx]):
+                                for num in reps.values:
                                     with dsl.case(num):
                                         for _j in range(num):
                                             qop[amplification_qop].omit_section(
@@ -393,19 +394,22 @@ def experiment_workflow_x180(
 ) -> None:
     """The amplitude fine experiment workflow for a x180 gate.
 
-    This workflow is the same as experiment_workflow above but with the following
+    This workflow is the same as [experiment_workflow][] but with the following
     input parameters fixed:
-        amplification_qop = "x180"
-        target_angle = np.pi
-        phase_offset = -np.pi / 2
-        parameter_to_update = "drive_amplitude_pi"
 
-    !!! version-removed "Removed in version 26.7.0."
+    ```python
+    amplification_qop = "x180"
+    target_angle = np.pi
+    phase_offset = -np.pi / 2
+    parameter_to_update = "drive_amplitude_pi"
+    ```
+
+    !!! version-removed "Removed in version 26.7.0"
         The `qubits` argument of type `QuantumElements` has been removed.
         Please pass `qubits` of type `list[str] | str` instead, i.e., the quantum
         element UIDs instead of the quantum element instances.
 
-    !!! version-changed "Changed in version 26.4.0."
+    !!! version-changed "Changed in version 26.4.0"
         The `evaluation_parameters` argument has been added, which is the dictionary of
         parameters used for the newly added evaluation task. All arguments apart from
         `session`, `qpu`, and `qubits` are now keyword arguments.
@@ -433,9 +437,11 @@ def experiment_workflow_x180(
             `(tag, source node UID, target node UID)`.
         options:
             The options for building the workflow.
-            In addition to options from [WorkflowOptions], the following
+            In addition to options from
+            [WorkflowOptions][laboneq.workflow.WorkflowOptions], the following
             custom options are supported:
-                - create_experiment: The options for creating the experiment.
+
+            - create_experiment: The options for creating the experiment.
 
     Returns:
         WorkflowBuilder:
@@ -443,7 +449,7 @@ def experiment_workflow_x180(
 
     Example:
         ```python
-        options = amplitude_fine.experiment_workflow.options()
+        options = experiment_workflow_x180.options()
         options.count(10)
         options.transition("ge")
         # QPU from a two-qubit device setup
@@ -455,10 +461,7 @@ def experiment_workflow_x180(
             session=session,
             qpu=qpu,
             qubits=["q0", "q1"],
-            repetitions=[
-                [1,2,3,4],
-                [1,2,3,4],
-            ],
+            repetitions=[[1, 2, 3, 4], [1, 2, 3, 4]],
             options=options,
         ).run()
         ```
@@ -469,10 +472,10 @@ def experiment_workflow_x180(
     parameter_to_update = "drive_amplitude_pi"
 
     temp_qpu = temporary_qpu(qpu, temporary_parameters)
-    qubits = temporary_quantum_elements_from_qpu(temp_qpu, qubits)
+    temp_qubits = temporary_quantum_elements_from_qpu(temp_qpu, qubits)
     exp = create_experiment(
         temp_qpu,
-        qubits,
+        temp_qubits,
         amplification_qop,
         repetitions=repetitions,
     )
@@ -481,7 +484,7 @@ def experiment_workflow_x180(
     with workflow.if_(options.do_analysis):
         analysis_results = analysis_workflow(
             result,
-            qubits,
+            temp_qubits,
             amplification_qop,
             repetitions,
             target_angle,
@@ -491,7 +494,7 @@ def experiment_workflow_x180(
         qubit_parameters = analysis_results.output
         with workflow.if_(options.evaluate):
             eval_flags = evaluate_experiment(
-                analysis_results, qubits, evaluation_parameters
+                analysis_results, temp_qubits, evaluation_parameters
             )
             with workflow.if_(options.update):
                 update_qpu(
@@ -522,19 +525,22 @@ def experiment_workflow_x90(
 ) -> None:
     """The amplitude fine experiment workflow for a x90 gate.
 
-    This workflow is the same as experiment_workflow above but with the following
+    This workflow is the same as [experiment_workflow][] but with the following
     input parameters fixed:
-        amplification_qop = "x90"
-        target_angle = np.pi / 2
-        phase_offset = -np.pi / 2
-        parameter_to_update = "drive_amplitude_pi2"
 
-    !!! version-removed "Removed in version 26.7.0."
+    ```python
+    amplification_qop = "x90"
+    target_angle = np.pi / 2
+    phase_offset = -np.pi / 2
+    parameter_to_update = "drive_amplitude_pi2"
+    ```
+
+    !!! version-removed "Removed in version 26.7.0"
         The `qubits` argument of type `QuantumElements` has been removed.
         Please pass `qubits` of type `list[str] | str` instead, i.e., the quantum
         element UIDs instead of the quantum element instances.
 
-    !!! version-changed "Changed in version 26.4.0."
+    !!! version-changed "Changed in version 26.4.0"
         The `evaluation_parameters` argument has been added, which is the dictionary of
         parameters used for the newly added evaluation task. All arguments apart from
         `session`, `qpu`, and `qubits` are now keyword arguments.
@@ -562,9 +568,11 @@ def experiment_workflow_x90(
             `(tag, source node UID, target node UID)`.
         options:
             The options for building the workflow.
-            In addition to options from [WorkflowOptions], the following
+            In addition to options from
+            [WorkflowOptions][laboneq.workflow.WorkflowOptions], the following
             custom options are supported:
-                - create_experiment: The options for creating the experiment.
+
+            - create_experiment: The options for creating the experiment.
 
     Returns:
         WorkflowBuilder:
@@ -572,7 +580,7 @@ def experiment_workflow_x90(
 
     Example:
         ```python
-        options = amplitude_fine.experiment_workflow.options()
+        options = experiment_workflow_x90.options()
         options.count(10)
         options.transition("ge")
         # QPU from a two-qubit device setup
@@ -584,10 +592,7 @@ def experiment_workflow_x90(
             session=session,
             qpu=qpu,
             qubits=["q0", "q1"],
-            repetitions=[
-                [1,2,3,4],
-                [1,2,3,4],
-            ],
+            repetitions=[[1, 2, 3, 4], [1, 2, 3, 4]],
             options=options,
         ).run()
         ```
@@ -598,10 +603,10 @@ def experiment_workflow_x90(
     parameter_to_update = "drive_amplitude_pi2"
 
     temp_qpu = temporary_qpu(qpu, temporary_parameters)
-    qubits = temporary_quantum_elements_from_qpu(temp_qpu, qubits)
+    temp_qubits = temporary_quantum_elements_from_qpu(temp_qpu, qubits)
     exp = create_experiment(
         temp_qpu,
-        qubits,
+        temp_qubits,
         amplification_qop,
         repetitions=repetitions,
     )
@@ -610,7 +615,7 @@ def experiment_workflow_x90(
     with workflow.if_(options.do_analysis):
         analysis_results = analysis_workflow(
             result,
-            qubits,
+            temp_qubits,
             amplification_qop,
             repetitions,
             target_angle,
@@ -620,7 +625,7 @@ def experiment_workflow_x90(
         qubit_parameters = analysis_results.output
         with workflow.if_(options.evaluate):
             eval_flags = evaluate_experiment(
-                analysis_results, qubits, evaluation_parameters
+                analysis_results, temp_qubits, evaluation_parameters
             )
             with workflow.if_(options.update):
                 update_qpu(

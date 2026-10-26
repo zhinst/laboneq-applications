@@ -29,8 +29,8 @@ from sklearn.metrics import confusion_matrix
 
 from laboneq_applications.analysis.options import BasePlottingOptions
 from laboneq_applications.analysis.plotting_helpers import timestamped_title
+from laboneq_applications.conversion import as_quantum_element_list
 from laboneq_applications.core.validation import (
-    validate_and_convert_qubits_sweeps,
     validate_result,
 )
 
@@ -88,12 +88,12 @@ def analysis_workflow(
 
     The workflow consists of the following steps:
 
-    - [collect_shots]()
-    - [fit_data]()
-    - [calculate_assignment_matrices]()
-    - [calculate_assignment_fidelities]()
-    - [plot_iq_blobs]()
-    - [plot_assignment_matrices]()
+    - [collect_shots][]
+    - [fit_data][]
+    - [calculate_assignment_matrices][]
+    - [calculate_assignment_fidelities][]
+    - [plot_iq_blobs][]
+    - [plot_assignment_matrices][]
 
     Arguments:
         result:
@@ -106,7 +106,7 @@ def analysis_workflow(
             e.g. "gef", or a list of letters, e.g. ["g","e","f"].
         options:
             The options for building the workflow as an instance of
-            [IQBlobAnalysisWorkflowOptions]. See the docstring of this class for more
+            [IQBlobAnalysisWorkflowOptions][]. See the docstring of this class for more
             details.
 
     Returns:
@@ -115,14 +115,10 @@ def analysis_workflow(
 
     Example:
         ```python
-        result = analysis_workflow(
-            results=results
+        analysis_result = analysis_workflow(
+            result=result,
             qubits=[q0, q1],
-            amplitudes=[
-                np.linspace(0, 1, 11),
-                np.linspace(0, 0.75, 11),
-            ],
-            options=analysis_workflow.options(),
+            states="gef",
         ).run()
         ```
     """
@@ -169,15 +165,17 @@ def collect_shots(
             e.g. "gef", or a list of letters, e.g. ["g","e","f"].
 
     Returns:
-        dict with qubit UIDs as keys and values as a dict with the following keys:
-              shots_per_state - dict with states as keys and raw single shots as values.
-              shots_combined - list of the real and imaginary part of the shots in
-                shots_per_state, in a form expected by LinearDiscriminantAnalysis.
-              ideal_states_shots - list of the same shape as shots_combined with ints
-                specifying the state (0, 1, 2) the qubit is expected to be found in
-                ideally for each shot.
+        A dict with qubit UIDs as keys and values as a dict with the following keys:
+
+            - `shots_per_state`: dict with states as keys and raw single shots as
+              values.
+            - `shots_combined`: list of the real and imaginary part of the shots in
+              `shots_per_state`, in a form expected by `LinearDiscriminantAnalysis`.
+            - `ideal_states_shots`: list of the same shape as `shots_combined` with
+              ints specifying the state (0, 1, 2) the qubit is expected to be found
+              in ideally for each shot.
     """
-    qubits = validate_and_convert_qubits_sweeps(qubits)
+    qubits = as_quantum_element_list(qubits)
     validate_result(result)
     states_map = {"g": 0, "e": 1, "f": 2}
     processed_data_dict = {q.uid: {} for q in qubits}
@@ -225,9 +223,9 @@ def fit_data(
 
     Returns:
         dict with qubit UIDs as keys and the classification result for each qubit as
-        keys.
+            keys.
     """
-    qubits = validate_and_convert_qubits_sweeps(qubits)
+    qubits = as_quantum_element_list(qubits)
     fit_results = {}
 
     for q in qubits:
@@ -263,7 +261,7 @@ def calculate_assignment_matrices(
     Returns:
         dict with qubit UIDs as keys and the assignment matrix for each qubit as keys.
     """
-    qubits = validate_and_convert_qubits_sweeps(qubits)
+    qubits = as_quantum_element_list(qubits)
     assignment_matrices = {}
     for q in qubits:
         if q.uid not in fit_results:
@@ -297,7 +295,7 @@ def calculate_assignment_fidelities(
     Returns:
         dict with qubit UIDs as keys and the assignment fidelity for each qubit as keys.
     """
-    qubits = validate_and_convert_qubits_sweeps(qubits)
+    qubits = as_quantum_element_list(qubits)
     assignment_fidelities = {}
     for q in qubits:
         if q.uid not in assignment_matrices:
@@ -330,16 +328,16 @@ def plot_iq_blobs(
         processed_data_dict: the processed data dictionary returned by collect_shots.
         fit_results: the classification fit results returned by fit_data.
         options:
-            The options class for this task as an instance of [BasePlottingOptions]. See
+            The options class for this task as an instance of [BasePlottingOptions][]. See
             the docstring of this class for accepted options.
 
     Returns:
         dict with qubit UIDs as keys and the figures for each qubit as values.
 
-        If a qubit uid is not found in fit_results, the fit is not plotted.
+            If a qubit uid is not found in fit_results, the fit is not plotted.
     """
     opts = BasePlottingOptions() if options is None else options
-    qubits = validate_and_convert_qubits_sweeps(qubits)
+    qubits = as_quantum_element_list(qubits)
     figures = {}
     for q in qubits:
         shots_per_state = processed_data_dict[q.uid]["shots_per_state"]
@@ -414,14 +412,14 @@ def plot_assignment_matrices(
         assignment_fidelities: the dictionary of assignment fidelities returned by
             calculate_assignment_matrices.
         options:
-            The options class for this task as an instance of [BasePlottingOptions]. See
+            The options class for this task as an instance of [BasePlottingOptions][]. See
             the docstring of this class for accepted options.
 
     Returns:
         dict with qubit UIDs as keys and the figures for each qubit as values.
     """
     opts = BasePlottingOptions() if options is None else options
-    qubits = validate_and_convert_qubits_sweeps(qubits)
+    qubits = as_quantum_element_list(qubits)
     figures = {}
     for q in qubits:
         if q.uid not in assignment_matrices:

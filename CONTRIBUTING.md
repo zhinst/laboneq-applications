@@ -2,11 +2,11 @@
 
 We welcome contributions. This document includes the basics to get you started in contributing to `laboneq-applications`.
 
-<!--- TODO: More detailed information -->
+The Applications Library is developed together with LabOne Q, and this repository is updated
+with every release of LabOne Q. We integrate accepted pull requests into our development and
+publish them with the next release.
 
 ## First time setup procedure
-
-<!--- TODO: More detailed information -->
 
 1. Fork the repository
 2. Create a new feature branch off of `main` branch
@@ -29,7 +29,8 @@ Project is managed using `uv`. You can get it from
 you can create a virtual environment and activate it via:
 
 ``` sh
-uv sync && source .venv/bin/activate
+uv venv && source .venv/bin/activate
+uv pip install -e . --group dev
 ```
 
 !!! note
@@ -50,13 +51,14 @@ pytest
 
 ### Linting
 
-The project uses [ruff](https://docs.astral.sh/ruff/) for code linting and formatting
+The project uses [ruff](https://docs.astral.sh/ruff/) for code linting and formatting.
 The enforced rules are located in `pyproject.toml`.
 
 Running `ruff`:
 
 ```
 ruff check
+ruff format --check
 ```
 
 Fix the errors until there is none. If you encounter lots of error, don't panic. You can either
@@ -68,4 +70,4 @@ Make sure that your code is documented.
 
 The project follows [Google style docstrings](https://google.github.io/styleguide/pyguide.html)
 
-For more information on how to build the documentation and inspect the outcome, see: [Documentation](docs/README.md)
+The pages in `docs/sources/` are published as part of the [LabOne Q documentation](https://docs.zhinst.com/labone_q_user_manual/).

@@ -41,7 +41,7 @@ from laboneq_applications.analysis.options import (
     TuneUpAnalysisWorkflowOptions,
 )
 from laboneq_applications.analysis.plotting_helpers import plot_raw_complex_data_1d
-from laboneq_applications.core.validation import validate_and_convert_qubits_sweeps
+from laboneq_applications.conversion import as_quantum_element_list
 
 if TYPE_CHECKING:
     import lmfit
@@ -63,11 +63,11 @@ def analysis_workflow(
 
     The workflow consists of the following steps:
 
-    - [calculate_qubit_population]()
-    - [fit_data]()
-    - [extract_qubit_parameters]()
-    - [plot_raw_complex_data_1d]()
-    - [plot_population]()
+    - [calculate_qubit_population][]
+    - [fit_data][]
+    - [extract_qubit_parameters][]
+    - [plot_raw_complex_data_1d][]
+    - [plot_population][]
 
     Arguments:
         result:
@@ -82,7 +82,7 @@ def analysis_workflow(
             arrays.
         options:
             The options for building the workflow, passed as an instance of
-            [TuneUpAnalysisWorkflowOptions]. See the docstring of this class for
+            [TuneUpAnalysisWorkflowOptions][]. See the docstring of this class for
             more details.
 
     Returns:
@@ -91,15 +91,10 @@ def analysis_workflow(
 
     Example:
         ```python
-        options = analysis_workflow.options()
-        result = analysis_workflow(
-            results=results
-            qubits=[q0, q1],
-            lengths=[
-                np.linspace(10e-9, 100e-9, 11),
-                np.linspace(10e-9, 100e-9, 11),
-            ],
-            options=options,
+        analysis_result = analysis_workflow(
+            result=result,
+            qubits=["q0", "q1"],
+            lengths=[np.linspace(10e-9, 100e-9, 11), np.linspace(10e-9, 100e-9, 11)],
         ).run()
         ```
     """
@@ -139,31 +134,29 @@ def extract_qubit_parameters(
         fit_results: the fit-results dictionary returned by fit_data
         options:
             The options for extracting the qubit parameters.
-            See [ExtractQubitParametersTransitionOptions] for accepted options.
+            See [ExtractQubitParametersTransitionOptions][] for accepted options.
 
     Returns:
         dict with extracted qubit parameters and the previous values for those qubit
-        parameters. The dictionary has the following form:
-        ```python
-        {
-            "new_parameter_values": {
-                q.uid: {
-                    qb_param_name: qb_param_value
+            parameters. The dictionary has the following form:
+
+            ```python
+            {
+                "new_parameter_values": {
+                    q.uid: {qb_param_name: qb_param_value},
+                },
+                "old_parameter_values": {
+                    q.uid: {qb_param_name: qb_param_value},
                 },
             }
-            "old_parameter_values": {
-                q.uid: {
-                    qb_param_name: qb_param_value
-                },
-            }
-        }
-        ```
+            ```
+
     Raises:
         ValueError:
             If fit_results are empty (have length 0).
     """
     opts = ExtractQubitParametersTransitionOptions() if options is None else options
-    qubits = validate_and_convert_qubits_sweeps(qubits)
+    qubits = as_quantum_element_list(qubits)
     qubit_parameters = {
         "old_parameter_values": {q.uid: {} for q in qubits},
         "new_parameter_values": {q.uid: {} for q in qubits},
@@ -243,14 +236,14 @@ def plot_population(
         qubit_parameters: the qubit-parameters dictionary returned by
             extract_qubit_parameters
         options:
-            The options class for this task as an instance of [PlotPopulationOptions].
+            The options class for this task as an instance of [PlotPopulationOptions][].
             See the docstring of this class for accepted options.
 
     Returns:
         dict with qubit UIDs as keys and the figures for each qubit as values.
     """
     opts = PlotPopulationOptions() if options is None else options
-    qubits = validate_and_convert_qubits_sweeps(qubits)
+    qubits = as_quantum_element_list(qubits)
     figures = {}
     for q in qubits:
         sweep_points = processed_data_dict[q.uid]["sweep_points"]

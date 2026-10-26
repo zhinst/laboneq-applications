@@ -174,18 +174,20 @@ def get_pi_pi2_xvalues_on_cos(
     Arguments:
         x: array of x-values of the cosine function, corresponding for example
             to:
-             - amplitudes in an amplitude-Rabi measurement
-             - voltages in a resonator-spectroscopy-vs-dc-voltage measurement
-             - phases in a dynamic-phase measurement
+
+            - amplitudes in an amplitude-Rabi measurement
+            - voltages in a resonator-spectroscopy-vs-dc-voltage measurement
+            - phases in a dynamic-phase measurement
         frequency: the frequency of the cosine oscillation in angular units
         phase: the phase of the cosine oscillation in radians
 
-    Returns: the following array in the following order
-        - x-values for which cos(x * frequency + phase) = 1
-        - x-values for which cos(x * frequency + phase) = - 1
-        - x-values for which cos(x * frequency + phase) = 0 on the rising edge
-        - x-values for which cos(x * frequency + phase) = 0 on the falling edge
-
+    Returns:
+        pixv_top: x-values for which cos(x * frequency + phase) = 1.
+        pixv_bottom: x-values for which cos(x * frequency + phase) = -1.
+        pi2xv_rising: x-values for which cos(x * frequency + phase) = 0 on the
+            rising edge.
+        pi2xv_falling: x-values for which cos(x * frequency + phase) = 0 on the
+            falling edge.
     """
     n = np.arange(-20, 20)
     x = np.asarray(x)

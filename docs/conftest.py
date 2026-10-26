@@ -21,8 +21,7 @@ class FileLockNotebookClient(NotebookClient):
     """
 
     _LOCK = filelock.FileLock(
-        pathlib.Path(__file__).parent /
-        ".notebookclient.pytest.lock"
+        pathlib.Path(__file__).parent / ".notebookclient.pytest.lock"
     )
 
     @asynccontextmanager

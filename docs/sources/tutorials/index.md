@@ -36,6 +36,7 @@ used to retrieve data and to store your own data.
 
 [This tutorial](sources/experiment_workflow_automation.ipynb) explains how to use the LabOne Q Automation framework together with experiment workflows.
 
-> **_NOTE:_** Most of the examples are generated from Jupyter Notebook files and the source
-can be downloaded on each page by pressing the download button at the top right corner
-of the page.
+!!! note
+    Most of the examples are generated from Jupyter Notebook files and the source
+    can be downloaded on each page by pressing the download button at the top right corner
+    of the page.

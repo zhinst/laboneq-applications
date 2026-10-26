@@ -1,4 +1,4 @@
-# Copyright 2024 Zurich Instruments AG
+# Copyright 2026 Zurich Instruments AG
 # SPDX-License-Identifier: Apache-2.0
 
 """This module defines the task for updating setup parameters."""
@@ -6,6 +6,7 @@
 from __future__ import annotations
 
 import logging
+import warnings
 from typing import TYPE_CHECKING
 
 import attrs
@@ -16,6 +17,46 @@ if TYPE_CHECKING:
     import uncertainties as unc
 
     from laboneq_applications.typing import QuantumElements
+
+
+@workflow.task(save=False, hidden=True)
+def _handle_deprecated_qubit_argument(
+    qubits: QuantumElements | list[str] | str | None,
+    qubit: QuantumElements | list[str] | str | None,
+) -> QuantumElements | list[str] | str:
+    """Resolve the deprecated singular `qubit` argument of a workflow.
+
+    Entry task for workflows whose `qubit` argument was generalized to
+    `qubits`: it accepts exactly one of the two arguments and returns the
+    effective quantum elements. If the deprecated `qubit` is passed, a
+    `FutureWarning` is emitted and its value is used as `qubits`.
+
+    Args:
+        qubits: The value of the new `qubits` argument, or `None`.
+        qubit: The value of the deprecated `qubit` argument, or `None`.
+
+    Returns:
+        The effective `qubits` value.
+
+    Raises:
+        ValueError: If both or neither of the arguments are provided.
+    """
+    if qubit is not None:
+        if qubits is not None:
+            raise ValueError(
+                "Only one of `qubits` and `qubit` may be passed. We recommend "
+                "passing `qubits`; the `qubit` argument is deprecated."
+            )
+        warnings.warn(
+            "The `qubit` argument is deprecated in v26.10.0 and will no "
+            "longer be supported in v27.1.0. Please use `qubits` instead.",
+            FutureWarning,
+            stacklevel=2,
+        )
+        return qubit
+    if qubits is None:
+        raise ValueError("The `qubits` argument is required.")
+    return qubits
 
 
 def _valid_temporary_parameters(
@@ -95,6 +136,37 @@ def update_qpu(
 
 
 @workflow.task
+def update_qpu_edges(
+    qpu: QPU,
+    parameters: dict[
+        str,
+        dict[str, dict[str, int | float | unc.core.Variable | None]],
+    ],
+) -> None:
+    """Updates the parameters of topology edges in the qpu.
+
+    Behaves like the `update_qpu` task, but takes the edge keys as strings
+    of the form ``"tag:source_node_uid:target_node_uid"`` instead of the
+    tuples accepted by `qpu.update`. This allows analysis tasks to return the edge
+    parameters in a form that is serializable by the logbook stores (which
+    only support dictionaries with string keys).
+
+    Args:
+        qpu: The qpu containing the topology edges to be updated.
+        parameters: Edge parameters and the new values to be updated.
+            This dictionary has the following form:
+            ```python
+            {"tag:source_node_uid:target_node_uid": {param_name: param_value}}
+            ```
+    """
+    parameters_tuple_keys = {}
+    for key, params_dict in parameters.items():
+        tag, source_uid, target_uid = key.split(":")
+        parameters_tuple_keys[(tag, source_uid, target_uid)] = params_dict
+    update_qpu(qpu, parameters_tuple_keys)
+
+
+@workflow.task
 def temporary_qpu(
     qpu: QPU,
     temporary_parameters: dict[str | tuple[str, str, str], dict | QuantumParameters]
@@ -108,17 +180,11 @@ def temporary_qpu(
             If None, the QPU is returned as is.
             The dictionary has the following form:
             ```python
-            {
-                key: {
-                    "param": param_value
-                }
-            }
+            {key: {"param": param_value}}
             ```
             or
             ```python
-            {
-                key: QuantumParameters
-            }
+            {key: QuantumParameters}
             ```
             where `key` may be either a quantum element UID string or edge key tuple of
             the form `(tag, source node UID, target node UID)`.
@@ -196,7 +262,7 @@ def temporary_quantum_elements_from_qpu(
 ) -> QuantumElements:
     """Return temporarily-modified quantum elements from the QPU.
 
-    !!! version-removed "Removed in version 26.7.0."
+    !!! version-removed "Removed in version 26.7.0"
         The `qubits` argument of type `QuantumElements` has been removed.
         Please pass `qubits` of type `list[str] | str | None` instead, i.e., the quantum
         element UIDs instead of the quantum element instances.

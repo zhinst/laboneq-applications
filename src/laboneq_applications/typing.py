@@ -15,20 +15,20 @@ used and guides us in building consistent interfaces.
 Type hints
 ----------
 
-* [QuantumElements]()
+* [QuantumElements][]
 
     Either a single qubit or a sequence of qubits.
 
-* [QubitSweepPoints]()
+* [QubitSweepPoints][]
 
     Sweep values for either a single qubit or multiple qubits. What
     value is being swept is typically described by the parameter
     name, e.g. `amplitudes`.
 
-    If the values are for a single qubit, [QubitSweepPoints]() is
+    If the values are for a single qubit, [QubitSweepPoints][] is
     sequence of floats or a numpy `ArrayLike`.
 
-    If the values are for multiple qubits, [QubitSweepPoints]() is
+    If the values are for multiple qubits, [QubitSweepPoints][] is
     a sequence of such values, one for each qubit.
 """
 

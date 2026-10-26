@@ -194,7 +194,7 @@ def bosonic_qubit_setup(
             ),
         )
 
-        # SWAP drive: dedicated HDAWG sigout (LF mode, DC flux pulses).
+        # SWAP drive: dedicated HDAWG sigout (DC flux pulses).
         setup.add_connections(
             f"device_hdawg_{hdawg_idx}",
             create_connection(
@@ -223,7 +223,7 @@ def bosonic_qubits(
         n_qubits:
             Number of qubits to include in the QPU.
         setup:
-            The device setup returned by [bosonic_qubit_setup]()
+            The device setup returned by [bosonic_qubit_setup][]
             with the same number of qubits.
 
     Returns:

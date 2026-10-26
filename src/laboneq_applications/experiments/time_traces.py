@@ -30,7 +30,10 @@ from laboneq.workflow.tasks import (
 )
 
 from laboneq_applications.analysis.time_traces import analysis_workflow
-from laboneq_applications.core import validation
+from laboneq_applications.conversion import (
+    as_quantum_element_list,
+    as_single_quantum_element,
+)
 from laboneq_applications.experiments.options import (
     BaseExperimentOptions,
     TuneUpWorkflowOptions,
@@ -46,7 +49,6 @@ if TYPE_CHECKING:
 
     from laboneq.dsl.quantum import QuantumParameters
     from laboneq.dsl.quantum.qpu import QPU
-    from laboneq.dsl.quantum.quantum_element import QuantumElement
     from laboneq.dsl.session import Session
     from laboneq.workflow import WorkflowResult
 
@@ -87,23 +89,22 @@ def experiment_workflow(
 
     The workflow consists of the following tasks:
 
-    - [validate_and_convert_qubits_sweeps]()
     - `with for_(qubits) as qubit`:
-        - [create_experiment]()
-        - [compile_experiment]()
-        - [run_experiment]()
-        - [append_result]()
-    - [combine_results]()
-    - [analysis_workflow]()
-    - [evaluate_experiment]()
-    - [update_qpu]()
+        - [create_experiment][]
+        - [compile_experiment][]
+        - [run_experiment][]
+        - [append_result][]
+    - [combine_results][]
+    - [analysis_workflow][]
+    - [evaluate_experiment][]
+    - [update_qpu][]
 
-    !!! version-removed "Removed in version 26.7.0."
+    !!! version-removed "Removed in version 26.7.0"
         The `qubits` argument of type `QuantumElements` has been removed.
         Please pass `qubits` of type `list[str] | str` instead, i.e., the quantum
         element UIDs instead of the quantum element instances.
 
-    !!! version-changed "Changed in version 26.4.0."
+    !!! version-changed "Changed in version 26.4.0"
         The `evaluation_parameters` argument has been added, which is the dictionary of
         parameters used for the newly added evaluation task. All arguments apart from
         `session`, `qpu`, and `qubits` are now keyword arguments.
@@ -129,7 +130,7 @@ def experiment_workflow(
             `(tag, source node UID, target node UID)`.
         options:
             The options for building the workflow as an instance of
-            [TuneUpWorkflowOptions]. See the docstring of this class for more details.
+            [TuneUpWorkflowOptions][]. See the docstring of this class for more details.
 
     Returns:
         WorkflowBuilder:
@@ -138,9 +139,10 @@ def experiment_workflow(
     Example:
         ```python
         options = experiment_workflow.options()
-        options.create_experiment.count(10)
+        options.count(10)
+        # QPU from a single-qubit device setup
         qpu = QPU(
-            quantum_elements=[TunableTransmonQubit("q0"), TunableTransmonQubit("q1")],
+            quantum_elements=TunableTransmonQubit.from_device_setup(setup),
             quantum_operations=TunableTransmonOperations(),
         )
         result = experiment_workflow(
@@ -153,10 +155,10 @@ def experiment_workflow(
         ```
     """
     temp_qpu = temporary_qpu(qpu, temporary_parameters)
-    qubits = temporary_quantum_elements_from_qpu(temp_qpu, qubits)
-    qubits = validation.validate_and_convert_qubits_sweeps(qubits)
+    temp_qubits = temporary_quantum_elements_from_qpu(temp_qpu, qubits)
+    temp_qubits = workflow.task(as_quantum_element_list, save=False)(temp_qubits)
     results = []
-    with workflow.for_(qubits, lambda q: q.uid) as qubit:
+    with workflow.for_(temp_qubits, lambda q: q.uid) as qubit:
         with workflow.for_(states, lambda s: s) as state:
             exp = create_experiment(temp_qpu, qubit, state)
             compiled_exp = compile_experiment(session, exp)
@@ -166,11 +168,11 @@ def experiment_workflow(
             append_result(results, result)
     combined_results = combine_results(results)
     with workflow.if_(options.do_analysis):
-        analysis_results = analysis_workflow(combined_results, qubits, states)
+        analysis_results = analysis_workflow(combined_results, temp_qubits, states)
         qubit_parameters = analysis_results.output
         with workflow.if_(options.evaluate):
             eval_flags = evaluate_experiment(
-                analysis_results, qubits, evaluation_parameters
+                analysis_results, temp_qubits, evaluation_parameters
             )
             with workflow.if_(options.update):
                 update_qpu(
@@ -191,7 +193,7 @@ def experiment_workflow(
 @dsl.qubit_experiment
 def create_experiment(
     qpu: QPU,
-    qubit: QuantumElement,
+    qubit: QuantumElements,
     state: Literal["g", "e", "f"],
     options: TimeTracesExperimentOptions | None = None,
 ) -> Experiment:
@@ -206,7 +208,7 @@ def create_experiment(
             The state in which to prepare the qubit. Must be 'g', 'e' or 'f'.
         options:
             The options for building the experiment as an instance of
-            [TimeTracesExperimentOptions]. See the docstring of this class for more
+            [TimeTracesExperimentOptions][]. See the docstring of this class for more
             details.
 
     Returns:
@@ -223,14 +225,16 @@ def create_experiment(
     Example:
         ```python
         options = TimeTracesExperimentOptions()
-        options.count(10)
+        options.count = 10
+        # QPU from a single-qubit device setup
         qpu = QPU(
-            quantum_elements=[TunableTransmonQubit("q0"), TunableTransmonQubit("q1")],
+            quantum_elements=TunableTransmonQubit.from_device_setup(setup),
             quantum_operations=TunableTransmonOperations(),
         )
+        q0 = qpu["q0"]
         create_experiment(
             qpu=qpu,
-            qubit="q0",
+            qubit=q0,
             state="g",
             options=options,
         )
@@ -249,6 +253,7 @@ def create_experiment(
             "AcquisitionType.RAW (or 'raw') because the "
             "experiment acquires raw traces."
         )
+    qubit = as_single_quantum_element(qubit)
 
     qop = qpu.quantum_operations
     with dsl.acquire_loop_rt(

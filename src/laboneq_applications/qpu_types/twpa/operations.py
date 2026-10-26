@@ -5,6 +5,8 @@
 
 from __future__ import annotations
 
+import math
+
 from laboneq.dsl.calibration import Calibration, CancellationSource, Oscillator
 from laboneq.dsl.enums import ModulationType
 from laboneq.dsl.experiment.builtins_dsl import QuantumOperations, quantum_operation
@@ -26,6 +28,7 @@ class TWPAOperations(QuantumOperations):
         frequency: float | SweepParameter,
         *,
         rf: bool = True,
+        update_lo: bool = False,
     ) -> None:
         """Sets the frequency of the given readout line.
 
@@ -41,11 +44,19 @@ class TWPAOperations(QuantumOperations):
                 If True, set the RF frequency of the transition.
                 If False, set the oscillator frequency directly instead.
                 The default is to set the RF frequency.
+            update_lo:
+                If True, also pick a new local oscillator frequency
+                appropriate for the supplied frequency, i.e. a multiple
+                of 200 MHz that is 100-300 MHz below it. Ignored if
+                rf is False. Not supported if frequency is a
+                SweepParameter.
 
         Raises:
             RuntimeError:
                 If there is an attempt to call `set_frequency` more than
                 once on the same signal. See notes below for details.
+            ValueError:
+                If `update_lo` is True and `frequency` is a SweepParameter.
 
         Notes:
             Currently `set_frequency` is implemented by setting the
@@ -61,18 +72,36 @@ class TWPAOperations(QuantumOperations):
             This will be improved in a future release.
         """
         signal_line = "measure"
-        lo_frequency = twpa.parameters.readout_lo_frequency
 
-        if rf:
-            # This subtraction works for both numbers and SweepParameters
-            frequency -= lo_frequency
+        lo_frequency = twpa.parameters.readout_lo_frequency
+        if rf and update_lo:
+            if isinstance(frequency, SweepParameter):
+                raise ValueError(
+                    "Updating the local oscillator frequency (update_lo=True) is not"
+                    " supported when the readout frequency is a SweepParameter."
+                )
+            # Pick a local oscillator frequency that is a multiple of 200 MHz
+            # and lies 100-300 MHz below the readout frequency.
+            lo_frequency = max(
+                min(math.floor((frequency - 100e6) / 200e6) * 200e6, 8e9), 1e9
+            )
+
+        # The subtraction works for both numbers and SweepParameters:
+        if_frequency = frequency - lo_frequency if rf else frequency
 
         calibration = dsl.experiment_calibration()
         signal_calibration = calibration[twpa.signals[signal_line]]
         oscillator = signal_calibration.oscillator
+        local_oscillator = signal_calibration.local_oscillator
 
         if oscillator is None:
-            oscillator = signal_calibration.oscillator = Oscillator(frequency=frequency)
+            oscillator = signal_calibration.oscillator = Oscillator(
+                frequency=if_frequency
+            )
+        if local_oscillator is None:
+            local_oscillator = signal_calibration.local_oscillator = Oscillator(
+                frequency=lo_frequency
+            )
         if getattr(oscillator, "_set_frequency", False):
             # We mark the oscillator with a _set_frequency attribute to ensure that
             # set_frequency isn't performed on the same oscillator twice. Ideally
@@ -84,7 +113,8 @@ class TWPAOperations(QuantumOperations):
             )
 
         oscillator._set_frequency = True
-        oscillator.frequency = frequency
+        oscillator.frequency = if_frequency
+        local_oscillator.frequency = lo_frequency
         # LabOne Q does not support software modulation of measurement
         # signal sweeps because it results in multiple readout waveforms
         # on the same readout signal. Ideally the LabOne Q compiler would

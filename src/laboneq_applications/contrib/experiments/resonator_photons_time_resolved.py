@@ -24,7 +24,6 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-import numpy as np
 from laboneq.simple import SectionAlignment, SweepParameter, dsl
 from laboneq.workflow import if_, option_field, return_, task, task_options, workflow
 from laboneq.workflow.tasks import (
@@ -33,7 +32,10 @@ from laboneq.workflow.tasks import (
 )
 
 from laboneq_applications.contrib.analysis import resonator_photons_time_resolved
-from laboneq_applications.core.validation import validate_and_convert_qubits_sweeps
+from laboneq_applications.conversion import (
+    as_quantum_element_list,
+    sweeps_per_quantum_element,
+)
 from laboneq_applications.experiments.options import (
     QubitSpectroscopyExperimentOptions,
     TuneUpWorkflowOptions,
@@ -56,7 +58,7 @@ if TYPE_CHECKING:
 class ResonatorPhotonsExperimentOptions:
     """Options for the time-resolved resonator photons experiment.
 
-    Additional attributes:
+    Attributes:
         delay_between_measurements:
             Time between inspect measure pulse and spectroscopy measure for better
             contrast.
@@ -82,17 +84,17 @@ def experiment_workflow(
 
     The workflow consists of the following steps:
 
-    - [create_experiment]()
-    - [compile_experiment]()
-    - [run_experiment]()
-    - [analysis_workflow]()
+    - [create_experiment][]
+    - [compile_experiment][]
+    - [run_experiment][]
+    - [analysis_workflow][]
 
-    !!! version-removed "Removed in version 26.7.0."
+    !!! version-removed "Removed in version 26.7.0"
         The `qubits` argument of type `QuantumElements` has been removed.
         Please pass `qubits` of type `list[str] | str` instead, i.e., the quantum
         element UIDs instead of the quantum element instances.
 
-    !!! version-changed "Changed in version 26.4.0."
+    !!! version-changed "Changed in version 26.4.0"
         All arguments apart from `session`, `qpu`, and `qubits` are now keyword
         arguments.
 
@@ -118,9 +120,11 @@ def experiment_workflow(
             The temporary parameters to update the qubits with.
         options:
             The options for building the workflow.
-            In addition to options from [WorkflowOptions], the following
+            In addition to options from
+            [WorkflowOptions][laboneq.workflow.WorkflowOptions], the following
             custom options are supported:
-                - `create_experiment`: The options for creating the experiment.
+
+            - `create_experiment`: The options for creating the experiment.
 
     Returns:
         WorkflowBuilder:
@@ -128,13 +132,15 @@ def experiment_workflow(
 
     Example:
         ```python
-        options = resonator_photons_time_resolved.experiment_workflow.options()
+        options = experiment_workflow.options()
         options.count(2**9)
         options.delay_between_measurements(1e-6)
+        # QPU from a two-qubit device setup
         qpu = QPU(
-            qubits=[TunableTransmonQubit("q0"), TunableTransmonQubit("q1")],
+            quantum_elements=TunableTransmonQubit.from_device_setup(setup),
             quantum_operations=TunableTransmonOperations(),
         )
+        qubits = qpu.quantum_elements
 
         temporary_parameters = {}
         for q in qubits:
@@ -144,17 +150,17 @@ def experiment_workflow(
             temp_pars.spectroscopy_length = 80e-9
             temporary_parameters[q.uid] = temp_pars
 
-        result = resonator_photons_time_resolved.experiment_workflow(
+        center_q1 = 6.0e9
+        center_q2 = 6.1e9
+        span = 0.2e9
+        result = experiment_workflow(
             session=session,
             qpu=qpu,
-            qubits="q0",
-            times=[
-                np.linspace(0, 3e-6, 21),
-                np.linspace(0, 3e-6, 21),
-            ],
+            qubits=["q0", "q1"],
+            times=[np.linspace(0, 3e-6, 21), np.linspace(0, 3e-6, 21)],
             frequencies=[
-                np.linspace(center_q1 - off, center_q1 + off, 151),
-                np.linspace(center_q2 - off, center_q2 + off, 151),
+                np.linspace(center_q1 - span / 2, center_q1 + span / 2, 151),
+                np.linspace(center_q2 - span / 2, center_q2 + span / 2, 151),
             ],
             temporary_parameters=temporary_parameters,
             options=options,
@@ -162,10 +168,10 @@ def experiment_workflow(
         ```
     """
     temp_qpu = temporary_qpu(qpu, temporary_parameters)
-    qubits = temporary_quantum_elements_from_qpu(temp_qpu, qubits)
+    temp_qubits = temporary_quantum_elements_from_qpu(temp_qpu, qubits)
     exp = create_experiment(
-        qpu,
-        qubits,
+        temp_qpu,
+        temp_qubits,
         times,
         frequencies,
     )
@@ -173,7 +179,7 @@ def experiment_workflow(
     result = run_experiment(session, compiled_exp)
     with if_(options.do_analysis):
         resonator_photons_time_resolved.analysis_workflow(
-            result, qubits, times, frequencies
+            result, temp_qubits, times, frequencies
         )
     return_(result)
 
@@ -206,8 +212,8 @@ def create_experiment(
             Otherwise, it must be a list of lists of numbers or arrays.
         options:
             The options for building the experiment.
-            See [ResonatorPhotonsExperimentOptions] and
-            [QubitSpectroscopyExperimentOptions] for accepted options.
+            See [ResonatorPhotonsExperimentOptions][] and
+            [QubitSpectroscopyExperimentOptions][] for accepted options.
 
     Returns:
         experiment:
@@ -227,47 +233,41 @@ def create_experiment(
 
     Example:
         ```python
-        options = resonator_photons_time_resolved.experiment_workflow.options()
-        options.count(2**9)
-        options.delay_between_measurements(1e-6)
+        options = ResonatorPhotonsExperimentOptions()
+        options.count = 2**9
+        options.delay_between_measurements = 1e-6
+        # QPU from a two-qubit device setup
         qpu = QPU(
-            qubits=[TunableTransmonQubit("q0"), TunableTransmonQubit("q1")],
+            quantum_elements=TunableTransmonQubit.from_device_setup(setup),
             quantum_operations=TunableTransmonOperations(),
         )
-        temporary_parameters = {}
-        for q in qubits:
-            temp_pars = deepcopy(q.parameters)
-            temp_pars.drive_range = -10
-            temp_pars.spectroscopy_amplitude = 0.25
-            temp_pars.spectroscopy_length = 80e-9
-            temporary_parameters[q.uid] = temp_pars
-
+        q0, q1 = qpu["q0"], qpu["q1"]
+        qubits = [q0, q1]
+        center_q1 = 6.0e9
+        center_q2 = 6.1e9
+        span = 0.2e9
         create_experiment(
             qpu=qpu,
-            qubits=qpu.quantum_elements[0],
-            times=[
-                np.linspace(0, 3e-6, 21),
-                np.linspace(0, 3e-6, 21),
-            ],
+            qubits=qubits,
+            times=[np.linspace(0, 3e-6, 21), np.linspace(0, 3e-6, 21)],
             frequencies=[
-                np.linspace(center_q1 - off, center_q1 + off, 151),
-                np.linspace(center_q2 - off, center_q2 + off, 151),
+                np.linspace(center_q1 - span / 2, center_q1 + span / 2, 151),
+                np.linspace(center_q2 - span / 2, center_q2 + span / 2, 151),
             ],
-            temporary_parameters=temporary_parameters,
             options=options,
-        ).run()
+        )
         ```
     """
     # Define the custom options for the experiment
     opts = ResonatorPhotonsExperimentOptions() if options is None else options
     qop = qpu.quantum_operations
 
-    qubits_validated, frequencies = validate_and_convert_qubits_sweeps(
-        qubits, frequencies
-    )
-    qubits_validated, times = validate_and_convert_qubits_sweeps(qubits, times)
+    qubits = as_quantum_element_list(qubits)
+    qubit_sweeps = list(sweeps_per_quantum_element(qubits, frequencies, times))
+
+    max_time = max(q_times.max() for _, _, q_times in qubit_sweeps)
     max_measure_section_length = qop.measure_section_length(qubits)
-    max_inspect_section_length = np.max(times) + max(
+    max_inspect_section_length = max_time + max(
         q.parameters.spectroscopy_length for q in qubits
     )
 
@@ -279,9 +279,7 @@ def create_experiment(
         repetition_time=opts.repetition_time,
         reset_oscillator_phase=opts.reset_oscillator_phase,
     ):
-        for q, q_frequencies, q_times in zip(
-            qubits_validated, frequencies, times, strict=False
-        ):
+        for q, q_frequencies, q_times in qubit_sweeps:
             with dsl.sweep(
                 name=f"time_sweep_{q.uid}",
                 parameter=SweepParameter(f"sweep_{q.uid}", q_times),

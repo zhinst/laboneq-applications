@@ -83,14 +83,14 @@ def analysis_workflow(
 
     The workflow consists of the following steps:
 
-    - [calculate_qubit_population_tq_rb]()
-    Combine per-shot qubit bits into joint two-qubit state populations.
-    - [fit_data]()
-    Fit an exponential decay to the P(00) population per pair.
-    - [compute_pair_epc]()
-    Compute pair EPC from the fit result.
-    - [plot_population]()
-    Optionally plot survival curves (one figure per pair).
+    - [calculate_qubit_population_tq_rb][]
+      Combine per-shot qubit bits into joint two-qubit state populations.
+    - [fit_data][]
+      Fit an exponential decay to the P(00) population per pair.
+    - [compute_pair_epc][]
+      Compute pair EPC from the fit result.
+    - [plot_population][]
+      Optionally plot survival curves (one figure per pair).
 
     Arguments:
         result:
@@ -125,6 +125,7 @@ def _normalize_raw(raw: np.ndarray, n_circuits: int) -> np.ndarray:
     """Return raw result data as a real-valued (n_circuits, n_shots) array.
 
     Handles the three layouts that LabOne Q may return:
+
     - 1D flat array of length ``n_circuits * n_shots``
     - 2D array ``(n_circuits, n_shots)``
     - 2D array ``(n_shots, n_circuits)`` (hardware SINGLE_SHOT layout)
@@ -167,17 +168,19 @@ def calculate_qubit_population_tq_rb(
             Number of random circuit samples per sequence length.
 
     Returns:
-        Dictionary keyed by pair UID ``"q0_uid-q1_uid"``::
+        Dictionary keyed by pair UID ``"q0_uid-q1_uid"``:
 
+            ```python
             {
                 pair_key: {
-                    "sweep_points": array,   # Clifford count per circuit
-                    "00": array,             # P(q0=0, q1=0) per circuit
-                    "01": array,             # P(q0=0, q1=1) per circuit
-                    "10": array,             # P(q0=1, q1=0) per circuit
-                    "11": array,             # P(q0=1, q1=1) per circuit
+                    "sweep_points": array,  # Clifford count per circuit
+                    "00": array,  # P(q0=0, q1=0) per circuit
+                    "01": array,  # P(q0=0, q1=1) per circuit
+                    "10": array,  # P(q0=1, q1=0) per circuit
+                    "11": array,  # P(q0=1, q1=1) per circuit
                 }
             }
+            ```
     """
     validate_result(result)
 
@@ -231,7 +234,7 @@ def fit_data(
             List of [q0, q1] pairs.
         processed_data_dict:
             Per-pair joint state populations as returned by
-            [calculate_qubit_population_tq_rb]().
+            [calculate_qubit_population_tq_rb][].
         options:
             Fit options.
 
@@ -297,7 +300,7 @@ def compute_pair_epc(
         qubit_pairs:
             List of [q0, q1] pairs.
         fit_results:
-            Per-pair fit results as returned by [fit_data]().
+            Per-pair fit results as returned by [fit_data][].
 
     Returns:
         Dictionary ``{"q0-q1": {"epc_avg": float}}`` keyed by pair UID.
@@ -357,7 +360,7 @@ def plot_population(
 
     Returns:
         Dictionary keyed by pair UID (``"q0_uid-q1_uid"``) with matplotlib
-        Figure objects.
+            Figure objects.
     """
     opts = PlotPopulationTQRBOptions() if options is None else options
     figures = {}

@@ -13,7 +13,6 @@ fidelity from the fit. Finally, we plot the data and the fit.
 
 from __future__ import annotations
 
-from collections.abc import Sequence
 from typing import TYPE_CHECKING
 
 import matplotlib.pyplot as plt
@@ -44,8 +43,8 @@ from laboneq_applications.analysis.options import (
     FitDataOptions,
     TuneUpAnalysisWorkflowOptions,
 )
+from laboneq_applications.conversion import as_quantum_element_list
 from laboneq_applications.core.validation import (
-    validate_and_convert_qubits_sweeps,
     validate_result,
 )
 
@@ -78,8 +77,6 @@ class PlotPopulationRBOptions:
             The states to prepare in the calibration traces. Can be any
             string or tuple made from combining the characters 'g', 'e', 'f'.
             Default: same as transition
-
-    Additional attributes from `BasePlottingOptions`:
         save_figures:
             Whether to save the figures.
             Default: `True`.
@@ -116,9 +113,9 @@ def analysis_workflow(
 
     The workflow consists of the following steps:
 
-    - [calculate_qubit_population_rb]()
-    - [fit_data]()
-    - [plot_population]()
+    - [calculate_qubit_population_rb][]
+    - [fit_data][]
+    - [plot_population][]
 
     Arguments:
         result:
@@ -132,7 +129,7 @@ def analysis_workflow(
             Number of random seeds for RB.
         options:
             The options for building the workflow, passed as an instance of
-            [TuneUpAnalysisWorkflowOptions]. See the docstring of this class for more
+            [TuneUpAnalysisWorkflowOptions][]. See the docstring of this class for more
             details.
 
     Returns:
@@ -159,15 +156,17 @@ def calculate_qubit_population_rb(
 ) -> dict[str, dict[str, ArrayLike]]:
     """Processes the raw data.
 
-     The data is processed in the following way:
+    The data is processed in the following way:
 
-     - If calibration traces were used in the experiment, the raw data is rotated based
-     on the calibration traces.
-     See calibration_traces_rotation.py/rotate_data_to_cal_trace_results for more
-     details.
-     - If no calibration traces were used in the experiment, or do_pca = True is passed
-     in options, principal component analysis is performed on the data.
-     See calibration_traces_rotation.py/principal_component_analysis for more details.
+    - If calibration traces were used in the experiment, the raw data is rotated
+      based on the calibration traces. See
+      [rotate_data_to_cal_trace_results][laboneq_applications.analysis.calibration_traces_rotation.rotate_data_to_cal_trace_results]
+      for more details.
+    - If no calibration traces were used in the experiment, or `do_pca = True` is
+      passed in options, principal component analysis is performed on the
+      data. See
+      [principal_component_analysis][laboneq_applications.analysis.calibration_traces_rotation.principal_component_analysis]
+      for more details.
 
     Arguments:
         qubits:
@@ -181,13 +180,14 @@ def calculate_qubit_population_rb(
             Number of random seeds for RB.
         options:
             The options for building the workflow as an instance of
-            [CalculateQubitPopulationOptions]. See the docstrings of this class for more
+            [CalculateQubitPopulationOptions][]. See the docstrings of this class for more
             details.
 
     Returns:
         dict with qubit UIDs as keys and the dictionary of processed data for each qubit
-        as values. See [calibration_traces_rotation.py/calculate_population_1d] for what
-        this dictionary looks like.
+            as values. See
+            [calculate_population_1d][laboneq_applications.analysis.calibration_traces_rotation.calculate_population_1d]
+            for what this dictionary looks like.
 
     Raises:
         TypeError:
@@ -196,12 +196,8 @@ def calculate_qubit_population_rb(
     validate_result(result)
     opts = CalculateQubitPopulationOptions() if options is None else options
     cliffords = np.concatenate([length_cliffords for i in range(variations)])
-    if isinstance(qubits, Sequence):
-        cliffords = [cliffords for _ in qubits]
-
-    qubits, cliffords = validate_and_convert_qubits_sweeps(qubits, cliffords)
     processed_data_dict = {}
-    for q, cliffs in zip(qubits, cliffords, strict=False):
+    for q in as_quantum_element_list(qubits):
         raw_data = result[q.uid].result.data
         if opts.use_cal_traces:
             calibration_traces = [
@@ -215,12 +211,12 @@ def calculate_qubit_population_rb(
         if opts.do_rotation:
             data_dict = calculate_population_1d(
                 raw_data,
-                cliffs,
+                cliffords,
                 calibration_traces,
                 do_pca=do_pca,
             )
         else:
-            data_dict = extract_raw_data_dict(raw_data, cliffs, calibration_traces)
+            data_dict = extract_raw_data_dict(raw_data, cliffords, calibration_traces)
         processed_data_dict[q.uid] = data_dict
     return processed_data_dict
 
@@ -239,14 +235,14 @@ def fit_data(
             a list of qubits. The UIDs of these qubits must exist in processed_data_dict
         processed_data_dict: the processed data dictionary returned by process_raw_data
         options:
-            The options class for this task as an instance of [FitDataOptions]. See
+            The options class for this task as an instance of [FitDataOptions][]. See
             the docstring of this class for accepted options.
 
     Returns:
         dict with qubit UIDs as keys and the fit results for each qubit as keys.
     """
     opts = FitDataOptions() if options is None else options
-    qubits = validate_and_convert_qubits_sweeps(qubits)
+    qubits = as_quantum_element_list(qubits)
     fit_results = {}
     if not opts.do_fitting:
         return fit_results
@@ -298,14 +294,14 @@ def plot_population(
         fit_results:
             The fit-results dictionary returned by fit_data.
         options:
-            The options class for this task as an instance of [PlotPopulationRBOptions].
+            The options class for this task as an instance of [PlotPopulationRBOptions][].
             See the docstring of this class for accepted options.
 
     Returns:
         dict with qubit UIDs as keys and the figures for each qubit as values.
     """
     opts = PlotPopulationRBOptions() if options is None else options
-    qubits = validate_and_convert_qubits_sweeps(qubits)
+    qubits = as_quantum_element_list(qubits)
     figures = {}
     for q in qubits:
         sweep_points = processed_data_dict[q.uid]["sweep_points"]

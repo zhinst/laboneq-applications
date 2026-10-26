@@ -28,24 +28,23 @@ from laboneq_applications.analysis.options import (
     DoFittingOption,
     TuneUpAnalysisWorkflowOptions,
 )
+from laboneq_applications.conversion import as_single_quantum_element
 
 if TYPE_CHECKING:
     import matplotlib as mpl
     from laboneq.workflow.tasks.run_experiment import RunExperimentResults
 
-    from laboneq_applications.typing import Qubit, QubitSweepPoints
+    from laboneq_applications.typing import QuantumElements, QubitSweepPoints
 
 
 @task_options
 class PlotDataOption(DoFittingOption, BasePlottingOptions):
     """Option class for the `plot_data` task.
 
-    Attributes from `DoFittingOption`:
+    Attributes:
         do_fitting:
             Whether to perform the fit.
             Default: `True`.
-
-    Attributes from `BasePlottingOptions`:
         save_figures:
             Whether to save the figures.
             Default: `True`.
@@ -58,7 +57,7 @@ class PlotDataOption(DoFittingOption, BasePlottingOptions):
 @workflow
 def analysis_workflow(
     result: RunExperimentResults,
-    qubit: Qubit,
+    qubit: QuantumElements,
     delays: QubitSweepPoints,
     options: TuneUpAnalysisWorkflowOptions | None = None,
 ) -> None:
@@ -66,8 +65,8 @@ def analysis_workflow(
 
     The workflow consists of the following steps:
 
-    - [extract_qubit_parameters]()
-    - [plot_data]()
+    - [extract_qubit_parameters][]
+    - [plot_data][]
 
     Arguments:
         result:
@@ -80,7 +79,7 @@ def analysis_workflow(
             `delays` must be a list of numbers or an array.
         options:
             The options for building the workflow, passed as an instance of
-            [TuneUpAnalysisWorkflowOptions]. See the docstring of this class for
+            [TuneUpAnalysisWorkflowOptions][]. See the docstring of this class for
             more details.
 
     Returns:
@@ -89,13 +88,10 @@ def analysis_workflow(
 
     Example:
         ```python
-        options = TuneUpAnalysisWorkflowOptions()
-        result = analysis_workflow(
-            results=results
-            qubits=q0,
+        analysis_result = analysis_workflow(
+            result=result,
+            qubit="q0",
             delays=np.linspace(0e-9, 200e-9, 21),
-            ],
-            options=options,
         ).run()
         ```
     """
@@ -111,7 +107,7 @@ def analysis_workflow(
 
 @task
 def extract_qubit_parameters(
-    qubit: Qubit,
+    qubit: QuantumElements,
     result: RunExperimentResults,
     options: DoFittingOption | None = None,
 ) -> dict[str, dict[str, dict[str, int | float | None]]]:
@@ -127,30 +123,28 @@ def extract_qubit_parameters(
             The experiment results returned by the run_experiment task.
         options:
             The options for extracting the qubit parameters.
-            See [DoFittingOption] for accepted options.
+            See [DoFittingOption][] for accepted options.
 
     Returns:
         dict with extracted qubit parameters and the previous values for those qubit
-        parameters. The dictionary has the following form:
-        ```python
-        {
-            "new_parameter_values": {
-                q.uid: {
-                    qb_param_name: qb_param_value
+            parameters. The dictionary has the following form:
+
+            ```python
+            {
+                "new_parameter_values": {
+                    q.uid: {qb_param_name: qb_param_value},
+                },
+                "old_parameter_values": {
+                    q.uid: {qb_param_name: qb_param_value},
                 },
             }
-            "old_parameter_values": {
-                q.uid: {
-                    qb_param_name: qb_param_value
-                },
-            }
-        }
-        ```
-        If the do_fitting option is False, the new_parameter_values are not extracted
-        and the function only returns the old_parameter_values.
+            ```
+
+            If the do_fitting option is False, the new_parameter_values are not
+            extracted and the function only returns the old_parameter_values.
     """
     opts = DoFittingOption() if options is None else options
-    q = qubit
+    q = as_single_quantum_element(qubit)
     qubit_parameters = {
         "old_parameter_values": {q.uid: {}},
         "new_parameter_values": {q.uid: {}},
@@ -175,7 +169,7 @@ def extract_qubit_parameters(
 
 @task
 def plot_data(
-    qubit: Qubit,
+    qubit: QuantumElements,
     result: RunExperimentResults,
     qubit_parameters: dict[
         str,
@@ -194,7 +188,7 @@ def plot_data(
         qubit_parameters: the qubit-parameters dictionary returned by
             extract_qubit_parameters
         options:
-            The options for this task as an instance of [PlotDataOption].
+            The options for this task as an instance of [PlotDataOption][].
             See the docstring of this class for more details.
 
     Returns:
@@ -202,7 +196,7 @@ def plot_data(
     """
     opts = PlotDataOption() if options is None else options
     figures = {}
-    q = qubit
+    q = as_single_quantum_element(qubit)
     swpts = result[q.uid].result.axis[0]
     iq_data = result[q.uid].result.data
     abs_data = np.abs(iq_data)

@@ -26,9 +26,11 @@ from laboneq_applications.analysis.options import (
     TuneUpAnalysisWorkflowOptions,
 )
 from laboneq_applications.analysis.plotting_helpers import timestamped_title
-from laboneq_applications.core import validation
+from laboneq_applications.conversion import as_single_quantum_element
 
 if TYPE_CHECKING:
+    from collections.abc import Sequence
+
     import matplotlib as mpl
     import uncertainties as unc
     from laboneq.workflow.tasks.run_experiment import RunExperimentResults
@@ -72,13 +74,9 @@ class Plot2DTWPAOptions(DoSNROption, BasePlottingOptions):
         do_fitting:
             Whether to perform the fit.
             Default: `True`.
-
-    Additional attributes from `TWPADoSNROption`:
         do_snr:
             Whether to run SNR measurement.
             Default: `False`.
-
-    Additional attributes from `BasePlottingOptions`:
         save_figures:
             Whether to save the figures.
             Default: `True`.
@@ -96,7 +94,7 @@ class Plot2DTWPAOptions(DoSNROption, BasePlottingOptions):
 def analysis_workflow(
     signal_pump_on: RunExperimentResults,
     signal_pump_off: RunExperimentResults,
-    parametric_amplifier: TWPA,
+    parametric_amplifier: TWPA | Sequence[TWPA],
     pump_frequency: ArrayLike,
     pump_power: ArrayLike,
     noise_pump_on: RunExperimentResults | None = None,
@@ -155,11 +153,12 @@ def analysis_workflow(
 
 @workflow.task
 def calculate_data_psd(
-    parametric_amplifier: TWPA,
+    parametric_amplifier: TWPA | Sequence[TWPA],
     result_pump_on: RunExperimentResults,
     result_pump_off: RunExperimentResults,
 ) -> dict[str, ArrayLike]:
     """Calculate the power spectral density."""
+    parametric_amplifier = as_single_quantum_element(parametric_amplifier)
     data_pump_on = result_pump_on[
         dsl.handles.result_handle(parametric_amplifier.uid)
     ].data
@@ -188,11 +187,12 @@ def calculate_data_psd(
 
 @workflow.task
 def calculate_data(
-    parametric_amplifier: TWPA,
+    parametric_amplifier: TWPA | Sequence[TWPA],
     result_pump_on: RunExperimentResults,
     result_pump_off: RunExperimentResults,
 ) -> dict[str, ArrayLike]:
     """Calculate the power spectral density."""
+    parametric_amplifier = as_single_quantum_element(parametric_amplifier)
     data_pump_on = result_pump_on[
         dsl.handles.result_handle(parametric_amplifier.uid)
     ].data
@@ -254,15 +254,13 @@ def fit_data(
 
 @workflow.task
 def extract_parametric_amplifier_parameters(
-    parametric_amplifier: TWPA,
+    parametric_amplifier: TWPA | Sequence[TWPA],
     fit_results: dict,
     options: DoSNROption | None = None,
 ) -> dict[str, dict[str, dict[str, int | float | unc.core.Variable | None]]]:
     """Extract the parametric amplifier parameters."""
+    parametric_amplifier = as_single_quantum_element(parametric_amplifier)
     opts = DoSNROption() if options is None else options
-    parametric_amplifier = validation.validate_and_convert_single_qubit_sweeps(
-        parametric_amplifier
-    )
     parametric_amplifier_parameters = {
         "old_parameter_values": {parametric_amplifier.uid: {}},
         "new_parameter_values": {parametric_amplifier.uid: {}},
@@ -296,7 +294,7 @@ def extract_parametric_amplifier_parameters(
 
 @workflow.task
 def plot_2d(  # noqa: PLR0915
-    parametric_amplifier: TWPA,
+    parametric_amplifier: TWPA | Sequence[TWPA],
     fit_results: dict,
     parametric_amplifier_parameters: TWPA,
     pump_frequency: ArrayLike,
@@ -306,6 +304,7 @@ def plot_2d(  # noqa: PLR0915
     options: Plot2DTWPAOptions | None = None,
 ) -> mpl.figure.Figure | None:
     """Plot the 2D phase diagram of the TWPA."""
+    parametric_amplifier = as_single_quantum_element(parametric_amplifier)
     opts = Plot2DTWPAOptions() if options is None else options
     signal_pump_on = signal_dict["data_pump_on_dbm"]
     signal_pump_off = signal_dict["data_pump_off_dbm"]

@@ -20,9 +20,8 @@ from laboneq.workflow.tasks.run_experiment import AttributeWrapper, RunExperimen
 from laboneq.workflow.timestamps import local_timestamp
 
 from laboneq_applications.analysis.options import BasePlottingOptions
+from laboneq_applications.conversion import sweeps_per_quantum_element
 from laboneq_applications.core.validation import (
-    validate_and_convert_qubits_sweeps,
-    validate_and_convert_sweeps_to_arrays,
     validate_result,
 )
 
@@ -123,7 +122,7 @@ def timestamped_title(title: str, dt: datetime | None = None) -> str:
 
 def _get_raw_data_collection(
     result: RunExperimentResults, qubit: QuantumElement
-) -> list[tuple[None | str, AcquiredResultLegacy | AcquiredResultRunExp]]:
+) -> list[tuple[str | None, AcquiredResultLegacy | AcquiredResultRunExp]]:
     """Collect the measured data that can be either nested or not.
 
     Args:
@@ -132,9 +131,8 @@ def _get_raw_data_collection(
 
     Returns:
         a list of tuples with the nested results key (the one that comes after
-        "q.uid/result") and the corresponding acquired results.
-        If the data does not contain any nested keys, the first entry in the tuple is
-        None.
+            "q.uid/result") and the corresponding acquired results. If the data does not
+            contain any nested keys, the first entry in the tuple is None.
     """
     validate_result(result)
     res_handle = dsl.handles.result_handle(qubit.uid)
@@ -184,13 +182,12 @@ def plot_raw_complex_data_1d(  # noqa: C901
         xscaling: value by which to scale the sweep_points
         options:
             The options for processing the raw data as an instance of
-            [PlotRawDataOptions].
+            [PlotRawDataOptions][].
 
     Returns:
         dict with qubit UIDs as keys and the figures for each qubit as keys.
     """
     opts = PlotRawDataOptions() if options is None else options
-    qubits, sweep_points = validate_and_convert_qubits_sweeps(qubits, sweep_points)
     raw_result = result
     if isinstance(result, Results):
         raw_result = RunExperimentResults(data=result.acquired_results)
@@ -200,7 +197,7 @@ def plot_raw_complex_data_1d(  # noqa: C901
         figsize_default = plt.rcParams["figure.figsize"]
         figure_size_raw_data = [0.75 * figsize_default[0], 1.5 * figsize_default[1]]
     figures = {}
-    for q, swpts in zip(qubits, sweep_points, strict=False):
+    for q, swpts in sweeps_per_quantum_element(qubits, sweep_points):
         fig, axs = plt.subplots(nrows=2, figsize=figure_size_raw_data, sharex=True)
         fig.align_labels()
         fig.subplots_adjust(hspace=0.1)
@@ -314,7 +311,7 @@ def _prepare_sweep_points_with_cal_traces_2d(
 
     Returns:
         A tuple with the new data and sweep_points_1d arrays extended to include the
-        calibration traces.
+            calibration traces.
     """
     sp_1d_to_plot = sweep_points_1d
     if plot_cal_traces and dsl.handles.calibration_trace_handle(qubit.uid) in result:
@@ -394,17 +391,13 @@ def plot_raw_complex_data_2d(
             Passed to the `scaling_y_values` parameter of plot_data_2d.
             Default: 1.0.
         options:
-            The options for this task as an instance of [PlotRawDataOptions]. See the
+            The options for this task as an instance of [PlotRawDataOptions][]. See the
             docstring of this class for more details.
 
     Returns:
         dict with qubit UIDs as keys and the figures for each qubit as keys.
     """
     opts = PlotRawDataOptions() if options is None else options
-    _, sweep_points_1d = validate_and_convert_qubits_sweeps(qubits, sweep_points_1d)
-    qubits, sweep_points_2d = validate_and_convert_qubits_sweeps(
-        qubits, sweep_points_2d
-    )
     raw_result = result
     if isinstance(result, Results):
         raw_result = RunExperimentResults(data=result.acquired_results)
@@ -413,7 +406,9 @@ def plot_raw_complex_data_2d(
     figure_size_raw_data = opts.figure_size_raw_data
     if figure_size_raw_data is None:
         figure_size_raw_data = plt.rcParams["figure.figsize"]
-    for q, sp_1d, sp_2d in zip(qubits, sweep_points_1d, sweep_points_2d, strict=False):
+    for q, sp_1d, sp_2d in sweeps_per_quantum_element(
+        qubits, sweep_points_1d, sweep_points_2d
+    ):
         raw_data_collection = _get_raw_data_collection(raw_result, q)
         figures[q.uid] = {}
         for k, acquired_results in raw_data_collection:
@@ -538,17 +533,13 @@ def plot_signal_magnitude_and_phase_2d(
             Default: 1.0.
         options:
             The options for this task as an instance of
-            [PlotSignalMagnitudeAndPhase2DOptions]. See the docstring of this class
+            [PlotSignalMagnitudeAndPhase2DOptions][]. See the docstring of this class
             for more details.
 
     Returns:
         dict with qubit UIDs as keys and the figures for each qubit as values.
     """
     opts = PlotSignalMagnitudeAndPhase2DOptions() if options is None else options
-    _, sweep_points_1d = validate_and_convert_qubits_sweeps(qubits, sweep_points_1d)
-    qubits, sweep_points_2d = validate_and_convert_qubits_sweeps(
-        qubits, sweep_points_2d
-    )
     raw_result = result
     if isinstance(result, Results):
         raw_result = RunExperimentResults(data=result.acquired_results)
@@ -557,7 +548,9 @@ def plot_signal_magnitude_and_phase_2d(
     figure_size = opts.figure_size_magnitude_phase
     if figure_size is None:
         figure_size = plt.rcParams["figure.figsize"]
-    for q, sp_1d, sp_2d in zip(qubits, sweep_points_1d, sweep_points_2d, strict=False):
+    for q, sp_1d, sp_2d in sweeps_per_quantum_element(
+        qubits, sweep_points_1d, sweep_points_2d
+    ):
         raw_data_collection = _get_raw_data_collection(raw_result, q)
 
         figures[q.uid] = {}
@@ -625,7 +618,7 @@ def plot_signal_magnitude_and_phase_2d(
 
 
 @workflow.task
-def plot_data_2d(  # noqa: C901, PLR0912, PLR0913
+def plot_data_2d(  # noqa: C901, PLR0912, PLR0913, PLR0917
     x_values: ArrayLike,
     y_values: ArrayLike,
     z_values: np.ndarray,
@@ -703,7 +696,7 @@ def plot_data_2d(  # noqa: C901, PLR0912, PLR0913
     Returns:
         The matplotlib figure and axis.
     """
-    x_values, y_values = validate_and_convert_sweeps_to_arrays([x_values, y_values])
+    x_values, y_values = np.asarray(x_values), np.asarray(y_values)
     if len(x_values.shape) > 1:
         raise ValueError("x_values must be a 1D array.")
     if len(y_values.shape) > 1:
@@ -729,9 +722,7 @@ def plot_data_2d(  # noqa: C901, PLR0912, PLR0913
     mesh = axis.pcolormesh(x_values, y_values, z_values, cmap="magma", zorder=0)
     cbar = figure.colorbar(mesh)
     if fit_x_values is not None and fit_y_values is not None:
-        fit_x_values, fit_y_values = validate_and_convert_sweeps_to_arrays(
-            [fit_x_values, fit_y_values]
-        )
+        fit_x_values, fit_y_values = np.asarray(fit_x_values), np.asarray(fit_y_values)
         axis.plot(
             fit_x_values * scaling_x_values,
             fit_y_values * scaling_y_values,

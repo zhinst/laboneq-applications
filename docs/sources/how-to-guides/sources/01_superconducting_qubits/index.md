@@ -7,7 +7,7 @@ Please get in touch at <info@zhinst.com> and we will be happy to discuss your ap
 
 ## Workflow-based Experiments
 
-These experiments use the [Workflow framework](https://docs.zhinst.com/labone_q_user_manual/core/functionality_and_concepts/07_workflow/concepts/index.html) in LabOne Q, 
+These experiments use the [Workflow framework](../../../../core/functionality_and_concepts/07_workflow/concepts/index.md) in LabOne Q, 
 along with qubits and quantum operations:
 
 * [Resonator Spectroscopy](01_workflows/01_resonator_spectroscopy.ipynb)
@@ -25,7 +25,9 @@ along with qubits and quantum operations:
 * [Measurement QNDness](01_workflows/13_qnd_measurement.ipynb)
 * [Time-Resolved Photon Number](01_workflows/14_photon_number_time_resolve.ipynb)
 * [ZZ Coupling Strength with Tunable Couplers](01_workflows/15_zz_coupling.ipynb)
-* [Single-Qubit Randomized Benchmarking](https://docs.zhinst.com/labone_q_user_manual/applications_library/reference/contrib/experiments/single_qubit_randomized_benchmarking.html)
+* [CZ Gate Calibration with Tunable Couplers](01_workflows/16_cz_tuneup.ipynb)
+* [AC Stark Shift vs Power](01_workflows/17_ac_stark_vs_power.ipynb)
+* [Single-Qubit Randomized Benchmarking](../../../reference/contrib/experiments/single_qubit_randomized_benchmarking.md)
 
 ## Tune-Up Guides
 
@@ -39,7 +41,7 @@ These guides teach you how to tune-up a quantum processor with superconducting q
 ## Pulse-level Experiments
 
 The pulse-level experiment how-to guides are intended to help you get familiar with writing 
-and using your own pulse sequences in LabOne Q, from tune-up to advanced experiments including:
+and using your own pulse sequences in LabOne Q, from tune-up to advanced experiments.
 
 ### Spectroscopy
 

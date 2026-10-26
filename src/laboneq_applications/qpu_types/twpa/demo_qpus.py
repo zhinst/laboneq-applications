@@ -131,7 +131,7 @@ def travelling_wave_parameteric_amplifiers(
     """Return demo TWPAs.
 
     The TWPAs are constructed for the device setup returned by
-    [twpa_setup]().
+    [twpa_setup][].
 
     The TWPAs share a single readout local oscillator frequency
     because they share a single multiplexed readout line in the
@@ -146,7 +146,7 @@ def travelling_wave_parameteric_amplifiers(
             Number of TWPAs to include in the QPU.
         setup:
             The device setup. It is assumed that the setup
-            is the setup returned by [twpa_setup]()
+            is the setup returned by [twpa_setup][]
             called with the same number of TWPAs.
 
     Returns:

@@ -32,12 +32,14 @@ from laboneq_applications.analysis.options import (
 from laboneq_applications.analysis.plotting_helpers import (
     timestamped_title,
 )
+from laboneq_applications.conversion import as_quantum_element_list
 from laboneq_applications.core.validation import (
-    validate_and_convert_qubits_sweeps,
-    validate_and_extract_edges_from_qubit_pairs,
+    validate_flux_driven_edges,
 )
-from laboneq_applications.qpu_types.tunable_coupler import TunableCoupler
-from laboneq_applications.tasks import extract_nodes_from_edges
+from laboneq_applications.tasks import (
+    extract_edges_from_qubit_pairs,
+    extract_nodes_from_edges,
+)
 
 if TYPE_CHECKING:
     import matplotlib as mpl
@@ -62,12 +64,13 @@ def analysis_workflow(
 
     The workflow consists of the following steps:
 
-    - [validate_and_extract_edges_from_qubit_pairs]()
-    - [extract_nodes_from_edges]()
-    - [calculate_qubit_population]()
-    - [fit_oscillation]()
-    - [extract_edge_parameters]()
-    - [plot_population]()
+    - [extract_edges_from_qubit_pairs][]
+    - [validate_flux_driven_edges][]
+    - [extract_nodes_from_edges][]
+    - [calculate_qubit_population][]
+    - [fit_oscillation][]
+    - [extract_edge_parameters][]
+    - [plot_population][]
 
     Arguments:
         result:
@@ -82,15 +85,18 @@ def analysis_workflow(
             per qubit pair.
         options:
             The options for building the workflow, passed as an instance of
-            [TuneUpAnalysisWorkflowOptions].
+            [TuneUpAnalysisWorkflowOptions][].
 
     Returns:
         WorkflowBuilder:
             The builder for the analysis workflow.
     """
-    edges = validate_and_extract_edges_from_qubit_pairs(
-        qpu, "cz", qubit_pairs, element_class=TunableCoupler
+    edges = extract_edges_from_qubit_pairs(
+        qpu,
+        qubit_pairs,
+        tag="cz",
     )
+    validate_flux_driven_edges(edges)
 
     qubits_target = extract_nodes_from_edges(edges, "target")
 
@@ -122,12 +128,12 @@ def extract_edge_parameters(
         edges:
             The topology edges of the calibrated qubit pairs.
         fit_results:
-            The dictionary returned by [fit_oscillation](), keyed by target qubit UID.
+            The dictionary returned by [fit_oscillation][], keyed by target qubit UID.
 
     Returns:
         Dictionary with ``new_parameter_values`` and ``old_parameter_values``, each
-        keyed by ``("cz", source_uid, target_uid)`` and containing the dotted parameter
-        path ``"coupler_pulse.length"`` compatible with ``qpu.update()``.
+            keyed by ``("cz", source_uid, target_uid)`` and containing the dotted
+            parameter path ``"coupler_pulse.length"`` compatible with ``qpu.update()``.
     """
     edge_parameters = {
         "old_parameter_values": {
@@ -173,19 +179,20 @@ def fit_oscillation(
         qubits:
             The qubits on which to run the task.
         processed_data_dict:
-            The processed data dictionary returned by [calculate_qubit_population]().
+            The processed data dictionary returned by [calculate_qubit_population][].
 
     Returns:
         Dictionary with qubit UIDs as keys. Each value is ``None`` if the fit
-        failed, otherwise a dict containing:
-            - ``fit_result``: the raw lmfit ModelResult.
-            - ``opt_length``: optimal pulse length (1/nu) for the CZ pulse.
-            - ``osc_frequencies``: fitted oscillation frequency nu.
-            - ``osc_frequencies_err``: fit uncertainty (stderr), NaN on failure.
-            - ``population``: the measured population.
-            - ``durations``: the swept flux pulse durations.
+            failed, otherwise a dict containing:
+
+                - ``fit_result``: the raw lmfit ModelResult.
+                - ``opt_length``: optimal pulse length (1/nu) for the CZ pulse.
+                - ``osc_frequencies``: fitted oscillation frequency nu.
+                - ``osc_frequencies_err``: fit uncertainty (stderr), NaN on failure.
+                - ``population``: the measured population.
+                - ``durations``: the swept flux pulse durations.
     """
-    qubits = validate_and_convert_qubits_sweeps(qubits)
+    qubits = as_quantum_element_list(qubits)
     fit_results = {}
 
     def _cosine(
@@ -258,9 +265,9 @@ def plot_population(
             The qubits on which to run the task. The UIDs of these qubits must exist in
             `processed_data_dict`.
         processed_data_dict:
-            The processed data dictionary returned by [calculate_qubit_population]().
+            The processed data dictionary returned by [calculate_qubit_population][].
         fit_results:
-            The dictionary returned by [fit_oscillation](), keyed by qubit UID.
+            The dictionary returned by [fit_oscillation][], keyed by qubit UID.
         options:
             The options for processing the raw data.
 

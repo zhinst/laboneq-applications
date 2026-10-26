@@ -32,7 +32,7 @@ from laboneq_applications.analysis.options import (
 from laboneq_applications.contrib.analysis.amplitude_rabi_chevron import (
     calculate_qubit_population_2d,
 )
-from laboneq_applications.core.validation import validate_and_convert_qubits_sweeps
+from laboneq_applications.conversion import as_quantum_element_list
 
 if TYPE_CHECKING:
     import matplotlib as mpl
@@ -55,8 +55,6 @@ class PlotPopulationRabiChevronOptions:
             Whether to perform principal component analysis on the raw data independent
             of whether there were calibration traces in the experiment.
             Default: `False`.
-
-    Additional attributes from `BasePlottingOptions`:
         save_figures:
             Whether to save the figures.
             Default: `True`.
@@ -87,8 +85,8 @@ def analysis_workflow(
 
     The workflow consists of the following steps:
 
-    - [calculate_qubit_population_2d]()
-    - [plot_population]()
+    - [calculate_qubit_population_2d][]
+    - [plot_population][]
 
     Arguments:
         result:
@@ -106,7 +104,7 @@ def analysis_workflow(
              numbers or arrays.
         options:
             The options for building the workflow, passed as an instance of
-            [TuneUpAnalysisWorkflowOptions].
+            [TuneUpAnalysisWorkflowOptions][].
 
     Returns:
         WorkflowBuilder:
@@ -114,19 +112,11 @@ def analysis_workflow(
 
     Example:
         ```python
-        options = analysis_workflow.options()
-        result = analysis_workflow(
-            results=results
-            qubits=[q0, q1],
-            frequencies=[
-                np.linspace(1.5e9, 2.0e9, 11),
-                np.linsapce(1.5e9, 2.0e9, 11),
-            ],
-            lengths=[
-                np.linspace(10e-9, 100e-9, 11),
-                np.linspace(10e-9, 100e-9, 11),
-            ],
-            options=options,
+        analysis_result = analysis_workflow(
+            result=result,
+            qubits=["q0", "q1"],
+            frequencies=[np.linspace(1.5e9, 2.0e9, 11), np.linspace(1.5e9, 2.0e9, 11)],
+            lengths=[np.linspace(10e-9, 100e-9, 11), np.linspace(10e-9, 100e-9, 11)],
         ).run()
         ```
     """
@@ -154,14 +144,14 @@ def plot_population(
         processed_data_dict: the processed data dictionary returned by process_raw_data
         options:
             The options for this task as an instance of
-            [PlotPopulationRabiChevronOptions].
+            [PlotPopulationRabiChevronOptions][].
             See the docstring of this class for more details.
 
     Returns:
         dict with qubit UIDs as keys and the figures for each qubit as values.
     """
     opts = PlotPopulationRabiChevronOptions() if options is None else options
-    qubits = validate_and_convert_qubits_sweeps(qubits)
+    qubits = as_quantum_element_list(qubits)
     figures = {}
     for q in qubits:
         sweep_points_slow = 1e-9 * processed_data_dict[q.uid]["sweep_points_slow"]

@@ -32,7 +32,10 @@ from laboneq_applications.analysis.options import (
     BasePlottingOptions,
     TuneUpAnalysisWorkflowOptions,
 )
-from laboneq_applications.core.validation import validate_and_convert_qubits_sweeps
+from laboneq_applications.conversion import (
+    as_quantum_element_list,
+    sweeps_per_quantum_element,
+)
 
 if TYPE_CHECKING:
     import matplotlib as mpl
@@ -86,8 +89,6 @@ class PlotPopulationRabiChevronOptions:
             Whether to perform principal component analysis on the raw data independent
             of whether there were calibration traces in the experiment.
             Default: `False`.
-
-    Additional attributes from `BasePlottingOptions`:
         save_figures:
             Whether to save the figures.
             Default: `True`.
@@ -118,8 +119,8 @@ def analysis_workflow(
 
     The workflow consists of the following steps:
 
-    - [calculate_qubit_population_2d]()
-    - [plot_population]()
+    - [calculate_qubit_population_2d][]
+    - [plot_population][]
 
     Arguments:
         result:
@@ -137,7 +138,7 @@ def analysis_workflow(
              numbers or arrays.
         options:
             The options for building the workflow, passed as an instance of
-            [TuneUpAnalysisWorkflowOptions].
+            [TuneUpAnalysisWorkflowOptions][].
 
     Returns:
         WorkflowBuilder:
@@ -145,15 +146,11 @@ def analysis_workflow(
 
     Example:
         ```python
-        options = TuneUpAnalysisWorkflowOptions()
-        result = analysis_workflow(
-            results=results
-            qubits=[q0, q1],
-            amplitudes=[
-                np.linspace(0, 1, 11),
-                np.linspace(0, 1, 11),
-            ],
-            options=options,
+        analysis_result = analysis_workflow(
+            result=result,
+            qubits=["q0", "q1"],
+            frequencies=[np.linspace(1.5e9, 2.0e9, 11), np.linspace(1.5e9, 2.0e9, 11)],
+            amplitudes=[np.linspace(0, 1, 11), np.linspace(0, 1, 11)],
         ).run()
         ```
     """
@@ -175,15 +172,17 @@ def calculate_qubit_population_2d(
 ) -> dict[str, dict[str, ArrayLike]]:
     """Processes the raw data.
 
-     The data is processed in the following way:
+    The data is processed in the following way:
 
-     - If calibration traces were used in the experiment, the raw data is rotated based
-     on the calibration traces.
-     See [calibration_traces_rotation.py/rotate_data_to_cal_trace_results] for more
-     details.
-     - If no calibration traces were used in the experiment, or do_pca = True is passed
-     in options, principal-component analysis is performed on the data.
-     See [calibration_traces_rotation.py/principal_component_analysis] for more details.
+    - If calibration traces were used in the experiment, the raw data is rotated
+      based on the calibration traces. See
+      [rotate_data_to_cal_trace_results][laboneq_applications.analysis.calibration_traces_rotation.rotate_data_to_cal_trace_results]
+      for more details.
+    - If no calibration traces were used in the experiment, or `do_pca = True` is
+      passed in options, principal-component analysis is performed on the
+      data. See
+      [principal_component_analysis][laboneq_applications.analysis.calibration_traces_rotation.principal_component_analysis]
+      for more details.
 
     Arguments:
         qubits:
@@ -202,24 +201,22 @@ def calculate_qubit_population_2d(
             arrays.
         options:
             The options for building the workflow as an instance of
-            [CalculateQubitPopulation2DOptions]. See the docstrings of this class for
+            [CalculateQubitPopulation2DOptions][]. See the docstrings of this class for
             more details.
 
     Returns:
         dict with qubit UIDs as keys and the dictionary of processed data for each qubit
-        as values. See [calibration_traces_rotation.py/calculate_population_1d] for what
-        this dictionary looks like.
+            as values. See
+            [calculate_population_1d][laboneq_applications.analysis.calibration_traces_rotation.calculate_population_1d]
+            for what this dictionary looks like.
 
     Raises:
         TypeError:
             If result is not an instance of RunExperimentResults.
     """
     opts = CalculateQubitPopulation2DOptions() if options is None else options
-    _, slow_axis = validate_and_convert_qubits_sweeps(qubits, slow_axis)
-    qubits, fast_axis = validate_and_convert_qubits_sweeps(qubits, fast_axis)
-
     processed_data_dict = {}
-    for q, q_slow, q_fast in zip(qubits, slow_axis, fast_axis, strict=False):
+    for q, q_slow, q_fast in sweeps_per_quantum_element(qubits, slow_axis, fast_axis):
         raw_data = result[q.uid].result.data
         if opts.use_cal_traces:
             calibration_traces = [
@@ -265,14 +262,14 @@ def plot_population(
         processed_data_dict: the processed data dictionary returned by process_raw_data
         options:
             The options for this task as an instance of
-            [PlotPopulationRabiChevronOptions].
+            [PlotPopulationRabiChevronOptions][].
             See the docstring of this class for more details.
 
     Returns:
         dict with qubit UIDs as keys and the figures for each qubit as values.
     """
     opts = PlotPopulationRabiChevronOptions() if options is None else options
-    qubits = validate_and_convert_qubits_sweeps(qubits)
+    qubits = as_quantum_element_list(qubits)
     figures = {}
     for q in qubits:
         sweep_points_slow = 1e-9 * processed_data_dict[q.uid]["sweep_points_slow"]

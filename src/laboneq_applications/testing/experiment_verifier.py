@@ -17,11 +17,11 @@ compiled_experiment = result.tasks["compile_experiment"].output
 verifier = CompiledExperimentVerifier(compiled_experiment, max_events=5000)
 verifier.assert_number_of_pulses("/logical_signal_groups/q0/drive", 8)
 verifier.assert_pulse(
-    signal = "/logical_signal_groups/q0/drive",
-    index = 3,
-    start = 12.168e-6,
-    stop = 12.219e-6,
-    parameterized_with = [],
+    signal="/logical_signal_groups/q0/drive",
+    index=3,
+    start=12.168e-6,
+    stop=12.219e-6,
+    parameterized_with=[],
 )
 ```
 
@@ -66,7 +66,7 @@ class CompiledExperimentVerifier:
 
     Arguments:
         compiled_experiment:
-            The L1Q compiled experiment to verify.
+            The LabOne Q compiled experiment to verify.
         max_events:
             The maximum number of events to analyze.
             Default is 5000.
@@ -222,7 +222,7 @@ class _PulseExtractorPSV:
 
     Attributes:
         compiled_experiment:
-            L1Q compiled experiment.
+            LabOne Q compiled experiment.
         max_events:
             The maximum number of events to analyze.
     """

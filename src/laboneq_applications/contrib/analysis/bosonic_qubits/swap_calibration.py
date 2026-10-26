@@ -22,10 +22,14 @@ import numpy as np
 from laboneq import workflow
 
 from laboneq_applications.analysis.fitting_helpers import fit_data_lmfit
+from laboneq_applications.analysis.options import BasePlottingOptions
+from laboneq_applications.conversion import (
+    as_quantum_element_list,
+    sweeps_per_quantum_element,
+)
 
 if TYPE_CHECKING:
     import matplotlib as mpl
-    from laboneq.dsl.quantum.qpu import QPU
     from laboneq.workflow.tasks.run_experiment import (
         RunExperimentResults,
     )
@@ -41,67 +45,99 @@ if TYPE_CHECKING:
 # ═════════════════════════════════════════════════════════════
 
 
-@workflow.task_options
-class SwapAnalysisOptions:
-    """Options for SWAP calibration analysis.
-
-    Attributes:
-        generate_plot: Whether to generate plots. Default: True.
-        show_plot: Whether to show plots. Default: True.
-        save_figures: Whether to save figures. Default: False.
-        save_path: Path to save figures. Default: "./"
-        num_fit_points: Number of points for the fit curve.
-    """
-
-    generate_plot: bool = True
-    show_plot: bool = True
-    save_figures: bool = False
-    save_path: str = "./"
-    num_fit_points: int = 400
-
-
 @workflow.workflow_options
 class SwapAnalysisWorkflowOptions:
-    """Options for the SWAP calibration analysis workflow."""
+    """Options for the SWAP calibration analysis workflow.
 
+    Attributes:
+        do_plotting:
+            Whether to create plots.
+            Default: True.
+    """
 
-@workflow.workflow(name="swap_calibration_analysis")
-def analysis_workflow(
-    result: RunExperimentResults,
-    qpu: QPU,
-    qubits: QuantumElements,
-    *,
-    swap_durations: QubitSweepPoints | None = None,
-    swap_amplitudes: QubitSweepPoints | None = None,
-    options: SwapAnalysisWorkflowOptions | None = None,
-) -> dict:
-    """Workflow wrapper for SWAP calibration analysis."""
-    options = SwapAnalysisWorkflowOptions() if options is None else options
-
-    return analyze_swap(
-        result=result,
-        qpu=qpu,
-        qubits=qubits,
-        swap_durations=swap_durations,
-        swap_amplitudes=swap_amplitudes,
+    do_plotting: bool = workflow.option_field(
+        True, description="Whether to create plots."
     )
 
 
+@workflow.task_options
+class SwapFitDataOptions:
+    """Options for the `fit_data` task of the SWAP calibration analysis.
+
+    Attributes:
+        num_fit_points:
+            Number of points for the fit curve. Default: 400.
+    """
+
+    num_fit_points: int = workflow.option_field(
+        400, description="Number of points for the fit curve."
+    )
+
+
+@workflow.workflow
+def analysis_workflow(
+    result: RunExperimentResults,
+    qubits: QuantumElements,
+    swap_durations: QubitSweepPoints | None = None,
+    swap_amplitudes: QubitSweepPoints | None = None,
+    options: SwapAnalysisWorkflowOptions | None = None,
+) -> None:
+    """The SWAP calibration analysis workflow.
+
+    The workflow consists of the following steps:
+
+    - [fit_data][]
+    - [extract_qubit_parameters][]
+    - [plot_swap_calibration][]
+
+    Arguments:
+        result:
+            The experiment results returned by the run_experiment task.
+        qubits:
+            The qubits on which to run the analysis. May be either a single qubit or
+            a list of qubits. The UIDs of these qubits must exist in the result.
+        swap_durations:
+            The SWAP durations that were swept for each qubit, if any.
+        swap_amplitudes:
+            The SWAP amplitudes that were swept for each qubit, if any.
+        options:
+            The options for building the workflow, passed as an instance of
+            [SwapAnalysisWorkflowOptions][].
+
+    Returns:
+        WorkflowBuilder:
+            The builder for the analysis workflow.
+
+    Example:
+        ```python
+        analysis_result = analysis_workflow(
+            result=result,
+            qubits=q0,
+            swap_durations=np.linspace(100e-9, 600e-9, 51),
+        ).run()
+        ```
+    """
+    processed_data_dict = fit_data(qubits, result, swap_durations, swap_amplitudes)
+    qubit_parameters = extract_qubit_parameters(qubits, processed_data_dict)
+    with workflow.if_(options.do_plotting):
+        plot_swap_calibration(qubits, processed_data_dict)
+    workflow.return_(qubit_parameters)
+
+
 # ═════════════════════════════════════════════════════════════
-# Analysis task
+# Analysis tasks
 # ═════════════════════════════════════════════════════════════
 
 
 @workflow.task
-def analyze_swap(
-    result: RunExperimentResults,
-    qpu: QPU,
+def fit_data(
     qubits: QuantumElements,
+    result: RunExperimentResults,
     swap_durations: QubitSweepPoints | None = None,
     swap_amplitudes: QubitSweepPoints | None = None,
-    options: SwapAnalysisOptions | None = None,
-) -> dict:
-    """Analyze the SWAP calibration.
+    options: SwapFitDataOptions | None = None,
+) -> dict[str, dict]:
+    """Fit the SWAP calibration data.
 
     Mode is inferred from which inputs are provided:
         - ``swap_durations`` only → length sweep.
@@ -109,35 +145,36 @@ def analyze_swap(
         - Both → 2D chevron sweep.
 
     Arguments:
-        result: Experiment results.
-        qpu: The QPU.
-        qubits: The qubits that were measured.
-        swap_durations: The duration sweep (if any).
-        swap_amplitudes: The amplitude sweep (if any).
-        options: Analysis options.
+        qubits:
+            The qubits on which to run the analysis.
+        result:
+            The experiment results returned by the run_experiment task.
+        swap_durations:
+            The SWAP durations that were swept for each qubit, if any.
+        swap_amplitudes:
+            The SWAP amplitudes that were swept for each qubit, if any.
+        options:
+            The options for this task as an instance of [SwapFitDataOptions][].
 
     Returns:
         Dictionary keyed by qubit UID. Structure depends on
-        mode — each dict always contains the key ``"mode"`` and
-        the calibrated ``"t_swap"`` and/or ``"amp_swap"``.
+            mode — each dict always contains the key ``"mode"`` and
+            the calibrated ``"t_swap"`` and/or ``"amp_swap"``.
     """
-    opts = SwapAnalysisOptions() if options is None else options
+    opts = SwapFitDataOptions() if options is None else options
 
     mode = _get_sweep_mode(swap_durations, swap_amplitudes)
-
-    qubits = _ensure_list(qubits)
+    qubits = as_quantum_element_list(qubits)
     if swap_durations is not None:
-        swap_durations = _broadcast(
-            swap_durations,
-            len(qubits),
-        )
+        swap_durations = [
+            d for _, d in sweeps_per_quantum_element(qubits, swap_durations)
+        ]
     if swap_amplitudes is not None:
-        swap_amplitudes = _broadcast(
-            swap_amplitudes,
-            len(qubits),
-        )
+        swap_amplitudes = [
+            a for _, a in sweeps_per_quantum_element(qubits, swap_amplitudes)
+        ]
 
-    analysis_results = {}
+    processed_data_dict = {}
 
     for i, q in enumerate(qubits):
         handle = _swap_handle(q.uid)
@@ -152,7 +189,7 @@ def analyze_swap(
                 "time",
                 opts.num_fit_points,
             )
-            analysis_results[q.uid] = {
+            processed_data_dict[q.uid] = {
                 "mode": "length",
                 "t_swap": float(fit["x_min"]),
                 "frequency": float(fit["frequency"]),
@@ -172,7 +209,7 @@ def analyze_swap(
                 "amplitude",
                 opts.num_fit_points,
             )
-            analysis_results[q.uid] = {
+            processed_data_dict[q.uid] = {
                 "mode": "amplitude",
                 "amp_swap": float(fit["x_min"]),
                 "rabi_rate_per_unit_amp": float(fit["frequency"]),
@@ -187,15 +224,16 @@ def analyze_swap(
         else:  # "2d"
             q_amps = np.asarray(swap_amplitudes[i])
             q_durs = np.asarray(swap_durations[i])
-            # Data shape: (n_amps, n_durations)
-            data_2d = data.reshape(len(q_amps), len(q_durs))
+            # The durations are the outer sweep, so the data comes back as
+            # (n_durations, n_amps). Transpose to (n_amps, n_durations).
+            data_2d = data.reshape(len(q_durs), len(q_amps)).T
             chevron = _fit_chevron(
                 q_amps,
                 q_durs,
                 data_2d,
                 opts.num_fit_points,
             )
-            analysis_results[q.uid] = {
+            processed_data_dict[q.uid] = {
                 "mode": "2d",
                 "t_swap": float(chevron["t_swap"]),
                 "amp_swap": float(chevron["amp_swap"]),
@@ -204,16 +242,98 @@ def analyze_swap(
                 "durations": q_durs,
                 "row_fits": chevron["row_fits"],
                 "frequencies_per_amp": chevron["frequencies"],
+                "fit_success": bool(chevron["success"]),
             }
 
-        if opts.generate_plot:
-            _plot_swap_calibration(
-                q.uid,
-                analysis_results[q.uid],
-                opts,
-            )
+    return processed_data_dict
 
-    return analysis_results
+
+@workflow.task
+def extract_qubit_parameters(
+    qubits: QuantumElements,
+    processed_data_dict: dict[str, dict],
+) -> dict[str, dict[str, dict[str, float | None]]]:
+    """Extract the SWAP length and/or amplitude from the fit results.
+
+    Arguments:
+        qubits:
+            The qubits on which to run the analysis.
+        processed_data_dict:
+            The processed data dictionary returned by fit_data.
+
+    Returns:
+        dict with the extracted qubit parameters and their previous values:
+
+            ```python
+            {
+                "new_parameter_values": {
+                    q.uid: {"swap_length": value, "swap_amplitude": value},
+                },
+                "old_parameter_values": {
+                    q.uid: {"swap_length": value, "swap_amplitude": value},
+                },
+            }
+            ```
+
+            Only the parameters calibrated by the sweep mode are included
+            (`swap_length` for a length sweep, `swap_amplitude` for an amplitude
+            sweep, both for a 2D sweep). Parameters whose fit failed are left out
+            of new_parameter_values.
+    """
+    qubits = as_quantum_element_list(qubits)
+    qubit_parameters = {
+        "old_parameter_values": {q.uid: {} for q in qubits},
+        "new_parameter_values": {q.uid: {} for q in qubits},
+    }
+    for q in qubits:
+        res = processed_data_dict[q.uid]
+        fit_ok = res.get("fit_success", True)
+        candidates = {}
+        if res["mode"] in ("length", "2d"):
+            candidates["swap_length"] = res["t_swap"]
+        if res["mode"] in ("amplitude", "2d"):
+            candidates["swap_amplitude"] = res["amp_swap"]
+        for name, value in candidates.items():
+            qubit_parameters["old_parameter_values"][q.uid][name] = getattr(
+                q.parameters, name
+            )
+            if fit_ok and np.isfinite(value):
+                qubit_parameters["new_parameter_values"][q.uid][name] = value
+    return qubit_parameters
+
+
+@workflow.task
+def plot_swap_calibration(
+    qubits: QuantumElements,
+    processed_data_dict: dict[str, dict],
+    options: BasePlottingOptions | None = None,
+) -> dict[str, mpl.figure.Figure]:
+    """Plot the SWAP calibration data and fit for the sweep mode that was run.
+
+    Arguments:
+        qubits:
+            The qubits on which to run the analysis.
+        processed_data_dict:
+            The processed data dictionary returned by fit_data.
+        options:
+            The options for this task as an instance of [BasePlottingOptions][].
+
+    Returns:
+        dict with qubit UIDs as keys and the figures for each qubit as values.
+    """
+    opts = BasePlottingOptions() if options is None else options
+    qubits = as_quantum_element_list(qubits)
+    figures = {}
+    for q in qubits:
+        res = processed_data_dict[q.uid]
+        if res["mode"] == "length":
+            fig = _plot_1d_length(q.uid, res, opts)
+        elif res["mode"] == "amplitude":
+            fig = _plot_1d_amplitude(q.uid, res, opts)
+        else:
+            fig = _plot_2d_chevron(q.uid, res, opts)
+        figures[q.uid] = fig
+    return figures
 
 
 # ═════════════════════════════════════════════════════════════
@@ -253,8 +373,9 @@ def _fit_damped_cosine(
 
     The first minimum corresponds to full |e,0⟩ → |g,1⟩
     transfer. For cos(2π·f·x + φ):
-        - If amplitude >= 0: first min at 2π·f·x + φ = π.
-        - If amplitude  < 0: first min at 2π·f·x + φ = 0.
+
+    - If amplitude >= 0: first min at 2π·f·x + φ = π.
+    - If amplitude  < 0: first min at 2π·f·x + φ = 0.
 
     Arguments:
         x: Sweep axis (seconds or amplitude units).
@@ -265,7 +386,9 @@ def _fit_damped_cosine(
     Returns:
         Dictionary with fit results including ``"x_min"``.
     """
+    fit_x = np.linspace(x[0], x[-1], num_fit_points)
     try:
+        _validate_sweep(x)
         offset_guess = float(np.mean(data))
         amp_guess = float((np.max(data) - np.min(data)) / 2)
 
@@ -288,7 +411,9 @@ def _fit_damped_cosine(
             "amplitude": {"value": amp_guess, "min": 0},
             "frequency": {"value": freq_guess, "min": 0},
             "phase": {"value": 0.0, "min": -2 * np.pi, "max": 2 * np.pi},
-            "decay": {"value": decay_guess, "min": 0},
+            # A decay shorter than the sweep step is not resolvable; the
+            # positive bound also keeps the model from dividing by zero.
+            "decay": {"value": decay_guess, "min": abs(dx) / 10},
             "offset": {"value": offset_guess},
         }
         fit_res = fit_data_lmfit(
@@ -304,31 +429,14 @@ def _fit_damped_cosine(
             ]
         )
         success = bool(fit_res.success)
+        fit_y = _damped_cosine_model(fit_x, *popt)
     except (RuntimeError, ValueError, TypeError):
-        popt = np.array(
-            [
-                0.0,
-                1.0 / (x[-1] - x[0]),
-                0.0,
-                x[-1],
-                float(np.mean(data)),
-            ]
-        )
+        popt = np.array([0.0, np.nan, 0.0, np.inf, float(np.mean(data))])
         success = False
+        fit_y = np.full_like(fit_x, np.nan)
 
     amplitude, frequency, phase, _decay, _offset = popt
-
-    # First minimum (first point of maximum |e⟩ population
-    # transferred away, assuming data starts near |e⟩).
-    target_arg = np.pi if amplitude >= 0 else 0.0
-
-    x_min = (target_arg - phase) / (2 * np.pi * frequency)
-    period = 1.0 / frequency
-    while x_min <= 0:
-        x_min += period / 2
-
-    fit_x = np.linspace(x[0], x[-1], num_fit_points)
-    fit_y = _damped_cosine_model(fit_x, *popt)
+    x_min = _first_minimum(amplitude, frequency, phase)
 
     return {
         "params": tuple(popt),
@@ -338,6 +446,31 @@ def _fit_damped_cosine(
         "fit_x": fit_x,
         "fit_y": fit_y,
     }
+
+
+def _validate_sweep(x: np.ndarray) -> None:
+    """Check that the sweep supports the FFT guess and the fallback values.
+
+    Raises:
+        ValueError: If the first, second and last points are not distinct.
+    """
+    if len(x) < 2 or x[1] == x[0] or x[-1] == x[0]:  # noqa: PLR2004
+        raise ValueError("The sweep needs at least two distinct points.")
+
+
+def _first_minimum(amplitude: float, frequency: float, phase: float) -> float:
+    """Return the first x > 0 at which the cosine A·cos(2π·f·x + φ) is minimal.
+
+    This is the first point of maximum |e⟩ population transferred away,
+    assuming the data starts near |e⟩.
+    """
+    target_arg = np.pi if amplitude >= 0 else 0.0
+    x_min = (target_arg - phase) / (2 * np.pi * frequency)
+    # Minima repeat every full period.
+    period = 1.0 / frequency
+    while x_min <= 0:
+        x_min += period
+    return float(x_min)
 
 
 def _fit_chevron(
@@ -360,6 +493,8 @@ def _fit_chevron(
 
     Returns:
         Dictionary with:
+
+            - ``success``: whether at least one row fit succeeded.
             - ``t_swap``: best duration.
             - ``amp_swap``: best amplitude.
             - ``frequencies``: fit frequencies per amplitude.
@@ -383,12 +518,14 @@ def _fit_chevron(
 
     frequencies = np.array(frequencies)
 
-    best_idx = 0 if np.all(np.isnan(frequencies)) else int(np.nanargmax(frequencies))
+    success = not np.all(np.isnan(frequencies))
+    best_idx = int(np.nanargmax(frequencies)) if success else 0
 
     amp_swap = float(amplitudes[best_idx])
     t_swap = float(row_fits[best_idx]["x_min"])
 
     return {
+        "success": success,
         "t_swap": t_swap,
         "amp_swap": amp_swap,
         "frequencies": frequencies,
@@ -401,23 +538,10 @@ def _fit_chevron(
 # ═════════════════════════════════════════════════════════════
 
 
-def _plot_swap_calibration(
-    q_uid: str,
-    result: dict,
-    opts: SwapAnalysisOptions,
-) -> plt.Figure:
-    """Dispatch plot by sweep mode."""
-    if result["mode"] == "length":
-        return _plot_1d_length(q_uid, result, opts)
-    if result["mode"] == "amplitude":
-        return _plot_1d_amplitude(q_uid, result, opts)
-    return _plot_2d_chevron(q_uid, result, opts)
-
-
 def _plot_1d_length(
     q_uid: str,
     result: dict,
-    opts: SwapAnalysisOptions,
+    opts: BasePlottingOptions,
 ) -> mpl.figure.Figure:
     fig, ax = plt.subplots(
         figsize=(7, 4),
@@ -453,14 +577,14 @@ def _plot_1d_length(
         fontweight="bold",
     )
     ax.legend(fontsize=8)
-    _save_and_show(fig, f"swap_cal_length_{q_uid}", opts)
+    _save_and_close(fig, f"swap_cal_length_{q_uid}", opts)
     return fig
 
 
 def _plot_1d_amplitude(
     q_uid: str,
     result: dict,
-    opts: SwapAnalysisOptions,
+    opts: BasePlottingOptions,
 ) -> mpl.figure.Figure:
     fig, ax = plt.subplots(
         figsize=(7, 4),
@@ -496,14 +620,14 @@ def _plot_1d_amplitude(
         fontweight="bold",
     )
     ax.legend(fontsize=8)
-    _save_and_show(fig, f"swap_cal_amplitude_{q_uid}", opts)
+    _save_and_close(fig, f"swap_cal_amplitude_{q_uid}", opts)
     return fig
 
 
 def _plot_2d_chevron(
     q_uid: str,
     result: dict,
-    opts: SwapAnalysisOptions,
+    opts: BasePlottingOptions,
 ) -> mpl.figure.Figure:
     fig, ax = plt.subplots(
         figsize=(7.5, 5),
@@ -564,24 +688,18 @@ def _plot_2d_chevron(
         fontweight="bold",
     )
     ax.legend(fontsize=8, loc="upper right")
-    _save_and_show(fig, f"swap_cal_chevron_{q_uid}", opts)
+    _save_and_close(fig, f"swap_cal_chevron_{q_uid}", opts)
     return fig
 
 
-def _save_and_show(
+def _save_and_close(
     fig: mpl.figure.Figure,
     name: str,
-    opts: SwapAnalysisOptions,
+    opts: BasePlottingOptions,
 ) -> None:
     if opts.save_figures:
-        fig.savefig(
-            f"{opts.save_path}/{name}.png",
-            dpi=150,
-            bbox_inches="tight",
-        )
-    if opts.show_plot:
-        plt.show()
-    else:
+        workflow.save_artifact(name, fig)
+    if opts.close_figures:
         plt.close(fig)
 
 
@@ -604,20 +722,6 @@ def _get_sweep_mode(
     raise ValueError(
         "At least one of swap_durations or swap_amplitudes must be provided.",
     )
-
-
-def _ensure_list(qubits: QuantumElements | list) -> list:
-    if not isinstance(qubits, list):
-        return [qubits]
-    return qubits
-
-
-def _broadcast(points: list | object, n_qubits: int) -> list:
-    if not isinstance(points, list):
-        points = [points]
-    if len(points) == 1 and n_qubits > 1:
-        points = points * n_qubits
-    return points
 
 
 def _swap_handle(qubit_uid: str) -> str:

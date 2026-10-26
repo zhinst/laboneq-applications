@@ -31,13 +31,21 @@ from laboneq.workflow.tasks import (
     run_experiment,
 )
 
-from laboneq_applications.core import validation
+from laboneq_applications.contrib.analysis.bosonic_qubits import (
+    memory_spectroscopy as memory_spectroscopy_analysis,
+)
+from laboneq_applications.conversion import (
+    as_quantum_element_list,
+    sweeps_per_quantum_element,
+)
 from laboneq_applications.experiments.options import (
     BaseExperimentOptions,
+    TuneUpWorkflowOptions,
 )
 from laboneq_applications.tasks import (
     temporary_qpu,
     temporary_quantum_elements_from_qpu,
+    update_qpu,
 )
 
 if TYPE_CHECKING:
@@ -51,7 +59,7 @@ if TYPE_CHECKING:
 class MemorySpectroscopyExperimentOptions:
     """Options for the memory spectroscopy experiment.
 
-    Additional attributes:
+    Attributes:
         spectroscopy_pulse:
             Dictionary of pulse overrides for the memory spectroscopy
             pulse. By default, the pulse parameters from the qubit's
@@ -59,11 +67,6 @@ class MemorySpectroscopyExperimentOptions:
     """
 
     spectroscopy_pulse: dict | None = None
-
-
-@workflow.workflow_options
-class MemorySpectroscopyWorkflowOptions:
-    """Options for the memory spectroscopy workflow."""
 
 
 @workflow.workflow(name="memory_spectroscopy")
@@ -74,20 +77,17 @@ def experiment_workflow(
     *,
     frequencies: QubitSweepPoints,
     temporary_parameters: dict[str, dict | QuantumParameters] | None = None,
-    options: MemorySpectroscopyWorkflowOptions | None = None,
+    options: TuneUpWorkflowOptions | None = None,
 ) -> None:
     """The memory spectroscopy workflow.
 
     The workflow consists of the following steps:
 
-    - [create_experiment]()
-    - [compile_experiment]()
-    - [run_experiment]()
-
-    Steps that can be added in the future include:
-
-    - [analysis_workflow]()
-    - [update_qpu]()
+    - [create_experiment][]
+    - [compile_experiment][]
+    - [run_experiment][]
+    - [analysis_workflow][]
+    - [update_qpu][]
 
     Arguments:
         session:
@@ -99,12 +99,19 @@ def experiment_workflow(
             either a single qubit or a list of qubits.
         frequencies:
             The RF frequencies to sweep over for the memory cavity
-            spectroscopy drive for each qubit. Note that `frequencies`
-            must be identical for qubits that use the same measure port.
+            spectroscopy drive for each qubit.
         temporary_parameters:
             The temporary parameters to update the qubits with.
         options:
-            The options for building the workflow.
+            The options for building the workflow, passed as an instance of
+            [TuneUpWorkflowOptions][]. In addition to options from
+            [WorkflowOptions][laboneq.workflow.WorkflowOptions], the following
+            custom options are supported:
+
+            - create_experiment: The options for creating the experiment.
+
+            Setting `update` to True stores the fitted
+            `memory_resonance_frequency` in the qpu.
 
     Returns:
         result:
@@ -114,8 +121,9 @@ def experiment_workflow(
         ```python
         options = experiment_workflow.options()
         options.count(10)
+        # QPU from a two-qubit device setup
         qpu = QPU(
-            qubits=[BosonicQubit("q0"), BosonicQubit("q1")],
+            quantum_elements=BosonicQubit.from_device_setup(setup),
             quantum_operations=BosonicQubitOperations(),
         )
         result = experiment_workflow(
@@ -131,14 +139,21 @@ def experiment_workflow(
         ```
     """
     temp_qpu = temporary_qpu(qpu, temporary_parameters)
-    qubits = temporary_quantum_elements_from_qpu(temp_qpu, qubits)
+    temp_qubits = temporary_quantum_elements_from_qpu(temp_qpu, qubits)
     exp = create_experiment(
-        qpu,
-        qubits,
+        temp_qpu,
+        temp_qubits,
         frequencies=frequencies,
     )
     compiled_exp = compile_experiment(session, exp)
     result = run_experiment(session, compiled_exp)
+    with workflow.if_(options.do_analysis):
+        analysis_results = memory_spectroscopy_analysis.analysis_workflow(
+            result, temp_qubits, frequencies
+        )
+        qubit_parameters = analysis_results.output
+        with workflow.if_(options.update):
+            update_qpu(qpu, qubit_parameters["new_parameter_values"])
     workflow.return_(result)
 
 
@@ -172,12 +187,12 @@ def create_experiment(
             qubit or a list of qubits.
         frequencies:
             The RF frequencies to sweep over for the memory cavity
-            spectroscopy drive for each qubit. Note that `frequencies`
-            must be identical for qubits that use the same measure port.
+            spectroscopy drive for each qubit.
         options:
             The options for building the experiment.
-            See [MemorySpectroscopyExperimentOptions] and
-            [BaseExperimentOptions] for accepted options.
+            See [MemorySpectroscopyExperimentOptions][] and
+            [BaseExperimentOptions][laboneq_applications.experiments.options.BaseExperimentOptions]
+            for accepted options.
 
     Returns:
         experiment:
@@ -195,16 +210,17 @@ def create_experiment(
             "count": 10,
             "averaging_mode": "cyclic",
             "acquisition_type": "integration_trigger",
-            "cal_traces": True,
         }
         options = MemorySpectroscopyExperimentOptions(**options)
+        # QPU from a two-qubit device setup
         qpu = QPU(
-            qubits=[BosonicQubit("q0"), BosonicQubit("q1")],
+            quantum_elements=BosonicQubit.from_device_setup(setup),
             quantum_operations=BosonicQubitOperations(),
         )
+        q0, q1 = qpu["q0"], qpu["q1"]
         create_experiment(
             qpu=qpu,
-            qubits=["q0", "q1"],
+            qubits=[q0, q1],
             frequencies=[
                 np.linspace(6.0e9, 6.2e9, 101),
                 np.linspace(6.0e9, 6.2e9, 101),
@@ -214,14 +230,12 @@ def create_experiment(
         ```
     """
     opts = MemorySpectroscopyExperimentOptions() if options is None else options
-    qubits, frequencies = validation.validate_and_convert_qubits_sweeps(
-        qubits, frequencies
-    )
+    qubits = as_quantum_element_list(qubits)
 
     # Build one SweepParameter per qubit, all driven by the same outer sweep.
     sweep_params = [
         SweepParameter(f"frequency_{q.uid}", q_frequencies)
-        for q, q_frequencies in zip(qubits, frequencies, strict=False)
+        for q, q_frequencies in sweeps_per_quantum_element(qubits, frequencies)
     ]
 
     qop = qpu.quantum_operations

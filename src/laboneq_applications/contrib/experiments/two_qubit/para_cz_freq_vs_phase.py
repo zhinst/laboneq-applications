@@ -36,17 +36,17 @@ from laboneq_applications.contrib.analysis.two_qubit.para_cz_freq_vs_phase impor
     analysis_workflow,
 )
 from laboneq_applications.core.validation import (
-    validate_and_extract_edges_from_qubit_pairs,
+    validate_flux_driven_edges,
     validate_parallel_two_qubit_experiment,
 )
 from laboneq_applications.experiments.options import (
     TuneupExperimentOptions,
     TuneUpWorkflowOptions,
 )
-from laboneq_applications.qpu_types.tunable_coupler import TunableCoupler
 from laboneq_applications.qpu_types.tunable_transmon import (
     TunableTransmonQubitParameters,
 )
+from laboneq_applications.tasks import extract_edges_from_qubit_pairs
 from laboneq_applications.tasks.parameter_updating import (
     temporary_qpu,
     update_qpu,
@@ -75,12 +75,12 @@ def experiment_workflow(
 
     The workflow consists of the following steps:
 
-    - [temporary_qpu]()
-    - [create_experiment]()
-    - [compile_experiment]()
-    - [run_experiment]()
-    - [analysis_workflow]()
-    - [update_qpu]()
+    - [temporary_qpu][]
+    - [create_experiment][]
+    - [compile_experiment][]
+    - [run_experiment][]
+    - [analysis_workflow][]
+    - [update_qpu][]
 
     Arguments:
         session:
@@ -95,10 +95,10 @@ def experiment_workflow(
         phases:
             RZ gate phases, swept in the inner loop (per qubit pair).
         temporary_parameters:
-            Temporary parameter overrides applied via [temporary_qpu]().
+            Temporary parameter overrides applied via [temporary_qpu][].
         options:
             The options for building the workflow, passed as an instance of
-            [TuneUpWorkflowOptions].
+            [TuneUpWorkflowOptions][].
 
     Returns:
         WorkflowBuilder:
@@ -154,7 +154,7 @@ def create_experiment(
             RZ gate phases, per qubit pair.
         options:
             The options for building the experiment as an instance of
-            [TuneupExperimentOptions].
+            [TuneupExperimentOptions][].
 
     Returns:
         experiment:
@@ -163,12 +163,12 @@ def create_experiment(
     opts = TuneupExperimentOptions() if options is None else options
 
     qubits = validate_parallel_two_qubit_experiment(qpu, qubit_pairs)
-    edges = validate_and_extract_edges_from_qubit_pairs(
+    edges = extract_edges_from_qubit_pairs(
         qpu,
-        "cz",
         qubit_pairs,
-        element_class=TunableCoupler,
+        tag="cz",
     )
+    validate_flux_driven_edges(edges)
 
     for e in edges:
         dsl.add_quantum_elements([e.source_node, e.target_node, e.quantum_element])

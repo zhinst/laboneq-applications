@@ -26,7 +26,7 @@ from laboneq.workflow.tasks import (
 )
 
 from laboneq_applications.analysis.qubit_spectroscopy import analysis_workflow
-from laboneq_applications.core.validation import validate_and_convert_qubits_sweeps
+from laboneq_applications.conversion import sweeps_per_quantum_element
 from laboneq_applications.experiments.options import (
     QubitSpectroscopyExperimentOptions,
     TuneUpWorkflowOptions,
@@ -63,19 +63,19 @@ def experiment_workflow(
 
     The workflow consists of the following steps:
 
-    - [create_experiment]()
-    - [compile_experiment]()
-    - [run_experiment]()
-    - [analysis_workflow]()
-    - [evaluate_experiment]()
-    - [update_qpu]()
+    - [create_experiment][]
+    - [compile_experiment][]
+    - [run_experiment][]
+    - [analysis_workflow][]
+    - [evaluate_experiment][]
+    - [update_qpu][]
 
-    !!! version-removed "Removed in version 26.7.0."
+    !!! version-removed "Removed in version 26.7.0"
         The `qubits` argument of type `QuantumElements` has been removed.
         Please pass `qubits` of type `list[str] | str` instead, i.e., the quantum
         element UIDs instead of the quantum element instances.
 
-    !!! version-changed "Changed in version 26.4.0."
+    !!! version-changed "Changed in version 26.4.0"
         The `evaluation_parameters` argument has been added. This argument replaces the
         `evaluation_parameter`, `evaluation_parameter_thresholds`, and
         `evaluation_fit_r2_thresholds` arguments.
@@ -102,9 +102,11 @@ def experiment_workflow(
             `(tag, source node UID, target node UID)`.
         options:
             The options for building the workflow.
-            In addition to options from [WorkflowOptions], the following
+            In addition to options from
+            [WorkflowOptions][laboneq.workflow.WorkflowOptions], the following
             custom options are supported:
-                - create_experiment: The options for creating the experiment.
+
+            - create_experiment: The options for creating the experiment.
 
     Returns:
         WorkflowBuilder:
@@ -113,38 +115,39 @@ def experiment_workflow(
     Example:
         ```python
         options = experiment_workflow.options()
-        options.create_experiment.count(10)
+        options.count(10)
+        # QPU from a two-qubit device setup
         qpu = QPU(
-            quantum_elements=[TunableTransmonQubit("q0"), TunableTransmonQubit("q1")],
+            quantum_elements=TunableTransmonQubit.from_device_setup(setup),
             quantum_operations=TunableTransmonOperations(),
         )
         result = experiment_workflow(
             session=session,
             qpu=qpu,
             qubits=["q0", "q1"],
-            frequencies = [
+            frequencies=[
                 np.linspace(6.0e9, 6.3e9, 101),
-                np.linspace(5.8e9, 6.2e9, 101)
-            ]
+                np.linspace(5.8e9, 6.2e9, 101),
+            ],
             options=options,
         ).run()
         ```
     """
     temp_qpu = temporary_qpu(qpu, temporary_parameters)
-    qubits = temporary_quantum_elements_from_qpu(temp_qpu, qubits)
+    temp_qubits = temporary_quantum_elements_from_qpu(temp_qpu, qubits)
     exp = create_experiment(
         temp_qpu,
-        qubits,
+        temp_qubits,
         frequencies=frequencies,
     )
     compiled_exp = compile_experiment(session, exp)
     result = run_experiment(session, compiled_exp)
     with workflow.if_(options.do_analysis):
-        analysis_results = analysis_workflow(result, qubits, frequencies)
+        analysis_results = analysis_workflow(result, temp_qubits, frequencies)
         qubit_parameters = analysis_results.output
         with workflow.if_(options.evaluate):
             eval_flags = evaluate_experiment(
-                analysis_results, qubits, evaluation_parameters
+                analysis_results, temp_qubits, evaluation_parameters
             )
             with workflow.if_(options.update):
                 update_qpu(
@@ -183,10 +186,11 @@ def create_experiment(
             Otherwise, it must be a list of lists of numbers or arrays.
         options:
             The options for building the experiment.
-            See [QubitSpectroscopyExperimentOptions] and [BaseExperimentOptions] for
-            accepted options.
-            Overwrites the options from [QubitSpectroscopyExperimentOptions] and
-            [BaseExperimentOptions].
+            See [QubitSpectroscopyExperimentOptions][] and
+            [BaseExperimentOptions][laboneq_applications.experiments.options.BaseExperimentOptions]
+            for accepted options.
+            Overwrites the options from [QubitSpectroscopyExperimentOptions][] and
+            [BaseExperimentOptions][laboneq_applications.experiments.options.BaseExperimentOptions].
 
     Returns:
         experiment:
@@ -208,25 +212,25 @@ def create_experiment(
         ```python
         options = QubitSpectroscopyExperimentOptions()
         options.count = 10
+        # QPU from a two-qubit device setup
         qpu = QPU(
-            quantum_elements=[TunableTransmonQubit("q0"), TunableTransmonQubit("q1")],
+            quantum_elements=TunableTransmonQubit.from_device_setup(setup),
             quantum_operations=TunableTransmonOperations(),
         )
+        q0, q1 = qpu["q0"], qpu["q1"]
         create_experiment(
             qpu=qpu,
-            qubits=["q0", "q1"],
-            frequencies = [
+            qubits=[q0, q1],
+            frequencies=[
                 np.linspace(6.0e9, 6.3e9, 101),
-                np.linspace(5.8e9, 6.2e9, 101)
-            ]
+                np.linspace(5.8e9, 6.2e9, 101),
+            ],
             options=options,
         )
         ```
     """
     # Define the custom options for the experiment
     opts = QubitSpectroscopyExperimentOptions() if options is None else options
-
-    qubits, frequencies = validate_and_convert_qubits_sweeps(qubits, frequencies)
 
     qop = qpu.quantum_operations
     max_measure_section_length = qop.measure_section_length(qubits)
@@ -238,7 +242,7 @@ def create_experiment(
         repetition_time=opts.repetition_time,
         reset_oscillator_phase=opts.reset_oscillator_phase,
     ):
-        for q, q_frequencies in zip(qubits, frequencies, strict=False):
+        for q, q_frequencies in sweeps_per_quantum_element(qubits, frequencies):
             with dsl.sweep(
                 name=f"freqs_{q.uid}",
                 parameter=SweepParameter(f"frequency_{q.uid}", q_frequencies),

@@ -35,12 +35,14 @@ from laboneq_applications.analysis.plotting_helpers import (
     plot_data_2d,
     timestamped_title,
 )
+from laboneq_applications.conversion import as_quantum_element_list
 from laboneq_applications.core.validation import (
-    validate_and_convert_qubits_sweeps,
-    validate_and_extract_edges_from_qubit_pairs,
+    validate_flux_driven_edges,
 )
-from laboneq_applications.qpu_types.tunable_coupler import TunableCoupler
-from laboneq_applications.tasks import extract_nodes_from_edges
+from laboneq_applications.tasks import (
+    extract_edges_from_qubit_pairs,
+    extract_nodes_from_edges,
+)
 
 if TYPE_CHECKING:
     import matplotlib as mpl
@@ -66,14 +68,15 @@ def analysis_workflow(
 
     The workflow consists of the following steps:
 
-    - [validate_and_extract_edges_from_qubit_pairs]()
-    - [extract_nodes_from_edges]()
-    - [calculate_qubit_population_2d]()
-    - [fit_chevron_rows]()
-    - [fit_parabola]()
-    - [extract_edge_parameters]()
-    - [plot_population]()
-    - [plot_fitted_chevron_rate]()
+    - [extract_edges_from_qubit_pairs][]
+    - [validate_flux_driven_edges][]
+    - [extract_nodes_from_edges][]
+    - [calculate_qubit_population_2d][]
+    - [fit_chevron_rows][]
+    - [fit_parabola][]
+    - [extract_edge_parameters][]
+    - [plot_population][]
+    - [plot_fitted_chevron_rate][]
 
     Arguments:
         result:
@@ -89,15 +92,18 @@ def analysis_workflow(
             Amplitudes swept for the flux pulse on the coupler.
         options:
             The options for building the workflow, passed as an instance of
-            [TuneUpAnalysisWorkflowOptions].
+            [TuneUpAnalysisWorkflowOptions][].
 
     Returns:
         WorkflowBuilder:
             The builder for the analysis workflow.
     """
-    edges = validate_and_extract_edges_from_qubit_pairs(
-        qpu, "cz", qubit_pairs, element_class=TunableCoupler
+    edges = extract_edges_from_qubit_pairs(
+        qpu,
+        qubit_pairs,
+        tag="cz",
     )
+    validate_flux_driven_edges(edges)
 
     qubits_target = extract_nodes_from_edges(edges, "target")
 
@@ -137,13 +143,13 @@ def extract_edge_parameters(
         edges:
             The topology edges of the calibrated qubit pairs.
         parabola_results:
-            The dictionary returned by [fit_parabola](), keyed by target qubit UID.
+            The dictionary returned by [fit_parabola][], keyed by target qubit UID.
 
     Returns:
         Dictionary with ``new_parameter_values`` and ``old_parameter_values``, each
-        keyed by ``("cz", source_uid, target_uid)`` and containing dotted parameter
-        paths ``"coupler_pulse.frequency"`` and ``"coupler_pulse.amplitude"``
-        compatible with ``qpu.update()``.
+            keyed by ``("cz", source_uid, target_uid)`` and containing dotted parameter
+            paths ``"coupler_pulse.frequency"`` and ``"coupler_pulse.amplitude"``
+            compatible with ``qpu.update()``.
     """
     edge_parameters = {
         "old_parameter_values": {
@@ -194,17 +200,18 @@ def fit_chevron_rows(
         qubits:
             The qubits on which to run the task.
         processed_data_dict:
-            The processed data dictionary returned by [calculate_qubit_population_2d]().
+            The processed data dictionary returned by [calculate_qubit_population_2d][].
             Expected shape of population array: [N_frequencies, N_amplitudes].
 
     Returns:
         Dictionary with qubit UIDs as keys. Each value contains:
+
             - ``flux_frequencies``: the swept flux pulse frequencies.
             - ``osc_rates``: fitted oscillation rate for each flux frequency.
             - ``osc_rates_err``: fit uncertainty (stderr) for each oscillation
               rate, NaN where the fit failed.
     """
-    qubits = validate_and_convert_qubits_sweeps(qubits)
+    qubits = as_quantum_element_list(qubits)
     fit_results = {}
 
     def _cosine(
@@ -281,10 +288,11 @@ def fit_parabola(
 
     Arguments:
         chevron_fit_results:
-            The dictionary returned by [fit_chevron_rows]().
+            The dictionary returned by [fit_chevron_rows][].
 
     Returns:
         Dictionary with qubit UIDs as keys. Each value contains:
+
             - ``optimal_flux_frequency``: the flux frequency at the parabola maximum.
             - ``optimal_flux_frequency_err``: fit uncertainty for the above.
             - ``max_osc_rate``: the maximum oscillation rate (k_max).
@@ -359,7 +367,7 @@ def plot_population(
             The qubits on which to run the task. The UIDs of these qubits must exist in
             `processed_data_dict`.
         processed_data_dict:
-            The processed data dictionary returned by [calculate_qubit_population_2d]().
+            The processed data dictionary returned by [calculate_qubit_population_2d][].
         options:
             The options for processing the raw data.
 
@@ -367,7 +375,7 @@ def plot_population(
         Dictionary with qubit UIDs as keys and the figures for each qubit as values.
     """
     opts = PlotPopulationOptions() if options is None else options
-    qubits = validate_and_convert_qubits_sweeps(qubits)
+    qubits = as_quantum_element_list(qubits)
 
     figures = {}
     for q in qubits:
@@ -420,9 +428,9 @@ def plot_fitted_chevron_rate(
 
     Arguments:
         chevron_fit_results:
-            The dictionary returned by [fit_chevron_rows]().
+            The dictionary returned by [fit_chevron_rows][].
         parabola_results:
-            The dictionary returned by [fit_parabola]().
+            The dictionary returned by [fit_parabola][].
         options:
             Plot options (save, close, etc.).
 

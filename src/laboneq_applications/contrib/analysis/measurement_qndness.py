@@ -24,8 +24,8 @@ from laboneq_applications.analysis.iq_blobs import (
 from laboneq_applications.analysis.options import (
     TuneUpAnalysisWorkflowOptions,
 )
+from laboneq_applications.conversion import as_quantum_element_list
 from laboneq_applications.core.validation import (
-    validate_and_convert_qubits_sweeps,
     validate_result,
 )
 
@@ -45,10 +45,11 @@ def analysis_workflow(
     """The measurement qnd analysis workflow.
 
     The workflow consists of the following steps:
-    - [collect_shots]()
-    - [calculate_assignment_matrices]()
-    - [calculate_assignment_fidelities]()
-    - [plot_assignment_matrices]()
+
+    - [collect_shots][]
+    - [calculate_assignment_matrices][]
+    - [calculate_assignment_fidelities][]
+    - [plot_assignment_matrices][]
 
     Arguments:
         result:
@@ -58,7 +59,7 @@ def analysis_workflow(
             a list of qubits. The UIDs of these qubits must exist in the result.
         options:
             The options for building the workflow, passed as an instance of
-            [TuneUpAnalysisWorkflowOptions]. See the docstring of this class for
+            [TuneUpAnalysisWorkflowOptions][]. See the docstring of this class for
             more details.
 
     Returns:
@@ -67,11 +68,9 @@ def analysis_workflow(
 
     Example:
         ```python
-        options = analysis_workflow.options()
-        result = analysis_workflow(
-            results=results
-            qubits=[q0, q1],
-            options=options,
+        analysis_result = analysis_workflow(
+            result=result,
+            qubits=["q0", "q1"],
         ).run()
         ```
     """
@@ -105,13 +104,14 @@ def collect_shots(
             The experiment results returned by the run_experiment task.
 
     Returns:
-        dict with qubit UIDs as keys and values as a dict with the following keys:
-            first_measurement - list of integers containing the first measurement
-                                outcomes.
-            second_measurement - list of integers containing the second measurement
-                                outcomes.
+        A dict with qubit UIDs as keys and values as a dict with the following keys:
+
+            - `first_measurement`: list of integers containing the first measurement
+              outcomes.
+            - `second_measurement`: list of integers containing the second
+              measurement outcomes.
     """
-    qubits = validate_and_convert_qubits_sweeps(qubits)
+    qubits = as_quantum_element_list(qubits)
     validate_result(result)
     processed_data_dict = {q.uid: {} for q in qubits}
     for q in qubits:
@@ -142,7 +142,7 @@ def calculate_assignment_matrices(
     Returns:
         dict with qubit UIDs as keys and the assignment matrix for each qubit as keys.
     """
-    qubits = validate_and_convert_qubits_sweeps(qubits)
+    qubits = as_quantum_element_list(qubits)
     assignment_matrices = {}
     for q in qubits:
         first_measurement = processed_data_dict[q.uid]["first_measurement"]

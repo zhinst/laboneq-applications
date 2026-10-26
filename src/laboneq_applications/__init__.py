@@ -3,4 +3,6 @@
 
 """LabOne Q Applications Library."""
 
-__version__ = "26.10.0dev0"
+from importlib.metadata import version
+
+__version__ = version("laboneq_applications")

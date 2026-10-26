@@ -27,15 +27,20 @@ from laboneq.simple import dsl
 
 from laboneq_applications.analysis.options import BasePlottingOptions
 from laboneq_applications.analysis.plotting_helpers import timestamped_title
+from laboneq_applications.conversion import (
+    as_single_quantum_element,
+    sweeps_per_quantum_element,
+)
 from laboneq_applications.core import validation
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
 
     import matplotlib as mpl
-    from laboneq.dsl.quantum.quantum_element import QuantumElement
     from laboneq.workflow.tasks.run_experiment import RunExperimentResults
     from numpy.typing import ArrayLike
+
+    from laboneq_applications.typing import QuantumElements
 
 
 @workflow.workflow_options
@@ -70,7 +75,7 @@ class DispersiveShiftAnalysisWorkflowOptions:
 @workflow.workflow
 def analysis_workflow(
     result: RunExperimentResults,
-    qubit: QuantumElement,
+    qubit: QuantumElements,
     frequencies: ArrayLike,
     states: Sequence[str],
     options: DispersiveShiftAnalysisWorkflowOptions | None = None,
@@ -79,10 +84,10 @@ def analysis_workflow(
 
     The workflow consists of the following steps:
 
-    - [calculate_signal_differences]()
-    - [extract_qubit_parameters]()
-    - [plot_dispersive_shift]()
-    - [plot_signal_distances]()
+    - [calculate_signal_differences][]
+    - [extract_qubit_parameters][]
+    - [plot_dispersive_shift][]
+    - [plot_signal_distances][]
 
     Arguments:
         result:
@@ -98,8 +103,8 @@ def analysis_workflow(
             e.g. "gef", or a list of letters, e.g. ["g","e","f"].
         options:
             The options for building the workflow, passed as an instance of
-                [DispersiveShiftAnalysisWorkflowOptions]. See the docstring of
-                [DispersiveShiftAnalysisWorkflowOptions] for more details.
+                [DispersiveShiftAnalysisWorkflowOptions][]. See the docstring of
+                [DispersiveShiftAnalysisWorkflowOptions][] for more details.
 
     Returns:
         WorkflowBuilder:
@@ -107,13 +112,11 @@ def analysis_workflow(
 
     Example:
         ```python
-        options = analysis_workflow.options()
-        result = analysis_workflow(
-            results=results
+        analysis_result = analysis_workflow(
+            result=result,
             qubit=q0,
             frequencies=np.linspace(7.0, 7.1, 101),
             states="gef",
-            options=options,
         ).run()
         ```
     """
@@ -131,7 +134,7 @@ def analysis_workflow(
 
 @workflow.task
 def calculate_signal_differences(
-    qubit: QuantumElement,
+    qubit: QuantumElements,
     result: RunExperimentResults,
     frequencies: ArrayLike,
     states: Sequence[str],
@@ -153,15 +156,14 @@ def calculate_signal_differences(
 
     Returns:
         dictionary with the magnitudes of the pair-wise differences between the signals
-        acquired for each state
+            acquired for each state
 
     Raises:
         TypeError:
             If the result is not an instance of RunExperimentResults.
     """
-    qubit, frequencies = validation.validate_and_convert_single_qubit_sweeps(
-        qubit, frequencies
-    )
+    qubit = as_single_quantum_element(qubit)
+    _, frequencies = next(sweeps_per_quantum_element(qubit, frequencies))
     validation.validate_result(result)
     all_state_combinations = combinations(list(states), 2)
     processed_data_dict = {}
@@ -200,7 +202,7 @@ def calculate_signal_differences(
 
 @workflow.task
 def extract_qubit_parameters(
-    qubit: QuantumElement,
+    qubit: QuantumElements,
     processed_data_dict: dict[str, tuple[ArrayLike, ArrayLike, ArrayLike]],
 ) -> dict[str, dict[str, dict[str, float]]]:
     """Extract the optimal qubit readout resonator frequency.
@@ -215,23 +217,20 @@ def extract_qubit_parameters(
 
     Returns:
         dict with extracted qubit parameters and the previous values for those qubit
-        parameters. The dictionary has the following form:
-        ```python
-        {
-            "new_parameter_values": {
-                q.uid: {
-                    qb_param_name: qb_param_value
+            parameters. The dictionary has the following form:
+
+            ```python
+            {
+                "new_parameter_values": {
+                    q.uid: {qb_param_name: qb_param_value},
+                },
+                "old_parameter_values": {
+                    q.uid: {qb_param_name: qb_param_value},
                 },
             }
-            "old_parameter_values": {
-                q.uid: {
-                    qb_param_name: qb_param_value
-                },
-            }
-        }
-        ```
+            ```
     """
-    qubit = validation.validate_and_convert_single_qubit_sweeps(qubit)
+    qubit = as_single_quantum_element(qubit)
     qubit_parameters = {
         "old_parameter_values": {qubit.uid: {}},
         "new_parameter_values": {qubit.uid: {}},
@@ -256,7 +255,7 @@ def extract_qubit_parameters(
 
 @workflow.task
 def plot_dispersive_shift(
-    qubit: QuantumElement,
+    qubit: QuantumElements,
     result: RunExperimentResults,
     frequencies: ArrayLike,
     states: Sequence[str],
@@ -276,7 +275,7 @@ def plot_dispersive_shift(
             The basis states the qubits should be prepared in. May be either a string,
             e.g. "gef", or a list of letters, e.g. ["g","e","f"].
         options:
-            The options, passed as an instance of [BasePlottingOptions]. See
+            The options, passed as an instance of [BasePlottingOptions][]. See
             the docstring of this class for more details.
 
     Returns:
@@ -287,9 +286,8 @@ def plot_dispersive_shift(
             If the result is not an instance of RunExperimentResults.
     """
     opts = BasePlottingOptions() if options is None else options
-    qubit, frequencies = validation.validate_and_convert_single_qubit_sweeps(
-        qubit, frequencies
-    )
+    qubit = as_single_quantum_element(qubit)
+    _, frequencies = next(sweeps_per_quantum_element(qubit, frequencies))
     validation.validate_result(result)
 
     # Plot S21 for each prep state
@@ -313,7 +311,7 @@ def plot_dispersive_shift(
 
 @workflow.task
 def plot_signal_distances(
-    qubit: QuantumElement,
+    qubit: QuantumElements,
     frequencies: ArrayLike,
     processed_data_dict: dict[str, ArrayLike],
     options: BasePlottingOptions | None = None,
@@ -331,16 +329,15 @@ def plot_signal_distances(
             containing the magnitudes of the pair-wise differences between the signals
             acquired for each state; returned by
         options:
-            The options, passed as an instance of [BasePlottingOptions]. See
+            The options, passed as an instance of [BasePlottingOptions][]. See
             the docstring of this class for more details.
 
     Returns:
         the matplotlib figure
     """
     opts = BasePlottingOptions() if options is None else options
-    qubit, frequencies = validation.validate_and_convert_single_qubit_sweeps(
-        qubit, frequencies
-    )
+    qubit = as_single_quantum_element(qubit)
+    _, frequencies = next(sweeps_per_quantum_element(qubit, frequencies))
 
     # Plot the S21 distances
     fig, ax = plt.subplots()

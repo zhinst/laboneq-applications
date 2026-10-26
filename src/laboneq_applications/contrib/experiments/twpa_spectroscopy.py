@@ -24,7 +24,7 @@ from laboneq.workflow.tasks import (
     run_experiment,
 )
 
-from laboneq_applications.core import validation
+from laboneq_applications.conversion import as_array, as_single_quantum_element
 from laboneq_applications.experiments.options import (
     TuneUpWorkflowOptions,
     TWPASpectroscopyExperimentOptions,
@@ -35,6 +35,8 @@ from laboneq_applications.tasks import (
 )
 
 if TYPE_CHECKING:
+    from collections.abc import Sequence
+
     from laboneq.dsl.quantum import QPU
     from laboneq.dsl.session import Session
     from numpy.typing import ArrayLike
@@ -49,7 +51,7 @@ if TYPE_CHECKING:
 def experiment_workflow(
     session: Session,
     qpu: QPU,
-    parametric_amplifier: str,
+    parametric_amplifier: str | list[str],
     *,
     frequencies: ArrayLike,
     temporary_parameters: dict[str, dict | TWPAParameters] | None = None,
@@ -59,16 +61,19 @@ def experiment_workflow(
 
     The workflow consists of the following steps:
 
-    - [create_experiment]()
-    - [compile_experiment]()
-    - [run_experiment]()
+    - [create_experiment][]
+    - [compile_experiment][]
+    - [run_experiment][]
 
-    !!! version-removed "Removed in version 26.7.0."
+    !!! note
+        The TWPA experiment workflows are not currently supported on ZQCS.
+
+    !!! version-removed "Removed in version 26.7.0"
         The `parametric_amplifier` argument of type `TWPA` has been removed.
         Please pass `parametric_amplifier` of type `str` instead, i.e., the quantum
         element UID instead of the quantum element instance.
 
-    !!! version-changed "Changed in version 26.4.0."
+    !!! version-changed "Changed in version 26.4.0"
         All arguments apart from `session`, `qpu`, and `qubits` are now keyword
         arguments.
 
@@ -86,7 +91,8 @@ def experiment_workflow(
             The temporary parameters to update the TWPA with.
         options:
             The options for building the workflow.
-            In addition to options from [WorkflowOptions]
+            In addition to options from
+            [WorkflowOptions][laboneq.workflow.WorkflowOptions]
 
     Returns:
         result:
@@ -96,9 +102,9 @@ def experiment_workflow(
         ```python
         options = experiment_workflow.options()
         options.spectroscopy_reset_delay(3e-6)
-        twpa = TWPA("twpa0")
+        # QPU from a single-TWPA device setup
         qpu = QPU(
-            pas=[twpa],
+            quantum_elements=TWPA.from_device_setup(setup),
             quantum_operations=TWPAOperations(),
         )
         result = experiment_workflow(
@@ -106,17 +112,18 @@ def experiment_workflow(
             qpu=qpu,
             parametric_amplifier="twpa0",
             frequencies=np.linspace(7.1e9, 7.6e9, 501),
+            options=options,
         ).run()
         ```
     """
     temp_qpu = temporary_qpu(qpu, temporary_parameters)
-    parametric_amplifier = temporary_quantum_elements_from_qpu(
+    temp_parametric_amplifier = temporary_quantum_elements_from_qpu(
         temp_qpu, parametric_amplifier
     )
 
     exp = create_experiment(
-        qpu,
-        parametric_amplifier,
+        temp_qpu,
+        temp_parametric_amplifier,
         frequencies=frequencies,
     )
     compiled_exp = compile_experiment(session, exp)
@@ -128,7 +135,7 @@ def experiment_workflow(
 @dsl.qubit_experiment
 def create_experiment(
     qpu: QPU,
-    parametric_amplifier: TWPA,
+    parametric_amplifier: TWPA | Sequence[TWPA],
     frequencies: ArrayLike,
     options: TWPASpectroscopyExperimentOptions | None = None,
 ) -> Experiment:
@@ -144,9 +151,11 @@ def create_experiment(
             sent to the TWPA. Must be a list of numbers or an array.
         options:
             The options for building the experiment.
-            See [TWPASpectroscopyExperimentOptions] and [BaseExperimentOptions] for
-            accepted options.
-            Overwrites the options from [BaseExperimentOptions].
+            See [TWPASpectroscopyExperimentOptions][] and
+            [BaseExperimentOptions][laboneq_applications.experiments.options.BaseExperimentOptions]
+            for accepted options.
+            Overwrites the options from
+            [BaseExperimentOptions][laboneq_applications.experiments.options.BaseExperimentOptions].
 
     Returns:
         experiment:
@@ -156,25 +165,27 @@ def create_experiment(
         ```python
         options = {
             "count": 10,
-            "spectroscopy_reset_delay": 3e-6
+            "spectroscopy_reset_delay": 3e-6,
         }
         options = TWPASpectroscopyExperimentOptions(**options)
-        twpa = TWPA("twpa0")
+        # QPU from a single-TWPA device setup
         qpu = QPU(
-            qubits=[twpa],
+            quantum_elements=TWPA.from_device_setup(setup),
             quantum_operations=TWPAOperations(),
         )
+        twpa0 = qpu["twpa0"]
         create_experiment(
             qpu=qpu,
-            parametric_amplifier=twpa,
+            parametric_amplifier=twpa0,
             frequencies=np.linspace(7.1e9, 7.6e9, 501),
             options=options,
         )
         ```
     """
+    parametric_amplifier = as_single_quantum_element(parametric_amplifier)
     # Define the custom options for the experiment
     opts = TWPASpectroscopyExperimentOptions() if options is None else options
-    frequencies = validation.validate_and_convert_sweeps_to_arrays(frequencies)
+    frequencies = as_array(frequencies)
 
     qop = qpu.quantum_operations
 

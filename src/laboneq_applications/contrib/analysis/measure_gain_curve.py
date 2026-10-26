@@ -24,15 +24,17 @@ from laboneq_applications.analysis.options import (
     TuneUpAnalysisWorkflowOptions,
 )
 from laboneq_applications.analysis.plotting_helpers import timestamped_title
-from laboneq_applications.core import validation
+from laboneq_applications.conversion import as_single_quantum_element
 
 if TYPE_CHECKING:
+    from collections.abc import Sequence
+
     import matplotlib as mpl
     import uncertainties as unc
     from laboneq.workflow.tasks.run_experiment import RunExperimentResults
     from numpy.typing import ArrayLike
 
-    from laboneq_applications.qpu_types.twpa import TWPAParameters
+    from laboneq_applications.qpu_types.twpa import TWPA
 
 
 @workflow.workflow_options(base_class=TuneUpAnalysisWorkflowOptions)
@@ -48,7 +50,7 @@ class TWPAGainCurveAnalysisWorkflowOptions:
 def analysis_workflow(
     result_pump_on: RunExperimentResults,
     result_pump_off: RunExperimentResults,
-    parametric_amplifier: TWPAParameters,
+    parametric_amplifier: TWPA | Sequence[TWPA],
     probe_frequency: ArrayLike,
     pump_power: ArrayLike,
     selected_indexes: list | None = None,
@@ -88,11 +90,12 @@ def analysis_workflow(
 
 @workflow.task
 def calculate_data_PSD(  # noqa: N802
-    parametric_amplifier: TWPAParameters,
+    parametric_amplifier: TWPA | Sequence[TWPA],
     result_pump_on: RunExperimentResults,
     result_pump_off: RunExperimentResults,
 ) -> dict[str, ArrayLike]:
     """Calculate the PSD data."""
+    parametric_amplifier = as_single_quantum_element(parametric_amplifier)
     data_pump_on = result_pump_on[
         dsl.handles.result_handle(parametric_amplifier.uid)
     ].data
@@ -121,11 +124,12 @@ def calculate_data_PSD(  # noqa: N802
 
 @workflow.task
 def calculate_data(
-    parametric_amplifier: TWPAParameters,
+    parametric_amplifier: TWPA | Sequence[TWPA],
     result_pump_on: RunExperimentResults,
     result_pump_off: RunExperimentResults,
 ) -> dict[str, ArrayLike]:
     """Calculate the data."""
+    parametric_amplifier = as_single_quantum_element(parametric_amplifier)
     data_pump_on = result_pump_on[
         dsl.handles.result_handle(parametric_amplifier.uid)
     ].data
@@ -167,13 +171,11 @@ def fit_data(
 
 @workflow.task
 def extract_parametric_amplifier_parameters(
-    parametric_amplifier: TWPAParameters,
+    parametric_amplifier: TWPA | Sequence[TWPA],
     fit_results: dict,
 ) -> dict[str, dict[str, dict[str, int | float | unc.core.Variable | None]]]:
     """Extract the parametric amplifier parameters."""
-    parametric_amplifier = validation.validate_and_convert_single_qubit_sweeps(
-        parametric_amplifier
-    )
+    parametric_amplifier = as_single_quantum_element(parametric_amplifier)
     parametric_amplifier_parameters = {
         "old_parameter_values": {parametric_amplifier.uid: {}},
         "new_parameter_values": {parametric_amplifier.uid: {}},
@@ -198,7 +200,7 @@ def extract_parametric_amplifier_parameters(
 
 @workflow.task
 def plot_2D(  # noqa: N802
-    parametric_amplifier: TWPAParameters,
+    parametric_amplifier: TWPA | Sequence[TWPA],
     parametric_amplifier_parameters: dict,
     fit_results: dict,
     signal_dict: dict,
@@ -207,6 +209,7 @@ def plot_2D(  # noqa: N802
     options: BasePlottingOptions | None = None,
 ) -> mpl.figure.Figure | None:
     """Plot the 2D gain diagram."""
+    parametric_amplifier = as_single_quantum_element(parametric_amplifier)
     opts = BasePlottingOptions() if options is None else options
 
     data = signal_dict["data_pump_on_dbm"]

@@ -23,9 +23,11 @@ from laboneq_applications.analysis.options import (
     TuneUpAnalysisWorkflowOptions,
 )
 from laboneq_applications.analysis.plotting_helpers import timestamped_title
-from laboneq_applications.core import validation
+from laboneq_applications.conversion import as_single_quantum_element
 
 if TYPE_CHECKING:
+    from collections.abc import Sequence
+
     import matplotlib as mpl
     import uncertainties as unc
     from laboneq.workflow.tasks.run_experiment import RunExperimentResults
@@ -42,8 +44,6 @@ class Plot2DOptions(BasePlottingOptions):
         do_fitting:
             Whether to perform the fit.
             Default: `True`.
-
-    Attributes from `BasePlottingOptions`:
         save_figures:
             Whether to save the figures.
             Default: `True`.
@@ -61,7 +61,7 @@ class Plot2DOptions(BasePlottingOptions):
 def analysis_workflow(
     result_data: RunExperimentResults,
     result_ref: RunExperimentResults,
-    parametric_amplifier: TWPA,
+    parametric_amplifier: TWPA | Sequence[TWPA],
     cancel_phaseshift: ArrayLike,
     cancel_attenuation: ArrayLike,
     options: TuneUpAnalysisWorkflowOptions | None = None,
@@ -89,11 +89,12 @@ def analysis_workflow(
 
 @workflow.task
 def calculate_data_PSD(  # noqa: N802
-    parametric_amplifier: TWPA,
+    parametric_amplifier: TWPA | Sequence[TWPA],
     result_data: RunExperimentResults,
     result_ref: RunExperimentResults,
 ) -> dict[str, ArrayLike]:
     """Calculate the power spectral density of the pump tone residual."""
+    parametric_amplifier = as_single_quantum_element(parametric_amplifier)
     ref = result_ref[dsl.handles.result_handle(parametric_amplifier.uid)].data
     ref_dbm = 10 * np.log10(
         (1 / parametric_amplifier.parameters.readout_length) * np.abs(ref) / 50 / 0.001
@@ -136,13 +137,11 @@ def fit_data(
 
 @workflow.task
 def extract_cancellation_parameters(
-    parametric_amplifier: TWPA,
+    parametric_amplifier: TWPA | Sequence[TWPA],
     fit_results: dict,
 ) -> dict[str, dict[str, dict[str, int | float | unc.core.Variable | None]]]:
     """Extract the cancellation parameters."""
-    parametric_amplifier = validation.validate_and_convert_single_qubit_sweeps(
-        parametric_amplifier
-    )
+    parametric_amplifier = as_single_quantum_element(parametric_amplifier)
     parametric_amplifier_parameters = {
         "old_parameter_values": {parametric_amplifier.uid: {}},
         "new_parameter_values": {parametric_amplifier.uid: {}},
@@ -169,7 +168,7 @@ def extract_cancellation_parameters(
 
 @workflow.task
 def plot_2D(  # noqa: N802
-    parametric_amplifier: TWPA,
+    parametric_amplifier: TWPA | Sequence[TWPA],
     pa_parameters: dict,
     fit_results: dict,
     signal_dict: dict,
@@ -178,6 +177,7 @@ def plot_2D(  # noqa: N802
     options: Plot2DOptions | None = None,
 ) -> mpl.figure.Figure | None:
     """Plot the 2D plot of the pump tone residual."""
+    parametric_amplifier = as_single_quantum_element(parametric_amplifier)
     opts = Plot2DOptions() if options is None else options
 
     data = signal_dict["data_dbm"]

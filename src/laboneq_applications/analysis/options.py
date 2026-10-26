@@ -130,8 +130,6 @@ class PlotPopulationOptions(
             The states to prepare in the calibration traces. Can be any
             string or tuple made from combining the characters 'g', 'e', 'f'.
             Default: same as transition
-
-    Additional attributes from `ExtractQubitParametersTransitionOptions`:
         transition:
             Transition to perform the experiment on. May be any
             transition supported by the quantum operations.
@@ -139,8 +137,6 @@ class PlotPopulationOptions(
         do_fitting:
             Whether to perform the fit.
             Default: `True`.
-
-    Additional attributes from `BasePlottingOptions`:
         save_figures:
             Whether to save the figures.
             Default: `True`.

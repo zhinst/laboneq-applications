@@ -24,7 +24,7 @@ from laboneq.workflow.tasks import (
 )
 
 from laboneq_applications.analysis.iq_blobs import analysis_workflow
-from laboneq_applications.core import validation
+from laboneq_applications.conversion import as_quantum_element_list
 from laboneq_applications.experiments.options import (
     BaseExperimentOptions,
 )
@@ -91,17 +91,17 @@ def experiment_workflow(
 
     The workflow consists of the following steps:
 
-    - [create_experiment]()
-    - [compile_experiment]()
-    - [run_experiment]()
-    - [analysis_workflow]()
+    - [create_experiment][]
+    - [compile_experiment][]
+    - [run_experiment][]
+    - [analysis_workflow][]
 
-    !!! version-removed "Removed in version 26.7.0."
+    !!! version-removed "Removed in version 26.7.0"
         The `qubits` argument of type `QuantumElements` has been removed.
         Please pass `qubits` of type `list[str] | str` instead, i.e., the quantum
         element UIDs instead of the quantum element instances.
 
-    !!! version-changed "Changed in version 26.4.0."
+    !!! version-changed "Changed in version 26.4.0"
         All arguments apart from `session`, `qpu`, and `qubits` are now keyword
         arguments.
 
@@ -122,7 +122,8 @@ def experiment_workflow(
             `(tag, source node UID, target node UID)`.
         options:
             The options for building the workflow as an instance of
-            [TuneUpWorkflowOptions]. See the docstring of this class for more details.
+            [IQBlobExperimentWorkflowOptions][]. See the docstring of this class for more
+            details.
 
     Returns:
         WorkflowBuilder:
@@ -132,8 +133,9 @@ def experiment_workflow(
         ```python
         options = experiment_workflow.options()
         options.count(10)
+        # QPU from a two-qubit device setup
         qpu = QPU(
-            quantum_elements=[TunableTransmonQubit("q0"), TunableTransmonQubit("q1")],
+            quantum_elements=TunableTransmonQubit.from_device_setup(setup),
             quantum_operations=TunableTransmonOperations(),
         )
         result = experiment_workflow(
@@ -142,20 +144,20 @@ def experiment_workflow(
             qubits=["q0", "q1"],
             states="ge",
             options=options,
-        )
+        ).run()
         ```
     """
     temp_qpu = temporary_qpu(qpu, temporary_parameters)
-    qubits = temporary_quantum_elements_from_qpu(temp_qpu, qubits)
+    temp_qubits = temporary_quantum_elements_from_qpu(temp_qpu, qubits)
     exp = create_experiment(
         temp_qpu,
-        qubits,
+        temp_qubits,
         states,
     )
     compiled_exp = compile_experiment(session, exp)
     result = run_experiment(session, compiled_exp)
     with workflow.if_(options.do_analysis):
-        analysis_workflow(result, qubits, states)
+        analysis_workflow(result, temp_qubits, states)
     workflow.return_(result)
 
 
@@ -179,7 +181,7 @@ def create_experiment(
             e.g. "gef", or a list of letters, e.g. ["g","e","f"].
         options:
             The options for building the experiment as an instance of
-            [IQBlobExperimentOptions]. See the docstring of this class for more details.
+            [IQBlobExperimentOptions][]. See the docstring of this class for more details.
 
     Returns:
         experiment:
@@ -188,15 +190,16 @@ def create_experiment(
     Example:
         ```python
         options = IQBlobExperimentOptions()
-        options.count(10)
-        setup = DeviceSetup("my_device")
+        options.count = 10
+        # QPU from a two-qubit device setup
         qpu = QPU(
-            quantum_elements=[TunableTransmonQubit("q0"), TunableTransmonQubit("q1")],
+            quantum_elements=TunableTransmonQubit.from_device_setup(setup),
             quantum_operations=TunableTransmonOperations(),
         )
+        q0, q1 = qpu["q0"], qpu["q1"]
         create_experiment(
             qpu=qpu,
-            qubits=["q0", "q1"],
+            qubits=[q0, q1],
             states="ge",
             options=options,
         )
@@ -204,7 +207,7 @@ def create_experiment(
     """
     # Define the custom options for the experiment
     opts = IQBlobExperimentOptions() if options is None else options
-    qubits = validation.validate_and_convert_qubits_sweeps(qubits)
+    qubits = as_quantum_element_list(qubits)
 
     qop = qpu.quantum_operations
     # We will fix the length of the measure section to the longest section among

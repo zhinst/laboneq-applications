@@ -11,7 +11,7 @@ from typing import TYPE_CHECKING, Any
 import uncertainties as unc
 from laboneq import workflow
 
-from laboneq_applications.core import validation
+from laboneq_applications.conversion import as_quantum_element_list
 
 if TYPE_CHECKING:
     from lmfit.model import ModelResult
@@ -91,13 +91,13 @@ def evaluate_parameter_and_fit_r2_thresholds(
 
     Returns:
         The dictionary of evaluation flags. The keys are the quantum element UIDs and
-        the values are dictionaries of booleans. The `success` flag tells us whether
-        the experiment is successful, and the `update` flag tells us whether the
-        parameter value updates are significant. If both the `success` and `update`
-        flags are `True`, then the quantum element in the QPU will be updated.
+            the values are dictionaries of booleans. The `success` flag tells us whether
+            the experiment is successful, and the `update` flag tells us whether the
+            parameter value updates are significant. If both the `success` and `update`
+            flags are `True`, then the quantum element in the QPU will be updated.
 
     """
-    quantum_elements = validation.validate_and_convert_qubits_sweeps(quantum_elements)
+    quantum_elements = as_quantum_element_list(quantum_elements)
 
     params = evaluation_parameters or {}
 
@@ -114,45 +114,45 @@ def evaluate_parameter_and_fit_r2_thresholds(
     fit_r2_thresholds.update(params.get("fit_r2_thresholds", {}))
 
     eval_flags = {}
-    for q, q_params in new_parameter_values.items():
+    for q_uid, q_params in new_parameter_values.items():
         if parameter not in q_params:
             workflow.log(
                 logging.WARNING,
-                f"{parameter} not found in the new parameter values for {q}. "
+                f"{parameter} not found in the new parameter values for {q_uid}. "
                 f"Marking experiment as failed.",
             )
-            eval_flags[q] = {"success": False, "update": False}
+            eval_flags[q_uid] = {"success": False, "update": False}
             continue
 
-        eval_flags[q] = {"success": False, "update": False}
+        eval_flags[q_uid] = {"success": False, "update": False}
 
         # check R-squared success
-        r2 = abs(fit_data[q].rsquared)
-        if r2 > fit_r2_thresholds[q]:
-            eval_flags[q]["success"] = True
+        r2 = abs(fit_data[q_uid].rsquared)
+        if r2 > fit_r2_thresholds[q_uid]:
+            eval_flags[q_uid]["success"] = True
         else:
             workflow.log(
                 logging.WARNING,
                 f"The R-squared value of the fit ({r2}) is below the "
-                f"threshold ({fit_r2_thresholds[q]}) for {q}.",
+                f"threshold ({fit_r2_thresholds[q_uid]}) for {q_uid}.",
             )
 
         # check parameter threshold update
         new_param_value = q_params[parameter]
         if isinstance(new_param_value, unc.core.Variable):
             new_param_value = new_param_value.nominal_value
-        old_param_value = old_parameter_values[q][parameter]
+        old_param_value = old_parameter_values[q_uid][parameter]
         if isinstance(old_param_value, unc.core.Variable):
             old_param_value = old_param_value.nominal_value
         param_diff = abs(new_param_value - old_param_value)
-        if param_diff < parameter_thresholds[q]:
+        if param_diff < parameter_thresholds[q_uid]:
             workflow.log(
                 logging.WARNING,
                 f"The difference ({param_diff}) between the new and old "
                 f"values of the parameter {parameter} is below the threshold "
-                f"({parameter_thresholds[q]}) for {q}.",
+                f"({parameter_thresholds[q_uid]}) for {q_uid}.",
             )
-        elif eval_flags[q]["success"]:
-            eval_flags[q]["update"] = True
+        elif eval_flags[q_uid]["success"]:
+            eval_flags[q_uid]["update"] = True
 
     return eval_flags

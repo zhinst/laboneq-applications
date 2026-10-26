@@ -41,10 +41,12 @@ class TWPAParameters(QuantumParameters):
     readout_amplitude: float | None = 0.5
     # readout output length setting, defaults to 5e-6.
     readout_length: float | None = 5e-6
-    # readout output power setting, defaults to 5 dBm.
-    readout_range_out: float | None = 5
-    # readout input power setting, defaults to 10 dBm.
-    readout_range_in: float | None = 10
+    # readout output power setting (dBm), defaults to None, in which case the
+    # range configured on the instrument is used.
+    readout_range_out: float | None = None
+    # readout input power setting (dBm), defaults to None, in which case the
+    # range configured on the instrument is used.
+    readout_range_in: float | None = None
     # set integration delay
     readout_integration_delay: float | None = 20e-9
 

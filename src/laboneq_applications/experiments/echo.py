@@ -38,7 +38,10 @@ from laboneq.workflow.tasks import (
 )
 
 from laboneq_applications.analysis.echo import analysis_workflow
-from laboneq_applications.core import validation
+from laboneq_applications.conversion import (
+    as_quantum_element_list,
+    sweeps_per_quantum_element,
+)
 from laboneq_applications.experiments.options import (
     TuneupExperimentOptions,
     TuneUpWorkflowOptions,
@@ -63,7 +66,7 @@ if TYPE_CHECKING:
 class EchoExperimentOptions:
     """Options for the Hahn echo experiment.
 
-    Additional attributes:
+    Attributes:
         refocus_pulse:
             String to define the quantum operation in-between the x90 pulses.
             Default: "y180".
@@ -91,19 +94,19 @@ def experiment_workflow(
 
     The workflow consists of the following steps:
 
-    - [create_experiment]()
-    - [compile_experiment]()
-    - [run_experiment]()
-    - [analysis_workflow]()
-    - [evaluate_experiment]()
-    - [update_qpu]()
+    - [create_experiment][]
+    - [compile_experiment][]
+    - [run_experiment][]
+    - [analysis_workflow][]
+    - [evaluate_experiment][]
+    - [update_qpu][]
 
-    !!! version-removed "Removed in version 26.7.0."
+    !!! version-removed "Removed in version 26.7.0"
         The `qubits` argument of type `QuantumElements` has been removed.
         Please pass `qubits` of type `list[str] | str` instead, i.e., the quantum
         element UIDs instead of the quantum element instances.
 
-    !!! version-changed "Changed in version 26.4.0."
+    !!! version-changed "Changed in version 26.4.0"
         The `evaluation_parameters` argument has been added, which is the dictionary of
         parameters used for the newly added evaluation task. All arguments apart from
         `session`, `qpu`, and `qubits` are now keyword arguments.
@@ -131,7 +134,7 @@ def experiment_workflow(
             `(tag, source node UID, target node UID)`.
         options:
             The options for building the workflow as an instance of
-            [TuneUpWorkflowOptions]. See the docstrings of this class for more details.
+            [TuneUpWorkflowOptions][]. See the docstrings of this class for more details.
 
     Returns:
         WorkflowBuilder:
@@ -139,37 +142,38 @@ def experiment_workflow(
 
     Example:
         ```python
-        options = EchoWorkflowOptions()
+        options = experiment_workflow.options()
         options.count(10)
         options.transition("ge")
+        # QPU from a two-qubit device setup
         qpu = QPU(
-            quantum_elements=[TunableTransmonQubit("q0"), TunableTransmonQubit("q1")],
+            quantum_elements=TunableTransmonQubit.from_device_setup(setup),
             quantum_operations=TunableTransmonOperations(),
         )
-        result = run(
+        result = experiment_workflow(
             session=session,
             qpu=qpu,
             qubits=["q0", "q1"],
             delays=[np.linspace(0, 30e-6, 51), np.linspace(0, 30e-6, 51)],
             options=options,
-        )
+        ).run()
         ```
     """
     temp_qpu = temporary_qpu(qpu, temporary_parameters)
-    qubits = temporary_quantum_elements_from_qpu(temp_qpu, qubits)
+    temp_qubits = temporary_quantum_elements_from_qpu(temp_qpu, qubits)
     exp = create_experiment(
         temp_qpu,
-        qubits,
+        temp_qubits,
         delays=delays,
     )
     compiled_exp = compile_experiment(session, exp)
     result = run_experiment(session, compiled_exp)
     with workflow.if_(options.do_analysis):
-        analysis_results = analysis_workflow(result, qubits, delays)
+        analysis_results = analysis_workflow(result, temp_qubits, delays)
         qubit_parameters = analysis_results.output
         with workflow.if_(options.evaluate):
             eval_flags = evaluate_experiment(
-                analysis_results, qubits, evaluation_parameters
+                analysis_results, temp_qubits, evaluation_parameters
             )
             with workflow.if_(options.update):
                 update_qpu(
@@ -209,7 +213,7 @@ def create_experiment(
             identical for qubits that use the same measure port.
         options:
             The options for building the workflow as an instance of
-            [EchoExperimentOptions], inheriting from [TuneupExperimentOptions].
+            [EchoExperimentOptions][], inheriting from [TuneupExperimentOptions][].
             See the docstrings of these classes for more details.
 
     Returns:
@@ -218,8 +222,7 @@ def create_experiment(
 
     Raises:
         ValueError:
-            If the conditions in validation.validate_and_convert_qubits_sweeps are not
-            fulfilled.
+            If the qubits and sweeps have incompatible shapes.
 
         ValueError:
             If the experiment uses calibration traces and the averaging mode is
@@ -227,17 +230,18 @@ def create_experiment(
 
     Example:
         ```python
-        options = TuneupExperimentOptions()
+        options = EchoExperimentOptions()
         options.count = 10
-        options.cal_traces = True
-        setup = DeviceSetup("my_device")
+        options.use_cal_traces = True
+        # QPU from a two-qubit device setup
         qpu = QPU(
-            quantum_elements=[TunableTransmonQubit("q0"), TunableTransmonQubit("q1")],
+            quantum_elements=TunableTransmonQubit.from_device_setup(setup),
             quantum_operations=TunableTransmonOperations(),
         )
+        q0, q1 = qpu["q0"], qpu["q1"]
         create_experiment(
             qpu=qpu,
-            qubits=["q0", "q1"],
+            qubits=[q0, q1],
             delays=[np.linspace(0, 30e-6, 51), np.linspace(0, 30e-6, 51)],
             options=options,
         )
@@ -245,8 +249,8 @@ def create_experiment(
     """
     # Define the custom options for the experiment
     opts = EchoExperimentOptions() if options is None else options
+    qubits = as_quantum_element_list(qubits)
 
-    qubits, delays = validation.validate_and_convert_qubits_sweeps(qubits, delays)
     if (
         opts.use_cal_traces
         and AveragingMode(opts.averaging_mode) == AveragingMode.SEQUENTIAL
@@ -259,7 +263,7 @@ def create_experiment(
 
     delays_sweep_pars = [
         SweepParameter(f"delays_{q.uid}", q_delays, axis_name=f"{q.uid}")
-        for q, q_delays in zip(qubits, delays, strict=False)
+        for q, q_delays in sweeps_per_quantum_element(qubits, delays)
     ]
     qop = qpu.quantum_operations
     # We will fix the length of the measure section to the longest section among

@@ -90,8 +90,7 @@ class TunableTransmonOperations(dsl.QuantumOperations):
             readout:
                 If true, the frequency of the readout line is set
                 instead. Setting the readout frequency to a sweep parameter
-                is only supported in spectroscopy mode. The LabOne Q compiler
-                will raise an error in other modes.
+                requires spectroscopy mode on QCCS or integration mode on ZQCS.
             rf:
                 If True, set the RF frequency of the transition.
                 If False, set the oscillator frequency directly instead.
@@ -160,6 +159,16 @@ class TunableTransmonOperations(dsl.QuantumOperations):
             # it does not.
             oscillator.modulation_type = ModulationType.HARDWARE
 
+            # The acquire oscillator must follow the sweep
+            acquire_calibration = calibration[q.signals["acquire"]]
+            acquire_oscillator = acquire_calibration.oscillator
+            if acquire_oscillator is None:
+                acquire_oscillator = acquire_calibration.oscillator = Oscillator(
+                    frequency=frequency
+                )
+            acquire_oscillator.frequency = frequency
+            acquire_oscillator.modulation_type = ModulationType.HARDWARE
+
     @dsl.quantum_operation
     def set_readout_amplitude(
         self,
@@ -207,18 +216,18 @@ class TunableTransmonOperations(dsl.QuantumOperations):
         measure_line, _ = q.readout_parameters()
         signal_calibration = calibration[q.signals[measure_line]]
 
-        if getattr(calibration, "_set_readout_amplitude", False):
-            # We mark the oscillator with a _set_readout_amplitude attribute to ensure
-            # that set_readout_amplitude isn't performed on the same signal twice.
-            # Ideally LabOne Q DSL provide a more direct method that removes the
-            # need for setting amplitude on the experiment calibration.
+        if getattr(signal_calibration, "_set_readout_amplitude", False):
+            # We mark the signal calibration with a _set_readout_amplitude attribute
+            # to ensure that set_readout_amplitude isn't performed on the same signal
+            # twice. Ideally LabOne Q DSL provide a more direct method that removes
+            # the need for setting amplitude on the experiment calibration.
             raise RuntimeError(
                 f"Readout amplitude of qubit {q.uid}"
                 f" measure line was set multiple times"
                 f" using the set_readout_amplitude operation.",
             )
 
-        calibration._set_readout_amplitude = True
+        signal_calibration._set_readout_amplitude = True
         signal_calibration.amplitude = amplitude
 
     @dsl.quantum_operation
@@ -915,6 +924,45 @@ class TunableTransmonOperations(dsl.QuantumOperations):
             pulse=spectroscopy_pulse,
         )
 
+    @dsl.quantum_operation
+    def flux_pulse(
+        self,
+        q: TunableTransmonQubit,
+        amplitude: float | SweepParameter,
+        length: float | SweepParameter,
+        pulse: dict | None = None,
+    ) -> None:
+        """Play a pulse on the flux line of the qubit.
+
+        Arguments:
+            q:
+                The qubit to apply the flux pulse to.
+            amplitude:
+                The amplitude of the pulse.
+            length:
+                The duration of the pulse.
+            pulse:
+                A dictionary of overrides for the flux pulse parameters.
+
+                The dictionary may contain sweep parameters for the pulse
+                parameters other than `function`.
+
+                If the `function` parameter is different to the one
+                specified for the qubit, then this override dictionary
+                completely replaces the existing pulse parameters.
+
+                Otherwise, the values override or extend the existing ones.
+        """
+        flux_line, params = q.flux_parameters()
+        flux_pulse = dsl.create_pulse(params["pulse"], pulse, name="flux_pulse")
+
+        dsl.play(
+            q.signals[flux_line],
+            amplitude=amplitude,
+            length=length,
+            pulse=flux_pulse,
+        )
+
     @dsl.quantum_operation(broadcast=False)
     def ramsey(
         self,
@@ -944,7 +992,7 @@ class TunableTransmonOperations(dsl.QuantumOperations):
                 The transition to rotate. By default this is "ge"
                 (i.e. the 0-1 transition).
 
-        Raise:
+        Raises:
             ValueError:
                 If the transition is not "ge" nor "ef".
 
@@ -1004,11 +1052,13 @@ class TunableTransmonOperations(dsl.QuantumOperations):
         drive_line_ge, _ = q.transition_parameters("ge")
         _, params_ef = q.transition_parameters("ef")
         frequency = q.parameters.drive_frequency_ef - q.parameters.drive_frequency_ge
-        drag_params = list(params_ef["pulse"].items())
+        envelope_params = dict(params_ef["pulse"])
         rst_pls_params = {
             "function": "x180_ef_reset_pulse",
             "frequency": frequency,
-            "pulse_params": tuple(drag_params),
+            "envelope_function": envelope_params.pop("function"),
+            # the remaining parameters of the ef pulse are passed on to its sampler
+            **envelope_params,
         }
         reset_pulse = dsl.create_pulse(rst_pls_params, name="x180_ef_reset")
         dsl.play(
@@ -1189,9 +1239,9 @@ class TunableTransmonOperations(dsl.QuantumOperations):
 def x180_ef_reset_pulse(
     x: np.ndarray,
     frequency: float,
-    pulse_params: list[tuple],
     length: float,
-    **_,
+    envelope_function: str = "drag",
+    **envelope_params,
 ) -> np.ndarray:
     """Modulated x180 pulse on the ef transition, used for active reset.
 
@@ -1200,20 +1250,23 @@ def x180_ef_reset_pulse(
             Array between -1 and 1.
         frequency:
             Modulation frequency of the pulse.
-        pulse_params:
-            Parameters of the pulse functional.
         length:
             Pulse length.
-        **_: keyword arguments
+        envelope_function:
+            Name of the pulse functional used to sample the pulse envelope.
+        **envelope_params: keyword arguments
+            The parameters of `envelope_function`, for example `beta` and `sigma`
+            for the default `drag` envelope. Also contains the keyword arguments
+            that LabOne Q passes to every sampler:
+
             uid ([str][]): Unique identifier of the pulse
-            length ([float][]): Length of the pulse in seconds
             amplitude ([float][]): Amplitude of the pulse
+            sampling_rate ([float][]): Sampling rate of the device
 
     Returns:
         the array describing the pulse waveform
     """
-    pls_kwags = dict(pulse_params)
-    pulse_func = pls_kwags.pop("function")
     time = 0.5 * (x + 1) * length
-    wfm = dsl.pulse_library.pulse_factory(pulse_func)(**pls_kwags).evaluate(x)
+    envelope_sampler = dsl.pulse_library.pulse_sampler(envelope_function)
+    wfm = envelope_sampler(x, length=length, **envelope_params)
     return np.exp(-1j * 2 * np.pi * frequency * time) * wfm

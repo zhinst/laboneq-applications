@@ -20,22 +20,22 @@ The Wigner function at each phase-space point β is recovered as:
 
 Example — 1D scan along the real axis::
 
-    wigner_tomography_demonstrator(
+    experiment_workflow(
         session=session,
-        qop=qop,
-        q=qubit,
-        beta_re_values=np.linspace(-4, 4, 41),
-    )
+        qpu=qpu,
+        qubits="q0",
+        beta_re_values=[np.linspace(-4, 4, 41)],
+    ).run()
 
 Example — full 2D scan::
 
-    wigner_tomography_demonstrator(
+    experiment_workflow(
         session=session,
-        qop=qop,
-        q=qubit,
-        beta_re_values=np.linspace(-4, 4, 41),
-        beta_im_values=np.linspace(-4, 4, 41),
-    )
+        qpu=qpu,
+        qubits="q0",
+        beta_re_values=[np.linspace(-4, 4, 41)],
+        beta_im_values=[np.linspace(-4, 4, 41)],
+    ).run()
 """
 
 from __future__ import annotations
@@ -60,6 +60,7 @@ from laboneq.workflow.tasks import (
 from laboneq_applications.contrib.analysis.bosonic_qubits import (
     wigner_tomography_demonstrator as wigner_tomography_demonstrator_analysis,
 )
+from laboneq_applications.conversion import as_quantum_element_list
 from laboneq_applications.experiments.options import (
     BaseExperimentOptions,
 )
@@ -93,8 +94,8 @@ class WignerTomographyExperimentOptions:
             discrimination thresholds on the readout acquire
             line.
         chunk_count:
-            Number of sweep points per chunk. Default: 0 (auto
-            chunking). Adjusting this can help manage memory usage
+            Number of chunks the real-time sweep is split into.
+            Default: 1 (0 = auto chunking). Adjusting this can help manage memory usage
             and experiment duration, especially for large 2D scans.
     """
 
@@ -135,15 +136,15 @@ def experiment_workflow(
 
     The workflow consists of the following steps:
 
-    - [compute_sweep_parameters]()
-    - [create_experiment]()
-    - [compile_experiment]()
-    - [run_experiment]()
-    - [analysis_workflow]()
+    - [compute_sweep_parameters][]
+    - [create_experiment][]
+    - [compile_experiment][]
+    - [run_experiment][]
+    - [analysis_workflow][]
 
     Steps that can be added in the future include:
 
-    - [update_qpu]()
+    - [update_qpu][]
 
     The workflow supports two scan modes:
 
@@ -174,25 +175,22 @@ def experiment_workflow(
             used. Default: ``None``.
 
     Returns:
-        Tuple of ``(result, wigner_data, figures)`` where:
-
-        ``result``
-            The raw LabOne Q experiment results.
-        ``wigner_data``
-            Dictionary with the extracted Wigner function,
-            parity, and P(|g⟩) values.
-        ``figures``
-            Dictionary mapping figure names to matplotlib
-            ``Figure`` objects.
+        result:
+            The result of the workflow.
 
     Example:
         1D line cut along the real axis:
 
         ```python
-        result = wigner_tomography_demonstrator.experiment_workflow(
+        # QPU from a single-qubit device setup
+        qpu = QPU(
+            quantum_elements=BosonicQubit.from_device_setup(setup),
+            quantum_operations=BosonicQubitOperations(),
+        )
+        result = experiment_workflow(
             session=session,
             qpu=qpu,
-            qubits=qpu.quantum_element_uids,
+            qubits="q0",
             beta_re_values=[np.linspace(-4, 4, 41)],
         ).run()
         ```
@@ -200,28 +198,33 @@ def experiment_workflow(
         Full 2D phase-space scan:
 
         ```python
-        result = wigner_tomography_demonstrator.experiment_workflow(
+        # QPU from a single-qubit device setup
+        qpu = QPU(
+            quantum_elements=BosonicQubit.from_device_setup(setup),
+            quantum_operations=BosonicQubitOperations(),
+        )
+        result = experiment_workflow(
             session=session,
             qpu=qpu,
-            qubits=qpu.quantum_element_uids,
+            qubits="q0",
             beta_re_values=[np.linspace(-4, 4, 41)],
             beta_im_values=[np.linspace(-4, 4, 41)],
         ).run()
         ```
     """
     temp_qpu = temporary_qpu(qpu, temporary_parameters)
-    qubits = temporary_quantum_elements_from_qpu(temp_qpu, qubits)
+    temp_qubits = temporary_quantum_elements_from_qpu(temp_qpu, qubits)
     sweep_data = compute_sweep_parameters(beta_re_values, beta_im_values)
     exp = create_experiment(
-        qpu,
-        qubits,
+        temp_qpu,
+        temp_qubits,
         sweep_data,
     )
     compiled_exp = compile_experiment(session, exp)
     result = run_experiment(session, compiled_exp)
     with workflow.if_(options.do_analysis):
         wigner_tomography_demonstrator_analysis.analysis_workflow(
-            result, qpu, qubits, sweep_data
+            result, temp_qubits, sweep_data
         )
     workflow.return_(result)
 
@@ -252,12 +255,25 @@ def create_experiment(
             Must provide per-qubit ``amp_values`` and
             ``phase_values`` lists, all of equal length.
         options:
-            Workflow options.
+            The options for building the experiment.
+            See [WignerTomographyExperimentOptions][] and
+            [BaseExperimentOptions][laboneq_applications.experiments.options.BaseExperimentOptions]
+            for accepted options.
 
     Returns:
         The LabOne Q ``Experiment`` object, ready for compilation.
+
+    Raises:
+        ValueError:
+            If ``sweep_data`` does not have one entry per qubit.
     """
     opts = WignerTomographyExperimentOptions() if options is None else options
+    qubits = as_quantum_element_list(qubits)
+    if len(sweep_data["amp_values"]) != len(qubits):
+        raise ValueError(
+            "sweep_data must have one entry per qubit "
+            f"(got {len(sweep_data['amp_values'])}, expected {len(qubits)})."
+        )
 
     qop = qpu.quantum_operations
 
@@ -293,6 +309,9 @@ def create_experiment(
         count=opts.count,
         averaging_mode=opts.averaging_mode,
         acquisition_type=opts.acquisition_type,
+        repetition_mode=opts.repetition_mode,
+        repetition_time=opts.repetition_time,
+        reset_oscillator_phase=opts.reset_oscillator_phase,
     ):
         with dsl.sweep(**sweep_kwargs):
             for q, amp_param, phase_param in zip(
@@ -307,10 +326,7 @@ def create_experiment(
                     beta_phase=phase_param,
                     handle=dsl.handles.result_handle(q.uid),
                 )
-                qop.passive_reset(
-                    q,
-                    delay=q.parameters.reset_delay_length,
-                )
+                qop.passive_reset(q)
 
 
 @workflow.task
@@ -341,19 +357,13 @@ def compute_sweep_parameters(
     Returns:
         Dictionary containing per-qubit (list-indexed) entries:
 
-        ``"amp_values"``
-            List of flattened |β| arrays, one per qubit.
-        ``"phase_values"``
-            List of flattened arg(β) arrays (radians), one per
-            qubit.
-        ``"beta_re_values"``
-            List of input Re(β) arrays.
-        ``"beta_im_values"``
-            List of input Im(β) arrays (or ``None`` per qubit).
-        ``"is_2d"``
-            List of bool flags, ``True`` if that qubit's scan is 2D.
-        ``"n_re"``, ``"n_im"``
-            Lists of grid sizes per qubit.
+            - ``"amp_values"``: List of flattened |β| arrays, one per qubit.
+            - ``"phase_values"``: List of flattened arg(β) arrays (radians), one per
+              qubit.
+            - ``"beta_re_values"``: List of input Re(β) arrays.
+            - ``"beta_im_values"``: List of input Im(β) arrays (or ``None`` per qubit).
+            - ``"is_2d"``: List of bool flags, ``True`` if that qubit's scan is 2D.
+            - ``"n_re"``, ``"n_im"``: Lists of grid sizes per qubit.
     """
     n_qubits = len(beta_re_values)
 

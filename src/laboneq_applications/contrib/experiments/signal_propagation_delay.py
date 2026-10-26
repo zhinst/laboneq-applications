@@ -18,9 +18,9 @@ from __future__ import annotations
 import logging
 from typing import TYPE_CHECKING, Any
 
-from laboneq.dsl.quantum import QuantumElement, QuantumParameters
+from laboneq.dsl.quantum import QuantumParameters
 from laboneq.simple import Experiment, SweepParameter, dsl
-from laboneq.workflow import else_, if_, task, workflow
+from laboneq.workflow import else_, if_, log, task, workflow
 from laboneq.workflow.tasks import (
     compile_experiment,
     run_experiment,
@@ -28,6 +28,10 @@ from laboneq.workflow.tasks import (
 
 from laboneq_applications.contrib.analysis.signal_propagation_delay import (
     analysis_workflow,
+)
+from laboneq_applications.conversion import (
+    as_single_quantum_element,
+    sweeps_per_quantum_element,
 )
 from laboneq_applications.experiments.options import (
     TuneupExperimentOptions,
@@ -44,14 +48,14 @@ if TYPE_CHECKING:
     from laboneq.dsl.session import Session
     from laboneq.workflow import WorkflowResult
 
-    from laboneq_applications.typing import QubitSweepPoints
+    from laboneq_applications.typing import QuantumElements, QubitSweepPoints
 
 
-@workflow
+@workflow(name="signal_propagation_delay")
 def experiment_workflow(
     session: Session,
     qpu: QPU,
-    qubit: str,
+    qubit: str | list[str],
     *,
     delays: QubitSweepPoints,
     measure_delay: float | None = None,
@@ -63,24 +67,24 @@ def experiment_workflow(
 
     The workflow consists of the following steps:
 
-    - [create_experiment]()
-    - [compile_experiment]()
-    - [run_experiment]()
-    - [analysis_workflow]()
-    - [evaluate_experiment]()
-    - [update_qpu]()
+    - [create_experiment][]
+    - [compile_experiment][]
+    - [run_experiment][]
+    - [analysis_workflow][]
+    - [evaluate_experiment][]
+    - [update_qpu][]
 
-    !!! version-removed "Removed in version 26.7.0."
+    !!! version-removed "Removed in version 26.7.0"
         The `qubit` argument of type `QuantumElement` has been removed.
         Please pass `qubit` of type `str` instead, i.e., the quantum
         element UID instead of the quantum element instance.
 
-    !!! version-changed "Changed in version 26.4.0."
+    !!! version-changed "Changed in version 26.4.0"
         The `evaluation_parameters` argument has been added, which is the dictionary of
         parameters used for the newly added evaluation task. All arguments apart from
         `session`, `qpu`, and `qubits` are now keyword arguments.
 
-    !!! version-changed "Changed in version 26.1.0."
+    !!! version-changed "Changed in version 26.1.0"
         The `temporary_parameters` positional argument was added in the
         penultimate position. Note that this is a breaking change if
         calling the experiment workflow with the `options` positional argument.
@@ -105,9 +109,11 @@ def experiment_workflow(
             The temporary parameters to update the qubit with.
         options:
             The options for building the workflow.
-            In addition to options from [WorkflowOptions], the following
+            In addition to options from
+            [WorkflowOptions][laboneq.workflow.WorkflowOptions], the following
             custom options are supported:
-                - create_experiment: The options for creating the experiment.
+
+            - create_experiment: The options for creating the experiment.
 
     Returns:
         result:
@@ -115,37 +121,38 @@ def experiment_workflow(
 
     Example:
         ```python
-        options = SpectroscopyWorkflowOptions()
-        options.create_experiment.count = 10
+        options = experiment_workflow.options()
+        options.count(10)
+        # QPU from a single-qubit device setup
         qpu = QPU(
-            qubit=[TunableTransmonQubit("q0"), TunableTransmonQubit("q1")],
+            quantum_elements=TunableTransmonQubit.from_device_setup(setup),
             quantum_operations=TunableTransmonOperations(),
         )
-        result = run(
+        result = experiment_workflow(
             session=session,
             qpu=qpu,
             qubit="q0",
             delays=np.linspace(0e-9, 100e-9, 51),
             options=options,
-        )
+        ).run()
         ```
     """
     temp_qpu = temporary_qpu(qpu, temporary_parameters)
-    qubit = temporary_quantum_elements_from_qpu(temp_qpu, qubit)
+    temp_qubit = temporary_quantum_elements_from_qpu(temp_qpu, qubit)
     exp = create_experiment(
-        qpu,
-        qubit,
+        temp_qpu,
+        temp_qubit,
         delays=delays,
         measure_delay=measure_delay,
     )
     compiled_exp = compile_experiment(session, exp)
     _result = run_experiment(session, compiled_exp)
     with if_(options.do_analysis):
-        analysis_results = analysis_workflow(_result, qubit, delays)
+        analysis_results = analysis_workflow(_result, temp_qubit, delays)
         qubit_parameters = analysis_results.tasks["extract_qubit_parameters"].output
         with if_(options.evaluate):
             eval_flags = evaluate_experiment(
-                analysis_results, qubit, evaluation_parameters
+                analysis_results, temp_qubit, evaluation_parameters
             )
             with if_(options.update):
                 update_qpu(
@@ -165,7 +172,7 @@ def experiment_workflow(
 @dsl.qubit_experiment
 def create_experiment(
     qpu: QPU,
-    qubit: QuantumElement,
+    qubit: QuantumElements,
     delays: QubitSweepPoints,
     measure_delay: float | None = None,
     options: TuneupExperimentOptions | None = None,
@@ -184,10 +191,11 @@ def create_experiment(
             Delay between subsequent measurements.
         options:
             The options for building the experiment.
-            See [TuneupExperimentOptions] and [BaseExperimentOptions] for
-            accepted options.
-            Overwrites the options from [TuneupExperimentOptions] and
-            [BaseExperimentOptions].
+            See [TuneupExperimentOptions][] and
+            [BaseExperimentOptions][laboneq_applications.experiments.options.BaseExperimentOptions]
+            for accepted options.
+            Overwrites the options from [TuneupExperimentOptions][] and
+            [BaseExperimentOptions][laboneq_applications.experiments.options.BaseExperimentOptions].
 
     Returns:
         experiment:
@@ -199,14 +207,15 @@ def create_experiment(
             "count": 10,
         }
         options = TuneupExperimentOptions(**options)
-        setup = DeviceSetup()
+        # QPU from a single-qubit device setup
         qpu = QPU(
-            qubits=[TunableTransmonQubit("q0"), TunableTransmonQubit("q1")],
+            quantum_elements=TunableTransmonQubit.from_device_setup(setup),
             quantum_operations=TunableTransmonOperations(),
         )
+        q0 = qpu["q0"]
         create_experiment(
             qpu=qpu,
-            qubit="q0",
+            qubit=q0,
             delays=np.linspace(0e-9, 100e-9, 51),
             options=options,
         )
@@ -214,6 +223,8 @@ def create_experiment(
     """
     # Define the custom options for the experiment
     opts = TuneupExperimentOptions() if options is None else options
+    qubit = as_single_quantum_element(qubit)
+    _, delays = next(sweeps_per_quantum_element(qubit, delays))
     qop = qpu.quantum_operations
     if measure_delay is None:
         measure_delay = 1e-6
@@ -239,7 +250,7 @@ def create_experiment(
 @task(save=False)
 def evaluate_experiment(
     analysis_results: WorkflowResult,
-    qubit: QuantumElement,
+    qubit: QuantumElements,
     evaluation_parameters: dict[str, Any] | None = None,
 ) -> dict[str, dict[str, bool]]:
     """Evaluates the signal propagation delay analysis workflow result.
@@ -255,7 +266,8 @@ def evaluate_experiment(
     Returns:
         The evaluation flags.
     """
-    workflow.log(
+    qubit = as_single_quantum_element(qubit)
+    log(
         logging.WARNING,
         "The `evaluate_experiment` task for "
         "`signal_propagation_delay` has not been implemented by the user. Marking "

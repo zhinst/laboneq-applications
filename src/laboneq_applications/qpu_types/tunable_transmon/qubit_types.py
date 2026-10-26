@@ -1,4 +1,4 @@
-# Copyright 2024 Zurich Instruments AG
+# Copyright 2026 Zurich Instruments AG
 # SPDX-License-Identifier: Apache-2.0
 
 """Tunable transmon qubits and parameters."""
@@ -8,6 +8,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Literal
 
 import attrs
+from laboneq.core.types.enums.port_mode import PortMode
 from laboneq.core.utilities.dsl_dataclass_decorator import classformatter
 from laboneq.dsl.calibration import Calibration, Oscillator, SignalCalibration
 from laboneq.dsl.enums import ModulationType
@@ -32,11 +33,28 @@ class TunableTransmonQubitParameters(QuantumParameters):
     !!! version-added "Added in version 2.15.0"
         The attribute 'flux_range' was added.
 
-    !!! version-changed "Deprecated in version 2.12.0."
+    !!! version-changed "Deprecated in version 2.12.0"
         The `user_defined` attribute is deprecated. Use the `custom` attribute from
         the `QuantumParameters` parent class instead.
 
     Attributes:
+        ge_T1:
+            Energy relaxation time of the g-e transition (seconds).
+        ge_T2:
+            Dephasing time of the g-e transition measured with a Hahn echo
+            (seconds).
+        ge_T2_star:
+            Dephasing time of the g-e transition measured with a Ramsey
+            experiment (seconds).
+        ef_T1:
+            Energy relaxation time of the e-f transition (seconds).
+        ef_T2:
+            Dephasing time of the e-f transition measured with a Hahn echo
+            (seconds).
+        ef_T2_star:
+            Dephasing time of the e-f transition measured with a Ramsey
+            experiment (seconds).
+
         drive_lo_frequency:
             Local oscillator frequency for the drive signals.
         readout_lo_frequency:
@@ -96,18 +114,24 @@ class TunableTransmonQubitParameters(QuantumParameters):
             Duration of the wait time for reset.
 
         drive_range:
-            Drive power setting, defaults to 10 dBm.
+            Drive power setting (dBm). Defaults to `None`, in which case the
+            range configured on the instrument is used.
         readout_range_out:
-            Readout output power setting, defaults to 5 dBm.
+            Readout output power setting (dBm). Defaults to `None`, in which case
+            the range configured on the instrument is used.
         readout_range_in:
-            Readout input power setting, defaults to 10 dBm.
+            Readout input power setting (dBm). Defaults to `None`, in which case
+            the range configured on the instrument is used.
         flux_range:
-            Voltage range for flux control line, defaults to 5 volts.
+            Voltage range for flux control line (volts). Defaults to `None`, in
+            which case the range configured on the instrument is used.
 
         spectroscopy_length:
             Length of the qubit drive pulse in spectroscopy (seconds).
         spectroscopy_amplitude:
             Amplitude of the qubit drive pulse in spectroscopy.
+        spectroscopy_pulse:
+            Pulse parameters for the qubit drive pulse in spectroscopy.
 
         dc_slot:
             Slot number on the DC source used for applying a DC voltage to the qubit.
@@ -115,6 +139,11 @@ class TunableTransmonQubitParameters(QuantumParameters):
             Qubit DC parking voltage.
         flux_offset_voltage:
             Offset voltage for flux control line - defaults to 0.
+        flux_on_sg_channel:
+            Whether the flux line is driven by an SG channel. If true, the SG channel is
+            put into LF mode with its local oscillator at 0 Hz. Defaults to `False`.
+        flux_pulse:
+            Pulse parameters for pulses played on the flux line.
         user_defined:
             Free-form dictionary of user-defined parameters (deprecated).
     """
@@ -191,10 +220,10 @@ class TunableTransmonQubitParameters(QuantumParameters):
 
     # power range parameters
 
-    drive_range: float = 10
-    readout_range_out: float = 5
-    readout_range_in: float = 10
-    flux_range: float = 5
+    drive_range: float | None = None
+    readout_range_out: float | None = None
+    readout_range_in: float | None = None
+    flux_range: float | None = None
 
     # spectroscopy parameters
 
@@ -212,6 +241,12 @@ class TunableTransmonQubitParameters(QuantumParameters):
     dc_slot: int | None = 0
     dc_voltage_parking: float | None = 0.0
     flux_offset_voltage: float = 0.0
+    flux_on_sg_channel: bool = False
+    flux_pulse: dict = attrs.field(
+        factory=lambda: {
+            "function": "const",
+        },
+    )
 
     # free-form dictionary of user-defined parameters (deprecated)
     user_defined: dict = attrs.field(factory=dict)
@@ -312,6 +347,17 @@ class TunableTransmonQubit(QuantumElement):
         }
         return "acquire", params
 
+    def flux_parameters(self) -> tuple[str, dict]:
+        """Return the flux line and the flux-pulse parameters.
+
+        Returns:
+           line:
+               The flux line of the qubit.
+           params:
+               The flux-pulse parameters.
+        """
+        return "flux", {"pulse": self.parameters.flux_pulse}
+
     def spectroscopy_parameters(self) -> tuple[str, dict]:
         """Return the qubit-spectroscopy line and the spectroscopy-pulse parameters.
 
@@ -330,7 +376,7 @@ class TunableTransmonQubit(QuantumElement):
 
         Returns:
             A list consisting of a single constant pulse with length equal to
-            `readout_integration_length`.
+                `readout_integration_length`.
         """
         return [
             dsl.create_pulse(
@@ -496,8 +542,12 @@ class TunableTransmonQubit(QuantumElement):
                 )
             calibration_items[self.signals["acquire"]] = sig_cal
         if "flux" in self.signals:
-            calibration_items[self.signals["flux"]] = SignalCalibration(
+            sig_cal = SignalCalibration(
                 voltage_offset=self.parameters.flux_offset_voltage,
                 range=self.parameters.flux_range,
             )
+            if self.parameters.flux_on_sg_channel:
+                sig_cal.local_oscillator = Oscillator(frequency=0.0)
+                sig_cal.port_mode = PortMode.LF
+            calibration_items[self.signals["flux"]] = sig_cal
         return Calibration(calibration_items)

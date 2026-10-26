@@ -16,6 +16,7 @@ Combined with a preceding transmon π pulse, it prepares a
 The SWAP is parameterised by the drive amplitude and duration.
 
 Calibration modes:
+
 1. Length sweep:
    - SWAP length swept in near time
    - amplitude fixed from stored qubit parameter
@@ -52,13 +53,18 @@ from laboneq.workflow.tasks import (
 from laboneq_applications.contrib.analysis.bosonic_qubits import (
     swap_calibration as swap_calibration_analysis,
 )
-from laboneq_applications.core import validation
+from laboneq_applications.conversion import (
+    as_quantum_element_list,
+    sweeps_per_quantum_element,
+)
 from laboneq_applications.experiments.options import (
-    TuneupExperimentOptions,
+    BaseExperimentOptions,
+    TuneUpWorkflowOptions,
 )
 from laboneq_applications.tasks import (
     temporary_qpu,
     temporary_quantum_elements_from_qpu,
+    update_qpu,
 )
 
 if TYPE_CHECKING:
@@ -71,25 +77,21 @@ if TYPE_CHECKING:
     )
 
 
-@workflow.task_options(base_class=TuneupExperimentOptions)
+@workflow.task_options(base_class=BaseExperimentOptions)
 class SwapExperimentOptions:
-    """Options for the SWAP calibration experiment."""
-
-    swap_pulse: dict | None = None
-    chunk_count: int = 1
-
-
-@workflow.workflow_options
-class SwapCalibrationWorkflowOptions:
-    """Options for the SWAP calibration workflow.
+    """Options for the SWAP calibration experiment.
 
     Attributes:
-        do_analysis:
-            Whether to run the analysis workflow after the
-            experiment. Default: True.
+        swap_pulse:
+            Dictionary of pulse overrides for the SWAP pulse. If None,
+            the qubit parameter ``swap_pulse`` is used.
+        chunk_count:
+            Number of chunks the real-time amplitude sweep is split
+            into. Default: 1 (0 = auto chunking).
     """
 
-    do_analysis: bool = True
+    swap_pulse: dict | None = None
+    chunk_count: int = 1  # 0 = auto chunking
 
 
 @workflow.workflow(name="swap_calibration")
@@ -101,20 +103,17 @@ def experiment_workflow(
     swap_durations: QubitSweepPoints | None = None,
     swap_amplitudes: QubitSweepPoints | None = None,
     temporary_parameters: dict[str, dict | QuantumParameters] | None = None,
-    options: SwapCalibrationWorkflowOptions | None = None,
+    options: TuneUpWorkflowOptions | None = None,
 ) -> None:
     """The SWAP gate calibration workflow.
 
     The workflow consists of the following steps:
 
-    - [create_experiment]()
-    - [compile_experiment]()
-    - [run_experiment]()
-    - [analysis_workflow]()
-
-    Steps that can be added in the future include:
-
-    - [update_qpu]()
+    - [create_experiment][]
+    - [compile_experiment][]
+    - [run_experiment][]
+    - [analysis_workflow][]
+    - [update_qpu][]
 
     Modes:
         - Only swap_durations given  -> near-time length sweep
@@ -142,10 +141,15 @@ def experiment_workflow(
         temporary_parameters:
             The temporary parameters to update the qubits with.
         options:
-            The options for building the workflow.
-            In addition to options from [WorkflowOptions], the following
+            The options for building the workflow, passed as an instance of
+            [TuneUpWorkflowOptions][]. In addition to options from
+            [WorkflowOptions][laboneq.workflow.WorkflowOptions], the following
             custom options are supported:
-                - create_experiment: The options for creating the experiment.
+
+            - create_experiment: The options for creating the experiment.
+
+            Setting `update` to True stores the calibrated `swap_length`
+            and/or `swap_amplitude` in the qpu.
 
     Returns:
         result:
@@ -159,34 +163,49 @@ def experiment_workflow(
         Length sweep:
 
         ```python
-        result = swap_calibration.experiment_workflow(
+        # QPU from a single-qubit device setup
+        qpu = QPU(
+            quantum_elements=BosonicQubit.from_device_setup(setup),
+            quantum_operations=BosonicQubitOperations(),
+        )
+        result = experiment_workflow(
             session=session,
             qpu=qpu,
-            qubits=qpu.quantum_element_uids,
-            swap_durations=[np.linspace(100e-9, 600e-9, 51)],
+            qubits="q0",
+            swap_durations=np.linspace(100e-9, 600e-9, 51),
         ).run()
         ```
 
         Amplitude sweep:
 
         ```python
-        result = swap_calibration.experiment_workflow(
+        # QPU from a single-qubit device setup
+        qpu = QPU(
+            quantum_elements=BosonicQubit.from_device_setup(setup),
+            quantum_operations=BosonicQubitOperations(),
+        )
+        result = experiment_workflow(
             session=session,
             qpu=qpu,
-            qubits=qpu.quantum_element_uids,
-            swap_amplitudes=[np.linspace(0.1, 0.9, 51)],
+            qubits="q0",
+            swap_amplitudes=np.linspace(0.1, 0.9, 51),
         ).run()
         ```
 
         2D sweep (length x amplitude):
 
         ```python
-        result = swap_calibration.experiment_workflow(
+        # QPU from a single-qubit device setup
+        qpu = QPU(
+            quantum_elements=BosonicQubit.from_device_setup(setup),
+            quantum_operations=BosonicQubitOperations(),
+        )
+        result = experiment_workflow(
             session=session,
             qpu=qpu,
-            qubits=qpu.quantum_element_uids,
-            swap_durations=[np.linspace(100e-9, 600e-9, 21)],
-            swap_amplitudes=[np.linspace(0.1, 0.9, 21)],
+            qubits="q0",
+            swap_durations=np.linspace(100e-9, 600e-9, 21),
+            swap_amplitudes=np.linspace(0.1, 0.9, 21),
         ).run()
         ```
     """
@@ -196,24 +215,23 @@ def experiment_workflow(
         )
 
     temp_qpu = temporary_qpu(qpu, temporary_parameters)
-    qubits = temporary_quantum_elements_from_qpu(temp_qpu, qubits)
+    temp_qubits = temporary_quantum_elements_from_qpu(temp_qpu, qubits)
 
     exp = create_experiment(
         temp_qpu,
-        qubits,
+        temp_qubits,
         swap_durations=swap_durations,
         swap_amplitudes=swap_amplitudes,
     )
     compiled = compile_experiment(session, exp)
     result = run_experiment(session, compiled)
     with workflow.if_(options.do_analysis):
-        swap_calibration_analysis.analysis_workflow(
-            result,
-            qpu,
-            qubits,
-            swap_durations=swap_durations,
-            swap_amplitudes=swap_amplitudes,
+        analysis_results = swap_calibration_analysis.analysis_workflow(
+            result, temp_qubits, swap_durations, swap_amplitudes
         )
+        qubit_parameters = analysis_results.output
+        with workflow.if_(options.update):
+            update_qpu(qpu, qubit_parameters["new_parameter_values"])
     workflow.return_(result)
 
 
@@ -236,14 +254,15 @@ def create_experiment(
     opts = SwapExperimentOptions() if options is None else options
     sweep_mode = _get_sweep_mode(swap_durations, swap_amplitudes)
 
+    qubits = as_quantum_element_list(qubits)
     if swap_durations is not None:
-        qubits, swap_durations = validation.validate_and_convert_qubits_sweeps(
-            qubits, swap_durations
-        )
+        swap_durations = [
+            d for _, d in sweeps_per_quantum_element(qubits, swap_durations)
+        ]
     if swap_amplitudes is not None:
-        qubits, swap_amplitudes = validation.validate_and_convert_qubits_sweeps(
-            qubits, swap_amplitudes
-        )
+        swap_amplitudes = [
+            a for _, a in sweeps_per_quantum_element(qubits, swap_amplitudes)
+        ]
 
     n_qubits = len(qubits)
     q_durations_list = (

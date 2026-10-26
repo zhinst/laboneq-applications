@@ -29,9 +29,14 @@ import numpy as np
 from laboneq import workflow
 
 from laboneq_applications.analysis.fitting_helpers import fit_data_lmfit
+from laboneq_applications.analysis.options import BasePlottingOptions
+from laboneq_applications.conversion import (
+    as_quantum_element_list,
+    sweeps_per_quantum_element,
+)
 
 if TYPE_CHECKING:
-    from laboneq.dsl.quantum.qpu import QPU
+    import matplotlib as mpl
     from laboneq.workflow.tasks.run_experiment import (
         RunExperimentResults,
     )
@@ -47,34 +52,34 @@ if TYPE_CHECKING:
 # ═════════════════════════════════════════════════════════════
 
 
-@workflow.task_options
-class SelectiveTransmonRxAnalysisOptions:
-    """Options for the selective transmon Rx analysis.
+@workflow.workflow_options
+class SelectiveTransmonRxAnalysisWorkflowOptions:
+    """Options for the selective transmon Rx analysis workflow.
 
     Attributes:
-        generate_plot:
-            Whether to generate plots. Default: True.
-        show_plot:
-            Whether to show plots in the terminal. Default: True.
-        save_figures:
-            Whether to save the figures. Default: False.
-        save_path:
-            Path to save the figures. Default: "./"
+        do_plotting:
+            Whether to create plots.
+            Default: True.
+    """
+
+    do_plotting: bool = workflow.option_field(
+        True, description="Whether to create plots."
+    )
+
+
+@workflow.task_options
+class SelectiveTransmonRxFitDataOptions:
+    """Options for the `fit_data` task of the selective transmon Rx analysis.
+
+    Attributes:
         num_fit_points:
             Number of points for the smooth fit curve in plots.
             Default: 201.
     """
 
-    generate_plot: bool = True
-    show_plot: bool = True
-    save_figures: bool = False
-    save_path: str = "./"
-    num_fit_points: int = 201
-
-
-@workflow.workflow_options
-class SelectiveTransmonRxAnalysisWorkflowOptions:
-    """Options for the selective transmon Rx analysis workflow."""
+    num_fit_points: int = workflow.option_field(
+        201, description="Number of points for the smooth fit curve."
+    )
 
 
 # ═════════════════════════════════════════════════════════════
@@ -82,153 +87,263 @@ class SelectiveTransmonRxAnalysisWorkflowOptions:
 # ═════════════════════════════════════════════════════════════
 
 
-@workflow.workflow(name="selective_transmon_Rx_calibration_analysis")
+@workflow.workflow
 def analysis_workflow(
     result: RunExperimentResults,
-    qpu: QPU,
     qubits: QuantumElements,
-    *,
     amplitudes_transmon: QubitSweepPoints,
     photon_numbers_memory: list[int],
-    options: (SelectiveTransmonRxAnalysisWorkflowOptions | None) = None,
+    options: SelectiveTransmonRxAnalysisWorkflowOptions | None = None,
 ) -> None:
     """The selective transmon Rx analysis workflow.
 
-    Fits Rabi oscillations for each (qubit, photon number) pair
-    and produces diagnostic plots.
+    The workflow consists of the following steps:
+
+    - [fit_data][]
+    - [extract_qubit_parameters][]
+    - [plot_rabi_oscillations][]
+    - [plot_amplitudes_vs_photon_number][]
 
     Arguments:
         result:
-            The result of the selective Rabi experiment.
-        qpu:
-            The qpu consisting of the original qubits and
-            quantum operations.
+            The experiment results returned by the run_experiment task.
         qubits:
-            The qubits the experiment was run on.
+            The qubits on which to run the analysis. May be either a single qubit or
+            a list of qubits. The UIDs of these qubits must exist in the result.
         amplitudes_transmon:
-            The selective drive amplitudes that were swept.
+            The selective drive amplitudes that were swept for each qubit.
         photon_numbers_memory:
             List of cavity photon numbers that were calibrated.
         options:
-            The options for the analysis workflow.
+            The options for building the workflow, passed as an instance of
+            [SelectiveTransmonRxAnalysisWorkflowOptions][].
 
     Returns:
-        result:
-            The result of the analysis workflow.
+        WorkflowBuilder:
+            The builder for the analysis workflow.
+
+    Example:
+        ```python
+        analysis_result = analysis_workflow(
+            result=result,
+            qubits=q0,
+            amplitudes_transmon=np.linspace(0.0, 1.0, 51),
+            photon_numbers_memory=[0, 1, 2, 3],
+        ).run()
+        ```
     """
-    analyze(
-        result,
-        qpu,
-        qubits,
-        amplitudes_transmon=amplitudes_transmon,
-        photon_numbers_memory=photon_numbers_memory,
+    processed_data_dict = fit_data(
+        qubits, result, amplitudes_transmon, photon_numbers_memory
     )
+    qubit_parameters = extract_qubit_parameters(qubits, processed_data_dict)
+    with workflow.if_(options.do_plotting):
+        plot_rabi_oscillations(qubits, processed_data_dict)
+        plot_amplitudes_vs_photon_number(qubits, processed_data_dict)
+    workflow.return_(qubit_parameters)
 
 
 # ═════════════════════════════════════════════════════════════
-# Analysis task
+# Analysis tasks
 # ═════════════════════════════════════════════════════════════
-
-
-def _ensure_list(qubits: QuantumElements) -> list:
-    if not isinstance(qubits, list):
-        return [qubits]
-    return qubits
-
-
-def _broadcast_sweep_points(
-    points: QubitSweepPoints,
-    n_qubits: int,
-) -> list:
-    """Ensure sweep points list matches qubit count."""
-    if not isinstance(points, list):
-        points = [points]
-    if len(points) == 1 and n_qubits > 1:
-        points = points * n_qubits
-    return points
 
 
 @workflow.task
-def analyze(
-    result: RunExperimentResults,
-    qpu: QPU,
+def fit_data(
     qubits: QuantumElements,
+    result: RunExperimentResults,
     amplitudes_transmon: QubitSweepPoints,
     photon_numbers_memory: list[int],
-    options: SelectiveTransmonRxAnalysisOptions | None = None,
-) -> dict:
-    """Analyze the selective transmon Rx calibration results.
+    options: SelectiveTransmonRxFitDataOptions | None = None,
+) -> dict[str, dict]:
+    """Fit the selective Rabi oscillations.
 
     For each (qubit, photon number) pair:
+
     1. Extracts the Rabi oscillation data.
     2. Fits a cosine model to determine the oscillation period.
     3. Extracts the pi and pi/2 pulse amplitudes.
 
     Arguments:
-        result:
-            The result of the selective transmon Rx experiment.
-        qpu:
-            The qpu consisting of the original qubits and
-            quantum operations.
         qubits:
-            The qubits the experiment was run on.
+            The qubits on which to run the analysis.
+        result:
+            The experiment results returned by the run_experiment task.
         amplitudes_transmon:
-            The selective drive amplitudes that were swept.
+            The selective drive amplitudes that were swept for each qubit.
         photon_numbers_memory:
             List of cavity photon numbers that were calibrated.
         options:
-            The options for the analysis task.
+            The options for this task as an instance of
+            [SelectiveTransmonRxFitDataOptions][].
 
     Returns:
-        analysis_results:
-            Dictionary keyed by qubit UID. Each entry contains:
+        Dictionary keyed by qubit UID. Each entry contains:
 
-            ``"photon_numbers_memory"``
-                The photon numbers that were calibrated.
-            ``"amplitudes_transmon"``
-                The amplitude sweep array.
-            ``"rabi_data"``
-                Dict keyed by photon number n, each containing:
-                ``"raw_data"``, ``"fit_params"``, ``"amp_pi"``,
-                ``"amp_pi2"``, ``"fit_x"``, ``"fit_y"``.
-            ``"amp_pi_vs_n"``
-                Array of π amplitudes, one per photon number.
-            ``"amp_pi2_vs_n"``
-                Array of π/2 amplitudes, one per photon number.
-            ``"figures"``
-                Dictionary of matplotlib figures.
+            - ``"amplitudes"``: The amplitude sweep array.
+            - ``"photon_numbers"``: The photon numbers that were calibrated.
+            - ``"rabi_data"``: Dict keyed by ``str(n)``, each containing:
+              ``"raw_data"``, ``"fit_params"``, ``"fit_success"``,
+              ``"amp_pi"``, ``"amp_pi2"``, ``"fit_x"``, ``"fit_y"``.
+              ``"fit_params"`` is empty if the fit failed.
+            - ``"amp_pi_vs_n"``: Array of π amplitudes, one per photon number.
+            - ``"amp_pi2_vs_n"``: Array of π/2 amplitudes, one per photon number.
     """
-    opts = SelectiveTransmonRxAnalysisOptions() if options is None else options
+    opts = SelectiveTransmonRxFitDataOptions() if options is None else options
+    qubits = as_quantum_element_list(qubits)
 
-    qubits = _ensure_list(qubits)
-    amplitudes_transmon = _broadcast_sweep_points(
-        amplitudes_transmon,
-        len(qubits),
-    )
-
-    analysis_results = {}
-    for q, q_amplitudes_raw in zip(qubits, amplitudes_transmon, strict=False):
-        q_amplitudes_transmon = np.asarray(q_amplitudes_raw)
-
-        qubit_result = _analyze_single_qubit(
+    processed_data_dict = {}
+    for q, q_amplitudes_raw in sweeps_per_quantum_element(qubits, amplitudes_transmon):
+        processed_data_dict[q.uid] = _analyze_single_qubit(
             q,
             result,
-            q_amplitudes_transmon,
+            np.asarray(q_amplitudes_raw),
             photon_numbers_memory,
             opts,
         )
+    return processed_data_dict
 
-        if opts.generate_plot:
-            _generate_plots(
-                qubit_result,
-                q.uid,
-                photon_numbers_memory,
-                opts,
-            )
 
-        analysis_results[q.uid] = qubit_result
+@workflow.task
+def extract_qubit_parameters(
+    qubits: QuantumElements,
+    processed_data_dict: dict[str, dict],
+) -> dict[str, dict[str, dict[str, list[float]]]]:
+    """Extract the selective X180 and X90 amplitudes from the fit results.
 
-    return analysis_results
+    Arguments:
+        qubits:
+            The qubits on which to run the analysis.
+        processed_data_dict:
+            The processed data dictionary returned by fit_data.
+
+    Returns:
+        dict with the extracted qubit parameters and their previous values:
+
+            ```python
+            {
+                "new_parameter_values": {
+                    q.uid: {
+                        "selective_transmon_X180_amplitudes": [...],
+                        "selective_transmon_X90_amplitudes": [...],
+                    },
+                },
+                "old_parameter_values": {...},  # same form
+            }
+            ```
+
+            The new amplitude lists are copies of the old ones with the entries
+            for the successfully fitted photon numbers replaced. If no photon
+            number was fitted successfully for a qubit, its new_parameter_values
+            entry is left empty.
+    """
+    qubits = as_quantum_element_list(qubits)
+    qubit_parameters = {
+        "old_parameter_values": {q.uid: {} for q in qubits},
+        "new_parameter_values": {q.uid: {} for q in qubits},
+    }
+    for q in qubits:
+        old_x180 = list(q.parameters.selective_transmon_X180_amplitudes)
+        old_x90 = list(q.parameters.selective_transmon_X90_amplitudes)
+        qubit_parameters["old_parameter_values"][q.uid] = {
+            "selective_transmon_X180_amplitudes": old_x180,
+            "selective_transmon_X90_amplitudes": old_x90,
+        }
+        new_x180, new_x90 = list(old_x180), list(old_x90)
+        updated = False
+        for n_str, rabi in processed_data_dict[q.uid]["rabi_data"].items():
+            n = int(n_str)
+            if not (rabi["fit_success"] and np.isfinite(rabi["amp_pi"])):
+                continue
+            new_x180[n] = rabi["amp_pi"]
+            new_x90[n] = rabi["amp_pi2"]
+            updated = True
+        if updated:
+            qubit_parameters["new_parameter_values"][q.uid] = {
+                "selective_transmon_X180_amplitudes": new_x180,
+                "selective_transmon_X90_amplitudes": new_x90,
+            }
+    return qubit_parameters
+
+
+@workflow.task
+def plot_rabi_oscillations(
+    qubits: QuantumElements,
+    processed_data_dict: dict[str, dict],
+    options: BasePlottingOptions | None = None,
+) -> dict[str, mpl.figure.Figure]:
+    """Plot the selective Rabi oscillations and their fits per photon number.
+
+    Arguments:
+        qubits:
+            The qubits on which to run the analysis.
+        processed_data_dict:
+            The processed data dictionary returned by fit_data.
+        options:
+            The options for this task as an instance of [BasePlottingOptions][].
+
+    Returns:
+        dict with qubit UIDs as keys and the figures for each qubit as values.
+    """
+    opts = BasePlottingOptions() if options is None else options
+    qubits = as_quantum_element_list(qubits)
+    figures = {}
+    for q in qubits:
+        qubit_result = processed_data_dict[q.uid]
+        fig = _plot_rabi_oscillations(
+            q.uid,
+            qubit_result["amplitudes"],
+            qubit_result["rabi_data"],
+            qubit_result["photon_numbers"],
+        )
+        _save_and_close(fig, f"selective_transmon_rx_{q.uid}_rabi_oscillations", opts)
+        figures[q.uid] = fig
+    return figures
+
+
+@workflow.task
+def plot_amplitudes_vs_photon_number(
+    qubits: QuantumElements,
+    processed_data_dict: dict[str, dict],
+    options: BasePlottingOptions | None = None,
+) -> dict[str, mpl.figure.Figure]:
+    """Plot the fitted pi and pi/2 amplitudes vs. photon number.
+
+    Arguments:
+        qubits:
+            The qubits on which to run the analysis.
+        processed_data_dict:
+            The processed data dictionary returned by fit_data.
+        options:
+            The options for this task as an instance of [BasePlottingOptions][].
+
+    Returns:
+        dict with qubit UIDs as keys and the figures for each qubit as values.
+    """
+    opts = BasePlottingOptions() if options is None else options
+    qubits = as_quantum_element_list(qubits)
+    figures = {}
+    for q in qubits:
+        qubit_result = processed_data_dict[q.uid]
+        fig = _plot_amplitude_summary(
+            q.uid,
+            qubit_result["photon_numbers"],
+            qubit_result["amp_pi_vs_n"],
+            qubit_result["amp_pi2_vs_n"],
+        )
+        _save_and_close(fig, f"selective_transmon_rx_{q.uid}_amplitude_summary", opts)
+        figures[q.uid] = fig
+    return figures
+
+
+def _save_and_close(
+    fig: mpl.figure.Figure,
+    name: str,
+    opts: BasePlottingOptions,
+) -> None:
+    if opts.save_figures:
+        workflow.save_artifact(name, fig)
+    if opts.close_figures:
+        plt.close(fig)
 
 
 # ═════════════════════════════════════════════════════════════
@@ -314,7 +429,7 @@ def _analyze_single_qubit(
     result: RunExperimentResults,
     q_amplitudes_transmon: np.ndarray,
     photon_numbers_memory: list[int],
-    opts: SelectiveTransmonRxAnalysisOptions,
+    opts: SelectiveTransmonRxFitDataOptions,
 ) -> dict:
     """Run Rabi analysis for all photon numbers of a single qubit.
 
@@ -369,7 +484,9 @@ def _analyze_single_qubit(
         "rabi_data": {
             str(n): {
                 "raw_data": v["raw_data"],
-                "fit_params": list(v["fit_params"]),
+                "fit_params": (
+                    list(v["fit_params"]) if v["fit_params"] is not None else []
+                ),
                 "fit_success": bool(v["fit_success"]),
                 "amp_pi": float(v["amp_pi"]),
                 "amp_pi2": float(v["amp_pi2"]),
@@ -533,67 +650,6 @@ def _fit_rabi(
             "fit_x": fit_x,
             "fit_y": np.full_like(fit_x, np.nan),
         }
-
-
-# ═════════════════════════════════════════════════════════════
-# Plot generation
-# ═════════════════════════════════════════════════════════════
-
-
-def _generate_plots(
-    qubit_result: dict,
-    q_uid: str,
-    photon_numbers: list[int],
-    opts: SelectiveTransmonRxAnalysisOptions,
-) -> dict:
-    """Generate all selective Rabi plots for a single qubit.
-
-    Produces:
-    - ``"rabi_oscillations"``: grid of Rabi traces per photon
-      number with cosine fits.
-    - ``"amplitude_summary"``: pi and pi/2 amplitudes vs photon
-      number.
-
-    Arguments:
-        qubit_result: Analysis result dict for this qubit.
-        q_uid: Qubit UID for titles and filenames.
-        photon_numbers: Photon numbers that were calibrated.
-        opts: Analysis options.
-
-    Returns:
-        figures: Dict of matplotlib figures (kept separate from
-            the serializable analysis result).
-    """
-    figures = {}
-
-    figures["rabi_oscillations"] = _plot_rabi_oscillations(
-        q_uid,
-        qubit_result["amplitudes"],
-        qubit_result["rabi_data"],
-        photon_numbers,
-    )
-
-    figures["amplitude_summary"] = _plot_amplitude_summary(
-        q_uid,
-        photon_numbers,
-        qubit_result["amp_pi_vs_n"],
-        qubit_result["amp_pi2_vs_n"],
-    )
-
-    if opts.save_figures:
-        for name, fig in figures.items():
-            fig.savefig(
-                f"{opts.save_path}/selective_transmon_rx_{q_uid}_{name}.png",
-                dpi=150,
-                bbox_inches="tight",
-            )
-    if opts.show_plot:
-        plt.show()
-    else:
-        for fig in figures.values():
-            plt.close(fig)
-
-    return figures
 
 
 # ═════════════════════════════════════════════════════════════

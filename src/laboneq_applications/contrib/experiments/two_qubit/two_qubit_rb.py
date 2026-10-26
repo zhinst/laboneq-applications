@@ -85,15 +85,15 @@ def experiment_workflow(
 
     The workflow consists of the following steps:
 
-    - [resolve_qubit_pairs]()
-    - [get_gate_map]()
-    - [add_qasm_operations]()
-    - [create_tq_rb_qasm]()
-    - [flatten_qubit_pairs]()
-    - [create_experiment]()
-    - [compile_experiment]()
-    - [run_experiment]()
-    - [analysis_workflow]()
+    - [resolve_qubit_pairs][]
+    - [get_gate_map][]
+    - [add_qasm_operations][]
+    - [create_tq_rb_qasm][]
+    - [flatten_qubit_pairs][]
+    - [create_experiment][]
+    - [compile_experiment][]
+    - [run_experiment][]
+    - [analysis_workflow][]
 
     Arguments:
         session:
@@ -125,10 +125,15 @@ def experiment_workflow(
         ```python
         options = experiment_workflow.options()
         options.count(10)
+        # QPU from a two-qubit device setup
+        qpu = QPU(
+            quantum_elements=TunableTransmonQubit.from_device_setup(setup),
+            quantum_operations=TunableTransmonOperations(),
+        )
         result = experiment_workflow(
             session=session,
             qpu=qpu,
-            qubit_pairs=[[q0, q1]],
+            qubit_pairs=[["q0", "q1"]],
             length_cliffords=[1, 5, 10, 20, 50],
             variations=5,
             options=options,
@@ -264,7 +269,7 @@ def create_tq_rb_qasm(
     ).circuits()
 
     # remove measurement from qiskit circuit
-    # measurement will be added later in L1Q
+    # measurement will be added later in LabOne Q
     for circuit in qiskit_circuits:
         circuit.remove_final_measurements()
 
@@ -283,7 +288,7 @@ def create_tq_rb_qasm(
 def flatten_qubit_pairs(qpu: QPU, qubit_pairs: list) -> list:
     """Flatten qubit pairs into a flat list including any associated couplers.
 
-    Required so that [create_experiment]() can forward the correct flat
+    Required so that [create_experiment][] can forward the correct flat
     element list to the ``@dsl.qubit_experiment`` decorator, which registers
     qubit *and* coupler signals in the LabOne Q experiment context.
 
@@ -295,7 +300,7 @@ def flatten_qubit_pairs(qpu: QPU, qubit_pairs: list) -> list:
 
     Returns:
         Flat list of qubits and couplers:
-        ``[q0, q1, coupler_q0q1, q2, q3, coupler_q2q3, ...]``.
+            ``[q0, q1, coupler_q0q1, q2, q3, coupler_q2q3, ...]``.
     """
     all_elements = []
     seen_uids = set()
@@ -333,7 +338,7 @@ def create_experiment(
         qpu:
             The qpu consisting of the original qubits and quantum operations.
         qubits:
-            Flat list of all qubits (produced by [flatten_qubit_pairs]()).
+            Flat list of all qubits (produced by [flatten_qubit_pairs][]).
             Required by ``@dsl.qubit_experiment`` to register qubit signals in the
             LabOne Q experiment context.
         qubit_pairs:
@@ -381,8 +386,10 @@ def create_experiment(
                     with dsl.match(sweep_parameter=index):
                         for i, sequence in enumerate(qasm_rb_sequences):
                             with dsl.case(i):
-                                qasm_transpiler.section(
-                                    sequence, qubit_map={"q": [q0, q1]}
+                                dsl.add(
+                                    qasm_transpiler.section(
+                                        sequence, qubit_map={"q": [q0, q1]}
+                                    )
                                 )
 
                 with dsl.section(name=f"measure_{pair_uid}"):

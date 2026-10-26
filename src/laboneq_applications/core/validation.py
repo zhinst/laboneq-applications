@@ -7,16 +7,24 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 from itertools import chain
+from typing import TYPE_CHECKING
 
 import numpy as np
 from laboneq.dsl.quantum.qpu import QPU
-from laboneq.dsl.quantum.qpu_topology import TopologyEdge
 from laboneq.dsl.quantum.quantum_element import QuantumElement
 from laboneq.workflow import task
 from laboneq.workflow.tasks.run_experiment import RunExperimentResults
 from numpy import ndarray
+from numpy.typing import ArrayLike, NDArray
+from typing_extensions import deprecated
+
+from laboneq_applications.conversion import as_array
+
+if TYPE_CHECKING:
+    from laboneq.dsl.quantum.qpu_topology import TopologyEdge
 
 
+@deprecated("'_is_sequence_of_numbers_or_nparray' is deprecated and will be removed.")
 def _is_sequence_of_numbers_or_nparray(obj: object) -> bool:
     return isinstance(obj, ndarray) or (
         bool(obj)
@@ -25,14 +33,7 @@ def _is_sequence_of_numbers_or_nparray(obj: object) -> bool:
     )
 
 
-def _is_sequence_of_numbers_or_sequences_or_nparrays(obj: object) -> bool:
-    return isinstance(obj, ndarray) or (
-        bool(obj)
-        and isinstance(obj, Sequence)
-        and all(isinstance(item, (float, int)) for item in obj)
-    )
-
-
+@deprecated("'_is_sequence_of_quantum_elements' is deprecated and will be removed.")
 def _is_sequence_of_quantum_elements(obj: object) -> bool:
     return isinstance(obj, QuantumElement) or (
         isinstance(obj, Sequence)
@@ -40,49 +41,26 @@ def _is_sequence_of_quantum_elements(obj: object) -> bool:
     )
 
 
-def validate_and_convert_sweeps_to_arrays(
-    sweep_points: Sequence[float] | Sequence[Sequence[float] | ndarray] | ndarray,
-) -> Sequence[Sequence[float] | ndarray] | ndarray:
-    """Convert sweep_points into numpy arrays.
+@deprecated(
+    "`validate_and_convert_sweeps_to_arrays` is deprecated. "
+    "Use `laboneq_applications.conversion.as_array` instead.",
+    category=FutureWarning,
+)
+def validate_and_convert_sweeps_to_arrays(sweep_points: ArrayLike) -> NDArray:
+    """Return the sweep points as a 1D array, or a 2D array with one row per qubit.
 
-    Check for the following conditions:
-        - sweep_points must be a list or an array
-        - All elements of sweep points must be lists of numbers or arrays.
-
-    Args:
-        sweep_points: The sweep points to be converted into numpy arrays.
-
-    Returns:
-        The sweep points as a numpy array if sweep_points was a list of numbers, or
-        as a list of numpy arrays, if sweep_points was a list of lists of numbers.
-
-    Raises:
-        ValueError: If the conditions are not met.
+    !!! version-changed "Deprecated in version 26.10.0"
+        Use `laboneq_applications.conversion.as_array` instead.
     """
-    if not isinstance(sweep_points, (Sequence, ndarray)):
-        raise TypeError("The sweep points must be an array or a list.")
-
-    if not all(isinstance(swpts, (Sequence, ndarray)) for swpts in sweep_points):
-        # the elements of sweep_points are not iterables
-        if not _is_sequence_of_numbers_or_nparray(sweep_points):
-            raise ValueError(
-                "The sweep points must be an array or a list of numbers.",
-            )
-        sweep_points = np.array(sweep_points)
-    else:
-        if not all(_is_sequence_of_numbers_or_nparray(swpts) for swpts in sweep_points):
-            raise ValueError(
-                "All elements of sweep points must be arrays or lists of numbers.",
-            )
-        # we do not do list comprehension here in order to keep the original type of
-        # sweep_points, which might be an array
-        for i in range(len(sweep_points)):
-            sweep_points[i] = np.array(sweep_points[i])
-
-    return sweep_points
+    return as_array(sweep_points)
 
 
 @task(save=False)
+@deprecated(
+    "`validate_length_qubits_sweeps()` is deprecated. Use "
+    "`laboneq_applications.conversion.sweeps_per_quantum_element()` instead.",
+    category=FutureWarning,
+)
 def validate_length_qubits_sweeps(
     qubits: QuantumElement | Sequence[QuantumElement],
     sweep_points: Sequence[float]
@@ -95,13 +73,18 @@ def validate_length_qubits_sweeps(
 ):
     """Validate the length of the qubits and sweep points.
 
-    Check for the following conditions:
-        - qubits must be a QuantumElement or a sequence of QuantumElement.
-        - If a single qubit is passed, the sweep points must be a list or array of
-            numbers.
-        - Length of qubits and sweep points must be the same.
-        - All elements of sweep points must be lists of numbers or arrays.
-    If the conditions are met, return the qubits and sweep points.
+    !!! version-changed "Deprecated in version 26.10.0"
+        Use `laboneq_applications.conversion.sweeps_per_quantum_element` instead.
+
+    Checks the following conditions:
+
+    - `qubits` must be a `QuantumElement` or a sequence of `QuantumElement`.
+    - If a single qubit is passed, the sweep points must be a list or array of
+      numbers.
+    - The qubits and sweep points must have the same length.
+    - All elements of the sweep points must be lists of numbers or arrays.
+
+    If the conditions are met, returns the qubits and sweep points.
 
     Args:
         qubits: Either a single `QuantumElement` or a list of `QuantumElement`.
@@ -113,7 +96,7 @@ def validate_length_qubits_sweeps(
 
     Returns:
         A tuple containing the validated qubits and sweep points or only the validated
-        qubits if sweep_points is None.
+            qubits if sweep_points is None.
 
     Raises:
         ValueError: If the conditions are not met.
@@ -128,7 +111,10 @@ def validate_length_qubits_sweeps(
         return qubits
 
     if not isinstance(qubits, Sequence):
-        if not _is_sequence_of_numbers_or_nparray(sweep_points):
+        if (
+            not _is_sequence_of_numbers_or_nparray(sweep_points)
+            or np.ndim(sweep_points) != 1
+        ):
             raise ValueError(
                 "If a single qubit is passed, the sweep points must be an array or a "
                 "list of numbers.",
@@ -144,6 +130,11 @@ def validate_length_qubits_sweeps(
 
 
 @task(save=False)
+@deprecated(
+    "`convert_qubits_sweeps_to_lists()` is deprecated. Use "
+    "`laboneq_applications.conversion.sweeps_per_quantum_element()` instead.",
+    category=FutureWarning,
+)
 def convert_qubits_sweeps_to_lists(
     qubits: QuantumElement | Sequence[QuantumElement],
     sweep_points: Sequence[float]
@@ -156,12 +147,16 @@ def convert_qubits_sweeps_to_lists(
 ):
     """Convert the qubits and sweep points to lists.
 
-    Check for the following conditions:
-        - qubits must be a QuantumElement or a sequence of QuantumElement.
-        - All elements of sweep points must be lists of numbers or arrays.
-    If single qubit is passed, convert it and the sweep points to a list (if sweep
-        points is not None).
-    If the conditions are met, return the qubits and sweep points.
+    !!! version-changed "Deprecated in version 26.10.0"
+        Use `laboneq_applications.conversion.sweeps_per_quantum_element` instead.
+
+    Checks the following conditions:
+
+    - `qubits` must be a `QuantumElement` or a sequence of `QuantumElement`.
+    - All elements of the sweep points must be lists of numbers or arrays.
+
+    If a single qubit is passed, converts it and the sweep points (if not `None`)
+    to a list. If the conditions are met, returns the qubits and sweep points.
 
     Args:
         qubits: Either a single `QuantumElement` or a list of `QuantumElement`.
@@ -173,7 +168,7 @@ def convert_qubits_sweeps_to_lists(
 
     Returns:
         A tuple containing the validated qubits and sweep points or only the validated
-        and converted qubits if sweep_points is None.
+            and converted qubits if sweep_points is None.
 
     Raises:
         ValueError: If the conditions are not met.
@@ -199,6 +194,11 @@ def convert_qubits_sweeps_to_lists(
 
 
 @task(save=False)
+@deprecated(
+    "`validate_and_convert_qubits_sweeps()` is deprecated. Use "
+    "`laboneq_applications.conversion.sweeps_per_quantum_element()` instead.",
+    category=FutureWarning,
+)
 def validate_and_convert_qubits_sweeps(
     qubits: QuantumElement | Sequence[QuantumElement],
     sweep_points: Sequence[float]
@@ -209,71 +209,78 @@ def validate_and_convert_qubits_sweeps(
     tuple[Sequence[QuantumElement], Sequence[Sequence[float] | ndarray] | ndarray]
     | Sequence[QuantumElement]
 ):
-    """Validate and convert the qubits and sweep points.
+    """Validate the qubits and sweep points, and return them as lists.
 
-    Validates the length of the qubits and sweep points by calling
-    validate_length_qubits_sweeps. See docstring there for details.
+    !!! version-changed "Deprecated in version 26.10.0"
+        Use `laboneq_applications.conversion.sweeps_per_quantum_element` instead.
 
-    Then converts the qubits and sweep points to lists. by calling
-    convert_qubits_sweeps_to_lists. See docstring there for details.
+    A single qubit needs a 1D sweep, and several qubits need one row of sweep points
+    per qubit.
 
     Returns:
         A tuple containing the validated qubits and sweep points or only the validated
-        and converted qubits if sweep_points is None.
+            and converted qubits if sweep_points is None.
 
     """
-    # Make sure the sweep points are arrays or lists of arrays
-    if sweep_points is not None:
-        sweep_points = validate_and_convert_sweeps_to_arrays(sweep_points)
+    if not _is_sequence_of_quantum_elements(qubits):
+        raise ValueError(
+            "Qubits must be a QuantumElement or a sequence of QuantumElements.",
+        )
+    if sweep_points is None:
+        return [qubits] if isinstance(qubits, QuantumElement) else qubits
 
-    # Make sure the length of qubits and sweep points is the same
-    qubits_sweep_points = validate_length_qubits_sweeps(qubits, sweep_points)
-    qubits, sweep_points = (
-        (qubits, sweep_points)
-        if isinstance(qubits_sweep_points, Sequence) == 1
-        else (qubits, None)
-    )
+    sweep_points = as_array(sweep_points)
+    if isinstance(qubits, QuantumElement):
+        if sweep_points.ndim != 1:
+            raise ValueError(
+                "If a single qubit is passed, the sweep points must be an array or a "
+                "list of numbers.",
+            )
+        return [qubits], [sweep_points]
+    if len(qubits) != len(sweep_points):
+        raise ValueError("Length of qubits and sweep points must be the same.")
+    if sweep_points.ndim != 2:  # noqa: PLR2004
+        raise ValueError(
+            "All elements of sweep points must be arrays or lists of numbers.",
+        )
+    return qubits, sweep_points
 
-    # Ensure qubits and sweep points are lists, and if not, convert them to lists
-    return convert_qubits_sweeps_to_lists(qubits, sweep_points)
 
-
+@deprecated(
+    "`validate_and_convert_single_qubit_sweeps()` is deprecated. Use "
+    "`laboneq_applications.conversion.sweeps_per_quantum_element()` instead.",
+    category=FutureWarning,
+)
 def validate_and_convert_single_qubit_sweeps(
-    qubits: QuantumElement | Sequence[QuantumElement],
-    sweep_points: Sequence[float]
-    | Sequence[Sequence[float] | ndarray]
-    | ndarray
-    | None = None,
+    qubit: QuantumElement,
+    sweep_points: Sequence[float] | Sequence[Sequence[float]] | ndarray | None = None,
 ) -> tuple[QuantumElement, Sequence[float] | ndarray] | QuantumElement:
-    """Converts and validates qubits, sweep points and the experiment result.
+    """Validates that single qubit is passed and converts a 1D sweep to array.
 
-    Check for the following conditions:
-        - type of qubits must be `QuantumElement` or a subclass of it.
-        - sweep_points is a list or array with all its elements lists of numbers or
-            arrays (see validate_and_convert_sweeps_to_arrays)
-        - the length of qubits and sweep_points is the same
-            (see validate_length_qubits_sweeps)
-    If sweep_points was a list of numbers, sweep_points is converted into a numpy array.
-    If sweep_points was a list of lists of numbers, every elements in sweep_points is
-    converted into a numpy array (see validate_and_convert_sweeps_to_arrays).
+    !!! version-changed "Deprecated in version 26.10.0"
+        Use `laboneq_applications.conversion.sweeps_per_quantum_element` instead.
 
     Args:
-        qubits: Either a single `QuantumElement` or a list of `QuantumElement`.
-        sweep_points: The sweep points for each qubit.
+        qubit: A single `QuantumElement`.
+        sweep_points: The sweep points for a qubit.
 
     Returns:
-        A tuple containing the validated qubits and sweep points or only the validated
-        and converted qubits if sweep_points is None.
+        A tuple containing the qubit and sweep points as array, or
+            a single `qubit` if `sweep_points` is not passed.
     """
-    if not isinstance(qubits, QuantumElement):
+    if not isinstance(qubit, QuantumElement):
         raise TypeError("Only a single qubit is supported.")
 
     if sweep_points is not None:
-        sweep_points = validate_and_convert_sweeps_to_arrays(sweep_points)
-        qubits, sweep_points = validate_length_qubits_sweeps(qubits, sweep_points)
-        return qubits, sweep_points
+        sweep_points = as_array(sweep_points)
+        if sweep_points.ndim != 1:
+            raise ValueError(
+                "If a single qubit is passed, the sweep points must be an array or a "
+                "list of numbers.",
+            )
+        return qubit, sweep_points
 
-    return qubits
+    return qubit
 
 
 def validate_result(result: RunExperimentResults) -> None:
@@ -299,42 +306,29 @@ def validate_result(result: RunExperimentResults) -> None:
 
 
 @task(save=False)
-def validate_and_extract_edges_from_qubit_pairs(
-    qpu: QPU,
-    tag: str,
-    qubit_pair_uids: list[list[str]],
-    *,
-    element_class: type[QuantumElement] | None = None,
-) -> list[TopologyEdge]:
-    """Extracts all edges of type tag in the QPU with the qubit pair passed.
+def validate_flux_driven_edges(edges: list[TopologyEdge]) -> None:
+    """Checks that the quantum element of every edge has a flux line.
+
+    The experiments drive the flux line of the element on the edge, so any element
+    that has one works, not only a `TunableCoupler`.
 
     Args:
-        qpu: The QPU where the topology is stored.
-        qubit_pair_uids: The pairs of UIDs for the qubits that will be used as source
-            and target node from the edge, respectively.
-        tag: The edge tag to be searched.
-        element_class: The quantum element class (optional). By default, the quantum
-            element class is None.
-
-    Returns:
-        The list of extracted edges.
+        edges: The edges to check.
 
     Raises:
-        TypeError: If the elements in the extracted edges are not of the type specified
-            in `element_class`.
+        ValueError: If an edge has no quantum element, or its quantum element has no
+            flux signal.
     """
-    edges = [qpu.topology[tag, q0, q1] for q0, q1 in qubit_pair_uids]
-
-    for e in edges:
-        if not isinstance(e.quantum_element, element_class):
-            raise TypeError(
-                f"Quantum element on edge "
-                f"({e.tag}, {e.source_node.uid}, {e.target_node.uid}) has "
-                f"invalid type: {type(e.quantum_element)}. "
-                f"Expected type: {element_class}."
+    for edge in edges:
+        key = f"({edge.tag}, {edge.source_node.uid}, {edge.target_node.uid})"
+        element = edge.quantum_element
+        if element is None:
+            raise ValueError(f"The edge {key} has no quantum element.")
+        if "flux" not in element.signals:
+            raise ValueError(
+                f"The quantum element {element.uid} on the edge {key} has no flux "
+                f"signal and its flux line cannot be driven."
             )
-
-    return edges
 
 
 @task(save=False)
@@ -356,15 +350,10 @@ def validate_parallel_two_qubit_experiment(
         ValueError: If a qubit is passed more than once in the full list.
             (One cannot act on them in parallel.)
     """
-    all_qubit_uids = list(chain.from_iterable(qubit_pair_uids))
-    all_qubits = qpu[all_qubit_uids]
-
-    # check that both lists are unique to avoid clashing
-    all_qubit_are_unique = len(all_qubit_uids) == len(set(all_qubit_uids))
-    if not all_qubit_are_unique:
+    uids = list(chain.from_iterable(qubit_pair_uids))
+    if len(uids) != len(set(uids)):
         raise ValueError(
             "Quantum elements appear more than once in the edges. "
             "Calibration cannot be parallelized."
         )
-
-    return all_qubits
+    return qpu[uids]

@@ -37,20 +37,18 @@ from laboneq.workflow.typing import QuantumElements
 
 from laboneq_applications.contrib.analysis.zz_coupling_strength import analysis_workflow
 from laboneq_applications.core.validation import (
-    validate_and_extract_edges_from_qubit_pairs,
+    validate_flux_driven_edges,
     validate_parallel_two_qubit_experiment,
 )
 from laboneq_applications.experiments.options import (
     TuneupExperimentOptions,
     TuneUpWorkflowOptions,
 )
-from laboneq_applications.qpu_types.tunable_coupler import (
-    TunableCoupler,
-)
 from laboneq_applications.qpu_types.tunable_transmon import (
     TunableTransmonQubitParameters,
 )
 from laboneq_applications.tasks import (
+    extract_edges_from_qubit_pairs,
     temporary_qpu,
     update_qpu,
 )
@@ -80,15 +78,15 @@ def experiment_workflow(
 
     The workflow consists of the following steps:
 
-    - [temporary_qpu]()
-    - [create_experiment]()
-    - [compile_experiment]()
-    - [run_experiment]()
-    - [analysis_workflow]()
-    - [evaluate_experiment]()
-    - [update_qpu]()
+    - [temporary_qpu][]
+    - [create_experiment][]
+    - [compile_experiment][]
+    - [run_experiment][]
+    - [analysis_workflow][]
+    - [evaluate_experiment][]
+    - [update_qpu][]
 
-    !!! version-changed "Changed in version 26.4.0."
+    !!! version-changed "Changed in version 26.4.0"
         The `evaluation_parameters` argument has been added, which is the dictionary of
         parameters used for the newly added evaluation task. All arguments apart from
         `session`, `qpu`, and `qubits` are now keyword arguments.
@@ -114,7 +112,7 @@ def experiment_workflow(
             The temporary parameters with which to update the QPU.
         options:
             The options for building the workflow, passed as an instance of
-            [TuneUpWorkflowOptions].
+            [TuneUpWorkflowOptions][].
 
     Returns:
         WorkflowBuilder:
@@ -185,7 +183,7 @@ def create_experiment(
             frequency shift between the two qubits.
         options:
             The options for building the experiment.
-            See [TuneupExperimentOptions] for accepted options.
+            See [TuneupExperimentOptions][] for accepted options.
 
     Returns:
         experiment:
@@ -200,8 +198,8 @@ def create_experiment(
             more than once per pair.
 
         ValueError:
-            If one of the coupler edges between the pairs is not of type
-            [TunableCoupler].
+            If one of the coupler edges between the pairs has no quantum element
+            or its quantum element has no flux line.
 
         ValueError:
             If the experiment uses calibration traces and the averaging mode is
@@ -211,13 +209,12 @@ def create_experiment(
     opts = TuneupExperimentOptions() if options is None else options
     qubits = validate_parallel_two_qubit_experiment(qpu, qubit_pairs)
     # get all edges between the qubit pairs
-    edges = validate_and_extract_edges_from_qubit_pairs(
+    edges = extract_edges_from_qubit_pairs(
         qpu,
-        "coupler",
         qubit_pairs,
-        # TODO: option instead?
-        element_class=TunableCoupler,
+        tag="coupler",
     )
+    validate_flux_driven_edges(edges)
 
     # add all quantum elements to the experiment
     for e in edges:
@@ -273,32 +270,34 @@ def create_experiment(
                 with dsl.section(name="main", alignment=SectionAlignment.RIGHT):
                     for e, e_delays in zip(edges, delay_sweep_pars, strict=False):
                         with dsl.section(
-                            name=f"rotate1_{e.source_node}",
+                            name=f"rotate1_{e.source_node.uid}",
                             alignment=SectionAlignment.LEFT,
                         ):
                             qop.x90.omit_section(e.source_node)
 
                         with dsl.section(
-                            name="delay_1", alignment=SectionAlignment.LEFT
+                            name=f"delay_1_{e.source_node.uid}_{e.target_node.uid}",
+                            alignment=SectionAlignment.LEFT,
                         ):
                             qop.delay(e.source_node, time=e_delays)
                             qop.delay(e.target_node, time=e_delays)
 
                         with dsl.section(
-                            name="interact",
+                            name=f"interact_{e.source_node.uid}_{e.target_node.uid}",
                             alignment=SectionAlignment.LEFT,
                         ):
                             qop.x180.omit_section(e.source_node)
                             qop.x180.omit_section(e.target_node)
 
                         with dsl.section(
-                            name="delay_2", alignment=SectionAlignment.RIGHT
+                            name=f"delay_2_{e.source_node.uid}_{e.target_node.uid}",
+                            alignment=SectionAlignment.RIGHT,
                         ):
                             qop.delay(e.source_node, time=e_delays)
                             qop.delay(e.target_node, time=e_delays)
 
                         with dsl.section(
-                            name="rotate2",
+                            name=f"rotate2_{e.source_node.uid}_{e.target_node.uid}",
                             alignment=SectionAlignment.RIGHT,
                         ):
                             qop.y90.omit_section(e.source_node)

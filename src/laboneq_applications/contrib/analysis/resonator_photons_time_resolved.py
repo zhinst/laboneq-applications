@@ -35,8 +35,11 @@ from laboneq_applications.analysis.plotting_helpers import (
     plot_data_2d,
     timestamped_title,
 )
+from laboneq_applications.conversion import (
+    as_quantum_element_list,
+    sweeps_per_quantum_element,
+)
 from laboneq_applications.core.validation import (
-    validate_and_convert_qubits_sweeps,
     validate_result,
 )
 
@@ -60,9 +63,10 @@ def analysis_workflow(
     """The photon number time resolution analysis workflow.
 
     The workflow consists of the following steps:
-    - [calculate_signal_magnitudes_and_phases]()
-    - [fit_data]()
-    - [plot_resonator_photon_number]()
+
+    - [calculate_signal_magnitudes_and_phases][]
+    - [fit_data][]
+    - [plot_resonator_photon_number][]
 
     Arguments:
         result:
@@ -82,7 +86,7 @@ def analysis_workflow(
             arrays.
         options:
             The options for building the workflow, passed as an instance of
-            [TuneUpAnalysisWorkflowOptions]. See the docstring of this class for
+            [TuneUpAnalysisWorkflowOptions][]. See the docstring of this class for
             more details.
 
     Returns:
@@ -91,18 +95,14 @@ def analysis_workflow(
 
     Example:
         ```python
-        result = analysis_workflow(
-            results=results
-            qubits=[q0, q1],
-            times=[
-                np.linspace(0, 3e-6, 21),
-                np.linspace(0, 3e-6, 21),
-            ],
+        analysis_result = analysis_workflow(
+            result=result,
+            qubits=["q0", "q1"],
+            times=[np.linspace(0, 3e-6, 21), np.linspace(0, 3e-6, 21)],
             frequencies=[
                 np.linspace(6.0e9, 6.3e9, 201),
                 np.linspace(5.8e9, 6.1e9, 201),
             ],
-            options=analysis_workflow.options(),
         ).run()
         ```
     """
@@ -137,21 +137,17 @@ def calculate_signal_magnitudes_and_phases(
 
     Returns:
         Dictionary with the qubit UIDs as keys and a processed data dict as
-        values, containing the following data:
-            `sweep_points`
-            `data_raw`
-            `magnitude`
-            `phase`
+            values, containing the following data:
+
+            - `sweep_points`
+            - `data_raw`
+            - `magnitude`
+            - `phase`
     """
-    # qubits, times and frequencies must have the same length
-    qubits_validated, frequencies = validate_and_convert_qubits_sweeps(
-        qubits, frequencies
-    )
-    qubits_validated, times = validate_and_convert_qubits_sweeps(qubits, times)
     validate_result(result)
 
     proc_data_dict = {}
-    for q, freqs, time in zip(qubits_validated, frequencies, times, strict=False):
+    for q, freqs, time in sweeps_per_quantum_element(qubits, frequencies, times):
         raw_data = result[dsl.handles.result_handle(q.uid)].data
         proc_data_dict[q.uid] = {
             "sweep_points_freq": freqs,
@@ -167,7 +163,7 @@ def calculate_signal_magnitudes_and_phases(
 @task
 def fit_data(
     qubits: QuantumElements, processed_data_dict: dict
-) -> dict[str, dict[str, ArrayLike]]:
+) -> dict[str, dict[str, list[lmfit.model.ModelResult | None]]]:
     """Perform a qubit spectroscopy fit for every time.
 
     Arguments:
@@ -180,8 +176,10 @@ def fit_data(
 
     Returns:
         Dictionary with qubit UIDs as keys and the fit results for each qubit as keys.
+            An entry of `qubit_frequency_at_time` is `None` if the fit failed for that
+            time.
     """
-    qubits = validate_and_convert_qubits_sweeps(qubits)
+    qubits = as_quantum_element_list(qubits)
 
     fit_results = {}
     for q in qubits:
@@ -195,7 +193,8 @@ def fit_data(
                 q.uid: {"sweep_points": sweep_points, "magnitude": magnitudes}
             }
 
-            fit_result = qubit_spectroscopy.fit_data([q], proc_data_dict)[q.uid]
+            # `qubit_spectroscopy.fit_data` returns no entry if the fit failed.
+            fit_result = qubit_spectroscopy.fit_data([q], proc_data_dict).get(q.uid)
             fit_by_time.append(fit_result)
 
         fit_results[q.uid]["qubit_frequency_at_time"] = fit_by_time
@@ -207,7 +206,7 @@ def fit_data(
 def plot_resonator_photon_number(
     qubits: QuantumElements,
     processed_data_dict: dict[str, dict[str, ArrayLike]],
-    fit_results: dict[str, lmfit.model.ModelResult] | None,
+    fit_results: dict[str, dict[str, list[lmfit.model.ModelResult | None]]],
     options: BasePlottingOptions | None = None,
 ) -> dict[str, dict[str, mpl.figure.Figure]]:
     """Create the time-resolved photon number plot and the 2D qubit spectroscopy plot.
@@ -216,33 +215,32 @@ def plot_resonator_photon_number(
         qubits:
             The qubits on which to run the analysis. May be either a single qubit
             or a list of qubits. The UIDs of these qubits must exist in the
-            `processed_data_dict` and `qubit_parameters`.
+            `processed_data_dict`.
         processed_data_dict:
             The processed data dictionary returned by
             `calculate_signal_magnitude_and_phase`.
         fit_results: The fit-results dictionary returned by `fit_data`.
-        qubit_parameters: The qubit-parameters dictionary returned by
-            `extract_qubit_parameters`.
         options:
             The options for this task as an instance of
-            [PlotQubitSpectroscopyOptions]. See the docstring of this class for
+            [BasePlottingOptions][]. See the docstring of this class for
             more details.
 
     Returns:
         Dictionary with qubit UIDs as keys and the dictionary of "1D" and "2D" figures
-        as values.
+            as values.
     """
     opts = BasePlottingOptions() if options is None else options
-    qubits = validate_and_convert_qubits_sweeps(qubits)
+    qubits = as_quantum_element_list(qubits)
     figures = {}
 
     for q in qubits:
         figures[q.uid] = {}
 
         times = processed_data_dict[q.uid]["sweep_points_time"]
+        # The times for which the fit failed are excluded from the plot.
         qubit_frequency_at_time = np.array(
             [
-                result.values["position"]
+                result.values["position"] if result is not None else np.nan
                 for result in fit_results[q.uid]["qubit_frequency_at_time"]
             ]
         )

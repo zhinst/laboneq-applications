@@ -12,8 +12,11 @@ import numpy as np
 from laboneq import workflow
 from laboneq.simple import dsl
 
+from laboneq_applications.analysis.options import BasePlottingOptions
+from laboneq_applications.conversion import as_quantum_element_list
+
 if TYPE_CHECKING:
-    from laboneq.dsl.quantum.qpu import QPU
+    import matplotlib as mpl
     from laboneq.workflow.tasks.run_experiment import RunExperimentResults
 
     from laboneq_applications.typing import QuantumElements
@@ -24,36 +27,42 @@ if TYPE_CHECKING:
 # ═════════════════════════════════════════════════════════════
 
 
-@workflow.task_options
-class WignerTomographyAnalysisOptions:
-    """Options for the Wigner tomography analysis.
+@workflow.workflow_options
+class WignerTomographyAnalysisWorkflowOptions:
+    """Options for the Wigner tomography analysis workflow.
 
     Attributes:
-        generate_plot:
-            Whether to generate plots. Default: True.
-        show_plot:
-            Whether to show plots in the terminal. Default: True.
-        save_figures:
-            Whether to save the figures. Default: False.
-        save_path:
-            Path to save the figures. Default: "./"
+        do_plotting:
+            Whether to create plots.
+            Default: True.
+    """
+
+    do_plotting: bool = workflow.option_field(
+        True, description="Whether to create plots."
+    )
+
+
+@workflow.task_options(base_class=BasePlottingOptions)
+class PlotWignerFunctionOptions:
+    """Options for the Wigner function plotting tasks.
+
+    Attributes:
         w_max_override:
             Override for the Wigner function color scale maximum.
             If None, uses the theoretical maximum 2/π ≈ 0.6366.
             Useful when experimental data has reduced contrast.
             Default: None.
+        save_figures:
+            Whether to save the figures.
+            Default: `True`.
+        close_figures:
+            Whether to close the figures.
+            Default: `True`.
     """
 
-    generate_plot: bool = True
-    show_plot: bool = True
-    save_figures: bool = False
-    save_path: str = "./"
-    w_max_override: float | None = None
-
-
-@workflow.workflow_options
-class WignerTomographyAnalysisWorkflowOptions:
-    """Options for the Wigner tomography analysis workflow."""
+    w_max_override: float | None = workflow.option_field(
+        None, description="Override for the Wigner function color scale maximum."
+    )
 
 
 # ═════════════════════════════════════════════════════════════
@@ -61,71 +70,80 @@ class WignerTomographyAnalysisWorkflowOptions:
 # ═════════════════════════════════════════════════════════════
 
 
-@workflow.workflow(name="wigner_tomography_analysis")
+@workflow.workflow
 def analysis_workflow(
     result: RunExperimentResults,
-    qpu: QPU,
     qubits: QuantumElements,
     sweep_data: dict,
-    *,
     options: WignerTomographyAnalysisWorkflowOptions | None = None,
 ) -> None:
-    """Wigner tomography analysis workflow.
+    """The Wigner tomography analysis workflow.
 
-    Extracts the Wigner function from the raw measurement data
-    and produces plots for each qubit.
+    The workflow consists of the following steps:
 
-    For 1D scans, the output includes a line plot of W(Re(β))
-    together with the intermediate quantities P(|g⟩) and ⟨Π⟩.
+    - [calculate_wigner_function][]
+    - [plot_wigner_function][]
+    - [plot_wigner_line_cuts][]
 
-    For 2D scans, the output includes a full phase-space color
-    map and line cuts through the origin.
+    For 1D scans, the Wigner function plot is a line plot of W(Re(β))
+    together with the intermediate quantities P(|g⟩) and ⟨Π⟩. For 2D scans,
+    it is a full phase-space color map, and the line cuts through the origin
+    are plotted as well.
 
     Arguments:
         result:
-            The result of the Wigner tomography experiment.
-        qpu:
-            The qpu consisting of the original qubits and
-            quantum operations.
+            The experiment results returned by the run_experiment task.
         qubits:
-            The qubits the experiment was run on.
+            The qubits on which to run the analysis. May be either a single qubit or
+            a list of qubits. The UIDs of these qubits must exist in the result.
         sweep_data:
             Dictionary returned by ``compute_sweep_parameters``,
             containing the phase-space grid information.
         options:
-            The options for the analysis workflow.
+            The options for building the workflow, passed as an instance of
+            [WignerTomographyAnalysisWorkflowOptions][].
 
     Returns:
-        result:
-            The result of the analysis workflow.
+        WorkflowBuilder:
+            The builder for the analysis workflow. Its output is the
+            dictionary returned by [calculate_wigner_function][].
     """
-    analyze(
-        result,
-        qpu,
-        qubits,
-        sweep_data=sweep_data,
-    )
+    wigner_data = calculate_wigner_function(qubits, result, sweep_data)
+    with workflow.if_(options.do_plotting):
+        plot_wigner_function(qubits, wigner_data)
+        plot_wigner_line_cuts(qubits, wigner_data)
+    workflow.return_(wigner_data)
 
 
 # ═════════════════════════════════════════════════════════════
-# Analysis task
+# Analysis tasks
 # ═════════════════════════════════════════════════════════════
 
 
 @workflow.task
-def analyze(
-    result: RunExperimentResults,
-    qpu: QPU,
+def calculate_wigner_function(
     qubits: QuantumElements,
+    result: RunExperimentResults,
     sweep_data: dict,
-    options: WignerTomographyAnalysisOptions | None = None,
-) -> dict:
-    """Analyze the Wigner tomography results."""
-    opts = WignerTomographyAnalysisOptions() if options is None else options
+) -> dict[str, dict]:
+    """Calculate the Wigner function from the averaged discrimination results.
 
-    qubits = _ensure_list(qubits)
+    Arguments:
+        qubits:
+            The qubits on which to run the analysis.
+        result:
+            The experiment results returned by the run_experiment task.
+        sweep_data:
+            Dictionary returned by ``compute_sweep_parameters``.
 
-    analysis_results = {}
+    Returns:
+        Dictionary keyed by qubit UID with the Wigner function ``"w"``, the
+            parity ``"parity"``, the ground-state probability ``"pg"``, the scan
+            axes ``"beta_re"`` and ``"beta_im"``, and the flag ``"is_2d"``.
+    """
+    qubits = as_quantum_element_list(qubits)
+
+    wigner_data = {}
     for i, q in enumerate(qubits):
         handle = dsl.handles.result_handle(q.uid)
         data_raw = result.get_data(handle)
@@ -133,18 +151,115 @@ def analyze(
         # Slice out this qubit's per-qubit sweep_data entries.
         qubit_sweep_data = _qubit_sweep_data(sweep_data, i)
 
-        qubit_result = _analyze_single_qubit(
+        wigner_data[q.uid] = _analyze_single_qubit(
             q,
             data_raw,
             qubit_sweep_data,
         )
 
-        if opts.generate_plot:
-            _generate_plots(qubit_result, q.uid, opts)
+    return wigner_data
 
-        analysis_results[q.uid] = qubit_result
 
-    return analysis_results
+@workflow.task
+def plot_wigner_function(
+    qubits: QuantumElements,
+    wigner_data: dict[str, dict],
+    options: PlotWignerFunctionOptions | None = None,
+) -> dict[str, mpl.figure.Figure]:
+    """Plot the Wigner function: a line plot for 1D scans, a map for 2D scans.
+
+    Arguments:
+        qubits:
+            The qubits on which to run the analysis.
+        wigner_data:
+            The dictionary returned by calculate_wigner_function.
+        options:
+            The options for this task as an instance of [PlotWignerFunctionOptions][].
+
+    Returns:
+        dict with qubit UIDs as keys and the figures for each qubit as values.
+    """
+    opts = PlotWignerFunctionOptions() if options is None else options
+    qubits = as_quantum_element_list(qubits)
+    w_max = opts.w_max_override or (2.0 / np.pi)
+    figures = {}
+    for q in qubits:
+        qubit_result = wigner_data[q.uid]
+        if qubit_result["is_2d"]:
+            fig = _plot_wigner_2d(
+                q.uid,
+                qubit_result["w"],
+                qubit_result["beta_re"],
+                qubit_result["beta_im"],
+                w_max=w_max,
+            )
+            name = "wigner_2d"
+        else:
+            fig = _plot_wigner_1d(
+                q.uid,
+                qubit_result["w"],
+                qubit_result["parity"],
+                qubit_result["pg"],
+                qubit_result["beta_re"],
+                w_max=w_max,
+            )
+            name = "wigner_1d"
+        _save_and_close(fig, f"wigner_{q.uid}_{name}", opts)
+        figures[q.uid] = fig
+    return figures
+
+
+@workflow.task
+def plot_wigner_line_cuts(
+    qubits: QuantumElements,
+    wigner_data: dict[str, dict],
+    options: PlotWignerFunctionOptions | None = None,
+) -> dict[str, mpl.figure.Figure]:
+    """Plot line cuts through the origin of 2D Wigner function scans.
+
+    Qubits with a 1D scan are skipped.
+
+    Arguments:
+        qubits:
+            The qubits on which to run the analysis.
+        wigner_data:
+            The dictionary returned by calculate_wigner_function.
+        options:
+            The options for this task as an instance of [PlotWignerFunctionOptions][].
+
+    Returns:
+        dict with qubit UIDs as keys and the figures for each qubit with a 2D
+            scan as values.
+    """
+    opts = PlotWignerFunctionOptions() if options is None else options
+    qubits = as_quantum_element_list(qubits)
+    w_max = opts.w_max_override or (2.0 / np.pi)
+    figures = {}
+    for q in qubits:
+        qubit_result = wigner_data[q.uid]
+        if not qubit_result["is_2d"]:
+            continue
+        fig = _plot_wigner_line_cuts(
+            q.uid,
+            qubit_result["w"],
+            qubit_result["beta_re"],
+            qubit_result["beta_im"],
+            w_max=w_max,
+        )
+        _save_and_close(fig, f"wigner_{q.uid}_wigner_cuts", opts)
+        figures[q.uid] = fig
+    return figures
+
+
+def _save_and_close(
+    fig: mpl.figure.Figure,
+    name: str,
+    opts: BasePlottingOptions,
+) -> None:
+    if opts.save_figures:
+        workflow.save_artifact(name, fig)
+    if opts.close_figures:
+        plt.close(fig)
 
 
 def _qubit_sweep_data(sweep_data: dict, i: int) -> dict:
@@ -177,12 +292,6 @@ def _qubit_sweep_data(sweep_data: dict, i: int) -> dict:
 # ═════════════════════════════════════════════════════════════
 # Single-qubit analysis
 # ═════════════════════════════════════════════════════════════
-
-
-def _ensure_list(qubits: QuantumElements) -> list:
-    if not isinstance(qubits, list):
-        return [qubits]
-    return qubits
 
 
 def _analyze_single_qubit(
@@ -219,77 +328,7 @@ def _analyze_single_qubit(
         "beta_re": sweep_data["beta_re_values"],
         "beta_im": sweep_data["beta_im_values"],
         "is_2d": is_2d,
-        "figures": {},
     }
-
-
-# ═════════════════════════════════════════════════════════════
-# Plot generation
-# ═════════════════════════════════════════════════════════════
-
-
-def _generate_plots(
-    qubit_result: dict,
-    q_uid: str,
-    opts: WignerTomographyAnalysisOptions,
-) -> None:
-    """Generate all Wigner tomography plots for a single qubit.
-
-    Dispatches to the appropriate plotting functions based on
-    whether the scan is 1D or 2D, and handles figure saving
-    and display.
-
-    Arguments:
-        qubit_result:
-            Analysis result dictionary for a single qubit.
-            The ``"figures"`` sub-dictionary is populated
-            in-place.
-        q_uid:
-            Qubit UID for plot titles and filenames.
-        opts:
-            Analysis options controlling plot generation,
-            saving, and display.
-    """
-    is_2d = qubit_result["is_2d"]
-    w_max = opts.w_max_override or (2.0 / np.pi)
-
-    if is_2d:
-        qubit_result["figures"]["wigner_2d"] = _plot_wigner_2d(
-            q_uid,
-            qubit_result["w"],
-            qubit_result["beta_re"],
-            qubit_result["beta_im"],
-            w_max=w_max,
-        )
-        qubit_result["figures"]["wigner_cuts"] = _plot_wigner_line_cuts(
-            q_uid,
-            qubit_result["w"],
-            qubit_result["beta_re"],
-            qubit_result["beta_im"],
-            w_max=w_max,
-        )
-    else:
-        qubit_result["figures"]["wigner_1d"] = _plot_wigner_1d(
-            q_uid,
-            qubit_result["w"],
-            qubit_result["parity"],
-            qubit_result["pg"],
-            qubit_result["beta_re"],
-            w_max=w_max,
-        )
-
-    if opts.save_figures:
-        for name, fig in qubit_result["figures"].items():
-            fig.savefig(
-                f"{opts.save_path}/wigner_{q_uid}_{name}.png",
-                dpi=150,
-                bbox_inches="tight",
-            )
-    if opts.show_plot:
-        plt.show()
-    else:
-        for fig in qubit_result["figures"].values():
-            plt.close(fig)
 
 
 # ═════════════════════════════════════════════════════════════
@@ -357,6 +396,7 @@ def _plot_wigner_line_cuts(
     """Plot Wigner function line cuts through the origin.
 
     Produces two panels:
+
     - Left: cut along Re(β) at Im(β) ≈ 0.
     - Right: cut along Im(β) at Re(β) ≈ 0.
 
@@ -435,6 +475,7 @@ def _plot_wigner_1d(
     """Plot the 1D Wigner function scan with intermediate quantities.
 
     Produces two panels:
+
     - Left: Wigner function W(β) vs Re(β).
     - Right: P(|g⟩) and ⟨Π⟩ vs Re(β).
 

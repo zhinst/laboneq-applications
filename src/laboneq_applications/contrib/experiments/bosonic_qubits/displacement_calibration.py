@@ -36,13 +36,18 @@ from laboneq.workflow.tasks import (
 from laboneq_applications.contrib.analysis.bosonic_qubits import (
     displacement_calibration as displacement_calibration_analysis,
 )
-from laboneq_applications.core import validation
+from laboneq_applications.conversion import (
+    as_quantum_element_list,
+    sweeps_per_quantum_element,
+)
 from laboneq_applications.experiments.options import (
-    TuneupExperimentOptions,
+    BaseExperimentOptions,
+    TuneUpWorkflowOptions,
 )
 from laboneq_applications.tasks import (
     temporary_qpu,
     temporary_quantum_elements_from_qpu,
+    update_qpu,
 )
 
 if TYPE_CHECKING:
@@ -52,11 +57,11 @@ if TYPE_CHECKING:
     from laboneq_applications.typing import QuantumElements, QubitSweepPoints
 
 
-@workflow.task_options(base_class=TuneupExperimentOptions)
+@workflow.task_options(base_class=BaseExperimentOptions)
 class DisplacementCalibrationExperimentOptions:
     """Options for the displacement calibration experiment.
 
-    Additional attributes:
+    Attributes:
         memory_drive_pulse:
             Dictionary of pulse overrides for the memory drive
             (displacement) pulse. By default, the pulse parameters from
@@ -75,18 +80,6 @@ class DisplacementCalibrationExperimentOptions:
     transmon_pi_pulse: dict | None = None
 
 
-@workflow.workflow_options
-class DisplacementCalibrationWorkflowOptions:
-    """Options for the displacement calibration workflow.
-
-    Attributes:
-        do_analysis (bool):
-            The option for performing the analysis.
-    """
-
-    do_analysis: bool = True
-
-
 @workflow.workflow(name="displacement_calibration")
 def experiment_workflow(
     session: Session,
@@ -96,20 +89,17 @@ def experiment_workflow(
     amplitudes: QubitSweepPoints,
     frequencies: QubitSweepPoints,
     temporary_parameters: dict[str, dict | QuantumParameters] | None = None,
-    options: DisplacementCalibrationWorkflowOptions | None = None,
+    options: TuneUpWorkflowOptions | None = None,
 ) -> None:
     """The displacement calibration workflow.
 
     The workflow consists of the following steps:
 
-    - [create_experiment]()
-    - [compile_experiment]()
-    - [run_experiment]()
-    - [analysis_workflow]()
-
-    Steps that can be added in the future include:
-
-    - [update_qpu]()
+    - [create_experiment][]
+    - [compile_experiment][]
+    - [run_experiment][]
+    - [analysis_workflow][]
+    - [update_qpu][]
 
     Arguments:
         session:
@@ -128,10 +118,15 @@ def experiment_workflow(
         temporary_parameters:
             The temporary parameters to update the qubits with.
         options:
-            The options for building the workflow.
-            In addition to options from [WorkflowOptions], the following
+            The options for building the workflow, passed as an instance of
+            [TuneUpWorkflowOptions][]. In addition to options from
+            [WorkflowOptions][laboneq.workflow.WorkflowOptions], the following
             custom options are supported:
-                - create_experiment: The options for creating the experiment.
+
+            - create_experiment: The options for creating the experiment.
+
+            Setting `update` to True stores the calibrated
+            `displacement_amp_per_unit_beta` in the qpu.
 
     Returns:
         result:
@@ -141,34 +136,38 @@ def experiment_workflow(
         ```python
         options = experiment_workflow.options()
         options.count(10)
+        # QPU from a single-qubit device setup
         qpu = QPU(
-            qubits=[BosonicQubit("q0")],
+            quantum_elements=BosonicQubit.from_device_setup(setup),
             quantum_operations=BosonicQubitOperations(),
         )
         result = experiment_workflow(
             session=session,
             qpu=qpu,
             qubits="q0",
-            amplitudes=[np.linspace(0.0, 1.0, 51)],
-            frequencies=[np.linspace(4.9e9, 5.1e9, 101)],
+            amplitudes=np.linspace(0.0, 1.0, 51),
+            frequencies=np.linspace(4.9e9, 5.1e9, 101),
             options=options,
         ).run()
         ```
     """
     temp_qpu = temporary_qpu(qpu, temporary_parameters)
-    qubits = temporary_quantum_elements_from_qpu(temp_qpu, qubits)
+    temp_qubits = temporary_quantum_elements_from_qpu(temp_qpu, qubits)
     exp = create_experiment(
-        qpu,
-        qubits,
+        temp_qpu,
+        temp_qubits,
         amplitudes=amplitudes,
         frequencies=frequencies,
     )
     compiled_exp = compile_experiment(session, exp)
     result = run_experiment(session, compiled_exp)
     with workflow.if_(options.do_analysis):
-        displacement_calibration_analysis.analysis_workflow(
-            result, qpu, qubits, amplitudes=amplitudes, frequencies=frequencies
+        analysis_results = displacement_calibration_analysis.analysis_workflow(
+            result, temp_qubits, amplitudes, frequencies
         )
+        qubit_parameters = analysis_results.output
+        with workflow.if_(options.update):
+            update_qpu(qpu, qubit_parameters["new_parameter_values"])
     workflow.return_(result)
 
 
@@ -210,8 +209,9 @@ def create_experiment(
             for each qubit.
         options:
             The options for building the experiment.
-            See [DisplacementCalibrationExperimentOptions] and
-            [BaseExperimentOptions] for accepted options.
+            See [DisplacementCalibrationExperimentOptions][] and
+            [BaseExperimentOptions][laboneq_applications.experiments.options.BaseExperimentOptions]
+            for accepted options.
 
     Returns:
         experiment:
@@ -229,41 +229,35 @@ def create_experiment(
             "count": 10,
             "averaging_mode": "cyclic",
             "acquisition_type": "integration_trigger",
-            "cal_traces": True,
         }
         options = DisplacementCalibrationExperimentOptions(**options)
+        # QPU from a single-qubit device setup
         qpu = QPU(
-            qubits=[BosonicQubit("q0")],
+            quantum_elements=BosonicQubit.from_device_setup(setup),
             quantum_operations=BosonicQubitOperations(),
         )
+        q0 = qpu["q0"]
         create_experiment(
             qpu=qpu,
-            qubits="q0",
-            amplitudes=[np.linspace(0.0, 1.0, 51)],
-            frequencies=[np.linspace(4.9e9, 5.1e9, 101)],
+            qubits=q0,
+            amplitudes=np.linspace(0.0, 1.0, 51),
+            frequencies=np.linspace(4.9e9, 5.1e9, 101),
             options=options,
         )
         ```
     """
     opts = DisplacementCalibrationExperimentOptions() if options is None else options
-    qubits, amplitudes = validation.validate_and_convert_qubits_sweeps(
-        qubits, amplitudes
-    )
-    # Validate frequencies separately: must have same number of entries
-    # as qubits. We rely on the user to pass one frequency array per qubit.
-    if not isinstance(frequencies, list):
-        frequencies = [frequencies]
-    if len(frequencies) == 1 and len(qubits) > 1:
-        frequencies = frequencies * len(qubits)
+    qubits = as_quantum_element_list(qubits)
+    qubit_sweeps = list(sweeps_per_quantum_element(qubits, amplitudes, frequencies))
 
     # One SweepParameter per qubit for each axis.
     amplitude_params = [
         SweepParameter(f"amplitude_{q.uid}", q_amplitudes)
-        for q, q_amplitudes in zip(qubits, amplitudes, strict=False)
+        for q, q_amplitudes, _ in qubit_sweeps
     ]
     frequency_params = [
         SweepParameter(f"frequency_{q.uid}", q_frequencies)
-        for q, q_frequencies in zip(qubits, frequencies, strict=False)
+        for q, _, q_frequencies in qubit_sweeps
     ]
 
     qop = qpu.quantum_operations

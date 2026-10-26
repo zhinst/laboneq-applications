@@ -30,7 +30,7 @@ from laboneq_applications.analysis.options import (
     DoFittingOption,
 )
 from laboneq_applications.analysis.plotting_helpers import timestamped_title
-from laboneq_applications.core.validation import validate_and_convert_qubits_sweeps
+from laboneq_applications.conversion import as_quantum_element_list
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
@@ -86,24 +86,44 @@ class TimeTracesAnalysisWorkflowOptions:
     )
 
 
+@workflow.task_options
+class ExtractSamplingRateOptions:
+    """Options class for the `extract_sampling_rate` task.
+
+    Attributes:
+        sampling_rate:
+            The sampling rate of the acquisition instrument that was used to measure
+            the time traces. If `None`, the sampling rate is derived from the acquired
+            raw traces and rounded to the nearest whole GSa/s.
+            Default: `None`.
+    """
+
+    sampling_rate: float | None = workflow.option_field(
+        None,
+        description=(
+            "The sampling rate of the acquisition instrument. If None, it is derived "
+            "from the acquired raw traces."
+        ),
+    )
+
+
 @workflow.task_options(base_class=DoFittingOption)
 class TruncateTimeTracesOptions:
     """Options class for the `truncate_time_traces` task.
 
     Attributes:
         granularity:
-            The granularity of the acquisition instrument. Used to truncate the time
-            traces to align them to the granularity grid.
+            The granularity of the acquisition instrument in samples. Used to truncate
+            the time traces to align them to the granularity grid. The default value
+            of 16 is the granularity of the SHFQA.
             Default: 16.
-
-    Additional attributes from `DoFittingOption`:
         do_fitting:
             Whether to perform the fit.
             Default: `True`.
     """
 
     granularity: int = workflow.option_field(
-        16, description="The granularity of the acquisition."
+        16, description="The granularity of the acquisition in samples."
     )
 
 
@@ -116,13 +136,6 @@ class FilterIntegrationKernelsOptions:
             The cut-off frequency of the low-pass filter for the kernels. Only used
             if filter_kernels is True in TimeTracesAnalysisWorkflowOptions.
             Default: `None`.
-        sampling_rate:
-            The sampling rate of the acquisition instrument that was used to measure the
-            time-traces. The sampling_rate is used when applying a low-pass filter to
-            the kernels if filter_kernels is True in TimeTracesAnalysisWorkflowOptions.
-            Default: 2e9.
-
-    Additional attributes from `DoFittingOption`:
         do_fitting:
             Whether to perform the fit.
             Default: `True`.
@@ -131,7 +144,6 @@ class FilterIntegrationKernelsOptions:
     filter_cutoff_frequency: float | None = workflow.option_field(
         None, description="The cut-off frequency."
     )
-    sampling_rate: float = workflow.option_field(2e9, description="The sampling rate.")
 
 
 @workflow.task_options(base_class=BasePlottingOptions)
@@ -143,8 +155,6 @@ class PlotKernelsFFTOptions:
             The cut-off frequency of the low-pass filter for the kernels. Only used
             if filter_kernels is True in TimeTracesAnalysisWorkflowOptions.
             Default: `None`.
-
-    Attributes from `BasePlottingOptions`:
         save_figures:
             Whether to save the figures.
             Default: `True`.
@@ -169,13 +179,20 @@ def analysis_workflow(
 
     The workflow consists of the following tasks:
 
-    - [truncate_time_traces]()
-    - [extract_kernels_thresholds]()
-    - [filter_integration_kernels]()
-    - [extract_qubit_parameters]()
-    - [plot_time_traces]()
-    - [plot_kernels_traces]()
-    - [plot_kernels_fft]()
+    - [extract_sampling_rate][]
+    - [truncate_time_traces][]
+    - [extract_kernels_thresholds][]
+    - [filter_integration_kernels][]
+    - [extract_qubit_parameters][]
+    - [plot_time_traces][]
+    - [plot_kernels_traces][]
+    - [plot_kernels_fft][]
+
+    !!! version-changed "Changed in version 26.10.0"
+        The sampling rate of the acquisition instrument is now derived from the
+        acquired raw traces instead of being assumed to be 2 GSa/s. It can still be
+        set explicitly via the `sampling_rate` option. The
+        [extract_sampling_rate][] task has been added to the workflow.
 
     Arguments:
         result:
@@ -188,7 +205,7 @@ def analysis_workflow(
             either a string, e.g. "gef", or a list of letters, e.g. ["g","e","f"].
         options:
             The options for building the workflow as an instance of
-            [TimeTracesAnalysisWorkflowOptions]. See the docstring of this class for
+            [TimeTracesAnalysisWorkflowOptions][]. See the docstring of this class for
             more details.
 
     Returns:
@@ -199,14 +216,17 @@ def analysis_workflow(
         ```python
         options = analysis_workflow.options()
         options.close_figures(False)
-        result = analysis_workflow(
-            results=results
+        analysis_result = analysis_workflow(
+            result=result,
             qubits=[q0, q1],
             states="ge",
             options=options,
         ).run()
         ```
     """
+    # extract_sampling_rate
+    sampling_rate = extract_sampling_rate(qubits, result, states)
+
     # truncate_time_traces
     truncated_time_traces = truncate_time_traces(qubits, result, states)
 
@@ -218,7 +238,7 @@ def analysis_workflow(
     integration_kernels_filtered = None
     with workflow.if_(options.filter_kernels):
         integration_kernels_filtered = filter_integration_kernels(
-            qubits, integration_kernels
+            qubits, integration_kernels, sampling_rate
         )
 
     # extract_qubit_parameters
@@ -248,10 +268,70 @@ def analysis_workflow(
                     qubits,
                     discrimination_thresholds,
                     integration_kernels,
+                    sampling_rate,
                     integration_kernels_filtered,
                 )
 
     workflow.return_(qubit_parameters)
+
+
+@workflow.task
+def extract_sampling_rate(
+    qubits: QuantumElements,
+    result: RunExperimentResults,
+    states: Sequence[Literal["g", "e", "f"]],
+    options: ExtractSamplingRateOptions | None = None,
+) -> float:
+    """Extract the sampling rate of the acquisition instrument.
+
+    Unless the sampling rate is given via the options, it is derived from the acquired
+    raw traces of the first qubit: in raw-acquisition mode, the number of acquired
+    samples is the acquisition length requested by the measure operation, which is the
+    qubit parameter `readout_integration_length`, times the sampling rate of the
+    acquisition instrument.
+
+    The derived sampling rate is then rounded to the nearest whole GSa/s. To use a
+    different sampling rate, please set the `sampling_rate` option explicitly.
+
+    Arguments:
+        qubits:
+            The qubits on which to run the task. May be either a single qubit or
+            a list of qubits.
+        result:
+            The experiment results returned by the run_experiment task.
+        states:
+            The basis states the qubits were prepared in. May be either a string,
+            e.g. "gef", or a list of letters, e.g. ["g","e","f"].
+        options:
+            The options for this task as an instance of
+            [ExtractSamplingRateOptions][]. See the docstring of this class for more
+            details.
+
+    Returns:
+        The sampling rate of the acquisition instrument in Sa/s.
+
+    Raises:
+        ValueError:
+            If the sampling rate is not given via the options and the first qubit has
+            no `readout_integration_length` parameter to derive it from.
+    """
+    opts = ExtractSamplingRateOptions() if options is None else options
+    if opts.sampling_rate is not None:
+        return opts.sampling_rate
+
+    q = as_quantum_element_list(qubits)[0]
+    if not hasattr(q.parameters, "readout_integration_length"):
+        raise ValueError(
+            f"The sampling rate cannot be derived for {q.uid} because its "
+            "parameters have no readout_integration_length. Please provide the "
+            "sampling_rate."
+        )
+    integration_length = q.parameters.readout_integration_length
+
+    trace = result[dsl.handles.result_handle(q.uid, suffix=states[0])].data
+    # The instrument may round the number of samples up to its granularity, so the
+    # ratio overestimates the rate slightly; rounding to whole GSa/s absorbs that.
+    return round(len(trace) / integration_length / 1e9) * 1e9
 
 
 @workflow.task
@@ -275,14 +355,14 @@ def truncate_time_traces(
             The basis states the qubits should be prepared in. May be either a string,
             e.g. "gef", or a list of letters, e.g. ["g","e","f"].
         options:
-            The options for this task as an instance of [TruncateTimeTracesOptions].
+            The options for this task as an instance of [TruncateTimeTracesOptions][].
             See the docstring of this class for more details.
 
     Returns:
         dict with qubit UIDs as keys and the list of truncated time-traces for each
-        qubit as keys.
+            qubit as keys.
     """
-    qubits = validate_and_convert_qubits_sweeps(qubits)
+    qubits = as_quantum_element_list(qubits)
     opts = TruncateTimeTracesOptions() if options is None else options
 
     truncated_time_traces = {q.uid: [] for q in qubits}
@@ -313,15 +393,15 @@ def extract_kernels_thresholds(
             The dictionary of truncated time traces for each qubit as returned by
             truncate_time_traces.
         options:
-            The options for this task as an instance of [DoFittingOption].
+            The options for this task as an instance of [DoFittingOption][].
             See the docstring of this class for more details.
 
     Returns:
         a tuple with the list of integration kernel arrays and a list with the
-        corresponding discrimination thresholds.
+            corresponding discrimination thresholds.
     """
     opts = DoFittingOption() if options is None else options
-    qubits = validate_and_convert_qubits_sweeps(qubits)
+    qubits = as_quantum_element_list(qubits)
     integration_kernels, discrimination_thresholds = {}, {}
     if not opts.do_fitting:
         return None, None
@@ -348,9 +428,15 @@ def extract_kernels_thresholds(
 def filter_integration_kernels(
     qubits: QuantumElements,
     integration_kernels: dict[str, list[ArrayLike]],
+    sampling_rate: float,
     options: FilterIntegrationKernelsOptions | None = None,
 ) -> dict[str, list]:
     """Applies a low-pass filter to the kernels.
+
+    !!! version-changed "Changed in version 26.10.0"
+        The `sampling_rate` argument has been added and the `sampling_rate` option
+        has been removed. The sampling rate is now resolved by the
+        [extract_sampling_rate][] task.
 
     Args:
         qubits:
@@ -360,9 +446,12 @@ def filter_integration_kernels(
         integration_kernels:
             A dictionary with qubit uids as keys and the list of arrays of optimal
             integration kernels as values.
+        sampling_rate:
+            The sampling rate of the acquisition instrument in Sa/s, as returned by
+            extract_sampling_rate.
         options:
             The options for this task as an instance of
-            [FilterIntegrationKernelsOptions].
+            [FilterIntegrationKernelsOptions][].
             See the docstring of this class for more details.
 
     Returns:
@@ -375,7 +464,7 @@ def filter_integration_kernels(
     opts = FilterIntegrationKernelsOptions() if options is None else options
     if opts.filter_cutoff_frequency is None:
         raise ValueError("Please provide the filter_cutoff_frequency.")
-    qubits = validate_and_convert_qubits_sweeps(qubits)
+    qubits = as_quantum_element_list(qubits)
     integration_kernels_filtered = {q.uid: [] for q in qubits}
     if not opts.do_fitting:
         return None
@@ -390,7 +479,7 @@ def filter_integration_kernels(
                 poles,
                 opts.filter_cutoff_frequency,
                 "lowpass",
-                fs=opts.sampling_rate,
+                fs=sampling_rate,
                 output="sos",
             )
             integration_kernels_filtered[q.uid] += [sp.signal.sosfiltfilt(sos, krn)]
@@ -427,32 +516,30 @@ def extract_qubit_parameters(
             The dictionary with the arrays of filtered integration kernels for each
             qubit as returned by filter_integration_kernels.
         options:
-            The options for this task as an instance of [DoFittingOption].
+            The options for this task as an instance of [DoFittingOption][].
             See the docstring of this class for more details.
 
     Returns:
         dict with extracted qubit parameters and the previous values for those qubit
-        parameters. The dictionary has the following form:
-        ```python
-        {
-            "new_parameter_values": {
-                q.uid: {
-                    qb_param_name: qb_param_value
+            parameters. The dictionary has the following form:
+
+            ```python
+            {
+                "new_parameter_values": {
+                    q.uid: {qb_param_name: qb_param_value},
+                },
+                "old_parameter_values": {
+                    q.uid: {qb_param_name: qb_param_value},
                 },
             }
-            "old_parameter_values": {
-                q.uid: {
-                    qb_param_name: qb_param_value
-                },
-            }
-        }
-        ```
-        If integration_kernels, integration_kernels_filtered, discrimination_thresholds
-        are all None, then the new_parameter_values are not extracted and the function
-        only returns the old_parameter_values.
+            ```
+
+            If integration_kernels, integration_kernels_filtered,
+            discrimination_thresholds are all None, then the new_parameter_values are
+            not extracted and the function only returns the old_parameter_values.
     """
     opts = DoFittingOption() if options is None else options
-    qubits = validate_and_convert_qubits_sweeps(qubits)
+    qubits = as_quantum_element_list(qubits)
     qubit_parameters = {
         "old_parameter_values": {q.uid: {} for q in qubits},
         "new_parameter_values": {q.uid: {} for q in qubits},
@@ -522,14 +609,14 @@ def plot_time_traces(
             The dictionary of truncated time traces for each qubit as returned by
             truncate_time_traces.
         options:
-            The options for this task as an instance of [BasePlottingOptions].
+            The options for this task as an instance of [BasePlottingOptions][].
             See the docstring of this class for more details.
 
     Returns:
         dict with qubit UIDs as keys and the figures for each qubit as values.
     """
     opts = BasePlottingOptions() if options is None else options
-    qubits = validate_and_convert_qubits_sweeps(qubits)
+    qubits = as_quantum_element_list(qubits)
     figures = {}
     for q in qubits:
         # plot traces and kernel
@@ -599,14 +686,14 @@ def plot_kernels_traces(
             qubit as returned by filter_integration_kernels. If None, only the
             integration_kernels are plotted.
         options:
-            The options for this task as an instance of [BasePlottingOptions].
+            The options for this task as an instance of [BasePlottingOptions][].
             See the docstring of this class for more details.
 
     Returns:
         dict with qubit UIDs as keys and the figures for each qubit as values.
     """
     opts = BasePlottingOptions() if options is None else options
-    qubits = validate_and_convert_qubits_sweeps(qubits)
+    qubits = as_quantum_element_list(qubits)
     figures = {}
     for q in qubits:
         if q.uid not in integration_kernels:
@@ -679,10 +766,15 @@ def plot_kernels_fft(
     qubits: QuantumElements,
     discrimination_thresholds: dict[str, list],
     integration_kernels: dict[str, list],
+    sampling_rate: float,
     integration_kernels_filtered: dict[str, list] | None = None,
     options: PlotKernelsFFTOptions | None = None,
 ) -> dict[str, mpl.figure.Figure]:
     """Create the plots of the FFT of the integration kernels.
+
+    !!! version-changed "Changed in version 26.10.0"
+        The `sampling_rate` argument has been added. The frequency axis of the plots
+        was previously calculated assuming a sampling rate of 2 GSa/s.
 
     Arguments:
         qubits:
@@ -696,20 +788,24 @@ def plot_kernels_fft(
         integration_kernels:
             The dictionary with the arrays of integration kernels for each qubit as
             returned by extract_kernels_thresholds.
+        sampling_rate:
+            The sampling rate of the acquisition instrument in Sa/s, as returned by
+            extract_sampling_rate.
         integration_kernels_filtered:
             The dictionary with the arrays of filtered integration kernels for each
             qubit as returned by filter_integration_kernels. If None, only the
             integration_kernels are plotted.
         options:
-            The options for this task as an instance of [PlotKernelsFFTOptions].
+            The options for this task as an instance of [PlotKernelsFFTOptions][].
             See the docstring of this class for more details.
 
     Returns:
         dict with qubit UIDs as keys and the figures for each qubit as values.
     """
     opts = PlotKernelsFFTOptions() if options is None else options
-    qubits = validate_and_convert_qubits_sweeps(qubits)
+    qubits = as_quantum_element_list(qubits)
     figures = {}
+    t = 1 / sampling_rate
     for q in qubits:
         if q.uid not in integration_kernels:  # if kernel calculation failed
             continue
@@ -722,7 +818,6 @@ def plot_kernels_fft(
         for i, ax in enumerate(axs):
             y = integration_kernels[q.uid][i]
             n = len(y)
-            t = 0.5e-9
             yf = sp.fft.fft(y)
             xf = sp.fft.fftfreq(n, t)
             xf = sp.fft.fftshift(xf)
@@ -736,7 +831,6 @@ def plot_kernels_fft(
                     raise ValueError("Please provide the filter_cutoff_frequency.")
                 y = integration_kernels_filtered[q.uid][i]
                 n = len(y)
-                t = 0.5e-9
                 yf = sp.fft.fft(y)
                 xf = sp.fft.fftfreq(n, t)
                 xf = sp.fft.fftshift(xf)

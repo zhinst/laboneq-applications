@@ -21,6 +21,7 @@ Pulse sequence per (qubit, photon number n, amplitude)::
     qb --- [ D(n_bar=n) ] --- [ Selective Rx(amp, n) ] --- [ measure ]
 
 where:
+
 - D(n_bar=n) prepares the memory cavity in a coherent state with
   mean photon number n̄ ≈ n. The displacement operation converts
   n̄ to a hardware amplitude via |β| = √n̄ and the calibrated
@@ -59,13 +60,18 @@ from laboneq.workflow.tasks import (
 from laboneq_applications.contrib.analysis.bosonic_qubits import (
     selective_transmon_rx_calibration as selective_transmon_rx_calibration_analysis,
 )
-from laboneq_applications.core import validation
+from laboneq_applications.conversion import (
+    as_quantum_element_list,
+    sweeps_per_quantum_element,
+)
 from laboneq_applications.experiments.options import (
-    TuneupExperimentOptions,
+    BaseExperimentOptions,
+    TuneUpWorkflowOptions,
 )
 from laboneq_applications.tasks import (
     temporary_qpu,
     temporary_quantum_elements_from_qpu,
+    update_qpu,
 )
 
 if TYPE_CHECKING:
@@ -84,19 +90,19 @@ import numpy as np
 # ═════════════════════════════════════════════════════════════
 
 
-@workflow.task_options(base_class=TuneupExperimentOptions)
+@workflow.task_options(base_class=BaseExperimentOptions)
 class SelectiveTransmonRxExperimentOptions:
     """Options for the selective transmon Rx calibration experiment.
 
-    Additional attributes:
+    Attributes:
         selective_drive_pulse:
             Dictionary of pulse overrides for the selective
             transmon drive pulse. If None, the qubit parameter
-            ``selective_drive_pulse`` is used.
+            ``selective_transmon_Rx_pulse`` is used.
         selective_drive_length:
             Override for the selective drive pulse length in
             seconds. If None, the qubit parameter
-            ``selective_drive_length`` is used.
+            ``selective_transmon_Rx_length`` is used.
         memory_drive_pulse:
             Dictionary of pulse overrides for the memory cavity
             displacement pulse used for state preparation.
@@ -114,25 +120,12 @@ class SelectiveTransmonRxExperimentOptions:
     memory_drive_length: float | None = None
 
 
-@workflow.workflow_options
-class SelectiveTransmonRxWorkflowOptions:
-    """Options for the selective transmon Rx calibration workflow.
-
-    Attributes:
-        do_analysis:
-            Whether to run the analysis workflow after the
-            experiment. Default: True.
-    """
-
-    do_analysis: bool = True
-
-
 # ═════════════════════════════════════════════════════════════
 # Workflow
 # ═════════════════════════════════════════════════════════════
 
 
-@workflow.workflow(name="selective_transmon_Rx_calibration")
+@workflow.workflow(name="selective_transmon_rx_calibration")
 def experiment_workflow(
     session: Session,
     qpu: QPU,
@@ -141,20 +134,17 @@ def experiment_workflow(
     amplitudes_transmon: QubitSweepPoints,
     photon_numbers_memory: list[int],
     temporary_parameters: dict[str, dict | QuantumParameters] | None = None,
-    options: SelectiveTransmonRxWorkflowOptions | None = None,
+    options: TuneUpWorkflowOptions | None = None,
 ) -> None:
     """The selective transmon Rx calibration workflow.
 
     The workflow consists of the following steps:
 
-    - [create_experiment]()
-    - [compile_experiment]()
-    - [run_experiment]()
-    - [analysis_workflow]()
-
-    Steps that can be added in the future include:
-
-    - [update_qpu]()
+    - [create_experiment][]
+    - [compile_experiment][]
+    - [run_experiment][]
+    - [analysis_workflow][]
+    - [update_qpu][]
 
     For each photon number n in ``photon_numbers_memory``, the memory
     cavity is prepared in a coherent state with mean photon number
@@ -175,15 +165,17 @@ def experiment_workflow(
             May be either a single qubit or a list of qubits.
         amplitudes_transmon:
             The selective drive amplitudes to sweep over for each
-            qubit. Either a single array (broadcast to all
-            qubits) or a list of arrays (one per qubit).
+            qubit. A single array for a single qubit, or a list of
+            arrays (one per qubit).
         photon_numbers_memory:
             List of cavity photon numbers to calibrate.
             For example, ``[0, 1, 2, 3, 4, 5]``.
         temporary_parameters:
             Temporary parameters to update the qubits with.
         options:
-            The options for building the workflow.
+            The options for building the workflow, passed as an instance of
+            [TuneUpWorkflowOptions][]. Setting `update` to True stores the
+            calibrated selective X180 and X90 amplitudes in the qpu.
 
     Returns:
         result:
@@ -193,34 +185,38 @@ def experiment_workflow(
         ```python
         options = experiment_workflow.options()
         options.count(1024)
+        # QPU from a single-qubit device setup
+        qpu = QPU(
+            quantum_elements=BosonicQubit.from_device_setup(setup),
+            quantum_operations=BosonicQubitOperations(),
+        )
         result = experiment_workflow(
             session=session,
             qpu=qpu,
-            qubits=qpu.quantum_element_uids,
-            amplitudes_transmon=[np.linspace(0.0, 1.0, 51)],
+            qubits="q0",
+            amplitudes_transmon=np.linspace(0.0, 1.0, 51),
             photon_numbers_memory=[0, 1, 2, 3],
             options=options,
         ).run()
         ```
     """
     temp_qpu = temporary_qpu(qpu, temporary_parameters)
-    qubits = temporary_quantum_elements_from_qpu(temp_qpu, qubits)
+    temp_qubits = temporary_quantum_elements_from_qpu(temp_qpu, qubits)
     exp = create_experiment(
-        qpu,
-        qubits,
+        temp_qpu,
+        temp_qubits,
         amplitudes_transmon=amplitudes_transmon,
         photon_numbers_memory=photon_numbers_memory,
     )
     compiled_exp = compile_experiment(session, exp)
     result = run_experiment(session, compiled_exp)
     with workflow.if_(options.do_analysis):
-        selective_transmon_rx_calibration_analysis.analysis_workflow(
-            result,
-            qpu,
-            qubits,
-            amplitudes_transmon=amplitudes_transmon,
-            photon_numbers_memory=photon_numbers_memory,
+        analysis_results = selective_transmon_rx_calibration_analysis.analysis_workflow(
+            result, temp_qubits, amplitudes_transmon, photon_numbers_memory
         )
+        qubit_parameters = analysis_results.output
+        with workflow.if_(options.update):
+            update_qpu(qpu, qubit_parameters["new_parameter_values"])
     workflow.return_(result)
 
 
@@ -268,10 +264,7 @@ def create_experiment(
             on the qubit parameters and n > 0 is requested.
     """
     opts = SelectiveTransmonRxExperimentOptions() if options is None else options
-    qubits, amplitudes_transmon = validation.validate_and_convert_qubits_sweeps(
-        qubits,
-        amplitudes_transmon,
-    )
+    qubits = as_quantum_element_list(qubits)
 
     # Outer sweep: photon number — same list for every qubit, swept in lockstep.
     photon_number_params = [
@@ -282,7 +275,7 @@ def create_experiment(
     # Inner sweep: selective-drive amplitude, one SweepParameter per qubit.
     amplitude_params = [
         SweepParameter(f"rabi_amp_{q.uid}", q_amplitudes)
-        for q, q_amplitudes in zip(qubits, amplitudes_transmon, strict=False)
+        for q, q_amplitudes in sweeps_per_quantum_element(qubits, amplitudes_transmon)
     ]
 
     qop = qpu.quantum_operations

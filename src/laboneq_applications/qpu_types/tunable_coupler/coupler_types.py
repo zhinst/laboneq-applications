@@ -39,6 +39,14 @@ class TunableCouplerParameters(QuantumParameters):
             Offset voltage for flux control line - defaults to 0 volts.
         dc_voltage_parking:
             Coupler DC parking voltage.
+        flux_on_sg_channel:
+            Whether the flux line is driven by an SG channel. If true, the SG channel is
+            put into LF mode with its local oscillator at 0 Hz. Defaults to `False`.
+        coupler_flux_range:
+            Output range for flux control line. Units are in volts when
+            `flux_on_sg_channel==False` and dBm when `flux_on_sg_channel==True`.
+            Defaults to `None`, in which case the range configured on the instrument is
+            used.
     """
 
     # gate parameters
@@ -59,6 +67,8 @@ class TunableCouplerParameters(QuantumParameters):
     dc_slot: int | None = 0
     dc_voltage_parking: float | None = None
     flux_offset_voltage: float = 0.0
+    flux_on_sg_channel: bool = False
+    coupler_flux_range: float | None = None
 
 
 @classformatter
@@ -95,8 +105,10 @@ class TunableCoupler(QuantumElement):
         sig_cal = SignalCalibration()
         if self.parameters.flux_offset_voltage is not None:
             sig_cal.voltage_offset = self.parameters.flux_offset_voltage
-        sig_cal.local_oscillator = Oscillator(frequency=0.0e9)
-        sig_cal.port_mode = PortMode.LF
+        if self.parameters.flux_on_sg_channel:
+            sig_cal.local_oscillator = Oscillator(frequency=0.0)
+            sig_cal.port_mode = PortMode.LF
+        sig_cal.range = self.parameters.coupler_flux_range
         calibration[self.signals["flux"]] = sig_cal
 
         return Calibration(calibration)

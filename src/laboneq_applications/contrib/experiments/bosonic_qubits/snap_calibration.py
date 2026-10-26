@@ -6,53 +6,39 @@
 The SNAP (Selective Number-Arbitrary Phase) gate applies independent
 phases to each Fock state of a bosonic memory:
 
-    S(θ⃗) = Σₙ exp(iθₙ) |n⟩⟨n|
+    S(theta_vec) = sum_n exp(i*theta_n) |n><n|
 
-For each photon number n, the SNAP operation is decomposed into
-two selective π pulses at the number-dependent transmon frequency
-f(n) = f_transmon(0) + n · χ:
+Part 2 of this workflow maps the drive phase phi of the second
+selective pulse to the acquired cavity phase theta_n.
 
-    SNAP(θₙ)  =  Rx(π, n)  ·  R_φ(π, n)
+The Part 2 reads the *angular position of the Wigner fringe*.
+For each SNAP drive phase phi we trace the Wigner function around a
+circle of fixed radius |beta| = sqrt(n) by sweeping the Wigner
+displacement phase arg(beta). The SNAP-imprinted cavity phase shows
+up as an angular shift of that fringe, which is exactly the quantity
+we want and is robust to the multi-Fock background.
 
-where the drive phase φ of the second pulse controls the acquired
-cavity phase θₙ.
+Pulse sequence per (qubit, photon number n), 2-D sweep
+(phi outer, arg(beta) inner)::
 
-This workflow calibrates in two parts:
+    qb --- [D(n_bar=n)]
+        --- [Rx(pi, n, phase=0)]
+        --- [Rx(pi, n, phase=phi)]
+        --- [W(|beta|=sqrt(n), arg(beta)=beta_phase)]
 
-**Part 1 — Amplitude calibration:**
-
-Verifies the π-pulse amplitude in the two-pulse SNAP context.
-Two identical selective pulses with the same swept amplitude are
-applied; the correct π amplitude corresponds to the minimum
-transmon excitation (transmon fully returns to |g⟩).
-
-Pulse sequence per (qubit, photon number n)::
-
-    qb --- [D(n_bar=n)] --- [Rx(amp,n)] --- [Rx(amp,n)] --- [measure]
-
-**Part 2 — Phase calibration:**
-
-Maps the drive phase φ of the second π pulse to the acquired
-cavity phase θₙ. The amplitude from Part 1 is used for both
-pulses; only the phase of the second pulse is swept.
-
-Pulse sequence per (qubit, photon number n)::
-
-    qb --- [D(n_bar=n)] --- [Rx(π,n,φ=0)] --- [Rx(π,n,φ=sweep)]
-                                             --- [W(β=√n)]
-
-The Wigner function at β = √n oscillates sinusoidally with φ.
-The phase offset of the oscillation is the calibration constant.
+The analysis fits, for each phi, the fringe W(arg beta) to extract its
+angular position theta(phi), then fits theta(phi) vs phi (expected
+linear, slope ~ +/-1). The intercept is the calibration constant.
 
 Prerequisites:
     - Selective transmon Rx calibration (amp_pi per n).
     - Displacement calibration (displacement_amp_per_unit_beta).
-    - Dispersive shift χ.
+    - Dispersive shift chi.
 
 Note:
     The ``rx`` quantum operation must accept a ``phase`` keyword
-    argument for Part 2. This argument sets the drive oscillator
-    phase of the selective pulse.
+    argument for Part 2. The ``wigner_point`` operation must accept a
+    swept ``beta_phase``.
 
 If multiple qubits are passed, pulse sequences are applied in
 parallel on all qubits.
@@ -72,13 +58,18 @@ from laboneq.workflow.tasks import run_experiment as _run_experiment
 from laboneq_applications.contrib.analysis.bosonic_qubits import (
     snap_calibration as snap_calibration_analysis,
 )
-from laboneq_applications.core import validation
+from laboneq_applications.conversion import (
+    as_quantum_element_list,
+    sweeps_per_quantum_element,
+)
 from laboneq_applications.experiments.options import (
-    TuneupExperimentOptions,
+    BaseExperimentOptions,
+    TuneUpWorkflowOptions,
 )
 from laboneq_applications.tasks import (
     temporary_qpu,
     temporary_quantum_elements_from_qpu,
+    update_qpu,
 )
 
 if TYPE_CHECKING:
@@ -98,7 +89,7 @@ if TYPE_CHECKING:
 # ═════════════════════════════════════════════════════════════
 
 
-@workflow.task_options(base_class=TuneupExperimentOptions)
+@workflow.task_options(base_class=BaseExperimentOptions)
 class SnapAmplitudeExperimentOptions:
     """Options for the SNAP amplitude calibration experiment (Part 1).
 
@@ -115,8 +106,8 @@ class SnapAmplitudeExperimentOptions:
         memory_drive_length:
             Override for the displacement pulse length in seconds.
         chunk_count:
-            Number of sweep points per chunk. Default: 0 (auto
-            chunking).
+            Number of chunks the real-time sweep is split into.
+            Default: 1 (0 = auto chunking).
     """
 
     selective_drive_pulse: dict | None = None
@@ -126,7 +117,7 @@ class SnapAmplitudeExperimentOptions:
     chunk_count: int = 1  # 0 = auto chunking
 
 
-@workflow.task_options(base_class=TuneupExperimentOptions)
+@workflow.task_options(base_class=BaseExperimentOptions)
 class SnapPhaseExperimentOptions:
     """Options for the SNAP phase calibration experiment (Part 2).
 
@@ -142,34 +133,49 @@ class SnapPhaseExperimentOptions:
             pulse used for state preparation.
         memory_drive_length:
             Override for the displacement pulse length in seconds.
+        wigner_displacement_pulse:
+            Dictionary of pulse overrides for the Wigner-tomography
+            displacement pulse.
+        wigner_displacement_length:
+            Override for the Wigner displacement pulse length in
+            seconds.
         chunk_count:
-            Number of sweep points per chunk. Default: 0 (auto
-            chunking).
+            Number of chunks the real-time sweep is split into.
+            Default: 1 (0 = auto chunking). Applies to the inner
+            (beta-phase) sweep.
     """
 
     selective_drive_pulse: dict | None = None
     selective_drive_length: float | None = None
     memory_drive_pulse: dict | None = None
     memory_drive_length: float | None = None
+    wigner_displacement_pulse: dict | None = None
+    wigner_displacement_length: float | None = None
     chunk_count: int = 1  # 0 = auto chunking
 
 
-@workflow.workflow_options
+@workflow.workflow_options(base_class=TuneUpWorkflowOptions)
 class SnapCalibrationWorkflowOptions:
     """Options for the SNAP calibration workflow.
 
     Attributes:
-        do_analysis (bool):
-            The option for performing the analysis.
         do_phase_calibration:
             Whether to run Part 2 (phase calibration) after
             Part 1 (amplitude calibration). Part 2 uses the
             π amplitude extracted by the Part 1 analysis, so it
             only runs when ``do_analysis`` is also True.
+            Default: True.
+        do_analysis:
+            Whether to run the analysis workflows.
+            Default: True.
+        update:
+            Whether to store the calibrated SNAP parameters in the qpu.
+            Default: False.
     """
 
-    do_phase_calibration: bool = True
-    do_analysis: bool = True
+    do_phase_calibration: bool = workflow.option_field(
+        True, description="Whether to run Part 2 (phase calibration)."
+    )
 
 
 # ═════════════════════════════════════════════════════════════
@@ -185,6 +191,7 @@ def experiment_workflow(
     *,
     amplitudes_transmon: list[ArrayLike],
     phases_transmon: list[ArrayLike | None] | None = None,
+    phases_wigner: list[ArrayLike | None] | None = None,
     photon_number_memory: int,
     temporary_parameters: dict[str, dict | QuantumParameters] | None = None,
     options: SnapCalibrationWorkflowOptions | None = None,
@@ -192,49 +199,55 @@ def experiment_workflow(
     """The SNAP gate calibration workflow.
 
     Runs Part 1 (amplitude calibration) and optionally Part 2
-    (phase calibration). Part 2 uses the calibrated π amplitudes
-    from Part 1.
+    (phase calibration). Part 2 uses the calibrated pi amplitudes
+    from Part 1 and reads out the Wigner fringe angle (see module
+    docstring).
 
     The workflow consists of the following steps:
 
-    - [create_amplitude_experiment]()
-    - [compile_amplitude_experiment]()
-    - [run_amplitude_experiment]()
-    - [analyze_amplitude]()
+    - [create_amplitude_experiment][]
+    - [compile_amplitude_experiment][]
+    - [run_amplitude_experiment][]
+    - [amplitude_analysis_workflow][]
+    - [update_qpu][]
 
-    - [create_phase_experiment]()
-    - [compile_phase_experiment]()
-    - [run_phase_experiment]()
-    - [analyze_phase]()
-
-    Steps that can be added in the future include:
-
-    - [update_qpu]()
+    - [create_phase_experiment][]
+    - [compile_phase_experiment][]
+    - [run_phase_experiment][]
+    - [phase_analysis_workflow][]
+    - [update_qpu][]
 
     Arguments:
         session:
-            The connected session to use for running the
-            experiment.
+            The connected session to use for running the experiment.
         qpu:
-            The qpu consisting of the original qubits and
-            quantum operations.
+            The qpu consisting of the original qubits and quantum
+            operations.
         qubits:
             The qubits to run the experiments on, passed by UID.
         amplitudes_transmon:
             The selective drive amplitudes to sweep for Part 1.
-            Should be centered around the amp_pi values from
-            the selective Rx calibration. Either a single array
-            (broadcast to all qubits) or a list of arrays.
-        photon_number_memory:
-            The cavity photon number to calibrate.
-            For example, ``3``.
+            Should be centered around the amp_pi values from the
+            selective Rx calibration. A single array for a single
+            qubit, or a list of arrays (one per qubit).
         phases_transmon:
-            The drive phases to sweep for Part 2 (radians).
-            If None, defaults to ``np.linspace(0, 2π, 51)``.
+            The SNAP drive phases to sweep for Part 2 (radians).
+            If None, defaults to ``np.linspace(0, 2*pi, 13,
+            endpoint=False)`` -- a coarse outer axis is enough since
+            theta(phi) is expected linear.
+        phases_wigner:
+            The Wigner displacement phases arg(beta) to sweep for the
+            inner tomography axis (radians). If None, defaults to
+            ``np.linspace(0, 2*pi, 48, endpoint=False)``.
+        photon_number_memory:
+            The cavity photon number to calibrate. For example, ``3``.
         temporary_parameters:
             Temporary parameters to update the qubits with.
         options:
-            The options for building the workflow.
+            The options for building the workflow, passed as an instance of
+            [SnapCalibrationWorkflowOptions][]. Setting `update` to True stores
+            the calibrated `snap_drive_amp_per_n`, `snap_drive_phase_per_n`
+            and `snap_drive_phase_slope_sign_per_n` in the qpu.
 
     Returns:
         result:
@@ -242,66 +255,66 @@ def experiment_workflow(
 
     Example:
         ```python
-        result = snap_calibration.experiment_workflow(
+        # QPU from a single-qubit device setup
+        qpu = QPU(
+            quantum_elements=BosonicQubit.from_device_setup(setup),
+            quantum_operations=BosonicQubitOperations(),
+        )
+        result = experiment_workflow(
             session=session,
             qpu=qpu,
-            qubits=qpu.quantum_elements[0].uid,
-            amplitudes_transmon=[np.linspace(0.1, 0.9, 51)],
+            qubits="q0",
+            amplitudes_transmon=np.linspace(0.1, 0.9, 51),
             photon_number_memory=3,
         ).run()
         ```
     """
     temp_qpu = temporary_qpu(qpu, temporary_parameters)
-    qubits = temporary_quantum_elements_from_qpu(
-        temp_qpu,
-        qubits,
-    )
+    temp_qubits = temporary_quantum_elements_from_qpu(temp_qpu, qubits)
 
-    # ── Part 1: amplitude calibration ──────────────────────
-    exp_amp = create_amplitude_experiment(
-        qpu,
-        qubits,
+    # -------- Part 1: amplitude calibration --------
+    amp_exp = create_amplitude_experiment(
+        qpu=temp_qpu,
+        qubits=temp_qubits,
         amplitudes_transmon=amplitudes_transmon,
         photon_number_memory=photon_number_memory,
     )
-    compiled_amp = compile_amplitude_experiment(session, exp_amp)
-    result_amp = run_amplitude_experiment(session, compiled_amp)
+    amp_compiled = compile_amplitude_experiment(session, amp_exp)
+    amp_result = run_amplitude_experiment(session, amp_compiled)
+
     # Part 2 (phase calibration) consumes the π amplitude extracted by the
     # Part 1 analysis, so it can only run when do_analysis is enabled.
     with workflow.if_(options.do_analysis):
-        amp_analysis = snap_calibration_analysis.analyze_amplitude(
-            result_amp,
-            qpu,
-            qubits,
-            amplitudes_transmon=amplitudes_transmon,
-            photon_number_memory=photon_number_memory,
+        amp_analysis = snap_calibration_analysis.amplitude_analysis_workflow(
+            amp_result, temp_qubits, amplitudes_transmon, photon_number_memory
         )
+        amp_parameters = amp_analysis.output
+        with workflow.if_(options.update):
+            update_qpu(qpu, amp_parameters["new_parameter_values"])
 
-        # ── Part 2: phase calibration ──────────────────────────
+        # -------- Part 2: phase calibration --------
         with workflow.if_(options.do_phase_calibration):
-            exp_phase = create_phase_experiment(
-                qpu,
-                qubits,
-                amp_pi_snap=amp_analysis,
-                photon_number_memory=photon_number_memory,
+            phase_exp = create_phase_experiment(
+                qpu=temp_qpu,
+                qubits=temp_qubits,
+                snap_amplitudes=amp_parameters["new_parameter_values"],
                 phases_transmon=phases_transmon,
-            )
-            compiled_phase = compile_phase_experiment(
-                session,
-                exp_phase,
-            )
-            result_phase = run_phase_experiment(
-                session,
-                compiled_phase,
-            )
-            snap_calibration_analysis.analyze_phase(
-                result_phase,
-                qpu,
-                qubits,
+                phases_wigner=phases_wigner,
                 photon_number_memory=photon_number_memory,
-                phases_transmon=phases_transmon,
             )
-    workflow.return_(result_amp)
+            phase_compiled = compile_phase_experiment(session, phase_exp)
+            phase_result = run_phase_experiment(session, phase_compiled)
+            phase_analysis = snap_calibration_analysis.phase_analysis_workflow(
+                phase_result,
+                temp_qubits,
+                photon_number_memory,
+                phases_transmon,
+                phases_wigner,
+            )
+            phase_parameters = phase_analysis.output
+            with workflow.if_(options.update):
+                update_qpu(qpu, phase_parameters["new_parameter_values"])
+    workflow.return_(amp_result)
 
 
 # ═════════════════════════════════════════════════════════════
@@ -321,9 +334,9 @@ def create_amplitude_experiment(
     """Creates the SNAP amplitude calibration experiment (Part 1).
 
     For one shared photon number ``n`` across all qubits, prepares a
-    coherent state with n̄ = n and sweeps the amplitude of two
-    identical selective π pulses *simultaneously* on every qubit.
-    The correct π amplitude is where the transmon excitation is
+    coherent state with n_bar = n and sweeps the amplitude of two
+    selective pi pulses *simultaneously* on every qubit.
+    The correct pi amplitude is where the transmon excitation is
     minimised.
 
     Arguments:
@@ -346,25 +359,17 @@ def create_amplitude_experiment(
         The LabOne Q experiment.
     """
     opts = SnapAmplitudeExperimentOptions() if options is None else options
-    qubits, amplitudes_transmon = validation.validate_and_convert_qubits_sweeps(
-        qubits,
-        amplitudes_transmon,
-    )
+    qubits = as_quantum_element_list(qubits)
 
     n = photon_number_memory
     qop = qpu.quantum_operations
 
-    # One SweepParameter per qubit; all swept in lockstep.
     amp_params = [
         SweepParameter(
             uid=f"snap_amp_{q.uid}_n{n}",
             values=q_amplitudes,
         )
-        for q, q_amplitudes in zip(
-            qubits,
-            amplitudes_transmon,
-            strict=False,
-        )
+        for q, q_amplitudes in sweeps_per_quantum_element(qubits, amplitudes_transmon)
     ]
 
     sweep_kwargs = {
@@ -390,7 +395,7 @@ def create_amplitude_experiment(
                 amp_params,
                 strict=False,
             ):
-                # Prepare coherent state with n̄ = n
+                # Prepare coherent state with n_bar = n
                 if n > 0:
                     qop.displacement(
                         q,
@@ -398,7 +403,7 @@ def create_amplitude_experiment(
                         length=opts.memory_drive_length,
                         pulse=opts.memory_drive_pulse,
                     )
-                # First π pulse
+                # First pi pulse
                 qop.rx(
                     q,
                     angle=None,
@@ -407,13 +412,14 @@ def create_amplitude_experiment(
                     length=opts.selective_drive_length,
                     pulse=opts.selective_drive_pulse,
                 )
-                # Second π pulse (same amplitude, opposite sign,
-                # mirroring the original behaviour)
+                # Second pi pulse — same amplitude and direction as the
+                # first. Together the two pulses complete a 2π rotation,
+                # returning the transmon to |g⟩ at the π amplitude.
                 qop.rx(
                     q,
                     angle=None,
                     n=n,
-                    amplitude=-amplitude,
+                    amplitude=amplitude,
                     length=opts.selective_drive_length,
                     pulse=opts.selective_drive_pulse,
                 )
@@ -431,67 +437,115 @@ def create_amplitude_experiment(
 def create_phase_experiment(
     qpu: QPU,
     qubits: QuantumElements,
-    amp_pi_snap: dict,
+    snap_amplitudes: dict,
     phases_transmon: QubitSweepPoints,
+    phases_wigner: QubitSweepPoints,
     photon_number_memory: int,
     options: SnapPhaseExperimentOptions | None = None,
 ) -> Experiment:
-    """Creates the SNAP phase calibration experiment (Part 2)."""
+    """Creates the SNAP phase calibration experiment (Part 2).
+
+    Two-dimensional sweep:
+        outer  -> SNAP drive phase phi (phases_transmon)
+        inner  -> Wigner displacement phase arg(beta) (phases_wigner)
+
+    For each phi we trace a full Wigner fringe around the circle
+    |beta| = sqrt(n). The analysis extracts the fringe angle theta(phi)
+    and fits theta(phi) vs phi.
+
+    Arguments:
+        qpu:
+            The qpu consisting of the original qubits and quantum
+            operations.
+        qubits:
+            The qubits to run the experiment on (calibrated in
+            parallel).
+        snap_amplitudes:
+            The new parameter values extracted by the Part 1 analysis,
+            in the form ``{q.uid: {"snap_drive_amp_per_n": {str(n): amp}}}``.
+            For a qubit without a new value (e.g. a failed fit), the
+            stored ``snap_drive_amp_per_n`` qubit parameter is used.
+        phases_transmon:
+            The SNAP drive phases phi to sweep (outer axis). Either
+            None (default grid), a single array (broadcast to all
+            qubits), or one array per qubit.
+        phases_wigner:
+            The Wigner displacement phases arg(beta) to sweep (inner
+            axis). Either None (default grid), a single array
+            (broadcast to all qubits), or one array per qubit.
+        photon_number_memory:
+            The cavity photon number to calibrate (shared across
+            qubits).
+        options:
+            The experiment options.
+
+    Returns:
+        The LabOne Q experiment.
+
+    Raises:
+        ValueError:
+            If no SNAP amplitude is available for a qubit at the
+            requested photon number.
+    """
     opts = SnapPhaseExperimentOptions() if options is None else options
     n = photon_number_memory
 
-    if not isinstance(qubits, list):
-        qubits = [qubits]
+    qubits = as_quantum_element_list(qubits)
 
-    # Default phase array, broadcast to all qubits if not provided.
-    if phases_transmon is None:
-        default_phases = np.linspace(0, 2 * np.pi, 51)
-        phases_transmon = [default_phases for _ in qubits]
-    elif isinstance(phases_transmon, np.ndarray) or (
-        isinstance(phases_transmon, list)
-        and not (
-            len(phases_transmon) > 0
-            and isinstance(phases_transmon[0], (list, np.ndarray))
-        )
-    ):
-        # A single 1-D array was passed: broadcast to every qubit.
-        single = np.asarray(phases_transmon)
-        phases_transmon = [single for _ in qubits]
-    else:
-        phases_transmon = [np.asarray(p) for p in phases_transmon]
+    # ---- normalise SNAP drive-phase (outer) axis ----
+    phases_transmon = snap_calibration_analysis.broadcast_phases(
+        phases_transmon,
+        len(qubits),
+        default=snap_calibration_analysis.DEFAULT_PHASES_TRANSMON,
+    )
 
-    if len(phases_transmon) != len(qubits):
-        raise ValueError(
-            "phases_transmon must have one array per qubit "
-            f"(got {len(phases_transmon)}, expected {len(qubits)})."
-        )
+    # ---- normalise Wigner displacement-phase (inner) axis ----
+    phases_wigner = snap_calibration_analysis.broadcast_phases(
+        phases_wigner,
+        len(qubits),
+        default=snap_calibration_analysis.DEFAULT_PHASES_WIGNER,
+    )
 
     qop = qpu.quantum_operations
 
-    # Per-qubit phase sweep parameters; all swept in lockstep.
+    # Outer sweep params: SNAP drive phase phi.
     phase_params = [
-        SweepParameter(
-            uid=f"snap_phase_{q.uid}_n{n}",
-            values=q_phases,
-        )
-        for q, q_phases in zip(
-            qubits,
-            phases_transmon,
-            strict=False,
-        )
+        SweepParameter(uid=f"snap_phase_{q.uid}_n{n}", values=p)
+        for q, p in zip(qubits, phases_transmon, strict=False)
+    ]
+    # Inner sweep params: Wigner displacement phase arg(beta).
+    phase_wigner_params = [
+        SweepParameter(uid=f"snap_betaphase_{q.uid}_n{n}", values=b)
+        for q, b in zip(qubits, phases_wigner, strict=False)
     ]
 
-    sweep_kwargs = {
+    outer_kwargs = {
         "uid": f"snap_phase_n{n}",
         "parameter": phase_params,
     }
+    inner_kwargs = {
+        "uid": f"snap_betaphase_n{n}",
+        "parameter": phase_wigner_params,
+    }
+    # Chunk the inner (typically larger) axis only.
     if opts.chunk_count > 0:
-        sweep_kwargs["chunk_count"] = opts.chunk_count
+        inner_kwargs["chunk_count"] = opts.chunk_count
     else:
-        sweep_kwargs["auto_chunking"] = True
+        inner_kwargs["auto_chunking"] = True
 
-    # Per-qubit calibrated π amplitudes; resolved at compile time.
-    amp_pi_per_qubit = [amp_pi_snap[q.uid]["amp_pi_snap"][str(n)] for q in qubits]
+    # Per-qubit calibrated pi amplitudes; resolved at compile time.
+    amp_pi_per_qubit = []
+    for q in qubits:
+        amps = snap_amplitudes.get(q.uid, {}).get(
+            "snap_drive_amp_per_n", q.parameters.snap_drive_amp_per_n
+        )
+        if str(n) not in amps:
+            raise ValueError(
+                f"Qubit {q.uid!r}: no SNAP amplitude for photon number n={n}. "
+                "The Part 1 fit failed and snap_drive_amp_per_n has no stored "
+                "value for this photon number."
+            )
+        amp_pi_per_qubit.append(amps[str(n)])
     beta_amp = float(np.sqrt(n)) if n > 0 else 0.0
 
     with dsl.acquire_loop_rt(
@@ -502,47 +556,65 @@ def create_phase_experiment(
         repetition_time=opts.repetition_time,
         reset_oscillator_phase=opts.reset_oscillator_phase,
     ):
-        with dsl.sweep(**sweep_kwargs):
-            for q, phase, amp_pi_n in zip(
-                qubits,
-                phase_params,
-                amp_pi_per_qubit,
-                strict=False,
-            ):
-                if n > 0:
-                    qop.displacement(
+        # Outer: SNAP drive phase phi.
+        with dsl.sweep(**outer_kwargs):
+            # Inner: Wigner displacement phase arg(beta).
+            with dsl.sweep(**inner_kwargs):
+                for q, phase, beta_phase, amp_pi_n in zip(
+                    qubits,
+                    phase_params,
+                    phase_wigner_params,
+                    amp_pi_per_qubit,
+                    strict=False,
+                ):
+                    if n > 0:
+                        qop.displacement(
+                            q,
+                            n_bar=n,
+                            length=opts.memory_drive_length,
+                            pulse=opts.memory_drive_pulse,
+                        )
+
+                    # First selective pi pulse (reference phase 0).
+                    qop.rx(
                         q,
-                        n_bar=n,
-                        length=opts.memory_drive_length,
-                        pulse=opts.memory_drive_pulse,
+                        angle=None,
+                        n=n,
+                        amplitude=amp_pi_n,
+                        length=opts.selective_drive_length,
+                        pulse=opts.selective_drive_pulse,
                     )
 
-                qop.rx(
-                    q,
-                    angle=None,
-                    n=n,
-                    amplitude=amp_pi_n,
-                    length=opts.selective_drive_length,
-                    pulse=opts.selective_drive_pulse,
-                )
+                    # Second selective pi pulse: same amplitude as the
+                    # first, but with swept drive phase phi. The relative
+                    # phase between the two pulses imprints the cavity
+                    # phase theta_n = phi on |n⟩.
+                    qop.rx(
+                        q,
+                        angle=None,
+                        n=n,
+                        amplitude=amp_pi_n,
+                        phase=phase,
+                        length=opts.selective_drive_length,
+                        pulse=opts.selective_drive_pulse,
+                    )
 
-                qop.rx(
-                    q,
-                    angle=None,
-                    n=n,
-                    amplitude=-amp_pi_n,
-                    phase=phase,
-                    length=opts.selective_drive_length,
-                    pulse=opts.selective_drive_pulse,
-                )
+                    # Wigner tomography: sample the fringe around the
+                    # circle of radius sqrt(n) by sweeping arg(beta).
+                    qop.wigner_point(
+                        q,
+                        beta_amplitude=beta_amp,
+                        beta_phase=beta_phase,
+                        handle=snap_phase_handle(q.uid, n),
+                        displacement_length=opts.wigner_displacement_length,
+                        displacement_pulse=opts.wigner_displacement_pulse,
+                    )
+                    qop.passive_reset(q)
 
-                qop.wigner_point(
-                    q,
-                    beta_amplitude=beta_amp,
-                    beta_phase=0.0,
-                    handle=snap_phase_handle(q.uid, n),
-                )
-                qop.passive_reset(q)
+
+# ═════════════════════════════════════════════════════════════
+# Compile / run tasks
+# ═════════════════════════════════════════════════════════════
 
 
 @workflow.task(name="compile_amplitude_experiment")
@@ -587,26 +659,10 @@ def run_phase_experiment(
 
 
 def snap_amp_handle(qubit_uid: str, n: int) -> str:
-    """Return the result handle for a SNAP amplitude measurement.
-
-    Arguments:
-        qubit_uid: The qubit UID.
-        n: The photon number.
-
-    Returns:
-        The result handle string.
-    """
+    """Return the result handle for a SNAP amplitude measurement."""
     return f"{qubit_uid}/snap_amp_n{n}"
 
 
 def snap_phase_handle(qubit_uid: str, n: int) -> str:
-    """Return the result handle for a SNAP phase measurement.
-
-    Arguments:
-        qubit_uid: The qubit UID.
-        n: The photon number.
-
-    Returns:
-        The result handle string.
-    """
+    """Return the result handle for a SNAP phase measurement."""
     return f"{qubit_uid}/snap_phase_n{n}"

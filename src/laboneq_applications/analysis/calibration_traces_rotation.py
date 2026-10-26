@@ -23,8 +23,8 @@ from laboneq.workflow import (
     task_options,
 )
 
+from laboneq_applications.conversion import sweeps_per_quantum_element
 from laboneq_applications.core.validation import (
-    validate_and_convert_qubits_sweeps,
     validate_result,
 )
 
@@ -127,7 +127,7 @@ def rotate_data_to_cal_trace_results(
 
     Returns:
         rotated, projected, and normalized real-data array with the same dimension as
-        raw_data.
+            raw_data.
     """
     data_iq = np.array([np.real(raw_data), np.imag(raw_data)])
     data_cal0 = np.array(
@@ -200,16 +200,22 @@ def calculate_population_1d(
             calibration points and then projected onto it.
 
     Returns:
-        dictionary with the following data:
-            sweep_points,
-            sweep_points extended with as many points as there are cal traces,
-            the artificially added sweep_points for the cal traces,
-            raw data,
-            raw data with calibration traces appended,
-            raw data of the calibration traces,
-            rotated data,
-            rotated data with the rotated calibration traces appended,
-            rotated calibration traces data
+        A dictionary with the following keys:
+
+            - `sweep_points`: the sweep points.
+            - `sweep_points_with_cal_traces`: the sweep points extended with as many
+              points as there are calibration traces.
+            - `sweep_points_cal_traces`: the sweep points added for the calibration
+              traces.
+            - `data_raw`: the raw data.
+            - `data_raw_with_cal_traces`: the raw data with the calibration traces
+              appended.
+            - `data_raw_cal_traces`: the raw data of the calibration traces.
+            - `population`: the rotated data.
+            - `population_with_cal_traces`: the rotated data with the rotated
+              calibration traces appended.
+            - `population_cal_traces`: the rotated calibration traces.
+            - `num_cal_traces`: the number of calibration traces.
     """
     if calibration_traces is None:
         calibration_traces = []
@@ -268,13 +274,17 @@ def extract_raw_data_dict(
             the calibration traces, from the lowest transmon state to the highest.
 
     Returns:
-        dictionary with the following data:
-            sweep_points,
-            sweep_points extended with as many points as there are cal traces,
-            the artificially added sweep_points for the cal traces,
-            raw data,
-            raw data with calibration traces appended,
-            raw data of the calibration traces.
+        A dictionary with the following keys:
+
+            - `sweep_points`: the sweep points.
+            - `sweep_points_with_cal_traces`: the sweep points extended with as many
+              points as there are calibration traces.
+            - `sweep_points_cal_traces`: the sweep points added for the calibration
+              traces.
+            - `data_raw`: the raw data.
+            - `data_raw_with_cal_traces`: the raw data with the calibration traces
+              appended.
+            - `data_raw_cal_traces`: the raw data of the calibration traces.
     """
     if calibration_traces is None:
         calibration_traces = []
@@ -351,15 +361,17 @@ def calculate_qubit_population(
 ) -> dict[str, dict[str, ArrayLike]]:
     """Calculates the qubit population from the raw data.
 
-     The data is processed in the following way:
+    The data is processed in the following way:
 
-     - If calibration traces were used in the experiment, the raw data is rotated based
-     on the calibration traces.
-     See [calibration_traces_rotation.py/rotate_data_to_cal_trace_results] for more
-     details.
-     - If no calibration traces were used in the experiment, or do_pca = True is passed
-     in options, principal-component analysis is performed on the data.
-     See [calibration_traces_rotation.py/principal_component_analysis] for more details.
+    - If calibration traces were used in the experiment, the raw data is rotated
+      based on the calibration traces. See
+      [rotate_data_to_cal_trace_results][]
+      for more details.
+    - If no calibration traces were used in the experiment, or `do_pca = True` is
+      passed in options, principal-component analysis is performed on the
+      data. See
+      [principal_component_analysis][]
+      for more details.
 
     Arguments:
         qubits:
@@ -372,25 +384,25 @@ def calculate_qubit_population(
             of arrays.
         options:
             The options for building the workflow as an instance of
-            [CalculateQubitPopulationOptions]. See the docstrings of this class for more
+            [CalculateQubitPopulationOptions][]. See the docstrings of this class for more
             details.
 
     Returns:
         dict with qubit UIDs as keys and the dictionary of processed data for each qubit
-        as values. See [calibration_traces_rotation.py/calculate_population_1d] for what
-        this dictionary looks like.
+            as values. See
+            [calculate_population_1d][]
+            for what this dictionary looks like.
 
     Raises:
         TypeError:
             If result is not an instance of RunExperimentResults.
         ValueError:
-            If the conditions in validate_and_convert_qubits_sweeps are not met.
+            If the qubits and sweeps have incompatible shapes.
     """
     opts = CalculateQubitPopulationOptions() if options is None else options
     validate_result(result)
-    qubits, sweep_points = validate_and_convert_qubits_sweeps(qubits, sweep_points)
     processed_data_dict = {}
-    for q, swpts in zip(qubits, sweep_points, strict=False):
+    for q, swpts in sweeps_per_quantum_element(qubits, sweep_points):
         raw_data = result[dsl.handles.result_handle(q.uid)].data
         if opts.use_cal_traces:
             calibration_traces = [
@@ -443,16 +455,23 @@ def calculate_population_2d(
             calibration points and then projected onto it.
 
     Returns:
-        dictionary with the following data:
-            sweep_points,
-            sweep_points extended with as many points as there are cal traces,
-            the artificially added sweep_points for the cal traces,
-            raw data,
-            raw data with calibration traces appended,
-            raw data of the calibration traces,
-            rotated data,
-            rotated data with the rotated calibration traces appended,
-            rotated calibration traces data
+        A dictionary with the following keys:
+
+            - `sweep_points_1d`: the sweep points of the innermost sweep.
+            - `sweep_points_1d_with_cal_traces`: the innermost sweep points extended
+              with as many points as there are calibration traces.
+            - `sweep_points_1d_cal_traces`: the innermost sweep points added for the
+              calibration traces.
+            - `sweep_points_2d`: the sweep points of the outermost sweep.
+            - `data_raw`: the raw data.
+            - `data_raw_with_cal_traces`: the raw data with the calibration traces
+              appended.
+            - `data_raw_cal_traces`: the raw data of the calibration traces.
+            - `population`: the rotated data.
+            - `population_with_cal_traces`: the rotated data with the rotated
+              calibration traces appended.
+            - `population_cal_traces`: the rotated calibration traces.
+            - `num_cal_traces`: the number of calibration traces.
     """
     if calibration_traces is None:
         calibration_traces = []
@@ -516,15 +535,17 @@ def calculate_qubit_population_2d(
 ) -> dict[str, dict[str, ArrayLike]]:
     """Calculates the qubit population from the raw data.
 
-     The data is processed in the following way:
+    The data is processed in the following way:
 
-     - If calibration traces were used in the experiment, the raw data is rotated based
-     on the calibration traces.
-     See [calibration_traces_rotation.py/rotate_data_to_cal_trace_results] for more
-     details.
-     - If no calibration traces were used in the experiment, or do_pca = True is passed
-     in options, principal-component analysis is performed on the data.
-     See [calibration_traces_rotation.py/principal_component_analysis] for more details.
+    - If calibration traces were used in the experiment, the raw data is rotated
+      based on the calibration traces. See
+      [rotate_data_to_cal_trace_results][]
+      for more details.
+    - If no calibration traces were used in the experiment, or `do_pca = True` is
+      passed in options, principal-component analysis is performed on the
+      data. See
+      [principal_component_analysis][]
+      for more details.
 
     Arguments:
         qubits:
@@ -541,7 +562,7 @@ def calculate_qubit_population_2d(
             of arrays.
         options:
             The options for building the workflow as an instance of
-            [CalculateQubitPopulationOptions].
+            [CalculateQubitPopulationOptions][].
             See the docstrings of this class for more details.
         result_handle:
             An optional suffix appended to the qubit UID when looking up the result
@@ -550,23 +571,22 @@ def calculate_qubit_population_2d(
 
     Returns:
         dict with qubit UIDs as keys and the dictionary of processed data for each qubit
-        as values. See [calibration_traces_rotation.py/calculate_population_1d] for what
-        this dictionary looks like.
+            as values. See
+            [calculate_population_1d][]
+            for what this dictionary looks like.
 
     Raises:
         TypeError:
             If result is not an instance of RunExperimentResults.
         ValueError:
-            If the conditions in validate_and_convert_qubits_sweeps are not met.
+            If the qubits and sweeps have incompatible shapes.
     """
     opts = CalculateQubitPopulationOptions() if options is None else options
     validate_result(result)
-    _, sweep_points_1d = validate_and_convert_qubits_sweeps(qubits, sweep_points_1d)
-    qubits, sweep_points_2d = validate_and_convert_qubits_sweeps(
-        qubits, sweep_points_2d
-    )
     processed_data_dict = {}
-    for q, sp_1d, sp_2d in zip(qubits, sweep_points_1d, sweep_points_2d, strict=False):
+    for q, sp_1d, sp_2d in sweeps_per_quantum_element(
+        qubits, sweep_points_1d, sweep_points_2d
+    ):
         raw_data = result[dsl.handles.result_handle(q.uid + result_handle)].data
         if opts.use_cal_traces:
             calibration_traces = [

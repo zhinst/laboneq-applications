@@ -9,6 +9,7 @@ import numpy as np
 from laboneq.dsl.calibration import Oscillator, SignalCalibration
 from laboneq.dsl.device import DeviceSetup, create_connection
 from laboneq.dsl.device.instruments import HDAWG, PQSC, QHUB, SHFQC
+from laboneq.dsl.device.instruments.shfqa import SHFQA
 from laboneq.dsl.enums import ModulationType
 from laboneq.dsl.quantum.qpu import QPU, QuantumPlatform
 
@@ -22,6 +23,8 @@ from .qubit_types import (
 def demo_platform(
     n_qubits: int,
     leader_instrument: Literal["PQSC", "QHub"] = "PQSC",
+    *,
+    readout_multiplex: bool = True,
 ) -> QuantumPlatform:
     """Return a demo tunable transmon QPU with the specified number of qubits.
 
@@ -30,8 +33,9 @@ def demo_platform(
     - 1 leader instrument (PQSC or QHub)
     - N SHFQC (for the qubit drive and measurement lines)
     - M HDAWG (for the qubit flux lines)
+    - K SHFQA (for the qubit measure and acquire lines)
 
-    N and M are determined automatically from the number of qubits.
+    N, M and K are determined automatically from the number of qubits.
 
     The following device options are used:
 
@@ -39,22 +43,28 @@ def demo_platform(
     - SHFQC/QC6CH
     - HDAWG8/MF/ME/SKW/PC
 
-    The qubits share a single multiplexed readout line.
+    If `readout_multiplex` is `True` (default), groups of up to 16 qubits
+    share a multiplexed readout line. Otherwise every qubit is given its
+    own measure and acquire channel.
 
     Arguments:
         n_qubits:
             Number of qubits to include in the QPU.
         leader_instrument:
             Overrides the default PQSC device for the setup.
+        readout_multiplex:
+            Whether to multiplex the measure and acquire lines.
 
     Returns:
         The QPU.
 
-    !!! version-changed "Changed in version 26.4.0."
+    !!! version-changed "Changed in version 26.4.0"
         The number of qubits, `n_qubits`, may be arbitrarily large.
         In earlier versions, it was allowed to be at most six.
     """
-    setup = tunable_transmon_setup(n_qubits, leader_instrument)
+    setup = tunable_transmon_setup(
+        n_qubits, leader_instrument, readout_multiplex=readout_multiplex
+    )
     qubits = tunable_transmon_qubits(n_qubits, setup)
     quantum_operations = TunableTransmonOperations()
     qpu = QPU(qubits, quantum_operations=quantum_operations)
@@ -69,6 +79,9 @@ class _DeviceAndPortSet:
             Number of ports per device.
         qubits:
             List of qubit uids.
+        qubits_per_port:
+            Number of qubits that share a single port. Consecutive qubits
+            are grouped onto the same port.
 
     Attributes:
         num_devices:
@@ -77,13 +90,20 @@ class _DeviceAndPortSet:
             A map from qubit uid to a tuple of the device and port number.
     """
 
-    def __init__(self, *, ports: int, qubits: list[str]):
-        n_qubits = len(qubits)
+    def __init__(self, *, ports: int, qubits: list[str], qubits_per_port: int = 1):
+        n_ports = len(qubits) // qubits_per_port + (
+            1 if len(qubits) % qubits_per_port > 0 else 0
+        )
 
-        self.num_devices = n_qubits // ports + (1 if n_qubits % ports > 0 else 0)
+        self.num_devices = n_ports // ports + (1 if n_ports % ports > 0 else 0)
         self.qubit_to_port = {
-            qubit_id: (i // ports, i % ports) for i, qubit_id in enumerate(qubits)
+            qubit_id: ((i // qubits_per_port) // ports, (i // qubits_per_port) % ports)
+            for i, qubit_id in enumerate(qubits)
         }
+
+
+# A single SHFQA QA channel can multiplex readout of up to 16 qubits
+MAX_MULTIPLEXED_QUBITS_PER_QA_CHANNEL = 16
 
 
 def _create_leader_instrument(
@@ -104,16 +124,19 @@ def _create_leader_instrument(
 def tunable_transmon_setup(
     n_qubits: int,
     leader_instrument: Literal["PQSC", "QHub"] = "PQSC",
+    *,
+    readout_multiplex: bool = True,
 ) -> DeviceSetup:
     """Return a demo tunable transmon device setup.
 
     The returned setup consists of:
 
     - 1 leader instrument (PQSC or QHub)
-    - N SHFQC (for the qubit drive and measurement lines)
+    - N SHFQC (for the qubit drive lines)
     - M HDAWG (for the qubit flux lines)
+    - K SHFQA (for the qubit measure lines)
 
-    N and M are determined automatically from the number of qubits.
+    N, M and K are determined automatically from the number of qubits.
 
     The following device options are used:
 
@@ -121,18 +144,22 @@ def tunable_transmon_setup(
     - SHFQC/QC6CH
     - HDAWG8/MF/ME/SKW/PC
 
-    The qubits share a single multiplexed readout line.
+    If `readout_multiplex` is `True` (default behavior), groups of up to 16
+    qubits share a multiplexed readout line. Otherwise the measure and acquire
+    lines are distributed over separate channels, one per qubit.
 
     Arguments:
         n_qubits:
             Number of qubits to include in the QPU.
         leader_instrument:
             Overrides the default PQSC device for the setup.
+        readout_multiplex:
+            Whether to multiplex the measure and acquire lines.
 
     Returns:
         The device setup.
 
-    !!! version-changed "Changed in version 26.4.0."
+    !!! version-changed "Changed in version 26.4.0"
         The number of qubits, `n_qubits`, may be arbitrarily large.
         In earlier versions, it was allowed to be at most six.
     """
@@ -145,6 +172,13 @@ def tunable_transmon_setup(
 
     shfqc_drive_lines = _DeviceAndPortSet(ports=6, qubits=qubit_ids)
     hdawg_sigouts = _DeviceAndPortSet(ports=8, qubits=qubit_ids)
+    shfqa_measure_lines = _DeviceAndPortSet(
+        ports=4,
+        qubits=qubit_ids,
+        qubits_per_port=(
+            MAX_MULTIPLEXED_QUBITS_PER_QA_CHANNEL if readout_multiplex else 1
+        ),
+    )
 
     setup = DeviceSetup(f"tunable_transmons_{n_qubits}")
     setup.add_dataserver(host="localhost", port="8004")
@@ -155,6 +189,14 @@ def tunable_transmon_setup(
                 uid=f"device_shfqc_{i}",
                 address=f"dev123{i}",
                 device_options="SHFQC/QC6CH",
+            ),
+        )
+
+    for i in range(shfqa_measure_lines.num_devices):
+        setup.add_instruments(
+            SHFQA(
+                uid=f"device_shfqa_{i}",
+                address=f"dev135{i}",
             ),
         )
 
@@ -172,6 +214,10 @@ def tunable_transmon_setup(
     for qubit in qubit_ids:
         shfqc, shfqc_port = shfqc_drive_lines.qubit_to_port[qubit]
         hdawg, hdawg_port = hdawg_sigouts.qubit_to_port[qubit]
+        # Groups of qubits share a QA channel if `readout_multiplex` is True
+        # (the default); otherwise every qubit gets its own QA channel.
+        shfqa, shfqa_port = shfqa_measure_lines.qubit_to_port[qubit]
+
         setup.add_connections(
             f"device_shfqc_{shfqc}",
             # each qubit uses their own drive line:
@@ -183,12 +229,17 @@ def tunable_transmon_setup(
                 to_signal=f"{qubit}/drive_ef",
                 ports=f"SGCHANNELS/{shfqc_port}/OUTPUT",
             ),
-            # all qubits multiplex on the measure and acquire lines:
+        )
+        setup.add_connections(
+            f"device_shfqa_{shfqa}",
             create_connection(
                 to_signal=f"{qubit}/measure",
-                ports="QACHANNELS/0/OUTPUT",
+                ports=f"QACHANNELS/{shfqa_port}/OUTPUT",
             ),
-            create_connection(to_signal=f"{qubit}/acquire", ports="QACHANNELS/0/INPUT"),
+            create_connection(
+                to_signal=f"{qubit}/acquire",
+                ports=f"QACHANNELS/{shfqa_port}/INPUT",
+            ),
         )
         setup.add_connections(
             f"device_hdawg_{hdawg}",
@@ -226,7 +277,7 @@ def tunable_transmon_qubits(
     """Return demo tunable transmon device qubits.
 
     The qubits are constructed for the device setup returned by
-    [tunable_transmon_setup]().
+    [tunable_transmon_setup][].
 
     The qubits share a single readout local oscillator frequency
     because they share a single multiplexed readout line in the
@@ -241,7 +292,7 @@ def tunable_transmon_qubits(
             Number of qubits to include in the QPU.
         setup:
             The device setup. It is assumed that the setup
-            is the setup returned by [tunable_transmon_setup]()
+            is the setup returned by [tunable_transmon_setup][]
             called with the same number of qubits.
 
     Returns:

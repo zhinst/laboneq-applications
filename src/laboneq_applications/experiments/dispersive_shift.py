@@ -14,7 +14,8 @@ The dispersive shift experiment has the following pulse sequence:
 This experiment only supports 1 qubit at the time, and involves only
 its coupled resonator.
 
-The Acquisition mode is restricted to SPECTROSCOPY mode, utilizing Hardware modulation.
+The Acquisition mode is restricted to SPECTROSCOPY mode on QCCS or INTEGRATION mode on
+ZQCS, both utilizing Hardware modulation.
 Once LRT option becomes more generally available, this example can be improved to
 support a multiplexed version for multiple qubits.
 
@@ -33,7 +34,10 @@ from laboneq.workflow.tasks import (
 )
 
 from laboneq_applications.analysis.dispersive_shift import analysis_workflow
-from laboneq_applications.core import validation
+from laboneq_applications.conversion import (
+    as_single_quantum_element,
+    sweeps_per_quantum_element,
+)
 from laboneq_applications.experiments.options import (
     BaseExperimentOptions,
     TuneUpWorkflowOptions,
@@ -49,12 +53,11 @@ if TYPE_CHECKING:
 
     from laboneq.dsl.quantum import QuantumParameters
     from laboneq.dsl.quantum.qpu import QPU
-    from laboneq.dsl.quantum.quantum_element import QuantumElement
     from laboneq.dsl.session import Session
     from laboneq.workflow import WorkflowResult
     from numpy.typing import ArrayLike
 
-    from laboneq_applications.typing import QubitSweepPoints
+    from laboneq_applications.typing import QuantumElements, QubitSweepPoints
 
 
 @workflow.task_options(base_class=BaseExperimentOptions)
@@ -66,7 +69,9 @@ class DispersiveShiftExperimentOptions:
 
     Attributes:
         acquisition_type:
-            Acquisition type to use for the experiment.
+            Acquisition type to use for the experiment. Use
+            `AcquisitionType.SPECTROSCOPY` on QCCS or `AcquisitionType.INTEGRATION` on
+            ZQCS.
             Default: `AcquisitionType.SPECTROSCOPY`.
     """
 
@@ -79,7 +84,7 @@ class DispersiveShiftExperimentOptions:
 def experiment_workflow(
     session: Session,
     qpu: QPU,
-    qubit: str,
+    qubit: str | list[str],
     *,
     frequencies: QubitSweepPoints,
     states: Sequence[str],
@@ -92,19 +97,19 @@ def experiment_workflow(
 
     The workflow consists of the following steps:
 
-    - [create_experiment]()
-    - [compile_experiment]()
-    - [run_experiment]()
-    - [analysis_workflow]()
-    - [evaluate_experiment]()
-    - [update_qpu]()
+    - [create_experiment][]
+    - [compile_experiment][]
+    - [run_experiment][]
+    - [analysis_workflow][]
+    - [evaluate_experiment][]
+    - [update_qpu][]
 
-    !!! version-removed "Removed in version 26.7.0."
+    !!! version-removed "Removed in version 26.7.0"
         The `qubit` argument of type `QuantumElement` has been removed.
         Please pass `qubit` of type `str` instead, i.e., the quantum
         element UID instead of the quantum element instance.
 
-    !!! version-changed "Changed in version 26.4.0."
+    !!! version-changed "Changed in version 26.4.0"
         The `evaluation_parameters` argument has been added, which is the dictionary of
         parameters used for the newly added evaluation task. All arguments apart from
         `session`, `qpu`, and `qubits` are now keyword arguments.
@@ -133,7 +138,7 @@ def experiment_workflow(
             `(tag, source node UID, target node UID)`.
         options:
             The options for building the workflow as an instance of
-            [TuneUpWorkflowOptions]. See the docstring of this class for more details.
+            [TuneUpWorkflowOptions][]. See the docstring of this class for more details.
 
     Returns:
         WorkflowBuilder:
@@ -144,8 +149,9 @@ def experiment_workflow(
         options = experiment_workflow.options()
         options.count(10)
         options.acquisition_type(AcquisitionType.SPECTROSCOPY)
+        # QPU from a single-qubit device setup
         qpu = QPU(
-            quantum_elements=[TunableTransmonQubit("q0"), TunableTransmonQubit("q1")],
+            quantum_elements=TunableTransmonQubit.from_device_setup(setup),
             quantum_operations=TunableTransmonOperations(),
         )
         result = experiment_workflow(
@@ -153,27 +159,27 @@ def experiment_workflow(
             qpu=qpu,
             qubit="q0",
             frequencies=np.linspace(1.8e9, 2.2e9, 101),
-            states="ge"
+            states="ge",
             options=options,
         ).run()
         ```
     """
     temp_qpu = temporary_qpu(qpu, temporary_parameters)
-    qubit = temporary_quantum_elements_from_qpu(temp_qpu, qubit)
+    temp_qubit = temporary_quantum_elements_from_qpu(temp_qpu, qubit)
     exp = create_experiment(
         temp_qpu,
-        qubit,
+        temp_qubit,
         frequencies=frequencies,
         states=states,
     )
     compiled_exp = compile_experiment(session, exp)
     result = run_experiment(session, compiled_exp)
     with workflow.if_(options.do_analysis):
-        analysis_results = analysis_workflow(result, qubit, frequencies, states)
+        analysis_results = analysis_workflow(result, temp_qubit, frequencies, states)
         qubit_parameters = analysis_results.output
         with workflow.if_(options.evaluate):
             eval_flags = evaluate_experiment(
-                analysis_results, qubit, evaluation_parameters
+                analysis_results, temp_qubit, evaluation_parameters
             )
             with workflow.if_(options.update):
                 update_qpu(
@@ -194,7 +200,7 @@ def experiment_workflow(
 @dsl.qubit_experiment
 def create_experiment(
     qpu: QPU,
-    qubit: QuantumElement,
+    qubit: QuantumElements,
     frequencies: ArrayLike,
     states: Sequence[str],
     options: DispersiveShiftExperimentOptions | None = None,
@@ -215,7 +221,8 @@ def create_experiment(
             e.g. "gef", or a list of letters, e.g. ["g","e","f"].
         options:
             The options for building the experiment as an instance of
-            [BaseExperimentOptions]. See docstring of this class for more details.
+            [BaseExperimentOptions][laboneq_applications.experiments.options.BaseExperimentOptions].
+            See docstring of this class for more details.
 
     Returns:
         experiment:
@@ -223,39 +230,48 @@ def create_experiment(
 
     Raises:
         ValueError:
-            If Acquisition type is not set to SPECTROSCOPY.
+            If the acquisition_type is neither AcquisitionType.SPECTROSCOPY
+            nor AcquisitionType.INTEGRATION.
 
         ValueError:
             If frequencies is not a list of lists of numbers.
 
     Example:
         ```python
-        options = ResonatorSpectroscopyExperimentOptions()
-        options.count(10)
-        options.acquisition_type(AcquisitionType.SPECTROSCOPY)
+        options = DispersiveShiftExperimentOptions()
+        options.count = 10
+        options.acquisition_type = AcquisitionType.SPECTROSCOPY
+        # QPU from a single-qubit device setup
         qpu = QPU(
-            quantum_elements=[TunableTransmonQubit("q0"), TunableTransmonQubit("q1")],
+            quantum_elements=TunableTransmonQubit.from_device_setup(setup),
             quantum_operations=TunableTransmonOperations(),
         )
+        q0 = qpu["q0"]
         create_experiment(
             qpu=qpu,
-            qubit="q0",
+            qubit=q0,
             frequencies=np.linspace(1.8e9, 2.2e9, 101),
-            states="ge"
+            states="ge",
             options=options,
         )
         ```
     """
     # Define the custom options for the experiment
     opts = DispersiveShiftExperimentOptions() if options is None else options
-    qubit, frequencies = validation.validate_and_convert_single_qubit_sweeps(
-        qubit, frequencies
-    )
-    if AcquisitionType(opts.acquisition_type) != AcquisitionType.SPECTROSCOPY:
+
+    # TODO: Implement parallel execution similar to resonator spectroscopy
+    qubit = as_single_quantum_element(qubit)
+    _, frequencies = next(sweeps_per_quantum_element(qubit, frequencies))
+
+    # Guard against wrong options for the acquisition type
+    if opts.acquisition_type not in (
+        AcquisitionType.SPECTROSCOPY,
+        AcquisitionType.INTEGRATION,
+    ):
         raise ValueError(
-            "The only allowed acquisition_type for this experiment"
-            f"is 'AcquisitionType.SPECTROSCOPY' (or {AcquisitionType.SPECTROSCOPY})"
-            "because it sweeps frequency of a hardware oscillator.",
+            "The only allowed acquisition types for this experiment are "
+            "'AcquisitionType.SPECTROSCOPY' (on QCCS) and 'AcquisitionType.INTEGRATION'"
+            " (on ZQCS) because it sweeps the frequency of a hardware oscillator.",
         )
 
     qop = qpu.quantum_operations
@@ -284,7 +300,7 @@ def create_experiment(
 @workflow.task(save=False)
 def evaluate_experiment(
     analysis_results: WorkflowResult,
-    qubit: QuantumElement,
+    qubit: QuantumElements,
     evaluation_parameters: dict[str, Any] | None = None,
 ) -> dict[str, dict[str, bool]]:
     """Evaluates the dispersive shift analysis workflow result.
@@ -300,6 +316,7 @@ def evaluate_experiment(
     Returns:
         The evaluation flags.
     """
+    qubit = as_single_quantum_element(qubit)
     workflow.log(
         logging.WARNING,
         "The `evaluate_experiment` task for `dispersive_shift` has not been "

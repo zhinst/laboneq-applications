@@ -1,4 +1,4 @@
-# experiments
+# analysis
 
 This is the `laboneq_applications.contrib.analysis` reference documentation.
 

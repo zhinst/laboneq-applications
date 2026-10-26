@@ -5,7 +5,8 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "laboneq_applications"
 description = "Library of LabOne Q experiments, analysis functions, and more."
-version = "26.10.0dev0"
+# Always the version of laboneq, set by `ci/scripts/set_version.py` and `just bump-version`.
+version = "26.10.0b4"
 license = { text = "Apache 2.0" }
 requires-python = ">=3.10"
 readme = "README.md"
@@ -29,7 +30,7 @@ classifiers = [
   "Topic :: Scientific/Engineering",
 ]
 dependencies = [
-  "laboneq >= 2.58.0",
+  "laboneq >= 26.7.0",
   "typing_extensions >= 4.5.0",
   "uncertainties >= 3.2.2",
   "numpy >= 2",
@@ -46,31 +47,18 @@ Changelog = "https://docs.zhinst.com/labone_q_user_manual/release_notes/"
 Documentation = "https://docs.zhinst.com/labone_q_user_manual/applications_library/"
 GitHub = "https://github.com/zhinst/laboneq-applications"
 
-
 [dependency-groups]
-# Libraries used during development.
+# Runs the tests, the documentation notebooks and ruff.
 dev = [
-  "filelock",
-  "freezegun",
-  "ipython",
-  "nbmake",
-  "pytest",
-  "pytest-cov",
-  "pytest-xdist",
-  "tbump",
+  "filelock >= 3.12",
+  "freezegun >= 1.5.1",
+  "nbmake >= 1.5.5",
+  "pytest >= 8.3.4",
+  "pytest-xdist >= 3.6.1",
+  "qcodes >= 0.52.0",
+  "ruff ==0.15.12",
+  "scikit-optimize >= 0.10.2",
 ]
-# Packages providing executables used during development.
-tools = [
-  "jupytext",
-  "ruff >=0.14.13", # must match the version used in .pre-commit-config.yaml
-  "towncrier >= 25.8.0",
-]
-
-# Dependencies of example notebooks
-notebooks = ["qcodes >=0.52.0", "scikit-optimize >= 0.10.2"]
-
-[tool.uv]
-default-groups = ["dev", "tools", "notebooks"]
 
 [tool.setuptools.packages.find]
 where = ["src"]
@@ -83,194 +71,47 @@ include-package-data = false
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+python_classes = ["Test*", "SmokeTest*"]
 
 [tool.ruff]
-include = ["pyproject.toml", "src/**/*.py", "tests/**/*.py", "ci/**/*.py", "docs/sources/**/*.ipynb"]
-target-version = "py310"
 
-lint.select = ["ALL"]
-lint.ignore = [
-  # Missing trailing comma (interferes with ruff format)
-  "COM812",
-  # Implicitly concatenate strings on same line (interferes with ruff format)
-  "ISC001",
-  # Missing docstring in `__init__`
-  "D107",
-  # Missing docstring in magic method
-  "D105",
-  # Missing type annotation for `*args`
-  "ANN002",
-  # Missing type annotation for `**kwargs`
-  "ANN003",
-  # Too many return statements
-  "PLR0911",
-  # Missing return type annotation for special method
-  "ANN204",
-  # Boolean positional parameters in call
-  "FBT003",
-  # Line contains TODO, consider resolving the issue
-  "FIX",
-  # Do not enforce IF_TYPE_CHECKING block
-  "TC001",
-  "TC002",
-  "TC003",
-  # TODO comments
-  "TD",
-  # Unused function arguments (function signatures are sometimes a fixed API)
-  "ARG001",
-  # Multiple with statements (in the LabOne Q DSL, with statements specify
-  # program structure)
-  "SIM117",
-  # Static join to f-string (f-strings don't provide a nice way to write
-  # multiline strings)
-  "FLY002",
-  # Strings in exception class instantiation
-  "EM101",
-  "EM102",
-  "TRY003",
-  # Private class member access (rule raises false positives)
-  "SLF001",
-  # Pandas .values (rule raises false positivies even when pandas is not used)
-  "PD011",
-  # Use of built-in open (pathlib is not more readable in this case)
-  "PTH123",
-  # Use of return inside try (there is no consistent rule that fits all uses here)
-  "TRY300",
-]
+# laboneq is a dependency of this package, so its imports sort as third-party.
+src = ["src", "benchmarks"]
 
-[tool.ruff.lint.per-file-ignores]
-# Testing checks
-"tests/*" = [
-  # Magic values
-  "PLR2004",
-  # Assertions
-  "S101",
-  # Annotations
-  "ANN",
-  # Docstrings
-  "D",
-  # Pytest raises Exception
-  "PT011",
-  # part of an implicit namespace package
-  "INP001",
-]
-# CI tool checks
-"ci/*" = [
-  # part of an implicit namespace package
-  "INP001",
-]
-# License check script
-"ci/scripts/check_license.py" = [
-  # print are allowed in this script
-  "T201",
-  # main function is too long / complex
-  "C901",
-]
-# Documentation notebooks conftest
-"docs/conftest.py" = [
-  # Missing __init__.py (notebooks don't have packages)
-  "INP001",
-]
-# Documentation notebooks
-"docs/sources/**/*.ipynb" = [
-  # Annotations
-  "ANN",
-  # Missing __init__.py (notebooks don't have packages)
-  "INP001",
-  # Allow undocumented modules
-  "D100",
-  # Allow undocumented classes
-  "D101",
-  # Allow undocumented functions
-  "D103",
-  # Allow module-level imports that aren't at the top of the file
-  "E402",
-  # Allow commented out code which is often useful for explaining
-  "ERA001",
-  # Allow star imports
-  "F403",
-  # Allow undefined names because star imports are allowed
-  "F405",
-  # Allow redefining values
-  "F811",
-  # Pointless comparisons can display values in notebooks
-  "B015",
-  # Useless attribute access can display values in notebooks
-  "B018",
-  # Allow boolean positional parameters with defaults.
-  "FBT002",
-  # Magic values are sometimes fine in examples
-  "PLR2004",
-  # Print statements can be useful in notebooks
-  "T201",
-  # Pretty print statments can be useful in notebooks
-  "T203",
-  # Ignore line length
+# The public repository does not extend the LabOne Q config, so the rules and settings
+# below repeat what it needs of it.
+[tool.ruff.lint]
+extend-select = ["B", "PERF", "E", "W", "YTT", "Q", "I", "FA", "RUF022"]
+ignore = [
   "E501",
-  # Ignore forced list comprehension
-  "PERF401",
-  # Ignore CamelCase acronym import error
-  "N817",
-  # Ignore legacy randint
-  "NPY002",
-  # Ignore logging f-string error
-  "G004",
-  # Allow unnecessary assignment before return
-  "RET504",
-  # Allow unnecessary else after return
-  "RET505",
-  # Allow more than 10 arguments in function definition
-  "PLR0913",
-  # Allow unnecessary list comprehension
-  "C416",
+  "F405",
+  "E741",
+  "E722",
+  "E402",
+  "E731",
+  "B905",
+  # Workflows and tasks evaluate type hints at run-time.
+  "TC",
 ]
 
 [tool.ruff.lint.isort]
-known-first-party = ["laboneq_applications"]
-forced-separate = ["tests"]
+section-order = [
+  "future",
+  "standard-library",
+  "third-party",
+  "first-party",
+  "tests",
+  "local-folder",
+]
 
-[tool.ruff.lint.pydocstyle]
-convention = "google"
+[tool.ruff.lint.isort.sections]
+tests = ["tests"]
 
-[tool.ruff.lint.pylint]
-max-args = 10
+[tool.ruff.lint.extend-per-file-ignores]
+# Notebooks utilize `from laboneq.simple import *`.
+"*.ipynb" = ["F403"]
+# Documentation notebooks, as for `examples/` of laboneq
+"docs/sources/**/*.ipynb" = ["F811", "PERF"]
 
-[tool.towncrier]
-filename = "CHANGELOG.md"
-directory = "newsfragments"
-
-[[tool.towncrier.type]]
-directory = "feature"
-name = "Features"
-showcontent = true
-
-[[tool.towncrier.type]]
-directory = "bugfix"
-name = "Bug Fixes"
-showcontent = true
-
-[[tool.towncrier.type]]
-directory = "doc"
-name = "Documentation"
-showcontent = true
-
-[[tool.towncrier.type]]
-directory = "deprecate"
-name = "Deprecation Notices"
-showcontent = true
-
-[[tool.towncrier.type]]
-directory = "remove"
-name = "Removals from the Codebase"
-showcontent = true
-
-[[tool.towncrier.type]]
-directory = "misc"
-name = "Miscellaneous"
-showcontent = true
-
-# system tests, tooling, infrastructure, ...
-[[tool.towncrier.type]]
-directory = "dev"
-name = "Developer"
-showcontent = true
+[tool.ruff.format]
+docstring-code-format = true

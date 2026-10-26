@@ -48,15 +48,20 @@ from laboneq_applications.analysis.plotting_helpers import (
     plot_data_2d,
     plot_raw_complex_data_2d,
 )
+from laboneq_applications.conversion import (
+    as_single_quantum_element,
+    sweeps_per_quantum_element,
+)
 from laboneq_applications.core import validation
 
 if TYPE_CHECKING:
     import attr
     import lmfit
     import matplotlib as mpl
-    from laboneq.dsl.quantum.quantum_element import QuantumElement
     from laboneq.workflow.tasks.run_experiment import RunExperimentResults
     from numpy.typing import ArrayLike
+
+    from laboneq_applications.typing import QuantumElements
 
 
 @workflow.workflow_options
@@ -197,7 +202,7 @@ class ExtractQubitParametersOptions:
 @workflow.workflow
 def analysis_workflow(
     result: RunExperimentResults,
-    qubit: QuantumElement,
+    qubit: QuantumElements,
     frequencies: ArrayLike,
     voltages: ArrayLike,
     options: ResonatorSpectroscopyDCBiasAnalysisWorkflowOptions | None = None,
@@ -206,13 +211,13 @@ def analysis_workflow(
 
     The workflow consists of the following steps:
 
-    - [process_raw_data]()
-    - [fit_data]()
-    - [process_fit_results]()
-    - [extract_qubit_parameters]()
-    - [plot_raw_complex_data_1d]()
-    - [plot_signal_magnitude]()
-    - [plot_signal_phase]()
+    - [process_raw_data][]
+    - [fit_data][]
+    - [process_fit_results][]
+    - [extract_qubit_parameters][]
+    - [plot_raw_complex_data_2d][]
+    - [plot_signal_magnitude][]
+    - [plot_signal_phase][]
 
     Arguments:
         result:
@@ -226,8 +231,8 @@ def analysis_workflow(
             The array of DC bias voltages that were swept over in the experiment.
         options:
             The options for building the workflow, passed as an instance of
-            [ResonatorSpectroscopyDCBiasAnalysisWorkflowOptions]. See the docstring
-            of [ResonatorSpectroscopyDCBiasAnalysisWorkflowOptions] for more details.
+            [ResonatorSpectroscopyDCBiasAnalysisWorkflowOptions][]. See the docstring
+            of [ResonatorSpectroscopyDCBiasAnalysisWorkflowOptions][] for more details.
 
     Returns:
         WorkflowBuilder:
@@ -235,12 +240,11 @@ def analysis_workflow(
 
     Example:
         ```python
-        result = analysis_workflow(
-            results=results
+        analysis_result = analysis_workflow(
+            result=result,
             qubit=q0,
             frequencies=np.linspace(7.0, 7.1, 101),
             voltages=np.linspace(0, 1, 11),
-            options=analysis_workflow.options(),
         ).run()
         ```
     """
@@ -278,7 +282,7 @@ def analysis_workflow(
 
 @workflow.task
 def process_raw_data(
-    qubit: QuantumElement,
+    qubit: QuantumElements,
     result: RunExperimentResults,
     frequencies: ArrayLike,
     voltages: ArrayLike,
@@ -309,26 +313,25 @@ def process_raw_data(
         voltages:
             The array of DC bias voltages that were swept over in the experiment.
         options:
-            The options for this task as an instance of [ProcessRawDataOptions].
+            The options for this task as an instance of [ProcessRawDataOptions][].
             See the docstring of this class for more details.
 
     Returns:
-        dictionary with the following data:
-            sweep_points_1d
-            sweep_points_1d_filtered
-            sweep_points_2d
-            rr_frequencies
-            data_raw
-            magnitude
-            phase
+        A dictionary with the following keys:
+
+            - `sweep_points_1d`
+            - `sweep_points_1d_filtered`
+            - `sweep_points_2d`
+            - `rr_frequencies`
+            - `data_raw`
+            - `magnitude`
+            - `phase`
     """
     opts = ProcessRawDataOptions() if options is None else options
     validation.validate_result(result)
-    _, frequencies = validation.validate_and_convert_single_qubit_sweeps(
-        qubit, frequencies
-    )
-    qubit, voltages = validation.validate_and_convert_single_qubit_sweeps(
-        qubit, voltages
+    qubit = as_single_quantum_element(qubit)
+    _, frequencies, voltages = next(
+        sweeps_per_quantum_element(qubit, frequencies, voltages)
     )
 
     raw_data = result[dsl.handles.result_handle(qubit.uid)].data
@@ -388,7 +391,7 @@ def fit_data(
         processed_data_dict: the processed data dictionary returned by
             the `process_raw_data` task in this module.
         options:
-            The options for this task as an instance of [FitDataOptions].
+            The options for this task as an instance of [FitDataOptions][].
             See the docstring of this class for more details.
 
     Returns:
@@ -439,18 +442,16 @@ def process_fit_results(
         fit_result: The fit results returned by `fit_data` in this module.
 
     Returns:
-        A dictionary with the following data:
+        A dictionary with the keys `uss` (upper sweet spot) and `lss` (lower sweet
+            spot). Each key is present only if the fit curve has such a sweet spot,
+            and its value is a dictionary with the following keys:
 
-        uss
-            voltages
-            frequencies
-            rr_frequency_parking
-            dc_voltage_parking
-        lss
-            voltages
-            frequencies
-            rr_frequency_parking
-            dc_voltage_parking
+            - `voltages`
+            - `frequencies`
+            - `rr_frequency_parking`
+            - `dc_voltage_parking`
+
+            An empty dictionary is returned if `fit_result` is `None`.
     """
     processed_fit_results = {}
     if fit_result is None:
@@ -501,7 +502,7 @@ def process_fit_results(
 
 @workflow.task
 def extract_qubit_parameters(
-    qubit: QuantumElement,
+    qubit: QuantumElements,
     processed_data_dict: dict[str, ArrayLike],
     processed_fit_results: dict[str, dict[str, ArrayLike | float]],
     options: ExtractQubitParametersOptions | None = None,
@@ -516,31 +517,29 @@ def extract_qubit_parameters(
         processed_fit_results: the dictionary returned by the `process_fit_results`
             task in this module.
         options:
-            The options for this task as an instance of [ExtractQubitParametersOptions].
+            The options for this task as an instance of [ExtractQubitParametersOptions][].
             See the docstring of this class for more details.
 
     Returns:
         dict with extracted qubit parameters and the previous values for those qubit
-        parameters. The dictionary has the following form:
-        ```python
-        {
-            "new_parameter_values": {
-                q.uid: {
-                    qb_param_name: qb_param_value
+            parameters. The dictionary has the following form:
+
+            ```python
+            {
+                "new_parameter_values": {
+                    q.uid: {qb_param_name: qb_param_value},
+                },
+                "old_parameter_values": {
+                    q.uid: {qb_param_name: qb_param_value},
                 },
             }
-            "old_parameter_values": {
-                q.uid: {
-                    qb_param_name: qb_param_value
-                },
-            }
-        }
-        ```
-        If the fit_results is None, the new_parameter_values entry for the qubit is
-        left empty.
+            ```
+
+            If the fit_results is None, the new_parameter_values entry for the qubit is
+            left empty.
     """
     opts = ExtractQubitParametersOptions() if options is None else options
-    qubit = validation.validate_and_convert_single_qubit_sweeps(qubit)
+    qubit = as_single_quantum_element(qubit)
 
     qubit_parameters = {
         "old_parameter_values": {qubit.uid: {}},
@@ -579,7 +578,7 @@ def extract_qubit_parameters(
 
 @workflow.task
 def plot_signal_magnitude(
-    qubit: QuantumElement,
+    qubit: QuantumElements,
     processed_data_dict: dict[str, ArrayLike],
     fit_result: lmfit.model.ModelResult | None,
     processed_fit_results: dict[str, dict[str, ArrayLike | float]],
@@ -596,17 +595,17 @@ def plot_signal_magnitude(
         processed_fit_results: the dictionary returned by the `process_fit_results`
             task in this module.
         options:
-            The options for this task as an instance of [BasePlottingOptions].
+            The options for this task as an instance of [BasePlottingOptions][].
             See the docstring of this class for more details.
 
     Returns:
         The matplotlib figure.
 
-        If there are no new_parameter_values for the qubit, then fit result and the
-        textbox with the extracted parking information are not plotted.
+            If there are no new_parameter_values for the qubit, then fit result and the
+            textbox with the extracted parking information are not plotted.
     """
     opts = BasePlottingOptions() if options is None else options
-    qubit = validation.validate_and_convert_single_qubit_sweeps(qubit)
+    qubit = as_single_quantum_element(qubit)
 
     frequencies = processed_data_dict["sweep_points_1d"]
     voltages = processed_data_dict["sweep_points_2d"]
@@ -689,7 +688,7 @@ def plot_signal_magnitude(
 
 @workflow.task
 def plot_signal_phase(
-    qubit: QuantumElement,
+    qubit: QuantumElements,
     processed_data_dict: dict[str, ArrayLike],
     options: BasePlottingOptions | None = None,
 ) -> mpl.figure.Figure | None:
@@ -701,17 +700,17 @@ def plot_signal_phase(
         processed_data_dict: the processed data dictionary returned by
             `process_raw_data` in this module.
         options:
-            The options for this task as an instance of [BasePlottingOptions].
+            The options for this task as an instance of [BasePlottingOptions][].
             See the docstring of this class for more details.
 
     Returns:
         the matplotlib figure
 
-        If there are no new_parameter_values for the qubit, then fit result and the
-        textbox with the extracted readout resonator frequency are not plotted.
+            If there are no new_parameter_values for the qubit, then fit result and the
+            textbox with the extracted readout resonator frequency are not plotted.
     """
     opts = BasePlottingOptions() if options is None else options
-    qubit = validation.validate_and_convert_single_qubit_sweeps(qubit)
+    qubit = as_single_quantum_element(qubit)
 
     frequencies = processed_data_dict["sweep_points_1d"]
     voltages = processed_data_dict["sweep_points_2d"]

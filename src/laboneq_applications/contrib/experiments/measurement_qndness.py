@@ -27,7 +27,7 @@ from laboneq.workflow import if_, option_field, return_, task, task_options, wor
 from laboneq.workflow.tasks import compile_experiment, run_experiment
 
 from laboneq_applications.contrib.analysis import measurement_qndness
-from laboneq_applications.core.validation import validate_and_convert_qubits_sweeps
+from laboneq_applications.conversion import as_quantum_element_list
 from laboneq_applications.experiments.options import (
     BaseExperimentOptions,
     TuneUpWorkflowOptions,
@@ -50,7 +50,7 @@ if TYPE_CHECKING:
 class QNDnessExperimentOptions:
     """Base options for the measurement QNDness experiment.
 
-    Additional attributes:
+    Attributes:
         acquisition_type:
             Acquisition type to use for the experiment.
             Default: `AcquisitionType.DISCRIMINATION`.
@@ -94,17 +94,17 @@ def experiment_workflow(
 
     The workflow consists of the following steps:
 
-    - [create_experiment]()
-    - [compile_experiment]()
-    - [run_experiment]()
-    - [analysis_workflow]()
+    - [create_experiment][]
+    - [compile_experiment][]
+    - [run_experiment][]
+    - [analysis_workflow][laboneq_applications.contrib.analysis.measurement_qndness.analysis_workflow]
 
-    !!! version-removed "Removed in version 26.7.0."
+    !!! version-removed "Removed in version 26.7.0"
         The `qubits` argument of type `QuantumElements` has been removed.
         Please pass `qubits` of type `list[str] | str` instead, i.e., the quantum
         element UIDs instead of the quantum element instances.
 
-    !!! version-changed "Changed in version 26.4.0."
+    !!! version-changed "Changed in version 26.4.0"
         All arguments apart from `session`, `qpu`, and `qubits` are now keyword
         arguments.
 
@@ -120,8 +120,10 @@ def experiment_workflow(
             The temporary parameters to update the qubits with.
         options:
             The options for building the workflow.
-            In addition to options from [WorkflowOptions], the following
+            In addition to options from
+            [WorkflowOptions][laboneq.workflow.WorkflowOptions], the following
             custom options are supported:
+
             - create_experiment: The options for creating the experiment.
 
     Returns:
@@ -132,13 +134,14 @@ def experiment_workflow(
         options = experiment_workflow.options()
         options.count(2**9)
         options.delay_between_measurements(1e-6)
+        # QPU from a two-qubit device setup
         qpu = QPU(
-            qubits=[TunableTransmonQubit("q0"), TunableTransmonQubit("q1")],
+            quantum_elements=TunableTransmonQubit.from_device_setup(setup),
             quantum_operations=TunableTransmonOperations(),
         )
         qubits = qpu.quantum_elements
         temporary_parameters = {}
-        for q in qubits_to_measure:
+        for q in qubits:
             temp_pars = deepcopy(q.parameters)
             temporary_parameters[q.uid] = temp_pars
         result = experiment_workflow(
@@ -151,13 +154,13 @@ def experiment_workflow(
         ```
     """
     temp_qpu = temporary_qpu(qpu, temporary_parameters)
-    qubits = temporary_quantum_elements_from_qpu(temp_qpu, qubits)
-    exp = create_experiment(qpu, qubits)
+    temp_qubits = temporary_quantum_elements_from_qpu(temp_qpu, qubits)
+    exp = create_experiment(temp_qpu, temp_qubits)
     compiled_exp = compile_experiment(session, exp)
     result = run_experiment(session, compiled_exp)
     with if_(options.do_analysis):
-        analysis_results = measurement_qndness.analysis_workflow(result, qubits)
-    return_(analysis_results.output)
+        measurement_qndness.analysis_workflow(result, temp_qubits)
+    return_(result)
 
 
 @task
@@ -177,28 +180,30 @@ def create_experiment(
             qubit or a list of qubits.
         options:
             The options for building the experiment.
-            See [QNDnessExperimentOptions] and [BaseExperimentOptions] for
-            accepted options.
+            See [QNDnessExperimentOptions][] and
+            [BaseExperimentOptions][laboneq_applications.experiments.options.BaseExperimentOptions]
+            for accepted options.
 
     Returns:
         Experiment: The generated LabOne Q experiment instance to be compiled
-        and executed.
+            and executed.
 
     Example:
         ```python
-        options = QNDnessExperimentOptions()
+        # QPU from a two-qubit device setup
         qpu = QPU(
-            qubits=[q1, q2],
+            quantum_elements=TunableTransmonQubit.from_device_setup(setup),
+            quantum_operations=TunableTransmonOperations(),
         )
+        q0, q1 = qpu["q0"], qpu["q1"]
         create_experiment(
             qpu=qpu,
-            qubits=[q1, q2],
-            options=options,
+            qubits=[q0, q1],
         )
         ```
     """
     # Define the custom options for the experiment
-    qubits = validate_and_convert_qubits_sweeps(qubits)
+    qubits = as_quantum_element_list(qubits)
     opts = QNDnessExperimentOptions() if options is None else options
     qop = qpu.quantum_operations
     max_measure_section_length = qop.measure_section_length(qubits)

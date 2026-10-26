@@ -11,7 +11,29 @@ from laboneq.dsl.quantum import QuantumElement
 from laboneq.workflow import task
 
 if TYPE_CHECKING:
+    from laboneq.dsl.quantum.qpu import QPU
     from laboneq.dsl.quantum.qpu_topology import TopologyEdge
+
+
+@task(save=False)
+def extract_edges_from_qubit_pairs(
+    qpu: QPU,
+    qubit_pair_uids: list[list[str]],
+    *,
+    tag: str,
+) -> list[TopologyEdge]:
+    """Extracts all edges of type tag in the QPU with the qubit pair passed.
+
+    Args:
+        qpu: The QPU where the topology is stored.
+        qubit_pair_uids: The pairs of UIDs for the qubits that will be used as source
+            and target node from the edge, respectively.
+        tag: The edge tag to be searched.
+
+    Returns:
+        The list of extracted edges.
+    """
+    return [qpu.topology[tag, q0, q1] for q0, q1 in qubit_pair_uids]
 
 
 @task(save=False)
@@ -30,8 +52,8 @@ def extract_nodes_from_edges(
 
     Returns:
         The list of extracted nodes. If "all" is selected as a `node_type`, we return a
-        tuple of lists: the first element is the list of source nodes, and the second
-        element is the list of target nodes.
+            tuple of lists: the first element is the list of source nodes, and the
+            second element is the list of target nodes.
 
     Raises:
         TypeError: If `edges` has an invalid type.

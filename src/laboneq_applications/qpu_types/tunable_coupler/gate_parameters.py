@@ -33,6 +33,12 @@ class CzParameters(QuantumParameters):
             Pulse definition for the flux drive on the tunable coupler. Includes
             the pulse ``function`` name (defaults to ``"modulated_flux"``),
             ``amplitude``, ``length`` and parametric-resonance ``frequency``.
+        control_pulse:
+            Optional pulse definition for a fast-flux drive on the qubit flux
+            line. If set, the CZ gate is driven parametrically on the qubit
+            with the higher ge frequency (with the coupler pulse acting as a
+            simultaneous bias) instead of on the coupler. If `None` (the
+            default), the gate is driven on the coupler only.
         control_angle:
             Single-qubit Rz angle applied to the control qubit after the
             flux pulse to correct its acquired dynamic phase.
@@ -42,5 +48,38 @@ class CzParameters(QuantumParameters):
     """
 
     coupler_pulse: dict = attrs.field(factory=_default_coupler_pulse)
+    control_pulse: dict | None = None
     control_angle: float = 0.0
     target_angle: float = 0.0
+
+
+@classformatter
+@attrs.define(kw_only=True)
+class IswapParameters(QuantumParameters):
+    """Edge parameters for an iSWAP gate driven via a tunable coupler.
+
+    Attributes:
+        control_pulse:
+            Pulse definition for the fast-flux drive on the control-qubit
+            flux line. Includes the pulse ``function`` name (defaults to
+            ``"modulated_flux"``), ``amplitude``, ``length`` and
+            parametric-resonance ``frequency``.
+        coupler_pulse:
+            Pulse definition for the flux bias pulse on the tunable coupler.
+    """
+
+    control_pulse: dict = attrs.field(
+        factory=lambda: {
+            "function": "modulated_flux",
+            "amplitude": 0.0,
+            "length": 100e-9,
+            "frequency": 300e6,
+        }
+    )
+    coupler_pulse: dict = attrs.field(
+        factory=lambda: {
+            "function": "const",
+            "amplitude": 0.0,
+            "length": 100e-9,
+        }
+    )

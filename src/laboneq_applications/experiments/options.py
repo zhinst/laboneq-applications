@@ -131,7 +131,7 @@ class TuneupExperimentOptions:
 class ResonatorSpectroscopyExperimentOptions:
     """Base options for the resonator spectroscopy experiment.
 
-    Additional attributes:
+    Attributes:
         use_cw:
             Perform a CW spectroscopy where no measure pulse is played.
             Default: False.
@@ -139,7 +139,9 @@ class ResonatorSpectroscopyExperimentOptions:
             How long to wait after an acquisition in seconds.
             Default: 1e-6.
         acquisition_type:
-            Acquisition type to use for the experiment.
+            Acquisition type to use for the experiment. Use
+            `AcquisitionType.SPECTROSCOPY` on QCCS or `AcquisitionType.INTEGRATION` on
+            ZQCS.
             Default: `AcquisitionType.SPECTROSCOPY`.
     """
 
@@ -192,9 +194,9 @@ class TuneUpWorkflowOptions:
 
 @task_options(base_class=BaseExperimentOptions)
 class QubitSpectroscopyExperimentOptions:
-    """Base options for the resonator spectroscopy experiment.
+    """Base options for the qubit spectroscopy experiment.
 
-    Additional attributes:
+    Attributes:
         spectroscopy_reset_delay:
             How long to wait after an acquisition in seconds.
             Default: 1e-6.
@@ -209,7 +211,7 @@ class QubitSpectroscopyExperimentOptions:
 class TWPASpectroscopyExperimentOptions:
     """Base options for the TWPA spectroscopy experiment.
 
-    Additional attributes:
+    Attributes:
         use_probe_from_ppc:
             Use the probe tone from the SHFPPC instead of the QA out.
             Default: False.
@@ -252,7 +254,7 @@ class TWPASpectroscopyExperimentOptions:
 class TWPATuneUpExperimentOptions:
     """Base options for TWPA Tuneup experiments.
 
-    Additional attributes:
+    Attributes:
         use_probe_from_ppc:
             Use the probe tone from the SHFPPC instead of the QA out.
             Default: False.

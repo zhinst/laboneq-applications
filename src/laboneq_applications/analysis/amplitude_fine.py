@@ -36,7 +36,7 @@ from laboneq_applications.analysis.plotting_helpers import (
     plot_raw_complex_data_1d,
     timestamped_title,
 )
-from laboneq_applications.core.validation import validate_and_convert_qubits_sweeps
+from laboneq_applications.conversion import as_quantum_element_list
 
 if TYPE_CHECKING:
     import lmfit
@@ -62,11 +62,11 @@ def analysis_workflow(
 
     The workflow consists of the following steps:
 
-    - [calculate_qubit_population]()
-    - [fit_data]()
-    - [extract_qubit_parameters]()
-    - [plot_raw_complex_data_1d]()
-    - [plot_population]()
+    - [calculate_qubit_population][]
+    - [fit_data][]
+    - [extract_qubit_parameters][]
+    - [plot_raw_complex_data_1d][]
+    - [plot_population][]
 
     Arguments:
         result:
@@ -90,7 +90,7 @@ def analysis_workflow(
             str that defines the qubit parameter to be updated.
         options:
             The options for building the workflow, passed as an instance of
-                [TuneUpAnalysisWorkflowOptions]. See the docstring of this class
+                [TuneUpAnalysisWorkflowOptions][]. See the docstring of this class
                 for more information.
 
     Returns:
@@ -101,14 +101,13 @@ def analysis_workflow(
         ```python
         options = analysis_workflow.options()
         options.close_figures(False)
-        result = analysis_workflow(
-            results=results
+        analysis_result = analysis_workflow(
+            result=result,
             qubits=[q0, q1],
-            amplification_qop='x180',
-            repetitions=[
-                [1,2,3,4],
-                [1,2,3,4],
-            ],
+            amplification_qop="x180",
+            target_angle=np.pi,
+            phase_offset=-np.pi / 2,
+            repetitions=[[1, 2, 3, 4], [1, 2, 3, 4]],
             options=options,
         ).run()
         ```
@@ -182,14 +181,14 @@ def fit_data(
         phase_offset:
             initial guess for phase_offset of fit.
         options:
-            The options class for this task as an instance of [FitDataOptions]. See
+            The options class for this task as an instance of [FitDataOptions][]. See
             the docstring of this class for accepted options.
 
     Returns:
         dict with qubit UIDs as keys and the fit results for each qubit as keys.
     """
     opts = FitDataOptions() if options is None else options
-    qubits = validate_and_convert_qubits_sweeps(qubits)
+    qubits = as_quantum_element_list(qubits)
     fit_results = {}
     if not opts.do_fitting:
         return fit_results
@@ -244,15 +243,15 @@ def process_fit_results(
             target angle the specified quantum operation shuould rotate.
             The target_angle is used as initial guess for fitting.
         options:
-            The options class for this task as an instance of [DoFittingOption].
+            The options class for this task as an instance of [DoFittingOption][].
             See the docstring of this class for accepted options.
 
     Returns:
         dict with qubit UIDs as keys and the processed fit results for each qubit
-        as keys.
+            as keys.
     """
     opts = DoFittingOption() if options is None else options
-    qubits = validate_and_convert_qubits_sweeps(qubits)
+    qubits = as_quantum_element_list(qubits)
     processed_fit_results = {}
     if not opts.do_fitting:
         return processed_fit_results
@@ -291,31 +290,29 @@ def extract_qubit_parameters(
             str that defines the parameter to be updated.
         options:
             The options for extracting the qubit parameters.
-            See [ExtractQubitParametersTransitionOptions] for accepted options.
+            See [ExtractQubitParametersTransitionOptions][] for accepted options.
 
     Returns:
         dict with extracted qubit parameters and the previous values for those qubit
-        parameters. The dictionary has the following form:
-        ```python
-        {
-            "new_parameter_values": {
-                q.uid: {
-                    qb_param_name: qb_param_value
+            parameters. The dictionary has the following form:
+
+            ```python
+            {
+                "new_parameter_values": {
+                    q.uid: {qb_param_name: qb_param_value},
+                },
+                "old_parameter_values": {
+                    q.uid: {qb_param_name: qb_param_value},
                 },
             }
-            "old_parameter_values": {
-                q.uid: {
-                    qb_param_name: qb_param_value
-                },
-            }
-        }
-        ```
+            ```
+
     Raises:
         ValueError:
             If fit_results are empty (have length 0).
     """
     opts = ExtractQubitParametersTransitionOptions() if options is None else options
-    qubits = validate_and_convert_qubits_sweeps(qubits)
+    qubits = as_quantum_element_list(qubits)
     qubit_parameters = {
         "old_parameter_values": {q.uid: {} for q in qubits},
         "new_parameter_values": {q.uid: {} for q in qubits},
@@ -388,14 +385,14 @@ def plot_population(
         qubit_parameters: the qubit-parameters dictionary returned by
             extract_qubit_parameters
         options:
-            The options class for this task as an instance of [PlotPopulationOptions].
+            The options class for this task as an instance of [PlotPopulationOptions][].
             See the docstring of this class for accepted options.
 
     Returns:
         dict with qubit UIDs as keys and the figures for each qubit as values.
     """
     opts = PlotPopulationOptions() if options is None else options
-    qubits = validate_and_convert_qubits_sweeps(qubits)
+    qubits = as_quantum_element_list(qubits)
     figures = {}
     for q in qubits:
         sweep_points = processed_data_dict[q.uid]["sweep_points"]

@@ -413,7 +413,7 @@ class BosonicQubitOperations(dsl.QuantumOperations):
         angle: float | SweepParameter | None,
         n: int = 0,
         amplitude: float | SweepParameter | None = None,
-        phase: float = 0.0,
+        phase: float | SweepParameter = 0.0,
         increment_oscillator_phase: float | SweepParameter | None = None,
         length: float | SweepParameter | None = None,
         pulse: dict | None = None,
@@ -887,8 +887,8 @@ class BosonicQubitOperations(dsl.QuantumOperations):
     def swap(
         self,
         q: BosonicQubit,
-        length: float | None = None,
-        amplitude: float | None = None,
+        length: float | SweepParameter | None = None,
+        amplitude: float | SweepParameter | None = None,
         pulse: dict | None = None,
     ) -> None:
         """Apply the transmon ↔ memory SWAP via a DC flux pulse.
@@ -951,14 +951,17 @@ class BosonicQubitOperations(dsl.QuantumOperations):
 
             SNAP(θₙ) = Rx(π, n) · R_φ(π, n)
 
-        where the drive phase of the second pulse is:
+        where the drive phase of the second pulse inverts the
+        calibrated line θₙ(φ) = slope · φ + intercept:
 
-            φ = θₙ + snap_drive_phase_per_n[str(n)]
+            φ = (θₙ - snap_drive_phase_per_n[str(n)])
+                · snap_drive_phase_slope_sign_per_n[str(n)]
 
-        The calibrated amplitudes and phase offsets are read from
-        ``q.parameters.snap_drive_amp_per_n`` and
-        ``q.parameters.snap_drive_phase_per_n``, populated by the
-        SNAP calibration workflow.
+        The calibrated amplitudes, phase offsets and slope signs are
+        read from ``q.parameters.snap_drive_amp_per_n``,
+        ``q.parameters.snap_drive_phase_per_n`` and
+        ``q.parameters.snap_drive_phase_slope_sign_per_n``, populated
+        by the SNAP calibration workflow.
 
         Fock states whose target phase is effectively zero
         (mod 2π, within ``phase_tolerance``) are skipped — no
@@ -992,9 +995,10 @@ class BosonicQubitOperations(dsl.QuantumOperations):
 
         Raises:
             ValueError:
-                If ``snap_drive_amp_per_n`` or
-                ``snap_drive_phase_per_n`` is missing a required
-                photon number.
+                If ``snap_drive_amp_per_n``,
+                ``snap_drive_phase_per_n`` or
+                ``snap_drive_phase_slope_sign_per_n`` is missing a
+                required photon number.
 
         Example::
 
@@ -1013,14 +1017,16 @@ class BosonicQubitOperations(dsl.QuantumOperations):
                     f"n={n} is not calibrated. Run snap_calibration (Part 1) to "
                     "populate snap_drive_amp_per_n."
                 )
-            if str(n) not in q.parameters.snap_drive_phase_per_n:
-                raise ValueError(
-                    f"Qubit {q.uid!r}: SNAP drive phase for photon number "
-                    f"n={n} is not calibrated. Run snap_calibration (Part 2) to "
-                    "populate snap_drive_phase_per_n."
-                )
+            for name in ("snap_drive_phase_per_n", "snap_drive_phase_slope_sign_per_n"):
+                if str(n) not in getattr(q.parameters, name):
+                    raise ValueError(
+                        f"Qubit {q.uid!r}: SNAP drive phase for photon number "
+                        f"n={n} is not calibrated. Run snap_calibration (Part 2) "
+                        f"to populate {name}."
+                    )
             amp_n = q.parameters.snap_drive_amp_per_n[str(n)]
             phase_offset_n = q.parameters.snap_drive_phase_per_n[str(n)]
+            slope_sign_n = q.parameters.snap_drive_phase_slope_sign_per_n[str(n)]
 
             # First selective π pulse (reference phase = 0)
             self.rx.omit_section(
@@ -1030,13 +1036,15 @@ class BosonicQubitOperations(dsl.QuantumOperations):
                 amplitude=amp_n,
             )
 
-            # Second selective π pulse (encodes θₙ via drive phase)
+            # Second selective π pulse (encodes θₙ via drive phase). Same
+            # amplitude and direction as in the SNAP calibration, so the
+            # calibrated line θₙ(φ) can be inverted directly.
             self.rx.omit_section(
                 q,
                 angle=None,
                 n=n,
-                amplitude=-amp_n,
-                phase=theta_n + phase_offset_n,
+                amplitude=amp_n,
+                phase=(theta_n - phase_offset_n) * slope_sign_n,
             )
 
     # -----------------------------------------------------------------

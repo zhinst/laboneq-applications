@@ -40,12 +40,15 @@ from laboneq_applications.analysis.plotting_helpers import (
     plot_raw_complex_data_2d,
     timestamped_title,
 )
+from laboneq_applications.conversion import as_quantum_element_list
 from laboneq_applications.core.validation import (
-    validate_and_convert_qubits_sweeps,
-    validate_and_extract_edges_from_qubit_pairs,
+    validate_flux_driven_edges,
 )
 from laboneq_applications.qpu_types.tunable_coupler import TunableCoupler
-from laboneq_applications.tasks import extract_nodes_from_edges
+from laboneq_applications.tasks import (
+    extract_edges_from_qubit_pairs,
+    extract_nodes_from_edges,
+)
 
 if TYPE_CHECKING:
     import lmfit
@@ -63,13 +66,20 @@ if TYPE_CHECKING:
 class FitDataZZCouplingStrengthOptions:
     """Options for the `fit_data` task of the ZZ coupling strength analysis.
 
-    See [FitDataOptions] for additional accepted options.
+    See [FitDataOptions][] for additional accepted options.
 
     Attributes:
+        transition:
+            Transition to perform the experiment on. May be any
+            transition supported by the quantum operations.
+            Default: `"ge"`.
         do_pca:
             Whether to perform principal component analysis on the raw data independent
             of whether there were calibration traces in the experiment.
             Default: `False`.
+        use_cal_traces:
+            Whether to include calibration traces in the experiment.
+            Default: `True`.
     """
 
     transition: Literal["ge", "ef"] = workflow.option_field(
@@ -99,14 +109,16 @@ def analysis_workflow(
     """The ZZ coupling strength analysis workflow.
 
     The workflow consists of the following steps:
-    - [validate_and_extract_edges_from_qubit_pairs]()
-    - [extract_nodes_from_edges]()
-    - [calculate_qubit_population]()
-    - [fit_data]()
-    - [extract_edge_parameters]()
-    - [plot_fitted_frequencies]()
-    - [plot_raw_complex_data_2d]()
-    - [plot_population2d]()
+
+    - [extract_edges_from_qubit_pairs][]
+    - [validate_flux_driven_edges][]
+    - [extract_nodes_from_edges][]
+    - [calculate_qubit_population_2d][]
+    - [fit_data][]
+    - [extract_edge_parameters][]
+    - [plot_fitted_frequencies][]
+    - [plot_raw_complex_data_2d][]
+    - [plot_population][]
 
     Arguments:
         result:
@@ -124,11 +136,12 @@ def analysis_workflow(
             experiment.
         options:
             The options for building the workflow, passed as an instance of
-                [TuneUpAnalysisWorkflowOptions].
-            In addition to options from [WorkflowOptions], the following
+                [TuneUpAnalysisWorkflowOptions][].
+            In addition to options from
+            [WorkflowOptions][laboneq.workflow.WorkflowOptions], the following
             custom options are supported: `do_fitting`, `do_plotting`, and the options
-            of the [TuneupAnalysisOptions] class. See the docstring of
-            [TuneUpAnalysisWorkflowOptions] for more details.
+            of the [TuneUpAnalysisWorkflowOptions][] class. See the docstring of
+            [TuneUpAnalysisWorkflowOptions][] for more details.
 
     Returns:
         WorkflowBuilder:
@@ -136,21 +149,26 @@ def analysis_workflow(
 
     Example:
         ```python
-        options = TuneUpAnalysisWorkflowOptions()
-        result = analysis_workflow(
-            results=results
+        qpu = QPU(
+            quantum_elements=TunableTransmonQubit.from_device_setup(setup),
+            quantum_operations=TunableTransmonOperations(),
+        )
+        analysis_result = analysis_workflow(
+            result=result,
             qpu=qpu,
             qubit_pairs=[["q0", "q1"]],
             biases=[np.linspace(-0.1, 0.1, 21)],
             delays=[np.linspace(0, 10e-6, 51)],
-            options=options,
         ).run()
         ```
     """
     # extract edges and sweep parameters from result
-    edges = validate_and_extract_edges_from_qubit_pairs(
-        qpu, "coupler", qubit_pairs, element_class=TunableCoupler
+    edges = extract_edges_from_qubit_pairs(
+        qpu,
+        qubit_pairs,
+        tag="coupler",
     )
+    validate_flux_driven_edges(edges)
 
     qubits_source = extract_nodes_from_edges(edges, "source")
     qubits_target = extract_nodes_from_edges(edges, "target")
@@ -220,14 +238,14 @@ def fit_data(
             and the sweep points of the experiment.
         options:
             The options for building the workflow as an instance of
-            [FitDataZZCouplingsOptions]. See the docstrings of this class
+            [FitDataZZCouplingStrengthOptions][]. See the docstrings of this class
             for more details.
 
     Returns:
         Dictionary with qubit UIDs as keys and the fit results for each qubit as values.
     """
     opts = FitDataZZCouplingStrengthOptions() if options is None else options
-    qubits = validate_and_convert_qubits_sweeps(qubits)
+    qubits = as_quantum_element_list(qubits)
 
     fit_results = {}
     if not opts.do_fitting:
@@ -307,24 +325,21 @@ def plot_population(
         qubits:
             The qubits on which to run the task. May be either a single qubit or
             a list of qubits. The UIDs of these qubits must exist in
-            `processed_data_dict`, `fit_results` and `qubit_parameters`.
+            `processed_data_dict`.
         processed_data_dict:
             The processed data dictionary returned by `process_raw_data`.
         options:
-            The options for processing the raw data.
-            See [PlotPopulationOptions], ?[TuneupExperimentOptions]? and
-            [BaseExperimentOptions] for accepted options.
-            Overwrites the options from [PlotPopulationOptions],
-            [TuneupExperimentOptions] and [BaseExperimentOptions].
+            The options for creating the plots.
+            See [PlotPopulationOptions][] for accepted options.
 
     Returns:
         Dictionary with qubit UIDs as keys and the figures for each qubit as values.
 
-        If a qubit UID is not found in `fit_results`, the fit and the textbox with the
-        extracted qubit parameters are not plotted.
+            If a qubit UID is not found in `fit_results`, the fit and the textbox with
+            the extracted qubit parameters are not plotted.
     """
     opts = PlotPopulationOptions() if options is None else options
-    qubits = validate_and_convert_qubits_sweeps(qubits)
+    qubits = as_quantum_element_list(qubits)
 
     figures = {}
     for q in qubits:
@@ -384,29 +399,27 @@ def extract_edge_parameters(
         fit_results: The fit-results dictionary returned by `fit_data`.
         options:
             The options for extracting the qubit parameters.
-            See [ExtractEdgeParameterOptions] for accepted options.
+            See [ExtractEdgeParametersOptions][] for accepted options.
 
     Returns:
         Dictionary with extracted tunable coupler parameters and the previous values
-        for those tunable coupler parameters. The dictionary has the following form:
-        ```python
-        {
-            "new_parameter_values": {
-                c.uid: {
-                    tc_param_name: tc_param_value
+            for those tunable coupler parameters. The dictionary has the following form:
+
+            ```python
+            {
+                "new_parameter_values": {
+                    c.uid: {tc_param_name: tc_param_value},
+                },
+                "old_parameter_values": {
+                    c.uid: {tc_param_name: tc_param_value},
                 },
             }
-            "old_parameter_values": {
-                c.uid: {
-                    tc_param_name: tc_param_value
-                },
-            }
-        }
-        ```
-        If the `do_fitting` option is False, the `new_parameter_values` are not
-        extracted and the function only returns the `old_parameter_values`.
-        If a qubit UID is not found in `fit_results`, the `new_parameter_values` entry
-        for that qubit is left empty.
+            ```
+
+            If the `do_fitting` option is False, the `new_parameter_values` are not
+            extracted and the function only returns the `old_parameter_values`. If a
+            qubit UID is not found in `fit_results`, the `new_parameter_values` entry
+            for that qubit is left empty.
     """
     opts = ExtractEdgeParametersOptions() if options is None else options
     couplers: ArrayLike[TunableCoupler] = [e.quantum_element for e in edges]
@@ -420,10 +433,10 @@ def extract_edge_parameters(
         # Extract biases
         biases = processed_data_dict[q.uid]["sweep_points_2d"]
 
-        # Store the previous coupler flux_voltage_offset
+        # Store the previous coupler flux_offset_voltage
         old_flux_offset_voltage = c.parameters.flux_offset_voltage
         edge_parameters["old_parameter_values"][c.uid] = {
-            "flux_voltage_offset": old_flux_offset_voltage
+            "flux_offset_voltage": old_flux_offset_voltage
         }
 
         if opts.do_fitting and q.uid in fit_results:
@@ -434,10 +447,10 @@ def extract_edge_parameters(
                 key=lambda i: fits_array[i].params["frequency"].value,
             )
 
-            best_flux_voltage_offset = biases[best_fit_index]
+            best_flux_offset_voltage = biases[best_fit_index]
 
             edge_parameters["new_parameter_values"][c.uid] = {
-                "flux_voltage_offset": best_flux_voltage_offset,
+                "flux_offset_voltage": best_flux_offset_voltage,
             }
 
     return edge_parameters
@@ -459,7 +472,7 @@ def plot_fitted_frequencies(
             visualization in the plot.
         options:
             The options for extracting the qubit parameters.
-            See [PlotPopulationOptions] for accepted options.
+            See [PlotPopulationOptions][] for accepted options.
     """
     opts = PlotPopulationOptions() if options is None else options
     figures = {}

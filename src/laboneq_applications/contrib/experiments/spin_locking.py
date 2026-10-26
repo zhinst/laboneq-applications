@@ -26,7 +26,7 @@ from laboneq.workflow.tasks import (
     run_experiment,
 )
 
-from laboneq_applications.core import validation
+from laboneq_applications.conversion import sweeps_per_quantum_element
 from laboneq_applications.experiments.options import (
     TuneupExperimentOptions,
 )
@@ -47,7 +47,7 @@ if TYPE_CHECKING:
 class SpinLockingExperimentOptions:
     """Base options for the spin locking experiment.
 
-    Additional attributes:
+    Attributes:
         pulse:
             Dictionary to define the pulse parameters for the spin locking pulse.
     """
@@ -88,20 +88,20 @@ def experiment_workflow(
 
     The workflow consists of the following steps:
 
-    - [create_experiment]()
-    - [compile_experiment]()
-    - [run_experiment]()
+    - [create_experiment][]
+    - [compile_experiment][]
+    - [run_experiment][]
 
-    !!! version-removed "Removed in version 26.7.0."
+    !!! version-removed "Removed in version 26.7.0"
         The `qubits` argument of type `QuantumElements` has been removed.
         Please pass `qubits` of type `list[str] | str` instead, i.e., the quantum
         element UIDs instead of the quantum element instances.
 
-    !!! version-changed "Changed in version 26.4.0."
+    !!! version-changed "Changed in version 26.4.0"
         All arguments apart from `session`, `qpu`, and `qubits` are now keyword
         arguments.
 
-    !!! version-changed "Changed in version 26.1.0."
+    !!! version-changed "Changed in version 26.1.0"
         The `temporary_parameters` positional argument was added in the
         penultimate position. Note that this is a breaking change if
         calling the experiment workflow with the `options` positional argument.
@@ -125,9 +125,11 @@ def experiment_workflow(
             The temporary parameters to update the qubits with.
         options:
             The options for building the workflow.
-            In addition to options from [WorkflowOptions], the following
+            In addition to options from
+            [WorkflowOptions][laboneq.workflow.WorkflowOptions], the following
             custom options are supported:
-                - create_experiment: The options for creating the experiment.
+
+            - create_experiment: The options for creating the experiment.
 
     Returns:
         result:
@@ -138,24 +140,25 @@ def experiment_workflow(
         options = experiment_workflow.options()
         options.count(10)
         options.transition("ge")
+        # QPU from a two-qubit device setup
         qpu = QPU(
-            qubits=[TunableTransmonQubit("q0"), TunableTransmonQubit("q1")],
+            quantum_elements=TunableTransmonQubit.from_device_setup(setup),
             quantum_operations=TunableTransmonOperations(),
         )
         result = experiment_workflow(
             session=session,
             qpu=qpu,
             qubits=["q0", "q1"],
-            lengths=[[1e-6, 5e-6, 10e-6]], [1e-6, 5e-6, 10e-6]],
+            lengths=[[1e-6, 5e-6, 10e-6], [1e-6, 5e-6, 10e-6]],
             options=options,
         ).run()
         ```
     """
     temp_qpu = temporary_qpu(qpu, temporary_parameters)
-    qubits = temporary_quantum_elements_from_qpu(temp_qpu, qubits)
+    temp_qubits = temporary_quantum_elements_from_qpu(temp_qpu, qubits)
     exp = create_experiment(
-        qpu,
-        qubits,
+        temp_qpu,
+        temp_qubits,
         lengths=lengths,
         rel_amp=rel_amp,
     )
@@ -189,10 +192,11 @@ def create_experiment(
             the pi pulse amplitude of the specified transition.
         options:
             The options for building the experiment.
-            See [SpinLockingExperimentOptions] and [BaseExperimentOptions] for
-            accepted options.
-            Overwrites the options from [TuneupExperimentOptions] and
-            [BaseExperimentOptions].
+            See [SpinLockingExperimentOptions][] and
+            [BaseExperimentOptions][laboneq_applications.experiments.options.BaseExperimentOptions]
+            for accepted options.
+            Overwrites the options from [TuneupExperimentOptions][] and
+            [BaseExperimentOptions][laboneq_applications.experiments.options.BaseExperimentOptions].
 
     Returns:
         experiment:
@@ -209,26 +213,25 @@ def create_experiment(
             "transition": "ge",
             "averaging_mode": "cyclic",
             "acquisition_type": "integration_trigger",
-            "cal_traces": True,
+            "use_cal_traces": True,
         }
-        options = TuneupExperimentOptions(**options)
-        setup = DeviceSetup()
+        options = SpinLockingExperimentOptions(**options)
+        # QPU from a two-qubit device setup
         qpu = QPU(
-            setup=DeviceSetup("my_device"),
-            qubits=[TunableTransmonQubit("q0"), TunableTransmonQubit("q1")],
+            quantum_elements=TunableTransmonQubit.from_device_setup(setup),
             quantum_operations=TunableTransmonOperations(),
         )
+        q0, q1 = qpu["q0"], qpu["q1"]
         create_experiment(
             qpu=qpu,
-            qubits=["q0", "q1"],
-            lengths=[[1e-6, 5e-6, 10e-6], [1e-6, 5e-6, 10e-6]]
+            qubits=[q0, q1],
+            lengths=[[1e-6, 5e-6, 10e-6], [1e-6, 5e-6, 10e-6]],
             options=options,
         )
         ```
     """
     # Define the custom options for the experiment
     opts = SpinLockingExperimentOptions() if options is None else options
-    qubits, lengths = validation.validate_and_convert_qubits_sweeps(qubits, lengths)
     angle = rel_amp * np.pi if rel_amp is not None else np.pi
 
     qop = qpu.quantum_operations
@@ -240,7 +243,7 @@ def create_experiment(
         repetition_time=opts.repetition_time,
         reset_oscillator_phase=opts.reset_oscillator_phase,
     ):
-        for q, q_lengths in zip(qubits, lengths, strict=False):
+        for q, q_lengths in sweeps_per_quantum_element(qubits, lengths):
             with dsl.sweep(
                 name=f"length_{q.uid}",
                 parameter=SweepParameter(f"length_{q.uid}", q_lengths),
@@ -294,8 +297,8 @@ def gaussian_square_sweep(
             Whether to zero the pulse at the boundaries
 
     Keyword Arguments:
-        uid ([str][]): Unique identifier of the pulse
-        amplitude ([float][]): Amplitude of the pulse
+        uid (`str`): Unique identifier of the pulse
+        amplitude (`float`): Amplitude of the pulse
 
     Returns:
         pulse (Pulse): Gaussian square pulse.

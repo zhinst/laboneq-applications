@@ -35,12 +35,14 @@ from laboneq_applications.analysis.options import (
     TuneUpAnalysisWorkflowOptions,
 )
 from laboneq_applications.analysis.plotting_helpers import timestamped_title
+from laboneq_applications.conversion import as_quantum_element_list
 from laboneq_applications.core.validation import (
-    validate_and_convert_qubits_sweeps,
-    validate_and_extract_edges_from_qubit_pairs,
+    validate_flux_driven_edges,
 )
-from laboneq_applications.qpu_types.tunable_coupler import TunableCoupler
-from laboneq_applications.tasks import extract_nodes_from_edges
+from laboneq_applications.tasks import (
+    extract_edges_from_qubit_pairs,
+    extract_nodes_from_edges,
+)
 
 if TYPE_CHECKING:
     import matplotlib as mpl
@@ -69,11 +71,11 @@ def analysis_workflow(
 
     The workflow consists of the following steps:
 
-    - [calculate_qubit_population]() for target qubits (handle ``_0``)
-    - [calculate_qubit_population]() for source qubits (handle ``_1``)
-    - [fit_phase_oscillations]()
-    - [extract_edge_parameters]()
-    - [plot_population]()
+    - [calculate_qubit_population][] for target qubits (handle ``_0``)
+    - [calculate_qubit_population][] for source qubits (handle ``_1``)
+    - [fit_phase_oscillations][]
+    - [extract_edge_parameters][]
+    - [plot_population][]
 
     Arguments:
         result:
@@ -86,15 +88,18 @@ def analysis_workflow(
             RZ phase sweep points per qubit pair.
         options:
             The options for building the workflow, passed as an instance of
-            [TuneUpAnalysisWorkflowOptions].
+            [TuneUpAnalysisWorkflowOptions][].
 
     Returns:
         WorkflowBuilder:
             The builder for the analysis workflow.
     """
-    edges = validate_and_extract_edges_from_qubit_pairs(
-        qpu, "cz", qubit_pairs, element_class=TunableCoupler
+    edges = extract_edges_from_qubit_pairs(
+        qpu,
+        qubit_pairs,
+        tag="cz",
     )
+    validate_flux_driven_edges(edges)
     qubits_target = extract_nodes_from_edges(edges, "target")
     qubits_source = extract_nodes_from_edges(edges, "source")
 
@@ -169,17 +174,17 @@ def fit_phase_oscillations(
 
     Returns:
         Dictionary keyed by qubit UID (string). Each qubit gets its own entry
-        containing its fit results and the UID of its paired qubit:
+            containing its fit results and the UID of its paired qubit:
 
-        - ``phase_offset``: fitted φ₀ (rad), or NaN.
-        - ``phase_offset_err``: uncertainty of φ₀ (rad), or NaN.
-        - ``amplitude``: fitted amplitude A.
-        - ``phases``: phase sweep points.
-        - ``population``: measured population.
-        - ``paired_uid``: UID of the other qubit in the pair.
+            - ``phase_offset``: fitted φ₀ (rad), or NaN.
+            - ``phase_offset_err``: uncertainty of φ₀ (rad), or NaN.
+            - ``amplitude``: fitted amplitude A.
+            - ``phases``: phase sweep points.
+            - ``population``: measured population.
+            - ``paired_uid``: UID of the other qubit in the pair.
     """
-    qubits_target = validate_and_convert_qubits_sweeps(qubits_target)
-    qubits_source = validate_and_convert_qubits_sweeps(qubits_source)
+    qubits_target = as_quantum_element_list(qubits_target)
+    qubits_source = as_quantum_element_list(qubits_source)
 
     def _fit_single(phases: np.ndarray, population: np.ndarray) -> dict:
         """Fit one population vs phase trace, return phase offset and amplitude."""
@@ -246,14 +251,14 @@ def extract_edge_parameters(
         edges:
             The topology edges of the calibrated qubit pairs.
         fit_results:
-            Output of [fit_phase_oscillations](), keyed by qubit UID.
+            Output of [fit_phase_oscillations][], keyed by qubit UID.
 
     Returns:
         Dictionary with ``new_parameter_values`` and ``old_parameter_values``,
-        each keyed by ``("cz", source_uid, target_uid)`` and containing the
-        parameter paths ``"target_angle"`` (phase correction for the target qubit)
-        and ``"control_angle"`` (phase correction for the source qubit), compatible
-        with ``qpu.update()``.
+            each keyed by ``("cz", source_uid, target_uid)`` and containing the
+            parameter paths ``"target_angle"`` (phase correction for the target qubit)
+            and ``"control_angle"`` (phase correction for the source qubit), compatible
+            with ``qpu.update()``.
     """
     edge_parameters = {
         "old_parameter_values": {
@@ -312,7 +317,7 @@ def plot_population(
         processed_data_source:
             Population data for source qubits.
         fit_results:
-            Output of [fit_phase_oscillations]().
+            Output of [fit_phase_oscillations][].
         options:
             Plot options (save, close figures).
 
@@ -320,8 +325,8 @@ def plot_population(
         Dictionary keyed by ``"source_uid-target_uid"`` with figures as values.
     """
     opts = PlotPopulationOptions() if options is None else options
-    qubits_target = validate_and_convert_qubits_sweeps(qubits_target)
-    qubits_source = validate_and_convert_qubits_sweeps(qubits_source)
+    qubits_target = as_quantum_element_list(qubits_target)
+    qubits_source = as_quantum_element_list(qubits_source)
     figures = {}
 
     for q_t, q_s in zip(qubits_target, qubits_source, strict=False):

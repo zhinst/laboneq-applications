@@ -1,4 +1,4 @@
-# experiments
+# analysis
 
 This is the `laboneq_applications.analysis` reference documentation.
 
@@ -15,6 +15,8 @@ This is the `laboneq_applications.analysis` reference documentation.
 * [dispersive_shift](dispersive_shift.md)
 * [iq_blobs](iq_blobs.md)
 * [time_traces](time_traces.md)
+* [spectroscopy_two_dimensional_plotting](spectroscopy_two_dimensional_plotting.md)
 * [calibration_traces_rotation](calibration_traces_rotation.md)
 * [fitting_helpers](fitting_helpers.md)
 * [plotting_helpers](plotting_helpers.md)
+* [options](options.md)
