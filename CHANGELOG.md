@@ -1,3 +1,10 @@
+# laboneq_applications 26.10.0 (2026-10-29)
+
+## Features
+
+- Added the ZQCS tunable transmon demo platform, available as `demo_platform(n_qubits, leader_instrument="ZQCS")` in `laboneq_applications.qpu_types.tunable_transmon`.
+
+
 # laboneq_applications 26.10.0b4 (2026-10-16)
 
 ## Features

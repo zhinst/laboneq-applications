@@ -3,12 +3,12 @@
 
 """Tunable transmon qubit device setups for testing and demonstration."""
 
-from typing import Literal
+from typing import TYPE_CHECKING, Literal
 
 import numpy as np
 from laboneq.dsl.calibration import Oscillator, SignalCalibration
 from laboneq.dsl.device import DeviceSetup, create_connection
-from laboneq.dsl.device.instruments import HDAWG, PQSC, QHUB, SHFQC
+from laboneq.dsl.device.instruments import HDAWG, PQSC, QHUB, SHFQC, ZQCS
 from laboneq.dsl.device.instruments.shfqa import SHFQA
 from laboneq.dsl.enums import ModulationType
 from laboneq.dsl.quantum.qpu import QPU, QuantumPlatform
@@ -19,16 +19,24 @@ from .qubit_types import (
     TunableTransmonQubitParameters,
 )
 
+if TYPE_CHECKING:
+    from zhinst_zqcs.dsl.device.setup_descriptions_zqcs import SetupDescriptionZQCS
+
+# ZQCS hardware constants
+_GLOBAL_DELAY = 5e-6
+_QA_START_DELAY = 40e-9
+_RO_INT_DELAY = 456.0e-9
+
 
 def demo_platform(
     n_qubits: int,
-    leader_instrument: Literal["PQSC", "QHub"] = "PQSC",
+    leader_instrument: Literal["PQSC", "QHub", "ZQCS"] = "PQSC",
     *,
     readout_multiplex: bool = True,
 ) -> QuantumPlatform:
     """Return a demo tunable transmon QPU with the specified number of qubits.
 
-    The returned setup consists of:
+    With a PQSC or QHub leader, the returned setup consists of:
 
     - 1 leader instrument (PQSC or QHub)
     - N SHFQC (for the qubit drive and measurement lines)
@@ -47,6 +55,10 @@ def demo_platform(
     share a multiplexed readout line. Otherwise every qubit is given its
     own measure and acquire channel.
 
+    With a ZQCS leader, the setup consists of a single ZQCS instrument and
+    requires the `zhinst_zqcs` package. If `readout_multiplex` is `True`,
+    all qubits share one readout line.
+
     Arguments:
         n_qubits:
             Number of qubits to include in the QPU.
@@ -62,10 +74,16 @@ def demo_platform(
         The number of qubits, `n_qubits`, may be arbitrarily large.
         In earlier versions, it was allowed to be at most six.
     """
-    setup = tunable_transmon_setup(
-        n_qubits, leader_instrument, readout_multiplex=readout_multiplex
-    )
-    qubits = tunable_transmon_qubits(n_qubits, setup)
+    if leader_instrument == "ZQCS":
+        setup = tunable_transmon_setup_zqcs(
+            n_qubits, readout_multiplex=readout_multiplex
+        )
+        qubits = tunable_transmon_qubits_zqcs(setup)
+    else:
+        setup = tunable_transmon_setup(
+            n_qubits, leader_instrument, readout_multiplex=readout_multiplex
+        )
+        qubits = tunable_transmon_qubits(n_qubits, setup)
     quantum_operations = TunableTransmonOperations()
     qpu = QPU(qubits, quantum_operations=quantum_operations)
     return QuantumPlatform(setup=setup, qpu=qpu)
@@ -270,6 +288,98 @@ def tunable_transmon_setup(
     return setup
 
 
+def tunable_transmon_setup_zqcs(
+    n_qubits: int,
+    *,
+    readout_multiplex: bool = True,
+) -> DeviceSetup:
+    """Return a tunable transmon device setup for ZQCS.
+
+    The setup carries a setup description of its node cards, as a system would
+    report it. Requires the `zhinst_zqcs` package.
+
+    Arguments:
+        n_qubits: The number of qubits.
+        readout_multiplex: Whether to multiplex the measure and acquire lines.
+
+    Returns:
+        The device setup.
+    """
+    if n_qubits < 1:
+        raise ValueError(
+            "This testing and demonstration setup requires at least one qubit.",
+        )
+
+    setup = DeviceSetup("zqcs_setup")
+    setup.add_instruments(ZQCS(uid="zqcs", address="http://localhost/shelfdemo"))
+
+    delays = {
+        "drive": _GLOBAL_DELAY,
+        "drive_ef": _GLOBAL_DELAY,
+        "measure": _GLOBAL_DELAY + _QA_START_DELAY,
+        "acquire": _GLOBAL_DELAY + _QA_START_DELAY + _RO_INT_DELAY,
+        "flux": _GLOBAL_DELAY,
+    }
+    for i in range(n_qubits):
+        qubit = f"q{i}"
+        drive_port = f"1:2:3:{i + 1}"
+        qa_slot = 2 if readout_multiplex else i + 2
+        setup.add_connections(
+            "zqcs",
+            create_connection(to_signal=f"{qubit}/drive", ports=drive_port, type="iq"),
+            create_connection(
+                to_signal=f"{qubit}/drive_ef", ports=drive_port, type="iq"
+            ),
+            create_connection(
+                to_signal=f"{qubit}/measure", ports=f"1:{qa_slot}:4:1", type="iq"
+            ),
+            create_connection(
+                to_signal=f"{qubit}/acquire", ports=f"1:{qa_slot}:4:3", type="acquire"
+            ),
+            create_connection(
+                to_signal=f"{qubit}/flux", ports=f"1:2:1:{i + 1}", type="rf"
+            ),
+        )
+        for line, delay in delays.items():
+            setup.logical_signal_by_uid(
+                f"{qubit}/{line}"
+            ).calibration = SignalCalibration(delay_signal=delay)
+
+    setup.setup_description = _setup_description_zqcs(
+        n_qubits, readout_multiplex=readout_multiplex
+    )
+    return setup
+
+
+def _setup_description_zqcs(
+    n_qubits: int, *, readout_multiplex: bool
+) -> "SetupDescriptionZQCS":
+    """Describes the node cards that the demo layout occupies."""
+    from zhinst_zqcs.emulation.setup_description import (
+        Frontend,
+        NodeCard,
+        emulated_setup_description,
+    )
+
+    cards = [
+        NodeCard(
+            slot=2,
+            frontends={
+                1: Frontend.FLUX,
+                2: Frontend.FLUX,
+                3: Frontend.SG,
+                4: Frontend.QA,
+            },
+        )
+    ]
+    if not readout_multiplex:
+        cards += [
+            NodeCard(slot=slot, frontends={4: Frontend.QA})
+            for slot in range(3, n_qubits + 2)
+        ]
+    return emulated_setup_description(cards)
+
+
 def tunable_transmon_qubits(
     n_qubits: int,
     setup: DeviceSetup,
@@ -299,12 +409,6 @@ def tunable_transmon_qubits(
         The list of qubits.
     """
 
-    def q_param(
-        i: int, base: float, unit: float = 1.0, dq: float = 0.01, max_: float = np.inf
-    ) -> float:
-        """Tweak qubit parameter a tiny amount to distinguish them."""
-        return min((base + i * dq) * unit, max_)
-
     qubits = []
     for i in range(n_qubits):
         q = TunableTransmonQubit.from_logical_signal_group(
@@ -315,21 +419,21 @@ def tunable_transmon_qubits(
                 # The LO advances in 200 MHz steps (SHF hardware constraint).
                 # Convert to integer, otherwise some configurations
                 #   may encounter issues with LabOne Q compiler
-                drive_lo_frequency=int(q_param(i // 20, 6.4, 1e9, dq=0.2, max_=7.2e9)),
-                resonance_frequency_ge=q_param(i, 6.5, 1e9, dq=0.01, max_=7.0e9),
-                resonance_frequency_ef=q_param(i, 6.3, 1e9, dq=0.01, max_=7.0e9),
+                drive_lo_frequency=int(_q_param(i // 20, 6.4, 1e9, dq=0.2, max_=7.2e9)),
+                resonance_frequency_ge=_q_param(i, 6.5, 1e9, dq=0.01, max_=7.0e9),
+                resonance_frequency_ef=_q_param(i, 6.3, 1e9, dq=0.01, max_=7.0e9),
                 readout_lo_frequency=7e9,
-                readout_resonator_frequency=q_param(i, 7.1, 1e9, dq=0.01, max_=7.9e9),
-                ge_drive_amplitude_pi=q_param(i, 0.8, max_=1.0),
-                ge_drive_amplitude_pi2=q_param(i, 0.4, max_=1.0),
+                readout_resonator_frequency=_q_param(i, 7.1, 1e9, dq=0.01, max_=7.9e9),
+                ge_drive_amplitude_pi=_q_param(i, 0.8, max_=1.0),
+                ge_drive_amplitude_pi2=_q_param(i, 0.4, max_=1.0),
                 ge_drive_length=51e-9,
                 ge_drive_pulse={
                     "function": "drag",
                     "beta": 0.01,
                     "sigma": 0.21,
                 },
-                ef_drive_amplitude_pi=q_param(i, 0.7, max_=1.0),
-                ef_drive_amplitude_pi2=q_param(i, 0.3, max_=1.0),
+                ef_drive_amplitude_pi=_q_param(i, 0.7, max_=1.0),
+                ef_drive_amplitude_pi2=_q_param(i, 0.3, max_=1.0),
                 ef_drive_length=52e-9,
                 ef_drive_pulse={
                     "function": "drag",
@@ -341,3 +445,57 @@ def tunable_transmon_qubits(
         qubits.append(q)
 
     return qubits
+
+
+def tunable_transmon_qubits_zqcs(setup: DeviceSetup) -> list[TunableTransmonQubit]:
+    """Return demo tunable transmon device qubits for ZQCS.
+
+    Arguments:
+        setup: The device setup.
+
+    Returns:
+        The list of qubits.
+    """
+
+    qubits = []
+    for i, (q_uid, signal_group) in enumerate(setup.logical_signal_groups.items()):
+        q = TunableTransmonQubit.from_logical_signal_group(
+            q_uid,
+            signal_group,
+            parameters=TunableTransmonQubitParameters(
+                drive_lo_frequency=int(_q_param(i // 20, 6.4, 1e9, dq=0.2, max_=8.4e9)),
+                resonance_frequency_ge=_q_param(i, 6.5, 1e9),
+                resonance_frequency_ef=_q_param(i, 6.3, 1e9),
+                readout_lo_frequency=7e9,
+                readout_resonator_frequency=_q_param(i, 7.1, 1e9),
+                ge_drive_amplitude_pi=_q_param(i, 0.8, max_=1.0),
+                ge_drive_amplitude_pi2=_q_param(i, 0.4, max_=1.0),
+                ge_drive_length=51e-9,
+                ge_drive_pulse={
+                    "function": "drag",
+                    "beta": 0.01,
+                    "sigma": 0.21,
+                },
+                ef_drive_amplitude_pi=_q_param(i, 0.7, max_=1.0),
+                ef_drive_amplitude_pi2=_q_param(i, 0.3, max_=1.0),
+                ef_drive_length=52e-9,
+                ef_drive_pulse={
+                    "function": "drag",
+                    "beta": 0.01,
+                    "sigma": 0.21,
+                },
+                spectroscopy_amplitude=0.0005,
+                readout_amplitude=0.2,
+                readout_integration_discrimination_thresholds=[0.0],
+            ),
+        )
+        qubits.append(q)
+
+    return qubits
+
+
+def _q_param(
+    i: int, base: float, unit: float = 1.0, dq: float = 0.01, max_: float = np.inf
+) -> float:
+    """Tweak qubit parameter a tiny amount to distinguish them."""
+    return min((base + i * dq) * unit, max_)

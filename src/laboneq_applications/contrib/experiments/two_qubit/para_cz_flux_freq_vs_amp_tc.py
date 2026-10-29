@@ -273,4 +273,3 @@ def create_experiment(
         calibration[
             e.quantum_element.signals["flux"]
         ].voltage_offset = e.quantum_element.parameters.flux_offset_voltage
-        calibration[e.quantum_element.signals["flux"]].range = 1.0
