@@ -6,7 +6,7 @@ build-backend = "setuptools.build_meta"
 name = "laboneq_applications"
 description = "Library of LabOne Q experiments, analysis functions, and more."
 # Always the version of laboneq, set by `ci/scripts/set_version.py` and `just bump-version`.
-version = "26.10.0"
+version = "26.10.1"
 license = { text = "Apache 2.0" }
 requires-python = ">=3.10"
 readme = "README.md"
@@ -30,7 +30,7 @@ classifiers = [
   "Topic :: Scientific/Engineering",
 ]
 dependencies = [
-  "laboneq ~= 26.10.0",
+  "laboneq ~= 26.10.1",
   "typing_extensions >= 4.5.0",
   "uncertainties >= 3.2.2",
   "numpy >= 2",

@@ -1,3 +1,8 @@
+# laboneq_applications 26.10.1 (2026-11-06)
+
+No significant changes.
+
+
 # laboneq_applications 26.10.0 (2026-10-29)
 
 ## Features
